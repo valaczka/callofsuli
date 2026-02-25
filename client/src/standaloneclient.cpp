@@ -30,10 +30,13 @@
 #include "qquickwindow.h"
 #include "qscreen.h"
 #include "application.h"
+#include "offlineclientengine.h"
 #include <QSettings>
 
 #if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
 #include "mobileutils.h"
+#else
+#include "desktoputils.h"
 #endif
 
 
@@ -66,7 +69,6 @@ StandaloneClient::StandaloneClient(Application *app)
 	s.beginGroup(QStringLiteral("sound"));
 	setVibrate(s.value(QStringLiteral("vibrate"), true).toBool());
 	s.endGroup();
-
 
 }
 
@@ -121,18 +123,20 @@ void StandaloneClient::onMainWindowChanged()
 	m_mainWindow->showMaximized();
 #endif
 
+#if QT_VERSION >= 0x060900
+
+#	if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+	m_mainWindow->setFlags(m_mainWindow->flags() | Qt::ExpandedClientAreaHint | Qt::NoTitleBarBackgroundHint);
+#	endif
+
+	connect(m_mainWindow, &QWindow::safeAreaMarginsChanged, this, [this](const QMargins &){ safeMarginsGet(); });
+#endif
+
 	if (!m_mainWindow->screen())
 		return;
 
 	connect(m_mainWindow->screen(), &QScreen::primaryOrientationChanged, this, &StandaloneClient::onOrientationChanged);
 
-#if QT_VERSION >= 0x060900
-	connect(m_mainWindow, &QWindow::safeAreaMarginsChanged, this, [this](const QMargins &){ safeMarginsGet(); });
-
-	m_mainWindow->setFlag(Qt::ExpandedClientAreaHint);
-	m_mainWindow->setFlag(Qt::NoTitleBarBackgroundHint);
-
-#endif
 }
 
 
@@ -143,7 +147,7 @@ void StandaloneClient::onMainWindowChanged()
 
 void StandaloneClient::onOrientationChanged(Qt::ScreenOrientation orientation)
 {
-	LOG_CTRACE("client") << "Screen orientation changed:" << orientation;
+	LOG_CDEBUG("client") << "Screen orientation changed:" << orientation;
 
 	safeMarginsGet();
 }
@@ -182,19 +186,27 @@ void StandaloneClient::onStartPageLoaded()
 
 	}
 
-	if (QNetworkInformation::instance() &&
-			QNetworkInformation::instance()->reachability() != QNetworkInformation::Reachability::Online)
-		return;
+
+	// Init servers
+
+	for (Server *s : *m_serverList) {
+		if (s->offlineEngine())
+			s->offlineEngine()->initEngine(this);
+	}
 
 
-	authorizedServersGet();
+	bool hasNetwork = QNetworkInformation::instance() &&
+			QNetworkInformation::instance()->reachability() == QNetworkInformation::Reachability::Online;
 
+	if (hasNetwork)
+		authorizedServersGet();
 
-	for (Server *s : *m_serverList)
+	for (Server *s : *m_serverList) {
 		if (s->autoConnect()) {
 			connectToServer(s);
 			break;
 		}
+	}
 }
 
 
@@ -405,6 +417,22 @@ void StandaloneClient::setAuthorizedServers(const QVariantList &newAuthorizedSer
 
 
 
+/**
+ * @brief StandaloneClient::msecSinceBoot
+ * @return
+ */
+
+quint64 StandaloneClient::msecSinceBoot()
+{
+#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+	return MobileUtils::msecSinceBoot();
+#else
+	return DesktopUtils::msecSinceBoot();
+#endif
+}
+
+
+
 
 
 
@@ -493,6 +521,9 @@ Server *StandaloneClient::serverAdd()
 		delete server;
 		return nullptr;
 	}
+
+	if (server->offlineEngine())
+		server->offlineEngine()->initEngine(this);
 
 	m_serverList->append(server);
 

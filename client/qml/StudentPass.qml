@@ -114,28 +114,46 @@ Item {
                 }
             }
 
-            Row {
+            Column {
                 id: _labelResult
 
                 anchors.verticalCenter: parent.verticalCenter
 
-                spacing: 5
+                spacing: -7
 
-                Repeater {
-                    model: pass ? pass.gradeList : null
+                Row {
+                    anchors.right: parent.right
 
-                    delegate: Label {
-                        anchors.verticalCenter: parent.verticalCenter
+                    spacing: 5
 
-                        text: modelData.shortname
-                        color: Qaterial.Colors.red700
-                        font.family: Qaterial.Style.textTheme.headline5.family
-                        font.pixelSize: Qaterial.Style.textTheme.headline5.pixelSize
-                        font.capitalization: Font.AllUppercase
-                        font.weight: Font.Bold
-                        topPadding: 5
-                        bottomPadding: 5
+                    Repeater {
+                        model: pass ? pass.gradeList : null
+
+                        delegate: Label {
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            text: modelData.shortname
+                            color: Qaterial.Colors.red700
+                            font.family: Qaterial.Style.textTheme.headline5.family
+                            font.pixelSize: Qaterial.Style.textTheme.headline5.pixelSize
+                            font.capitalization: Font.AllUppercase
+                            font.weight: Font.Bold
+                            topPadding: 5
+                            bottomPadding: 5
+                        }
                     }
+                }
+
+                Qaterial.LabelBody2 {
+                    anchors.right: parent.right
+                    color: Qaterial.Colors.black
+
+                    visible: pass
+
+                    text: pass ?
+                              "<b>" + pass.round(pass.pts) + "</b> / " + pass.maxPts + qsTr(" pt") +
+                              (pass.result>=0 ? " (" + pass.round(pass.result*100)+"%)" : "") :
+                              ""
                 }
             }
 

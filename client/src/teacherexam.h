@@ -29,6 +29,7 @@
 
 
 #include "exam.h"
+#include "exampaper.h"
 #include "gamemap.h"
 #include "qjsonarray.h"
 #include "QPageSize"
@@ -38,8 +39,8 @@
 #include "qjsonobject.h"
 #include "teachergroup.h"
 #include "examresultmodel.h"
+#include "examscandata.h"
 #include <QObject>
-#include <selectableobject.h>
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
 #include "QOlm/QOlm.hpp"
@@ -59,116 +60,6 @@
 #ifdef WITH_OMR
 #include "qprocess.h"
 #endif
-
-/**
- * @brief The ExamScanData class
- */
-
-class ExamScanData : public SelectableObject
-{
-	Q_OBJECT
-
-	Q_PROPERTY(QString path READ path WRITE setPath NOTIFY pathChanged FINAL)
-	Q_PROPERTY(ScanFileState state READ state WRITE setState NOTIFY stateChanged FINAL)
-	Q_PROPERTY(int examId READ examId WRITE setExamId NOTIFY examIdChanged FINAL)
-	Q_PROPERTY(int contentId READ contentId WRITE setContentId NOTIFY contentIdChanged FINAL)
-	Q_PROPERTY(QJsonObject result READ result WRITE setResult NOTIFY resultChanged FINAL)
-	Q_PROPERTY(QString outputPath READ outputPath WRITE setOutputPath NOTIFY outputPathChanged FINAL)
-	Q_PROPERTY(QJsonArray serverAnswer READ serverAnswer WRITE setServerAnswer NOTIFY serverAnswerChanged FINAL)
-	Q_PROPERTY(QJsonArray correction READ correction WRITE setCorrection NOTIFY correctionChanged FINAL)
-	Q_PROPERTY(QString username READ username WRITE setUsername NOTIFY usernameChanged FINAL)
-	Q_PROPERTY(bool upload READ upload WRITE setUpload NOTIFY uploadChanged FINAL)
-	Q_PROPERTY(int maxPoint READ maxPoint WRITE setMaxPoint NOTIFY maxPointChanged FINAL)
-	Q_PROPERTY(int point READ point WRITE setPoint NOTIFY pointChanged FINAL)
-	Q_PROPERTY(int gradeId READ gradeId WRITE setGradeId NOTIFY gradeIdChanged FINAL)
-
-public:
-	explicit ExamScanData(QObject *parent = nullptr);
-
-	enum ScanFileState {
-		ScanFileLoaded,
-		ScanFileReadQR,
-		ScanFileReadingOMR,
-		ScanFileInvalid,
-		ScanFileError,
-		ScanFileFinished
-	};
-
-	Q_ENUM(ScanFileState);
-
-	QString path() const;
-	void setPath(const QString &newPath);
-
-	ScanFileState state() const;
-	void setState(const ScanFileState &newState);
-
-	int examId() const;
-	void setExamId(int newExamId);
-
-	int contentId() const;
-	void setContentId(int newContentId);
-
-	QJsonObject result() const;
-	void setResult(const QJsonObject &newResult);
-
-	QString outputPath() const;
-	void setOutputPath(const QString &newOutputPath);
-
-	QJsonArray serverAnswer() const;
-	void setServerAnswer(const QJsonArray &newServerAnswer);
-
-	QString username() const;
-	void setUsername(const QString &newUsername);
-
-	bool upload() const;
-	void setUpload(bool newUpload);
-
-	QJsonArray correction() const;
-	void setCorrection(const QJsonArray &newCorrection);
-
-	int maxPoint() const;
-	void setMaxPoint(int newMaxPoint);
-
-	int point() const;
-	void setPoint(int newPoint);
-
-	int gradeId() const;
-	void setGradeId(int newGradeId);
-
-signals:
-	void pathChanged();
-	void stateChanged();
-	void examIdChanged();
-	void contentIdChanged();
-	void resultChanged();
-	void outputPathChanged();
-	void serverAnswerChanged();
-	void usernameChanged();
-	void uploadChanged();
-	void correctionChanged();
-	void maxPointChanged();
-	void pointChanged();
-	void gradeIdChanged();
-
-private:
-	QString m_path;
-	ScanFileState m_state = ScanFileLoaded;
-	int m_examId = -1;
-	int m_contentId = -1;
-	QJsonObject m_result;
-	QString m_outputPath;
-	QJsonArray m_serverAnswer;
-	QJsonArray m_correction;
-	QString m_username;
-	bool m_upload = false;
-	int m_maxPoint = 0;
-	int m_point = 0;
-	int m_gradeId = -1;
-};
-
-
-using ExamScanDataList = qolm::QOlm<ExamScanData>;
-Q_DECLARE_METATYPE(ExamScanDataList*)
 
 
 
@@ -349,6 +240,7 @@ public:
 
 	Q_ENUM(ScanState);
 
+
 	void createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfConfig);
 
 	Q_INVOKABLE void createPdf(const QList<ExamUser *> &list, const QVariantMap &pdfConfig);
@@ -421,6 +313,8 @@ public:
 	GradingConfig *gradingConfig() const;
 	void setGradingConfig(GradingConfig *newGradingConfig);
 
+
+
 signals:
 	void examListReloadRequest();
 	void virtualListPicked(QList<ExamUser*> list);
@@ -476,18 +370,7 @@ private:
 
 	void scanDataAppend(const QString &filename);
 
-	static QVector<int> letterToOptions(const QString &options) {
-		QVector<int> list;
-		for (const QChar &ch : options)
-			list.append(m_optionLetters.indexOf(ch));
-		return list;
-	}
 
-	static QVector<int> letterToOptions(const QJsonObject &data, const int &number) {
-		return letterToOptions(data.value(QStringLiteral("q")+QString::number(number)).toString());
-	}
-
-	static const QString m_optionLetters;
 	static const QStringList m_nonNumberedModules;
 	static const QStringList m_numberedModules;
 

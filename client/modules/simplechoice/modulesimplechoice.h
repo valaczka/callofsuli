@@ -29,6 +29,7 @@
 
 
 #include "../interfaces.h"
+#include "../mergeblock/modulemergeblock.h"
 #include <QObject>
 #include <QtPlugin>
 
@@ -54,7 +55,13 @@ public:
 
 	inline QStringList storageModules() const override {
 		static const QStringList l = {
-			QStringLiteral("numbers"), QStringLiteral("binding"), QStringLiteral("block"), QStringLiteral("images")
+			QStringLiteral("numbers"),
+			QStringLiteral("binding"),
+			QStringLiteral("block"),
+			QStringLiteral("images"),
+			QStringLiteral("mergebinding"),
+			QStringLiteral("mergeblock"),
+			QStringLiteral("sequence"),
 		};
 		return l;
 	}
@@ -67,11 +74,17 @@ public:
 	qreal xpFactor() const override { return 1.1; };
 
 	QVariantList generateBinding(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
+	QVariantList generateMergeBinding(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
 	QVariantList generateImages(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
 	QVariantList generateBlock(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
-	QVariantList generateBlockContains(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
-	QVariantList generateBlockSimple(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
-	QVariantList generateBlockQuiz(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
+	QVariantList generateMergeBlock(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
+
+	QVariantList generateBlockContains(const QVariantMap &data, const ModuleMergeblock::BlockUnion &blocks, StorageSeed *seed) const;
+	QVariantList generateBlockExclude(const QVariantMap &data, const ModuleMergeblock::BlockUnion &blocks, StorageSeed *seed) const;
+	QVariantList generateBlockSimple(const QVariantMap &data, const ModuleMergeblock::BlockUnion &blocks, StorageSeed *seed) const;
+	QVariantList generateBlockQuiz(const QVariantMap &data, const ModuleMergeblock::BlockUnion &blocks, StorageSeed *seed) const;
+
+	QVariantList generateSequence(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
 	QVariantMap generateOne(const QString &correctAnswer, QStringList optionsList, const int &maxOptions) const;
 
 	QVariantMap preview(const QVariantList &generatedList, const QVariantMap &commonData) const override;

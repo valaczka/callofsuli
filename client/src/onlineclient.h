@@ -69,6 +69,7 @@ signals:
 private:
 	QStringList m_resourceList;
 	bool m_demoMode = false;
+	static inline QByteArrayList m_resources = {};
 };
 
 

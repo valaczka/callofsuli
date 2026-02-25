@@ -916,6 +916,29 @@ int SeedDuplexHelper::getSubB(const QList<int> &list) const
 
 
 
+/**
+ * @brief SeedDuplexHelper::getAllSubB
+ * @param from
+ * @param to
+ * @return
+ */
+
+QList<int> SeedDuplexHelper::getAllSubB(const int &from, const int &to) const
+{
+	Q_ASSERT(to>from);
+
+	QList<int> list;
+
+	for (int i=from; i<to; ++i) {
+		if (!m_dataB.contains(i))
+			list.emplace_back(i);
+	}
+
+	return list;
+}
+
+
+
 
 
 /**

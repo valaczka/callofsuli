@@ -166,6 +166,39 @@ QVariantMap ModuleSimplechoice::details(const QVariantMap &data, ModuleInterface
 		m[QStringLiteral("image")] = QString();
 
 		return m;
+	} else if (storage->name() == QStringLiteral("mergebinding") || storage->name() == QStringLiteral("mergeblock")) {
+		const QStringList usedSections = data.value(QStringLiteral("sections")).toStringList();
+		const QVariantList &sections = storageData.value(QStringLiteral("sections")).toList();
+
+		QStringList answers;
+
+		for (int i=0; i<sections.size(); ++i) {
+			QVariantMap m = sections.at(i).toMap();
+			const QString &key = m.value(QStringLiteral("key")).toString();
+
+			if (!usedSections.contains(key))
+				continue;
+
+			answers.append(m.value(QStringLiteral("name")).toString());
+		}
+
+		QVariantMap m;
+		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
+		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
+		m[QStringLiteral("image")] = QString();
+
+		return m;
+	} else if (storage->name() == QStringLiteral("sequence")) {
+		QStringList answers = storageData.value(QStringLiteral("items")).toStringList();;
+
+		QVariantMap m;
+		m[QStringLiteral("title")] = data.value(QStringLiteral("questionMin")).toString()+
+									 QStringLiteral(" | ")+
+									 data.value(QStringLiteral("questionMax")).toString();
+		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
+		m[QStringLiteral("image")] = QString();
+
+		return m;
 	}
 
 	return QVariantMap({{QStringLiteral("title"), QString()},
@@ -219,6 +252,15 @@ QVariantList ModuleSimplechoice::generateAll(const QVariantMap &data, ModuleInte
 
 	if (storage->name() == QStringLiteral("block"))
 		return generateBlock(data, storageData, seed);
+
+	if (storage->name() == QStringLiteral("mergeblock"))
+		return generateMergeBlock(data, storageData, seed);
+
+	if (storage->name() == QStringLiteral("mergebinding"))
+		return generateMergeBinding(data, storageData, seed);
+
+	if (storage->name() == QStringLiteral("sequence"))
+		return generateSequence(data, storageData, seed);
 
 
 	return QVariantList();
@@ -281,6 +323,87 @@ QVariantList ModuleSimplechoice::generateBinding(const QVariantMap &data, const 
 		retMap.insert(generateOne(isBindToRight ? left : right, alist, maxOptions));
 
 		helper.append(retMap, i+1, i+1);
+	}
+
+	return helper.getVariantList(true);
+}
+
+
+
+
+/**
+ * @brief ModuleSimplechoice::generateMergeBinding
+ * @param data
+ * @param storageData
+ * @param seed
+ * @return
+ */
+
+QVariantList ModuleSimplechoice::generateMergeBinding(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
+{
+	bool isBindToRight = data.value(QStringLiteral("mode")).toString() == QStringLiteral("right");
+	QString question = data.value(QStringLiteral("question")).toString();
+	const int maxOptions = data.value(QStringLiteral("maxOptions")).toInt();
+
+	const QStringList usedSections = data.value(QStringLiteral("sections")).toStringList();
+	const QVariantList &sections = storageData.value(QStringLiteral("sections")).toList();
+
+	SeedDuplexHelper helper(seed, isBindToRight ? SEED_BINDING_RIGHT : SEED_BINDING_LEFT,
+							isBindToRight ? SEED_BINDING_LEFT: SEED_BINDING_RIGHT);
+
+	struct Data {
+		QString left;
+		QString right;
+		int idx = 0;
+	};
+
+	QList<Data> list;
+
+	for (int i=0; i<sections.size(); ++i) {
+		QVariantMap m = sections.at(i).toMap();
+		const QString &key = m.value(QStringLiteral("key")).toString();
+
+		if (!usedSections.contains(key))
+			continue;
+
+		const QVariantList &l = m.value(QStringLiteral("bindings")).toList();
+
+		for (int j = 0; j<l.size(); ++j) {
+			QVariantMap m = l.at(j).toMap();
+			QString left = m.value(QStringLiteral("first")).toString();
+			QString right = m.value(QStringLiteral("second")).toString();
+
+			if (left.isEmpty() || right.isEmpty())
+				continue;
+
+			list.append(Data{.left = left, .right = right, .idx = (i+1)*1000+j+1});
+		}
+	}
+
+	for (const Data &d : list) {
+		QVariantMap retMap;
+
+		if (question.isEmpty())
+			retMap[QStringLiteral("question")] = (isBindToRight ? d.right : d.left);
+		else if (question.contains(QStringLiteral("%1")))
+			retMap[QStringLiteral("question")] = question.arg(isBindToRight ? d.right : d.left);
+		else
+			retMap[QStringLiteral("question")] = question;
+
+		retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+
+		QStringList alist;
+
+		for (const Data &v : list) {
+			if (d.idx == v.idx)
+				continue;
+
+			alist.append(isBindToRight ? v.left : v.right);
+		}
+
+		retMap.insert(generateOne(isBindToRight ? d.left : d.right, alist, maxOptions));
+
+		helper.append(retMap, d.idx, d.idx);
 	}
 
 	return helper.getVariantList(true);
@@ -373,90 +496,199 @@ QVariantList ModuleSimplechoice::generateImages(const QVariantMap &data, const Q
 QVariantList ModuleSimplechoice::generateBlock(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
 {
 	const QString &mode = data.value(QStringLiteral("mode")).toString();
+	const ModuleMergeblock::BlockUnion blocks = ModuleMergeblock::getUnion(storageData.value(QStringLiteral("blocks")).toList());
 
 	if (mode == QStringLiteral("simple"))
-		return generateBlockSimple(data, storageData, seed);
+		return generateBlockSimple(data, blocks, seed);
 	else if (mode == QStringLiteral("contains"))
-		return generateBlockContains(data, storageData, seed);
+		return generateBlockContains(data, blocks, seed);
 	else if (mode == QStringLiteral("quiz"))
-		return generateBlockQuiz(data, storageData, seed);
+		return generateBlockQuiz(data, blocks, seed);
+	else if (mode == QStringLiteral("exclude"))
+		return generateBlockExclude(data, blocks, seed);
 
 	return {};
 }
 
 
+
+
 /**
- * @brief ModuleSimplechoice::generateBlockContains
+ * @brief ModuleSimplechoice::generateMergeBlock
  * @param data
  * @param storageData
+ * @param seed
  * @return
  */
 
-QVariantList ModuleSimplechoice::generateBlockContains(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
+QVariantList ModuleSimplechoice::generateMergeBlock(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
+{
+	const QString &mode = data.value(QStringLiteral("mode")).toString();
+
+	const ModuleMergeblock::BlockUnion blocks = ModuleMergeblock::getUnion(
+													storageData.value(QStringLiteral("sections")).toList(),
+													data.value(QStringLiteral("sections")).toStringList()
+													);
+
+	if (mode == QStringLiteral("simple"))
+		return generateBlockSimple(data, blocks, seed);
+	else if (mode == QStringLiteral("contains"))
+		return generateBlockContains(data, blocks, seed);
+	else if (mode == QStringLiteral("quiz"))
+		return generateBlockQuiz(data, blocks, seed);
+	else if (mode == QStringLiteral("exclude"))
+		return generateBlockExclude(data, blocks, seed);
+
+	return {};
+}
+
+
+
+/**
+ * @brief ModuleSimplechoice::generateBlockContains
+ * @param data
+ * @param blocks
+ * @return
+ */
+
+QVariantList ModuleSimplechoice::generateBlockContains(const QVariantMap &data, const ModuleMergeblock::BlockUnion &blocks, StorageSeed *seed) const
 {
 	SeedDuplexHelper helper(seed, SEED_BLOCK_RIGHT, SEED_BLOCK_LEFT);
 
 	const QString &question = data.value(QStringLiteral("question")).toString();
 
-	QVector<QString> bNames;
+	const QStringList bNames = blocks.keys();
 
-	const QVariantList &list = storageData.value(QStringLiteral("blocks")).toList();
+	for (const auto &[left, list] : blocks.asKeyValueRange()) {
+		for (const auto &d : list) {
+			const QStringList &right = d.content;
 
-	for (const QVariant &v : list) {
-		const QVariantMap &m = v.toMap();
-		const QString &left = m.value(QStringLiteral("first")).toString();
-		bNames.append(left);
-	}
-
-
-	for (int idx = 0; idx < list.size(); ++idx) {
-		const QVariantMap &m = list.at(idx).toMap();
-		const QString &left = m.value(QStringLiteral("first")).toString().simplified();
-		const QStringList &right = m.value(QStringLiteral("second")).toStringList();
-
-		if (left.isEmpty() || right.isEmpty())
-			continue;
-
-		QVariantMap retMap;
-
-		for (int i=0; i<right.size(); ++i) {
-			const QString &s = right.at(i).simplified();
-			if (s.isEmpty())
+			if (left.isEmpty() || right.isEmpty())
 				continue;
 
+			for (int i=0; i<right.size(); ++i) {
+				const QString &s = right.at(i).simplified();
+
+				if (s.isEmpty())
+					continue;
+
+				QVariantMap retMap;
+
+				if (question.isEmpty())
+					retMap[QStringLiteral("question")] = s;
+				else if (question.contains(QStringLiteral("%1")))
+					retMap[QStringLiteral("question")] = question.arg(s);
+				else
+					retMap[QStringLiteral("question")] = question;
+
+				retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+
+				QStringList alist;
+
+				for (const QString &opt : bNames) {
+					if (opt == left)
+						continue;
+
+					alist.append(opt);
+				}
+
+				retMap.insert(generateOne(left, alist, data.value(QStringLiteral("maxOptions")).toInt()));
+
+				// Seed main: 2
+				// Seed sub: (block index+1) * 1000 + (answer index + 1)
+
+				const int sub = d.blockidx + i+1;
+
+				helper.append(retMap, sub, d.blockidx);
+			}
+		}
+
+	}
+
+	return helper.getVariantList(true);
+}
+
+
+
+
+/**
+ * @brief ModuleSimplechoice::generateBlockExclude
+ * @param data
+ * @param blocks
+ * @param seed
+ * @return
+ */
+
+QVariantList ModuleSimplechoice::generateBlockExclude(const QVariantMap &data, const ModuleMergeblock::BlockUnion &blocks, StorageSeed *seed) const
+{
+	SeedDuplexHelper helper(seed, SEED_BLOCK_LEFT, SEED_BLOCK_RIGHT);
+
+	const QString &question = data.value(QStringLiteral("question")).toString();
+	const int maxOptions = data.value(QStringLiteral("maxOptions")).toInt();
+
+
+	struct Data {
+		QString answer;
+		int idx = 0;
+	};
+
+
+	for (auto bit = blocks.cbegin(); bit != blocks.cend(); ++bit) {
+		const QString &left = bit.key();
+
+		for (auto it = bit.value().cbegin(); it != bit.value().cend(); ++it) {
+			const QStringList &right = it->content;
+
+			if (left.isEmpty() || right.isEmpty())
+				continue;
+
+			QVariantMap retMap;
+
 			if (question.isEmpty())
-				retMap[QStringLiteral("question")] = s;
+				retMap[QStringLiteral("question")] = left;
 			else if (question.contains(QStringLiteral("%1")))
-				retMap[QStringLiteral("question")] = question.arg(s);
+				retMap[QStringLiteral("question")] = question.arg(left);
 			else
 				retMap[QStringLiteral("question")] = question;
 
 			retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
 
-			QStringList alist;
 
-			for (int i=0; i<bNames.size(); ++i) {
-				if (idx == i)
-					continue;
+			QList<Data> alist;
 
-				const QString &opt = bNames.at(i).simplified();
 
-				if (opt.isEmpty())
-					continue;
+			for (auto bit2 = blocks.cbegin(); bit2 != blocks.cend(); ++bit2) {
+				for (auto it2 = bit2.value().cbegin(); it2 != bit2.value().cend(); ++it2) {
+					if (bit == bit2 && it2 == it)
+						continue;
 
-				alist.append(opt);
+					const QString &wleft = bit2.key();
+					const QStringList &wright = it2->content;
+
+					if (wleft.isEmpty() || wright.isEmpty())
+						continue;
+
+					const int offset = it2->blockidx+1;
+
+					const QList<int> idxList = helper.getAllSubB(offset, offset+wright.size());
+
+					for (const int &idx : idxList) {
+						const int real = idx - offset;
+
+						alist.append(Data{.answer = wright.at(real), .idx = idx});
+					}
+				}
 			}
 
-			retMap.insert(generateOne(left, alist, data.value(QStringLiteral("maxOptions")).toInt()));
+			if (alist.isEmpty())
+				continue;
 
-			// Seed main: 2
-			// Seed sub: (block index+1) * 1000 + (answer index + 1)
+			const Data &d = alist.at(QRandomGenerator::global()->bounded(alist.size()));
 
-			const int sub = (idx+1)*1000 + i+1;
+			retMap.insert(generateOne(d.answer, right, maxOptions));
+			helper.append(retMap, it->blockidx, d.idx);
 
-			helper.append(retMap, sub, idx+1);
 		}
-
 	}
 
 	return helper.getVariantList(true);
@@ -470,11 +702,11 @@ QVariantList ModuleSimplechoice::generateBlockContains(const QVariantMap &data, 
 /**
  * @brief ModuleSimplechoice::generateBlockSimple
  * @param data
- * @param storageData
+ * @param blocks
  * @return
  */
 
-QVariantList ModuleSimplechoice::generateBlockSimple(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
+QVariantList ModuleSimplechoice::generateBlockSimple(const QVariantMap &data, const ModuleMergeblock::BlockUnion &blocks, StorageSeed *seed) const
 {
 	SeedDuplexHelper helper(seed, SEED_BLOCK_LEFT, SEED_BLOCK_RIGHT);
 
@@ -482,52 +714,50 @@ QVariantList ModuleSimplechoice::generateBlockSimple(const QVariantMap &data, co
 	const int maxOptions = data.value(QStringLiteral("maxOptions")).toInt();
 
 
-	const QVariantList &list = storageData.value(QStringLiteral("blocks")).toList();
+	for (auto bit = blocks.cbegin(); bit != blocks.cend(); ++bit) {
+		const QString &left = bit.key();
 
-	for (auto it = list.constBegin(); it != list.constEnd(); ++it) {
-		const QVariantMap &m = it->toMap();
-		const QString &left = m.value(QStringLiteral("first")).toString().simplified();
+		for (auto it = bit.value().cbegin(); it != bit.value().cend(); ++it) {
+			const QStringList &right = it->content;
 
-		const QStringList &right = m.value(QStringLiteral("second")).toStringList();
-
-		if (left.isEmpty() || right.isEmpty())
-			continue;
-
-		QVariantMap retMap;
-
-		if (question.isEmpty())
-			retMap[QStringLiteral("question")] = left;
-		else if (question.contains(QStringLiteral("%1")))
-			retMap[QStringLiteral("question")] = question.arg(left);
-		else
-			retMap[QStringLiteral("question")] = question;
-
-		retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
-
-		const int blockidx = (it-list.constBegin())+1;
-
-		//const int idx = QRandomGenerator::global()->bounded(right.size());
-		const int idx = helper.getSubBOffset(right.size(), blockidx*1000+1);
-		const QString &correct = right.at(idx);
-
-		QStringList alist;
-
-		for (auto it2 = list.constBegin(); it2 != list.constEnd(); ++it2) {
-			if (it2 == it)
+			if (left.isEmpty() || right.isEmpty())
 				continue;
 
-			const QVariantMap &m = it2->toMap();
-			const QStringList &right = m.value(QStringLiteral("second")).toStringList();
+			QVariantMap retMap;
 
-			if (right.isEmpty())
-				continue;
+			if (question.isEmpty())
+				retMap[QStringLiteral("question")] = left;
+			else if (question.contains(QStringLiteral("%1")))
+				retMap[QStringLiteral("question")] = question.arg(left);
+			else
+				retMap[QStringLiteral("question")] = question;
 
-			alist.append(right.at(QRandomGenerator::global()->bounded(right.size())));
+			retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+
+			//const int idx = QRandomGenerator::global()->bounded(right.size());
+			const int idx = helper.getSubBOffset(right.size(), it->blockidx+1);
+			const QString &correct = right.at(idx);
+
+			QStringList alist;
+
+			for (auto bit2 = blocks.cbegin(); bit2 != blocks.cend(); ++bit2) {
+				for (auto it2 = bit2.value().cbegin(); it2 != bit2.value().cend(); ++it2) {
+					if (bit == bit2 && it2 == it)
+						continue;
+
+					const QStringList &right = it2->content;
+
+					if (right.isEmpty())
+						continue;
+
+					alist.append(right.at(QRandomGenerator::global()->bounded(right.size())));
+				}
+			}
+
+			retMap.insert(generateOne(correct, alist, maxOptions));
+
+			helper.append(retMap, it->blockidx, it->blockidx + idx+1);
 		}
-
-		retMap.insert(generateOne(correct, alist, maxOptions));
-
-		helper.append(retMap, blockidx, blockidx*1000 + idx+1);
 	}
 
 	return helper.getVariantList(true);
@@ -538,12 +768,12 @@ QVariantList ModuleSimplechoice::generateBlockSimple(const QVariantMap &data, co
 /**
  * @brief ModuleSimplechoice::generateBlockQuiz
  * @param data
- * @param storageData
+ * @param blocks
  * @param seed
  * @return
  */
 
-QVariantList ModuleSimplechoice::generateBlockQuiz(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const
+QVariantList ModuleSimplechoice::generateBlockQuiz(const QVariantMap &data, const ModuleMergeblock::BlockUnion &blocks, StorageSeed *seed) const
 {
 	SeedDuplexHelper helper(seed, SEED_BLOCK_LEFT, SEED_BLOCK_RIGHT);
 
@@ -551,38 +781,105 @@ QVariantList ModuleSimplechoice::generateBlockQuiz(const QVariantMap &data, cons
 	const int maxOptions = data.value(QStringLiteral("maxOptions")).toInt();
 
 
-	const QVariantList &list = storageData.value(QStringLiteral("blocks")).toList();
+	for (auto bit = blocks.cbegin(); bit != blocks.cend(); ++bit) {
+		const QString &left = bit.key();
 
-	for (auto it = list.constBegin(); it != list.constEnd(); ++it) {
-		const QVariantMap &m = it->toMap();
-		const QString &left = m.value(QStringLiteral("first")).toString().simplified();
+		for (auto it = bit.value().cbegin(); it != bit.value().cend(); ++it) {
+			QStringList right = it->content;
 
-		QStringList right = m.value(QStringLiteral("second")).toStringList();
+			if (left.isEmpty() || right.isEmpty())
+				continue;
 
-		if (left.isEmpty() || right.isEmpty())
-			continue;
+			QVariantMap retMap;
 
-		QVariantMap retMap;
+			if (question.isEmpty())
+				retMap[QStringLiteral("question")] = left;
+			else if (question.contains(QStringLiteral("%1")))
+				retMap[QStringLiteral("question")] = question.arg(left);
+			else
+				retMap[QStringLiteral("question")] = question;
 
-		if (question.isEmpty())
-			retMap[QStringLiteral("question")] = left;
-		else if (question.contains(QStringLiteral("%1")))
-			retMap[QStringLiteral("question")] = question.arg(left);
-		else
-			retMap[QStringLiteral("question")] = question;
+			retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
 
-		retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+			const QString correct = right.takeFirst();
 
-		const int blockidx = (it-list.constBegin())+1;
+			retMap.insert(generateOne(correct, right, maxOptions));
 
-		const QString correct = right.takeFirst();
-
-		retMap.insert(generateOne(correct, right, maxOptions));
-
-		helper.append(retMap, blockidx, blockidx*1000 + 0 + 1);
+			helper.append(retMap, it->blockidx, it->blockidx + 0 + 1);
+		}
 	}
 
 	return helper.getVariantList(true);
+}
+
+
+
+/**
+ * @brief ModuleSimplechoice::generateSequence
+ * @param data
+ * @param storageData
+ * @param seed
+ * @return
+ */
+
+QVariantList ModuleSimplechoice::generateSequence(const QVariantMap &data, const QVariantMap &storageData, StorageSeed */*seed*/) const
+{
+	QString questionMin = data.value(QStringLiteral("questionMin")).toString();
+	QString questionMax = data.value(QStringLiteral("questionMax")).toString();
+	int maxOptions = data.value(QStringLiteral("maxOptions")).toInt();
+
+	if (maxOptions < 2)
+		maxOptions = 2;
+
+	const QStringList &list = storageData.value(QStringLiteral("items")).toStringList();
+
+	if (list.size() < 2)
+		return {};
+
+	QVariantList retList;
+
+	std::vector<int> v(list.size());
+	std::iota (std::begin(v), std::end(v), 0);
+
+	for (int i=0; i<4; ++i) {
+		std::random_device rd;
+		std::mt19937 g(rd());
+		std::shuffle(v.begin(), v.end(), g);
+
+		std::vector<int> curr;
+		curr.reserve(list.size());
+
+		int count = 0;
+		for (auto it=v.cbegin(); it != v.cend() && count<maxOptions ; ++it) {
+			curr.push_back(*it);
+			++count;
+		}
+
+		const bool isMax = (i % 2 == 0);
+
+		std::vector<int>::const_iterator itCorr = isMax ? std::max_element(curr.cbegin(), curr.cend()) :
+														  std::min_element(curr.cbegin(), curr.cend());
+
+		QVariantMap retMap;
+
+
+		retMap[QStringLiteral("question")] = isMax ? questionMax : questionMin;
+		retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+
+		QStringList alist;
+
+		for (auto it = curr.cbegin(); it != curr.cend(); ++it) {
+			if (it == itCorr)
+				continue;
+			alist.append(list.at(*it));
+		}
+
+		retMap.insert(generateOne(list.at(*itCorr), alist, maxOptions));
+
+		retList << retMap;
+	}
+
+	return retList;
 }
 
 

@@ -201,3 +201,8 @@ LIBS += -lcppbinarystream
 # EnTT
 
 INCLUDEPATH += $$PWD/entt/src
+
+
+# QtKeychain
+
+!wasm: include($$PWD/qtkeychain/qtkeychain.pri)

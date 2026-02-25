@@ -52,6 +52,20 @@ class Server;
 using ServerList = qolm::QOlm<Server>;
 Q_DECLARE_METATYPE(ServerList*)
 
+
+
+class OfflineClientEngine;
+
+#ifndef OPAQUE_PTR_OfflineClientEngine
+#define OPAQUE_PTR_OfflineClientEngine
+Q_DECLARE_OPAQUE_POINTER(OfflineClientEngine*)
+#endif
+
+
+/**
+ * @brief The Server class
+ */
+
 class Server : public SelectableObject
 {
 	Q_OBJECT
@@ -61,10 +75,12 @@ class Server : public SelectableObject
 	Q_PROPERTY(QDir directory READ directory WRITE setDirectory NOTIFY directoryChanged)
 	Q_PROPERTY(bool autoConnect READ autoConnect WRITE setAutoConnect NOTIFY autoConnectChanged)
 	Q_PROPERTY(QString token READ token WRITE setToken NOTIFY tokenChanged)
+	Q_PROPERTY(QByteArray sessionId READ sessionId WRITE setSessionId NOTIFY sessionIdChanged FINAL)
 	Q_PROPERTY(QByteArray certificate READ certificate WRITE setCertificate NOTIFY certificateChanged)
 	Q_PROPERTY(QString serverName READ serverName WRITE setServerName NOTIFY serverNameChanged)
 	Q_PROPERTY(QJsonObject config READ config NOTIFY configChanged)
 	Q_PROPERTY(User *user READ user CONSTANT)
+	Q_PROPERTY(OfflineClientEngine *offlineEngine READ offlineEngine CONSTANT FINAL)
 	Q_PROPERTY(QList<Rank> rankList READ rankList NOTIFY rankListChanged)
 	Q_PROPERTY(bool temporary READ temporary WRITE setTemporary NOTIFY temporaryChanged)
 	Q_PROPERTY(int maxUploadSize READ maxUploadSize WRITE setMaxUploadSize NOTIFY maxUploadSizeChanged)
@@ -87,6 +103,15 @@ public:
 			return c1.name == c2.name && c1.md5 == c2.md5 && c1.size == c2.size;
 		}
 	};
+
+	enum NotificationType {
+		NotificationInvalid,
+		NotificationMap,
+		NotificationCharacter,
+	};
+
+	Q_ENUM(NotificationType)
+
 
 	static Server *fromJson(const QJsonObject &data, QObject *parent = nullptr);
 	QJsonObject toJson() const;
@@ -151,7 +176,17 @@ public:
 	bool isStatic() const;
 	void setIsStatic(bool newIsStatic);
 
+	Q_INVOKABLE void checkNotification();
+	Q_INVOKABLE void closeNotification(const NotificationType &type, const int &id);
+
+	QByteArray sessionId() const;
+	void setSessionId(const QByteArray &newSessionId);
+
+	OfflineClientEngine* offlineEngine() const;
+
 signals:
+	void notificationActivated(const NotificationType &type, const int &id, const QString &text);
+
 	void urlChanged();
 	void directoryChanged();
 	void autoConnectChanged();
@@ -166,6 +201,7 @@ signals:
 	void maxUploadSizeChanged();
 	void dynamicContentReadyChanged();
 	void isStaticChanged();
+	void sessionIdChanged();
 
 private:
 	std::optional<QDir> getContentDir() const;
@@ -197,6 +233,11 @@ private:
 #endif
 
 	QStringList m_loadedContentList;
+
+	QHash<QPair<NotificationType, int>, QJsonValue> m_notificationContent;
+	QByteArray m_sessionId;
+
+	std::unique_ptr<OfflineClientEngine> m_offlineEngine;
 };
 
 

@@ -99,6 +99,8 @@ public:
 	Q_INVOKABLE static void settingsSet(const QString &key, const QVariant &value);
 	Q_INVOKABLE static void settingsClear(const QString &key);
 
+	Q_INVOKABLE static QString createUuid();
+
 #ifdef CLIENT_UTILS
 	static const QModelIndex& noParent();
 

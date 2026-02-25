@@ -20,7 +20,7 @@ QPageGradient {
 
 	property bool withResult: false
 
-	property bool _firstRun: true
+	property bool _firstRun: studentMapHandler && !studentMapHandler.offlineEngine
 
 	stackPopFunction: function() {
 		if (!_scrollable.flickable.atYBeginning) {
@@ -31,15 +31,52 @@ QPageGradient {
 		return true
 	}
 
-	appBar.rightComponent: Qaterial.AppBarButton
-	{
-		icon.source: Qaterial.Icons.eye
-		ToolTip.text: qsTr("Eredmények megjelenítése")
-		onClicked: {
-			withResult = true
-			reload()
+	appBar.rightComponent: Row {
+
+		Qaterial.AppBarButton
+		{
+			icon.source: campaign && campaign.offlineState == Campaign.OfflineInvalid ?
+							 Qaterial.Icons.cloudPlus :
+							 Qaterial.Icons.cloudRemoveOutline
+
+			ToolTip.text: campaign && campaign.offlineState == Campaign.OfflineInvalid ?
+							  qsTr("Offline elérhető legyen") :
+							  qsTr("Offline ne legyen elérhető")
+			onClicked: {
+				if (campaign.offlineState == Campaign.OfflineInvalid)
+					Client.server.offlineEngine.getPermit(campaign.campaignid)
+				else {
+					if (!Client.server.offlineEngine.removePermit(campaign.campaignid, false)) {
+						JS.questionDialog(
+									{
+										onAccepted: function()
+										{
+											Client.server.offlineEngine.removePermit(campaign.campaignid, true)
+										},
+										text: qsTr("Szinkronizálatlan játékok találhatók. Biztosan töröljem őket?"),
+										title: qsTr("Offline adatok törlése"),
+										iconSource: Qaterial.Icons.delete_
+									})
+					}
+				}
+
+			}
+
+			visible: Client.server && Client.server.offlineEngine && campaign && !studentMapHandler.offlineEngine &&
+					 Client.server.offlineEngine.engineState != OfflineClientEngine.EngineInvalid
 		}
-		visible: !withResult
+
+
+		Qaterial.AppBarButton
+		{
+			icon.source: Qaterial.Icons.eye
+			ToolTip.text: qsTr("Eredmények megjelenítése")
+			onClicked: {
+				withResult = true
+				reload()
+			}
+			visible: !withResult
+		}
 	}
 
 	// Külön kell, mert nem az összeset jelenítjük meg!
@@ -196,7 +233,7 @@ QPageGradient {
 					case GameMap.Exam:
 						t += qsTr(" [dolgozat]")
 						break
-					/*case GameMap.Conquest:
+						/*case GameMap.Conquest:
 						t += qsTr(" [multiplayer]")
 						break*/
 					default:
@@ -324,8 +361,12 @@ QPageGradient {
 			}
 		}
 
-		if (withResult && campaign)
-			_view.offsetModel.reload()
+		if (withResult && campaign && studentMapHandler) {
+			if (studentMapHandler.offlineEngine)
+				studentMapHandler.offlineEngine.loadCampaignResult(_view.offsetModel, campaign)
+			else
+				_view.offsetModel.reload()
+		}
 	}
 
 }

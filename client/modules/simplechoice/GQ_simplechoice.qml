@@ -116,6 +116,29 @@ GameQuestionComponentImpl {
 				}
 			}
 		}
+
+		function resizeButtons() {
+			let mxh = Qaterial.Style.gameButtonImplicitHeight
+
+			for (let i=0; i<rptr.count; ++i) {
+				let b = rptr.itemAt(i)
+
+				if (!b)
+					continue
+
+				if (b.implicitHeight > mxh)
+					mxh = b.implicitHeight
+			}
+
+			for (let j=0; j<rptr.count; ++j) {
+				let b = rptr.itemAt(j)
+
+				if (!b)
+					continue
+
+				b.height = mxh
+			}
+		}
 	}
 
 
@@ -126,6 +149,13 @@ GameQuestionComponentImpl {
 			id: btn
 			text: modelData
 			width: grid.width
+
+			implicitHeight: Math.max(implicitBackgroundHeight + topInset + bottomInset,
+									 contentItem.labelItem.implicitHeight + topPadding + bottomPadding)
+
+			onImplicitHeightChanged: containerItem.resizeButtons()
+
+			maximumLineCount: 0
 
 			fontFamily: questionData.monospace ? "Ubuntu Mono" : ""
 

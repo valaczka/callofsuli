@@ -124,7 +124,12 @@ void MapEditorMatrixImporter::setMapEditor(MapEditor *newMapEditor)
 void MapEditorMatrixImporter::downloadTemplate(const QUrl &file)
 {
 	if (!m_mapEditor) {
-		Application::instance()->messageInfo(tr("MapEditor hiányzik"), tr("Belső hiba"));
+		Application::instance()->messageError(tr("MapEditor hiányzik"), tr("Belső hiba"));
+		return;
+	}
+
+	if (!m_mapEditor->map()) {
+		Application::instance()->messageError(tr("MapEditorMap hiányzik"), tr("Belső hiba"));
 		return;
 	}
 

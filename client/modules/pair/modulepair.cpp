@@ -119,6 +119,28 @@ QVariantMap ModulePair::details(const QVariantMap &data, ModuleInterface *storag
 
 			list.append(QStringLiteral("%1 [%2]").arg(left, right));
 		}
+	} else if (storage->name() == QStringLiteral("mergebinding") || storage->name() == QStringLiteral("mergeblock")) {
+		const QStringList usedSections = data.value(QStringLiteral("sections")).toStringList();
+		const QVariantList &sections = storageData.value(QStringLiteral("sections")).toList();
+
+		QStringList answers;
+
+		for (int i=0; i<sections.size(); ++i) {
+			QVariantMap m = sections.at(i).toMap();
+			const QString &key = m.value(QStringLiteral("key")).toString();
+
+			if (!usedSections.contains(key))
+				continue;
+
+			answers.append(m.value(QStringLiteral("name")).toString());
+		}
+
+		QVariantMap m;
+		m[QStringLiteral("title")] = data.value(QStringLiteral("question")).toString();
+		m[QStringLiteral("details")] = answers.join(QStringLiteral(", "));
+		m[QStringLiteral("image")] = QString();
+
+		return m;
 	}
 
 
@@ -142,7 +164,7 @@ QVariantMap ModulePair::details(const QVariantMap &data, ModuleInterface *storag
  */
 
 QVariantList ModulePair::generateAll(const QVariantMap &data, ModuleInterface *storage, const QVariantMap &storageData,
-									 QVariantMap *commonDataPtr, StorageSeed */*seed*/) const
+									 QVariantMap *commonDataPtr, StorageSeed *seed) const
 {
 	Q_UNUSED(commonDataPtr);
 
@@ -157,8 +179,17 @@ QVariantList ModulePair::generateAll(const QVariantMap &data, ModuleInterface *s
 		alist = data.value(QStringLiteral("pairs")).toList();
 	else if (storage->name() == QStringLiteral("binding") || storage->name() == QStringLiteral("numbers"))
 		alist = storageData.value(QStringLiteral("bindings")).toList();
-	else if (storage->name() == QStringLiteral("block"))
-		alist = generateBlock(storageData);
+	else if (storage->name() == QStringLiteral("block")) {
+		const ModuleMergeblock::BlockUnion blocks = ModuleMergeblock::getUnion(storageData.value(QStringLiteral("blocks")).toList());
+		alist = generateBlock(blocks);
+	}else if (storage->name() == QStringLiteral("mergeblock")) {
+		const ModuleMergeblock::BlockUnion blocks = ModuleMergeblock::getUnion(
+														storageData.value(QStringLiteral("sections")).toList(),
+														data.value(QStringLiteral("sections")).toStringList()
+														);
+		alist = generateBlock(blocks);
+	} else if (storage->name() == QStringLiteral("mergebinding"))
+		alist = generateMergeBinding(data, storageData, seed);
 
 	m.insert(generateOne(data, alist));
 
@@ -175,31 +206,34 @@ QVariantList ModulePair::generateAll(const QVariantMap &data, ModuleInterface *s
 /**
  * @brief ModulePair::generateBlock
  * @param data
- * @param storageData
+ * @param blocks
  * @return
  */
 
-QVariantList ModulePair::generateBlock(const QVariantMap &storageData) const
+QVariantList ModulePair::generateBlock(const ModuleMergeblock::BlockUnion &blocks) const
 {
 	QVariantList ret;
 
-	foreach (const QVariant &v, storageData.value(QStringLiteral("blocks")).toList()) {
-		const QVariantMap &m = v.toMap();
-		const QString &left = m.value(QStringLiteral("first")).toString().simplified();
-		const QStringList &right = m.value(QStringLiteral("second")).toStringList();
+	for (auto bit = blocks.cbegin(); bit != blocks.cend(); ++bit) {
+		const QString &left = bit.key();
 
 		QStringList realList;
 
-		foreach (QString s, right) {
-			s = s.simplified();
-			if (s.isEmpty())
+		for (auto it = bit.value().cbegin(); it != bit.value().cend(); ++it) {
+			const QStringList &right = it->content;
+
+			for (QString s : right) {
+				s = s.simplified();
+
+				if (s.isEmpty())
+					continue;
+
+				realList.append(s);
+			}
+
+			if (left.isEmpty() && realList.isEmpty())
 				continue;
-
-			realList.append(s);
 		}
-
-		if (left.isEmpty() && realList.isEmpty())
-			continue;
 
 		QString second;
 
@@ -211,6 +245,7 @@ QVariantList ModulePair::generateBlock(const QVariantMap &storageData) const
 					   { QStringLiteral("second"), second }
 				   }
 				   );
+
 	}
 
 	return ret;
@@ -321,4 +356,38 @@ QVariantMap ModulePair::generateOne(const QVariantMap &data, QVariantList pairLi
 
 
 	return m;
+}
+
+
+
+/**
+ * @brief ModulePair::generateMergeBinding
+ * @param data
+ * @param storageData
+ * @param seed
+ * @return
+ */
+
+QVariantList ModulePair::generateMergeBinding(const QVariantMap &data, const QVariantMap &storageData, StorageSeed */*seed*/) const
+{
+	const QStringList usedSections = data.value(QStringLiteral("sections")).toStringList();
+	const QVariantList &sections = storageData.value(QStringLiteral("sections")).toList();
+
+	QVariantList list;
+
+	for (int i=0; i<sections.size(); ++i) {
+		QVariantMap m = sections.at(i).toMap();
+		const QString &key = m.value(QStringLiteral("key")).toString();
+
+		if (!usedSections.contains(key))
+			continue;
+
+		const QVariantList &l = m.value(QStringLiteral("bindings")).toList();
+
+		for (const QVariant &v : l) {
+			list.append(v.toMap());
+		}
+	}
+
+	return list;
 }

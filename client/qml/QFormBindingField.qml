@@ -8,7 +8,7 @@ Column {
 	id: root
 
 	property bool watchModification: true
-	readonly property QFormColumn _form : (parent instanceof QFormColumn) ? parent : null
+	property QFormColumn form : (parent instanceof QFormColumn) ? parent : null
 	property string field: ""
 	property string fieldData: ""
 	property var getData: function() { return saveToList() }
@@ -219,8 +219,8 @@ Column {
 	}
 
 	function performModification() {
-		if (_form && watchModification)
-			_form.modified = true
+		if (form && watchModification)
+			form.modified = true
 	}
 
 }

@@ -1,0 +1,58 @@
+/*
+ * ---- Call of Suli ----
+ *
+ * desktoputils.h
+ *
+ * Created on: 2026. 01. 26.
+ *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
+ *
+ * DesktopUtils
+ *
+ *  This file is part of Call of Suli.
+ *
+ *  Call of Suli is free software: you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation, either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#ifndef DESKTOPUTILS_H
+#define DESKTOPUTILS_H
+
+#include <QByteArray>
+#include <QString>
+#include <optional>
+
+
+
+class DesktopUtils
+{
+
+public:
+	DesktopUtils();
+
+	static DesktopUtils* instance() {
+		if (!m_instance)
+			m_instance = new DesktopUtils();
+		return m_instance;
+	}
+
+	static std::optional<QByteArray> getExeHash(const QString &path, QString *err = nullptr,
+												const qint64 &chunkSize = (1 << 20));
+
+
+	static quint64 msecSinceBoot();
+
+private:
+	static inline DesktopUtils *m_instance = nullptr;
+};
+
+#endif // DESKTOPUTILS_H

@@ -57,7 +57,7 @@ QVariantMap ModuleBinding::details(const QVariantMap &data, ModuleInterface *sto
 
 	QVariantMap m;
 	m[QStringLiteral("title")] = name.isEmpty() ? list.join(", ") : name;
-	m[QStringLiteral("details")] = "";
+	m[QStringLiteral("details")] = name.isEmpty() ? "" : list.join(", ");
 	m[QStringLiteral("image")] = "";
 
 	return m;

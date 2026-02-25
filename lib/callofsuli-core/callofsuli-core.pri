@@ -18,6 +18,7 @@ HEADERS += \
 	$$PWD/credential.h \
 	$$PWD/gamemap.h \
 	$$PWD/gamemapreaderiface.h \
+	$$PWD/offlineengine.h \
 	$$PWD/rank.h \
 	$$PWD/rpgconfig.h \
 	$$PWD/rpgstream.h \
@@ -31,6 +32,7 @@ SOURCES += \
 	$$PWD/credential.cpp \
 	$$PWD/gamemap.cpp \
 	$$PWD/gamemapreaderiface.cpp \
+	$$PWD/offlineengine.cpp \
 	$$PWD/rank.cpp \
 	$$PWD/rpgconfig.cpp \
 	$$PWD/rpgstream.cpp \
@@ -54,6 +56,15 @@ ios: {
 		$$PWD/mobileutils.mm
 }
 
+
+!android:!ios:!wasm: {
+	HEADERS += \
+		$$PWD/desktoputils.h
+
+	SOURCES += \
+		$$PWD/desktoputils.cpp
+
+}
 
 
 !isEmpty(FtxuiPath) {

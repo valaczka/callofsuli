@@ -30,7 +30,7 @@
 #include <QDataStream>
 #include <QVariantMap>
 
-#define GAMEMAP_CURRENT_VERSION 17
+#define GAMEMAP_CURRENT_VERSION 18
 
 
 class GameMapChapterIface;

@@ -18,10 +18,25 @@ QFormColumn {
 
 	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
-	readonly property bool isBinding: storage && (storage.module == "binding" || storage.module == "numbers")
+	readonly property bool isBinding: storage && (storage.module == "binding" ||
+												  storage.module == "mergebinding" ||
+												  storage.module == "numbers")
+	readonly property bool isMergeBinding: storage && (storage.module == "mergebinding" ||
+													   storage.module == "mergeblock")
 	readonly property bool isImages: storage && storage.module == "images"
-	readonly property bool isBlock: storage && storage.module == "block"
+	readonly property bool isBlock: storage && (storage.module == "block" ||
+												storage.module == "mergeblock")
+	readonly property bool isSequence: storage && storage.module == "sequence"
 
+
+	QFormSectionSelector {
+		id: _sectionSelector
+
+		form: root
+		field: "sections"
+		visible: isMergeBinding
+		storage: root.storage
+	}
 
 	QFormComboBox {
 		id: _modeBinding
@@ -36,10 +51,10 @@ QFormColumn {
 		valueRole: "value"
 		textRole: "text"
 
-		model: [
-			{value: "left", text: qsTr("Bal oldaliakhoz")},
-			{value: "right", text: qsTr("Jobb oldaliakhoz")}
-		]
+		model: ListModel {
+			ListElement {value: "left"; text: qsTr("Bal oldaliakhoz")}
+			ListElement {value: "right"; text: qsTr("Jobb oldaliakhoz")}
+		}
 
 		combo.onActivated: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -55,10 +70,10 @@ QFormColumn {
 		valueRole: "value"
 		textRole: "text"
 
-		model: [
-			{value: "image", text: qsTr("Képhez (szövegekből választhat)")},
-			{value: "text", text: qsTr("Szöveghez (képekből választhat)")}
-		]
+		model: ListModel {
+			ListElement {value: "image"; text: qsTr("Képhez (szövegekből választhat)")}
+			ListElement {value: "text"; text: qsTr("Szöveghez (képekből választhat)")}
+		}
 
 		visible: isImages
 
@@ -78,11 +93,12 @@ QFormColumn {
 		valueRole: "value"
 		textRole: "text"
 
-		model: [
-			{value: "contains", text: qsTr("Halmazba tartozás")},
-			{value: "simple", text: qsTr("Egyszerű választás")},
-			{value: "quiz", text: qsTr("Kvíz-mód")},
-		]
+		model: ListModel {
+			ListElement {value: "contains"; text: qsTr("Halmazba tartozás")}
+			ListElement {value: "exclude"; text: qsTr("Halmazból kizárás")}
+			ListElement {value: "simple"; text: qsTr("Egyszerű választás")}
+			ListElement {value: "quiz"; text: qsTr("Kvíz-mód")}
+		}
 
 		combo.onActivated: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -95,7 +111,7 @@ QFormColumn {
 		helperText: isBinding ? qsTr("A \%1 jelöli a generált elem helyét") : ""
 		field: "question"
 		width: parent.width
-		visible: !isImages && !isBlock
+		visible: !isImages && !isBlock && !isSequence
 
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -135,7 +151,11 @@ QFormColumn {
 		width: parent.width
 		visible: isBlock
 
-		text: _modeBlock.currentValue === "contains" ? qsTr("Minek a része: %1?") : ""
+		text: _modeBlock.currentValue === "contains" ?
+				  qsTr("Minek a része: %1?") :
+				  _modeBlock.currentValue === "exclude" ?
+					  qsTr("Melyik nem része: %1?") :
+					  ""
 
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -146,7 +166,7 @@ QFormColumn {
 		placeholderText: qsTr("Ez lesz az egyetlen helyes válasz")
 		field: "correct"
 		width: parent.width
-		visible: !isBinding && !isImages && !isBlock
+		visible: !isBinding && !isImages && !isBlock && !isSequence
 
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -156,7 +176,7 @@ QFormColumn {
 		title: qsTr("Helytelen válaszok")
 		placeholderText: qsTr("Lehetséges helytelen válaszok (soronként)")
 		width: parent.width
-		visible: !isBinding && !isImages && !isBlock
+		visible: !isBinding && !isImages && !isBlock && !isSequence
 
 		field: "answers"
 		getData: function() { return text.split("\n") }
@@ -173,6 +193,31 @@ QFormColumn {
 		width: parent.width
 
 		visible: isImages && _modeImages.currentValue === "image"
+
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+
+	QFormTextField {
+		id: _questionSqMin
+		title: qsTr("Kérdés a legkisebb elemre")
+		placeholderText: qsTr("Ez a kérdés fog megjelenni")
+		field: "questionMin"
+		width: parent.width
+		visible: isSequence
+		text: qsTr("Melyik a legkisebb?")
+
+		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
+	}
+
+	QFormTextField {
+		id: _questionSqMax
+		title: qsTr("Kérdés a legnagyobb elemre")
+		placeholderText: qsTr("Ez a kérdés fog megjelenni")
+		field: "questionMax"
+		width: parent.width
+		visible: isSequence
+		text: qsTr("Melyik a legnagyobb?")
 
 		onEditingFinished: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -202,7 +247,7 @@ QFormColumn {
 
 	MapEditorSpinStorageCount {
 		id: _countBinding
-		visible: isBinding || isImages || isBlock
+		visible: isBinding || isImages || isBlock || isSequence
 	}
 
 
@@ -214,7 +259,11 @@ QFormColumn {
 												 [_modeImages, _questionII, _answerImage, _checkMonospace] :
 												 [_modeImages, _questionIT]) :
 											isBlock ? [_modeBlock, _questionBlock, _spinOptions, _checkMonospace] :
-													  [_question, _correctAnswer, _spinOptions, _checkMonospace]
+													  isSequence ? [_questionSqMin, _questionSqMax, _spinOptions, _checkMonospace ] :
+																   [_question, _correctAnswer, _spinOptions, _checkMonospace]
+
+		if (isMergeBinding)
+			_items.push(_sectionSelector)
 
 		_countBinding.value = objective.storageCount
 		setItems(_items, objective.data)
@@ -236,11 +285,13 @@ QFormColumn {
 												 [_modeImages, _questionII, _answerImage, _checkMonospace] :
 												 [_modeImages, _questionIT]) :
 											isBlock ? [_modeBlock, _questionBlock, _spinOptions, _checkMonospace] :
-													  [_question, _correctAnswer, _answers, _spinOptions, _checkMonospace]
+													  isSequence ? [_questionSqMin, _questionSqMax, _spinOptions, _checkMonospace ] :
+																   [_question, _correctAnswer, _answers, _spinOptions, _checkMonospace]
+
+		if (isMergeBinding)
+			_items.push(_sectionSelector)
 
 		return getItems(_items)
 	}
 }
-
-
 

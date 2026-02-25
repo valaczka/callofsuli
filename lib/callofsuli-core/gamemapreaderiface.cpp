@@ -156,7 +156,11 @@ bool GameMapReaderIface::readBinaryData(const QByteArray &data)
 		LOG_CINFO("app") << "Old version found:" << version;
 	}
 
-	stream.setVersion(QDataStream::Qt_5_11);
+	if (version < 18)
+		stream.setVersion(QDataStream::Qt_5_11);
+	else
+		stream.setVersion(QDataStream::Qt_6_7);
+
 
 	QByteArray uuid;
 
@@ -211,7 +215,7 @@ QByteArray GameMapReaderIface::toBinaryData(const bool &imageCheck) const
 	stream << QByteArray("MAP");
 	stream << version;
 
-	stream.setVersion(QDataStream::Qt_5_11);
+	stream.setVersion(QDataStream::Qt_6_7);
 
 	stream << m_uuid.toLatin1();
 	stream << Utils::versionCode();

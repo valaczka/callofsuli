@@ -29,6 +29,7 @@
 
 #include <QPointer>
 #include "ColorConsoleAppender.h"
+#include <sodium.h>
 #include "qnetworkaccessmanager.h"
 #include "server.h"
 #include "serversettings.h"
@@ -161,9 +162,15 @@ public:
 	const RpgMarketList &market() const;
 	void setMarket(const RpgMarketList &newMarket);
 
-	const QList<QByteArray> &agentSignatures() const;
-
 	UdpServer *udpServer() const;
+
+
+	struct AgentSignature {
+		std::array<unsigned char, crypto_sign_PUBLICKEYBYTES> publicKey;
+		QHash<QByteArray, QSet<QByteArray>> platformProof;
+	};
+
+	const QHash<QByteArray, AgentSignature> &agentSignatures() const;
 
 signals:
 	void configChanged();
@@ -231,7 +238,7 @@ private:
 
 	static ServerService *m_instance;
 
-	QList<QByteArray> m_agentSignatures;
+	QHash<QByteArray, AgentSignature> m_agentSignatures;
 
 
 #ifdef WITH_FTXUI

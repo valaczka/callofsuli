@@ -10,13 +10,50 @@ QPageGradient {
 	id: control
 
 	property StudentMapHandler studentMapHandler: null
+	property Campaign campaign: null			// proxy-campaign
 
 	title: qsTr("Szabad játék")
 
 	appBar.backButtonVisible: true
 	progressBarEnabled: true
 
-	property bool _firstRun: true
+	property bool _firstRun: studentMapHandler && !studentMapHandler.offlineEngine
+
+	appBar.rightComponent: Qaterial.AppBarButton
+	{
+		icon.source: campaign && campaign.offlineState == Campaign.OfflineInvalid ?
+						 Qaterial.Icons.cloudPlus :
+						 Qaterial.Icons.cloudRemoveOutline
+
+		ToolTip.text: campaign && campaign.offlineState == Campaign.OfflineInvalid ?
+						  qsTr("Offline elérhető legyen") :
+						  qsTr("Offline ne legyen elérhető")
+		onClicked: {
+			if (campaign.offlineState == Campaign.OfflineInvalid)
+				Client.server.offlineEngine.getPermit(0)
+			else {
+				if (!Client.server.offlineEngine.removePermit(0, false)) {
+					JS.questionDialog(
+								{
+									onAccepted: function()
+									{
+										Client.server.offlineEngine.removePermit(0, true)
+									},
+									text: qsTr("Szinkronizálatlan játékok találhatók. Biztosan töröljem őket?"),
+									title: qsTr("Offline adatok törlése"),
+									iconSource: Qaterial.Icons.delete_
+								})
+				}
+			}
+
+		}
+
+		visible: Client.server && Client.server.offlineEngine && campaign && !studentMapHandler.offlineEngine &&
+				 Client.server.offlineEngine.engineState != OfflineClientEngine.EngineInvalid
+	}
+
+
+
 
 	TeacherGroupFreeMapList {
 		id: _mapList

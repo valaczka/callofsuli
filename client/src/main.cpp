@@ -35,12 +35,9 @@
 #include "desktopapplication.h"
 #endif
 
-#include <sodium.h>
 
 int main(int argc, char *argv[])
 {
-	Q_ASSERT (sodium_init() >= 0);
-
 	Application::initialize();
 	QApplication qapp(argc, argv);
 

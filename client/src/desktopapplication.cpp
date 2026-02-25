@@ -28,7 +28,9 @@
 #include "ColorConsoleAppender.h"
 #include "desktopapplication.h"
 #include "standaloneclient.h"
+#include "desktoputils.h"
 #include "utils_.h"
+#include <sodium.h>
 
 #ifdef WITH_FTXUI
 #include "terminal.h"
@@ -134,7 +136,7 @@ void DesktopApplication::initialize()
 void DesktopApplication::commandLineParse()
 {
 	QCommandLineParser parser;
-	parser.setApplicationDescription(QString::fromUtf8("Call of Suli – Copyright © 2012-2025 Valaczka János Pál"));
+	parser.setApplicationDescription(QString::fromUtf8("Call of Suli – Copyright © 2012-2026 Valaczka János Pál"));
 	parser.addHelpOption();
 	parser.addVersionOption();
 
@@ -359,6 +361,31 @@ Client *DesktopApplication::createClient()
 
 	return c;
 }
+
+
+
+
+/**
+ * @brief DesktopApplication::getDeviceIdentityPlatform
+ * @return
+ */
+
+QByteArray DesktopApplication::getDeviceIdentityPlatform() const
+{
+	QString err;
+	const auto &ptr = DesktopUtils::getExeHash(QString(), &err);
+
+	if (!err.isEmpty())
+		LOG_CERROR("app") << qPrintable(err);
+
+	if (!ptr)
+		return {};
+
+	return *ptr;
+}
+
+
+
 
 
 

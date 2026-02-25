@@ -111,7 +111,7 @@ public:
 	WebSocket* webSocket() const;
 
 public slots:
-	void connectToServer(Server *server = nullptr);
+	HttpReply *connectToServer(Server *server = nullptr);
 	void close();
 	void abort();
 

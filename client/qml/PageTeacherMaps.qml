@@ -48,7 +48,11 @@ QPage {
 		id: view
 
 		currentIndex: -1
-		anchors.fill: parent
+
+		height: parent.height
+		width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+		anchors.horizontalCenter: parent.horizontalCenter
+
 		autoSelectChange: true
 
 		refreshProgressVisible: Client.httpConnection.pending
@@ -88,16 +92,18 @@ QPage {
 					anchors.verticalCenter: parent.verticalCenter
 				}
 				Qaterial.RoundButton {
-					icon.source: Qaterial.Icons.pencil
-					icon.color: mapObject && mapObject.draftVersion > 0 ? Qaterial.Colors.green500 : Qaterial.Style.iconColor()
-					ToolTip.text: qsTr("Vázlat szerkesztése")
-					onClicked: handler.mapEdit(mapObject)
+					icon.source: Qaterial.Icons.briefcaseArrowLeftRightOutline
+					icon.color: /*mapObject && mapObject.draftVersion > 0 ? Qaterial.Colors.green500 :*/ Qaterial.Style.iconColor()
+					ToolTip.text: qsTr("Vázlat feltöltése (csere)")
+					onClicked: {
+						_importToMap = mapObject
+						Qaterial.DialogManager.openFromComponent(cmpFile)
+					}
 				}
 			}
 
 			onClicked: if (mapObject && mapObject.downloaded)
-						   //handler.mapEdit(mapObject)
-						   console.debug("CLICKED")
+						   handler.mapEdit(mapObject)
 					   else
 						   handler.mapDownload(mapObject)
 		}
@@ -152,14 +158,20 @@ QPage {
 	}*/
 
 
+	property TeacherMap _importToMap: null
+
 	Component {
 		id: cmpFile
 
 		QFileDialog {
-			title: qsTr("Pálya importálása")
+			title: _importToMap ? qsTr("Vázlat importálás") : qsTr("Pálya importálása")
 			filters: [ "*.map" ]
 			onFileSelected: file => {
-								handler.mapImport(file)
+								if (_importToMap)
+									handler.mapReplace(_importToMap, file)
+								else
+									handler.mapImport(file)
+
 								Client.Utils.settingsSet("folder/teacherMap", modelFolder.toString())
 							}
 			folder: Client.Utils.settingsGet("folder/teacherMap", "")
@@ -306,6 +318,7 @@ QPage {
 			if (Qt.platform.os == "wasm") {
 				handler.mapImportWasm()
 			} else {
+				_importToMap = null
 				Qaterial.DialogManager.openFromComponent(cmpFile)
 			}
 		}
@@ -342,6 +355,7 @@ QPage {
 												.fail(control, JS.failMessage("Közzététel sikertelen"))
 											}
 											view.unselectAll()
+											handler.reload()
 											Client.messageInfo(qsTr("Vázlatok közzétéve"))
 										},
 										title: qsTr("Vázlatok közzététele"),
@@ -380,6 +394,7 @@ QPage {
 												.fail(control, JS.failMessage("Törlés sikertelen"))
 											}
 											view.unselectAll()
+											handler.reload()
 											Client.messageInfo(qsTr("Vázlatok törölve"))
 										},
 										title: qsTr("Vázlatok törlése"),

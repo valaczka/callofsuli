@@ -236,5 +236,13 @@
         <file>TeacherPassResult.qml</file>
         <file>TeacherPassItemLink.qml</file>
         <file>PageMapEditorMatrixImport.qml</file>
+        <file>QFormSectionSelector.qml</file>
+        <file>StudentDashboardNotification.qml</file>
+        <file>PageStudentOffline.qml</file>
+        <file>StudentOfflineDashboard.qml</file>
+        <file>PageStudentOfflineSync.qml</file>
+        <file>DashboardTimingTag.qml</file>
+        <file>SpotlightCoachMark.qml</file>
+        <file>SpotlightCoachTour.qml</file>
     </qresource>
 </RCC>

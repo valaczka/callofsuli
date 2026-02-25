@@ -44,10 +44,12 @@
 #include "Logger.h"
 #include "mapgame.h"
 #include "updater.h"
-#include "server.h"
 #include "rpgplayer.h"
 #include "rpggame.h"
+#include "downloader.h"
+#include "server.h"
 #include <QScreen>
+#include "offlineclientengine.h"
 
 #ifdef Q_OS_ANDROID
 #include "qscreen.h"
@@ -397,6 +399,8 @@ void Client::onApplicationStarted()
 	AbstractLevelGame::reloadAvailableMusic();
 	AbstractLevelGame::reloadAvailableMedal();
 
+	bool loadDefault = false;
+
 	switch (m_application->commandLine()) {
 		case Application::Demo:
 			loadDemoMap();
@@ -416,14 +420,22 @@ void Client::onApplicationStarted()
 			stackPushPage(QStringLiteral("_PageDev.qml"));
 			break;
 		default:
-			m_startPage = stackPushPage(QStringLiteral("PageStart.qml"));
-			emit startPageLoaded();
+			loadDefault = true;
 			break;
 	}
 
-	m_updater->checkAvailableUpdates(false);
-	m_contextHelper->download();
+	if (!loadDefault)
+		return;
 
+	m_application->setOnDeviceIdentityReady(this, [this](const bool &success) {
+		if (!success)
+			messageError(tr("Eszközöazonosító meghatározása sikertelen!"));
+
+		m_startPage = stackPushPage(QStringLiteral("PageStart.qml"));
+		emit startPageLoaded();
+		m_updater->checkAvailableUpdates(false);
+		m_contextHelper->download();
+	});
 }
 
 
@@ -466,6 +478,13 @@ void Client::onHttpConnectionError(const QNetworkReply::NetworkError &code)
 			errStr = QString::fromStdString(Utils::enumToString<QNetworkReply::NetworkError>(code));
 	}
 
+
+	if (m_httpConnection->server()) {
+		OfflineClientEngine *engine = m_httpConnection->server()->offlineEngine();
+
+		if (engine && engine->loadOfflineMode())
+			closeSocket = false;
+	}
 
 	if (m_httpConnection->state() == HttpConnection::Connecting && closeSocket)
 		m_httpConnection->abort();
@@ -594,8 +613,9 @@ void Client::onServerDisconnected()
 
 	m_oauthData.timer.stop();
 
-	if (server())
+	if (server()) {
 		server()->user()->setLoginState(User::LoggedOut);
+	}
 
 	stackPopToStartPage();
 
@@ -670,6 +690,8 @@ void Client::onUserLoggedIn()
 			stackPushPage(QStringLiteral("PagePanel.qml"));
 		else if (server()->user()->roles().testFlag(Credential::Teacher) || server()->user()->roles().testFlag(Credential::Admin))
 			stackPushPage(QStringLiteral("PageTeacherDashboard.qml"));
+		else if (server()->offlineEngine())
+			server()->offlineEngine()->loadSyncMode(QStringLiteral("PageStudentDashboard.qml"));
 		else
 			stackPushPage(QStringLiteral("PageStudentDashboard.qml"));
 	});
@@ -685,6 +707,7 @@ void Client::onUserLoggedOut()
 	LOG_CINFO("client") << "User logged out:" << qPrintable(server()->user()->username());
 
 	server()->setToken(QString());
+	server()->setSessionId({});
 	server()->user()->clear();
 
 	if (m_mainPage)
@@ -844,7 +867,10 @@ void Client::_userAuthTokenReceived(const QByteArray &token)
 {
 	const Credential &c = Credential::fromJWT(token);
 
+	LOG_CDEBUG("client") << "New session" << c.session();
+
 	server()->setToken(token);
+	server()->setSessionId(QByteArray::fromHex(c.session()));
 	server()->user()->setUsername(c.username());
 	server()->user()->setRoles(c.roles());
 	server()->user()->setLoginState(User::LoggedIn);
@@ -962,10 +988,10 @@ void Client::startCache()
 						  HttpConnection::ApiUser, "campaign");
 
 	m_cache.add<Pass>(QStringLiteral("passList"), std::move(new PassList(this)),
-						  &OlmLoader::loadFromJsonArray<Pass>,
-						  &OlmLoader::find<Pass>,
-						  "id", "passid", false,
-						  HttpConnection::ApiUser, "pass");
+					  &OlmLoader::loadFromJsonArray<Pass>,
+					  &OlmLoader::find<Pass>,
+					  "id", "passid", false,
+					  HttpConnection::ApiUser, "pass");
 
 	m_cache.add<TeacherGroup>(QStringLiteral("teacherGroupList"), std::move(new TeacherGroupList(this)),
 							  &OlmLoader::loadFromJsonArray<TeacherGroup>,
@@ -1038,7 +1064,28 @@ void Client::connectToServer(Server *server)
 		return;
 	}
 
-	m_httpConnection->connectToServer(server);
+	OfflineClientEngine *engine = server->offlineEngine();
+
+	if (engine) {
+		bool hasNetwork = QNetworkInformation::instance() &&
+				QNetworkInformation::instance()->reachability() == QNetworkInformation::Reachability::Online;
+
+		if (!hasNetwork) {
+			m_httpConnection->setServer(server);
+			m_httpConnection->setState(HttpConnection::Connecting);
+			engine->loadOfflineMode();
+			return;
+		}
+	}
+
+	HttpReply *r = m_httpConnection->connectToServer(server);
+
+
+	if (!r || !engine)
+		return;
+
+	r->error(engine, &OfflineClientEngine::loadOfflineMode);
+
 }
 
 
@@ -1109,6 +1156,27 @@ Server *Client::serverAddWithUrl(const QUrl &url)
 
 
 /**
+ * @brief getDeviceIdentityObject
+ * @param app
+ * @return
+ */
+
+static QJsonObject getDeviceIdentityObject(Application *app)
+{
+	Q_ASSERT(app);
+
+	QJsonObject o;
+
+	if (const auto ptr = app->deviceIdentity()) {
+		o.insert(QStringLiteral("identity"), QString::fromLatin1(ptr->first.toBase64()));
+		o.insert(QStringLiteral("signature"), QString::fromLatin1(ptr->second.toBase64()));
+	};
+
+	return o;
+}
+
+
+/**
  * @brief Client::loginGoogle
  */
 
@@ -1123,8 +1191,8 @@ void Client::loginOAuth2(const QString &provider)
 	m_oauthData.state = "";
 	m_oauthData.path = QStringLiteral("login/")+provider;
 
-
 	send(HttpConnection::ApiAuth, m_oauthData.path, {
+			 { QStringLiteral("device"), getDeviceIdentityObject(m_application) },
 		 #ifdef Q_OS_WASM
 			 { QStringLiteral("wasm"), true }
 		 #endif
@@ -1154,6 +1222,7 @@ void Client::registrationOAuth2(const QString &provider, const QString &code)
 		 #ifdef Q_OS_WASM
 			 { QStringLiteral("wasm"), true },
 		 #endif
+			 { QStringLiteral("device"), getDeviceIdentityObject(m_application) },
 			 { QStringLiteral("code"), code }
 		 })
 			->done(this, &Client::onLoginSuccess)
@@ -1174,6 +1243,7 @@ void Client::loginPlain(const QString &username, const QString &password)
 
 	send(HttpConnection::ApiAuth, QStringLiteral("login"),
 		 QJsonObject{
+			 { QStringLiteral("device"), getDeviceIdentityObject(m_application) },
 			 { QStringLiteral("username"), username },
 			 { QStringLiteral("password"), password }
 		 })
@@ -1192,7 +1262,10 @@ void Client::loginPlain(const QString &username, const QString &password)
 
 void Client::registrationPlain(const QJsonObject &data)
 {
-	send(HttpConnection::ApiAuth, QStringLiteral("registration"), data)
+	QJsonObject o = data;
+	o.insert(QStringLiteral("device"), getDeviceIdentityObject(m_application));
+
+	send(HttpConnection::ApiAuth, QStringLiteral("registration"), o)
 			->done(this, &Client::onLoginSuccess)
 			->fail(this, &Client::onLoginFailed);
 }
@@ -1218,6 +1291,7 @@ bool Client::loginToken()
 	if (jwt.payload().empty()) {
 		LOG_CWARNING("credential") << "Invalid token:" << token;
 		server()->setToken(QString());
+		server()->setSessionId({});
 		return false;
 	}
 
@@ -1225,6 +1299,7 @@ bool Client::loginToken()
 	if (jwt.payload().value(QStringLiteral("exp")).toInteger() <= QDateTime::currentSecsSinceEpoch()) {
 		LOG_CINFO("client") << "Token expired";
 		server()->setToken(QString());
+		server()->setSessionId({});
 		return false;
 	}
 
@@ -1232,6 +1307,7 @@ bool Client::loginToken()
 
 	send(HttpConnection::ApiAuth, QStringLiteral("login"),
 		 QJsonObject{
+			 { QStringLiteral("device"), getDeviceIdentityObject(m_application) },
 			 { QStringLiteral("token"), token },
 		 })
 			->done(this, &Client::onLoginSuccess)
@@ -1600,9 +1676,8 @@ void Client::safeMarginsGet()
 {
 	QMarginsF margins;
 
-#if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+#if defined(Q_OS_IOS) && QT_VERSION >= 0x060900
 
-#	if QT_VERSION >= 0x060900
 	QMargins wm = m_mainWindow->safeAreaMargins();
 	static const double devicePixelRatio = QApplication::primaryScreen()->devicePixelRatio();
 
@@ -1611,9 +1686,9 @@ void Client::safeMarginsGet()
 	margins.setLeft(wm.left()/devicePixelRatio);
 	margins.setRight(wm.right()/devicePixelRatio);
 
-#	else
+#elif defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
+
 	margins = MobileUtils::getSafeMargins();
-#	endif
 
 #else
 	const QString &str = QString::fromUtf8(qgetenv("SAFE_MARGINS"));
@@ -1629,11 +1704,11 @@ void Client::safeMarginsGet()
 	}
 
 
-	QPlatformWindow *platformWindow = m_mainWindow->handle();
+	/*QPlatformWindow *platformWindow = m_mainWindow->handle();
 	if(!platformWindow) {
 		LOG_CERROR("client") << "Invalid QPlatformWindow";
 		return;
-	}
+	}*/
 #endif
 
 	LOG_CDEBUG("client") << "New safe margins:" << margins;
@@ -1836,7 +1911,8 @@ QQuickItem* Client::loadDemoMap(const QUrl &url)
 		connectToServer(getStaticServer());
 	}
 
-	QQuickItem *page = stackPushPage(QStringLiteral("PageMapPlay.qml"), QVariantMap({
+	QQuickItem *page = stackPushPage(QStringLiteral(""
+													"PageMapPlay.qml"), QVariantMap({
 																						{ QStringLiteral("title"), tr("Demó pálya") },
 																						{ QStringLiteral("map"), QVariant::fromValue(mapPlay.get()) }
 																					}));

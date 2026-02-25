@@ -38,9 +38,14 @@ public:
 	virtual void initialize();
 	virtual void createStandardPath();
 
-protected:
-	virtual Client *createClient();
 
+protected:
+	virtual Client *createClient() override;
+	virtual QByteArray getDeviceIdentityPlatform() const override;
+	virtual bool getDeviceKeyPlatform() override;
+
+	bool deviceKeyRead();
+	void deviceKeyCreate();
 };
 
 #endif // MOBILEAPPLICATION_H

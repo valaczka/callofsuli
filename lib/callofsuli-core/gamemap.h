@@ -333,6 +333,7 @@ public:
 	const QList<GameMapMissionLevel *> &levels() const;
 	const QList<GameMapMissionLevel *> &locks() const;
 	GameMap::GameModes modes() const;
+	void setModes(const GameMap::GameModes &modes) { m_gameModes = modes; }
 
 	GameMapMissionLevel *level(const qint32 &num) const;
 
@@ -412,6 +413,7 @@ public:
 	GameMap *map() const;
 
 	GameMap::GameModes modes() const;
+	void setModes(const GameMap::GameModes &modes) { m_gameModes = modes; }
 
 protected:
 	QList<GameMapChapterIface*> ifaceChapters() const

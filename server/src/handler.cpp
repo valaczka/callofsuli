@@ -194,6 +194,7 @@ std::optional<Credential> Handler::authorizeRequestLog(const QHttpServerRequest 
 	LOG_CDEBUG("service") << method.constData() << qPrintable(request.url().path())
 						  << qPrintable(request.remoteAddress().toString()) << request.remotePort()
 						  << (credential ? qPrintable(credential->username()) : "")
+						  << (credential ? credential->session() : "")
 						  << (userAgent.isEmpty() ? "" : (QByteArrayLiteral("[")+userAgent+QByteArrayLiteral("]")).constData());
 
 	return credential;
@@ -276,16 +277,19 @@ QHttpServerResponse Handler::getStaticContent(const QHttpServerRequest &request)
 
 			if (fname.endsWith(QStringLiteral("css")))
 				contentType = QByteArrayLiteral("text/css");
-			if (fname.endsWith(QStringLiteral("js")))
+			else if (fname.endsWith(QStringLiteral("js")))
 				contentType = QByteArrayLiteral("text/javascript");
-			if (fname.endsWith(QStringLiteral("html")) || fname.endsWith(QStringLiteral("htm")))
+			else if (fname.endsWith(QStringLiteral("html")) || fname.endsWith(QStringLiteral("htm")))
 				contentType = QByteArrayLiteral("text/html");
+			else if (fname.endsWith(QStringLiteral("wasm")))
+				contentType = QByteArrayLiteral("application/wasm");
 
 			return QHttpServerResponse(contentType, b, QHttpServerResponder::StatusCode::Ok);
 		}
 
 		if (QFile::exists(fname)) {
-			if (fname.endsWith(QStringLiteral("html")) || fname.endsWith(QStringLiteral("htm"))) {
+			if (fname.endsWith(QStringLiteral("html")) || fname.endsWith(QStringLiteral("htm"))
+					|| fname.endsWith(QStringLiteral("wasm"))) {
 				QByteArray b;
 				QFile f(fname);
 				if (f.open(QIODevice::ReadOnly)) {
@@ -293,7 +297,10 @@ QHttpServerResponse Handler::getStaticContent(const QHttpServerRequest &request)
 					f.close();
 				}
 
-				return QHttpServerResponse(QByteArrayLiteral("text/html"), b, QHttpServerResponder::StatusCode::Ok);
+				return QHttpServerResponse(fname.endsWith(QStringLiteral("wasm")) ?
+															  QByteArrayLiteral("application/wasm") :
+															  QByteArrayLiteral("text/html"),
+														  b, QHttpServerResponder::StatusCode::Ok);
 			} else
 				return QHttpServerResponse::fromFile(fname);
 		} else
@@ -489,29 +496,78 @@ AbstractAPI *Handler::api(const char *path) const
  * @return
  */
 
-bool Handler::verifyPeer(const QHttpServerRequest &request) const
+bool Handler::verifyPeer(const QHttpServerRequest &request, const Credential &credential) const
 {
 	const auto &message = request.body();
 
 	if (!m_service->settings()->verifyPeer())
 		return true;
 
-	const QByteArray &userAgentSign = request.value(QByteArrayLiteral("User-Agent-Sign"));
+	// Check old signature
 
+	if (const QByteArray &userAgentSign = request.value(QByteArrayLiteral("User-Agent-Sign"));
+			!userAgentSign.isEmpty() && credential.devicePub().isEmpty()) {
+		const QSet<QByteArray> list = m_service->agentSignatures().value(QByteArrayLiteral("private"))
+									  .platformProof.value(QByteArrayLiteral("private"));
 
-	const auto &list = m_service->agentSignatures();
-
-	for (const QByteArray &key : list) {
-		if (QMessageAuthenticationCode::hash(message, key, QCryptographicHash::Sha3_256).toBase64() == userAgentSign) {
-			return true;
+		for (const QByteArray &key : list) {
+			if (QMessageAuthenticationCode::hash(message, key, QCryptographicHash::Sha3_256).toBase64() == userAgentSign) {
+				return true;
+			}
 		}
 	}
 
-	LOG_CWARNING("service") << "Peer verification failed"
-						  << qPrintable(request.remoteAddress().toString()) << request.remotePort()
-						  << (userAgentSign.isEmpty() ? "" : (QByteArrayLiteral("[")+userAgentSign+QByteArrayLiteral("]")).constData());
 
-	return false;
+	PublicKeySigner signer;
+
+	const QByteArray deviceSignature = QByteArray::fromBase64(request.value(QByteArrayLiteral("Content-Signature")));
+
+	if (!signer.isValidSignature(deviceSignature)) {
+		LOG_CWARNING("service") << "Peer verification failed (invalid signature size)" << deviceSignature.size()
+								<< credential.session()
+								<< qPrintable(request.remoteAddress().toString()) << request.remotePort();
+		return false;
+	}
+
+	if (!credential.isValid() && credential.devicePub().isEmpty()) {
+		LOG_CWARNING("service") << "Peer verification failed (invalid credential)"
+								<< credential.session()
+								<< qPrintable(request.remoteAddress().toString()) << request.remotePort();
+		return false;
+	}
+
+	if (!signer.isValidPublicKey(credential.devicePub())) {
+		LOG_CWARNING("service") << "Peer verification failed (invalid public key size)"
+								<< credential.session()
+								<< qPrintable(request.remoteAddress().toString()) << request.remotePort();
+		return false;
+	}
+
+	signer.setPublicKey(credential.devicePub());
+
+	QByteArray session = QByteArray::fromHex(credential.session());
+
+	std::vector<unsigned char> msg;
+	msg.reserve(message.size() + session.size());
+
+	msg.insert(msg.end(),
+			   reinterpret_cast<const unsigned char*>(message.constData()),
+			   reinterpret_cast<const unsigned char*>(message.constData()) + message.size());
+
+	msg.insert(msg.end(),
+			   reinterpret_cast<const unsigned char*>(session.constData()),
+			   reinterpret_cast<const unsigned char*>(session.constData()) + session.size());
+
+
+	if (!signer.verifySign(msg, deviceSignature)) {
+		LOG_CWARNING("service") << "Peer verification failed (invalid signature)"
+								<< credential.session()
+								<< qPrintable(request.remoteAddress().toString()) << request.remotePort();
+		return false;
+	}
+
+
+	return true;
 }
 
 

@@ -65,7 +65,7 @@ bool Credential::isValid() const
  * @return
  */
 
-QByteArray Credential::createJWT(const QByteArray &secret) const
+QByteArray Credential::createJWT(const QByteArray &secret, const QByteArray &session, const QByteArray &publicKey) const
 {
 	QStringList list;
 
@@ -101,6 +101,12 @@ QByteArray Credential::createJWT(const QByteArray &secret) const
 	obj.insert(QStringLiteral("iat"), QDateTime::currentSecsSinceEpoch());
 	obj.insert(QStringLiteral("exp"), exp.toSecsSinceEpoch());
 	obj.insert(QStringLiteral("roles"), list.join("|"));
+
+	if (!session.isEmpty())
+		obj.insert(QStringLiteral("sid"), QString::fromLatin1(session));
+
+	if (!publicKey.isEmpty())
+		obj.insert(QStringLiteral("pub"), QString::fromLatin1(publicKey.toBase64()));
 
 	Token jwt;
 
@@ -158,6 +164,14 @@ Credential Credential::fromJWT(const QByteArray &jwt)
 	}
 
 	c.setRoles(roles);
+
+
+	if (const QString &sid = obj.value(QStringLiteral("sid")).toString(); !sid.isEmpty())
+		c.m_session = sid.toLatin1();
+
+
+	if (const QString &pub = obj.value(QStringLiteral("pub")).toString(); !pub.isEmpty())
+		c.m_devicePub = QByteArray::fromBase64(pub.toLatin1());
 
 	return c;
 }
@@ -242,6 +256,16 @@ void Credential::setRole(const Role &role, const bool &on)
 qint64 Credential::iat() const
 {
 	return m_iat;
+}
+
+QByteArray Credential::session() const
+{
+	return m_session;
+}
+
+QByteArray Credential::devicePub() const
+{
+	return m_devicePub;
 }
 
 
@@ -397,19 +421,12 @@ QByteArray Token::getToken(const QJsonObject &payload, const QByteArray &secret,
 
 QByteArray Token::sign(const QByteArray &content, const QByteArray &secret)
 {
-	if (secret.size() != crypto_auth_KEYBYTES) {
+	if (!AuthKeySigner::isValidSecret(secret)) {
 		LOG_CERROR("utils") << "Invalid secret length" << secret.size();
 		return {};
 	}
 
-	unsigned char mac[crypto_auth_BYTES];
-
-	if (crypto_auth(mac, (unsigned char*) content.constData(), content.size(), (unsigned char*) secret.constData()) != 0) {
-		LOG_CERROR("utils") << "crypto_auth error";
-		return {};
-	}
-
-	return QByteArray((char*) mac, crypto_auth_BYTES);
+	return AuthKeySigner(secret).sign(content);
 }
 
 
@@ -422,20 +439,12 @@ QByteArray Token::sign(const QByteArray &content, const QByteArray &secret)
 
 bool Token::verify(const QByteArray &content, const QByteArray &mac, const QByteArray &secret)
 {
-	if (secret.size() != crypto_auth_KEYBYTES) {
+	if (!AuthKeySigner::isValidSecret(secret)) {
 		LOG_CERROR("utils") << "Invalid secret length" << secret.size();
 		return false;
 	}
 
-	if (mac.size() != crypto_auth_BYTES) {
-		LOG_CERROR("utils") << "Invalid mac length" << secret.size();
-		return false;
-	}
-
-	return (crypto_auth_verify((unsigned char*) mac.constData(),
-							   (unsigned char*) content.constData(),
-							   content.size(),
-							   (unsigned char*) secret.constData()) == 0);
+	return AuthKeySigner(secret).verifySign(content, mac);
 }
 
 
@@ -450,7 +459,7 @@ QByteArray Token::generateSecret()
 	unsigned char k[crypto_auth_KEYBYTES];
 	crypto_auth_keygen(k);
 
-	return QByteArray((const char*) k, crypto_auth_KEYBYTES);
+	return QByteArray(reinterpret_cast<const char*>(k), crypto_auth_KEYBYTES);
 }
 
 
@@ -510,4 +519,134 @@ bool Token::verify(const QByteArray &secret) const
 QByteArray Token::getToken() const
 {
 	return getToken(m_payload, m_secret, m_header);
+}
+
+
+
+/**
+ * @brief AuthKeySigner::sign
+ * @param content
+ * @return
+ */
+
+QByteArray AuthKeySigner::sign(const QByteArray &content) const
+{
+	QByteArray sig(crypto_auth_BYTES, Qt::Uninitialized);
+
+	if (crypto_auth(reinterpret_cast<unsigned char*>(sig.data()),
+					reinterpret_cast<const unsigned char*>(content.constData()), content.size(),
+					m_secret.data()) != 0) {
+		LOG_CERROR("utils") << "crypto_auth error";
+		return {};
+	}
+
+	return sig;
+}
+
+
+
+/**
+ * @brief AuthKeySigner::verifySign
+ * @param content
+ * @param signature
+ * @return
+ */
+
+bool AuthKeySigner::verifySign(const QByteArray &content, const QByteArray &signature) const
+{
+	if (!isValidSignature(signature)) {
+		LOG_CERROR("utils") << "Invalid mac length" << signature.size();
+		return false;
+	}
+
+	return (crypto_auth_verify(reinterpret_cast<const unsigned char*>(signature.constData()),
+							   reinterpret_cast<const unsigned char*>(content.constData()),
+							   content.size(),
+							   m_secret.data()) == 0);
+}
+
+
+/**
+ * @brief PublicKeySigner::sign
+ * @param content
+ * @return
+ */
+
+void PublicKeySigner::setPublicKey(const QByteArray &publicKey)
+{
+	if (!isValidPublicKey(publicKey)) {
+		LOG_CERROR("utils") << "Invalid public key length" << publicKey.size();
+		return;
+	}
+
+	std::memcpy(m_publicKey.data(), reinterpret_cast<const unsigned char*>(publicKey.constData()), publicKey.size());
+}
+
+
+
+/**
+ * @brief PublicKeySigner::sign
+ * @param content
+ * @return
+ */
+
+
+QByteArray PublicKeySigner::sign(const QByteArray &content) const
+{
+	QByteArray sig(crypto_sign_BYTES, Qt::Uninitialized);
+
+	if (crypto_sign_detached(reinterpret_cast<unsigned char*>(sig.data()),
+							 nullptr,
+							 reinterpret_cast<const unsigned char*>(content.constData()),
+							 (unsigned long long) content.size(),
+							 m_secret.data()) != 0) {
+		LOG_CERROR("utils") << "crypto_sign_detached error";
+		return {};
+	}
+
+	return sig;
+}
+
+
+
+/**
+ * @brief PublicKeySigner::verifySign
+ * @param content
+ * @param signature
+ * @return
+ */
+
+bool PublicKeySigner::verifySign(const QByteArray &content, const QByteArray &signature) const
+{
+	if (!isValidSignature(signature)) {
+		LOG_CERROR("utils") << "Invalid mac length" << signature.size();
+		return false;
+	}
+
+	return (crypto_sign_verify_detached(reinterpret_cast<const unsigned char*>(signature.constData()),
+									reinterpret_cast<const unsigned char*>(content.constData()),
+									content.size(),
+									m_publicKey.data()) == 0);
+}
+
+
+
+/**
+ * @brief PublicKeySigner::verifySign
+ * @param content
+ * @param signature
+ * @return
+ */
+
+bool PublicKeySigner::verifySign(const std::vector<unsigned char> &content, const QByteArray &signature) const
+{
+	if (!isValidSignature(signature)) {
+		LOG_CERROR("utils") << "Invalid mac length" << signature.size();
+		return false;
+	}
+
+	return (crypto_sign_verify_detached(reinterpret_cast<const unsigned char*>(signature.constData()),
+									content.data(),
+									content.size(),
+									m_publicKey.data()) == 0);
 }

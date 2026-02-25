@@ -4873,7 +4873,7 @@ QHttpServerResponse TeacherAPI::userPeers() const
  * @return
  */
 
-bool TeacherAPI::_evaluateCampaign(const AbstractAPI *api, const int &campaign, const QString &username, const int &passitemid)
+bool TeacherAPI::_evaluateCampaign(const AbstractAPI *api, const int &campaign, const QString &username)
 {
 	Q_ASSERT(api);
 
@@ -4883,11 +4883,14 @@ bool TeacherAPI::_evaluateCampaign(const AbstractAPI *api, const int &campaign, 
 
 	QueryBuilder q(db);
 
-	q.addQuery("SELECT task.id, mapuuid, criterion FROM task "
-			   "LEFT JOIN campaign ON (task.campaignid=campaign.id) WHERE task.campaignid=").addValue(campaign);
+	q.addQuery("SELECT task.id, mapuuid, criterion, passitemid FROM task "
+			   "LEFT JOIN campaign ON (task.campaignid=campaign.id) WHERE task.campaignid=").addValue(campaign)
+			.addQuery(" AND finished=FALSE");
 
 	if (!q.exec())
 		return false;
+
+	int passitemid = -1;
 
 	db.transaction();
 
@@ -4896,6 +4899,9 @@ bool TeacherAPI::_evaluateCampaign(const AbstractAPI *api, const int &campaign, 
 		const QString &map = q.value("mapuuid").toString();
 		const QJsonObject &criterion = QJsonDocument::fromJson(q.value("criterion").toString().toUtf8()).object();
 		const QString &module = criterion.value(QStringLiteral("module")).toString();
+
+		if (passitemid < 0)
+			passitemid = q.value("passitemid", -1).toInt();
 
 		std::optional<float> success;
 

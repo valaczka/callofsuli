@@ -1,4 +1,5 @@
 /*
+ *
  * ---- Call of Suli ----
  *
  * client.h
@@ -31,7 +32,6 @@
 #include <QObject>
 #include <QQuickItem>
 #include <QLoggingCategory>
-#include "downloader.h"
 #include "qtimer.h"
 #include "httpconnection.h"
 #include <QAbstractSocket>
@@ -46,6 +46,7 @@ class AbstractGame;
 class HttpConnection;
 class Updater;
 class Utils;
+class Downloader;
 
 
 #ifndef OPAQUE_PTR_AbstractGame
@@ -56,6 +57,11 @@ Q_DECLARE_OPAQUE_POINTER(AbstractGame*)
 #ifndef OPAQUE_PTR_Updater
 #define OPAQUE_PTR_Updater
 Q_DECLARE_OPAQUE_POINTER(Updater*)
+#endif
+
+#ifndef OPAQUE_PTR_Downloader
+#define OPAQUE_PTR_Downloader
+Q_DECLARE_OPAQUE_POINTER(Downloader*)
 #endif
 
 #ifndef OPAQUE_PTR_HttpConnection

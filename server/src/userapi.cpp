@@ -34,6 +34,7 @@
 
 #include <QJsonObject>
 #include "querybuilder.hpp"
+#include "offlineserverengine.h"
 
 
 
@@ -66,6 +67,13 @@ UserAPI::UserAPI(Handler *handler, ServerService *service)
 	server->route(path+"freeplay", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		AUTHORIZE_API();
 		return freePlay(*credential);
+	});
+
+	server->route(path+"freeplay/permit", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return permitCreate(*credential, 0, jsonObject.value_or(QJsonObject{}));
 	});
 
 	server->route(path+"group/<arg>/score", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
@@ -123,6 +131,13 @@ UserAPI::UserAPI(Handler *handler, ServerService *service)
 		return campaignResult(*credential, id, jsonObject.value_or(QJsonObject{}));
 	});
 
+
+	server->route(path+"campaign/<arg>/permit", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_GET();
+		return permitCreate(*credential, id, jsonObject.value_or(QJsonObject{}));
+	});
 
 
 	server->route(path+"pass", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
@@ -225,11 +240,11 @@ UserAPI::UserAPI(Handler *handler, ServerService *service)
 		return buy(*credential, *jsonObject);
 	});
 
-	/*server->route(path+"group/<arg>/score/live", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
-				  [this](const int &id, const QHttpServerRequest &request){
+	server->route(path+"offline", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
 		AUTHORIZE_API();
-		return responseFakeEventStream();
-	});*/
+		JSON_OBJECT_ASSERT();
+		return permitUpload(*credential, *jsonObject);
+	});
 
 }
 
@@ -335,18 +350,18 @@ QHttpServerResponse UserAPI::pass(const Credential &credential, const int &id)
 	LAMBDA_THREAD_BEGIN(credential, id);
 
 	auto data = QueryBuilder::q(db)
-					   .addQuery("SELECT id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, groupid, "
-								 "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, title, grading, childless, pts, maxPts "
-								 "FROM pass LEFT JOIN passSumResult ON (passSumResult.passid=pass.id AND passSumResult.username=")
-					   .addValue(credential.username())
-					   .addQuery(") WHERE starttime IS NOT NULL AND strftime('%s', starttime)<=strftime('%s', datetime('now')) AND groupid IN "
-								 "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
-					   .addQuery(") AND id=").addValue(id)
-					   .execToJsonObject({
-											{ QStringLiteral("grading"), [](const QVariant &v) {
-												  return QJsonDocument::fromJson(v.toString().toUtf8()).object();
-											  } }
-										});
+				.addQuery("SELECT id, CAST(strftime('%s', starttime) AS INTEGER) AS starttime, groupid, "
+						  "CAST(strftime('%s', endtime) AS INTEGER) AS endtime, title, grading, childless, pts, maxPts "
+						  "FROM pass LEFT JOIN passSumResult ON (passSumResult.passid=pass.id AND passSumResult.username=")
+				.addValue(credential.username())
+				.addQuery(") WHERE starttime IS NOT NULL AND strftime('%s', starttime)<=strftime('%s', datetime('now')) AND groupid IN "
+						  "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(credential.username())
+				.addQuery(") AND id=").addValue(id)
+				.execToJsonObject({
+									  { QStringLiteral("grading"), [](const QVariant &v) {
+											return QJsonDocument::fromJson(v.toString().toUtf8()).object();
+										} }
+								  });
 
 	LAMBDA_SQL_ASSERT(data);
 
@@ -790,18 +805,26 @@ QHttpServerResponse UserAPI::gameCreate(const QString &username, const int &camp
 
 	// Create game
 
-	const auto &gameId = QueryBuilder::q(db)
-						 .addQuery("INSERT INTO game (").setFieldPlaceholder()
-						 .addQuery(") VALUES (").setValuePlaceholder()
-						 .addQuery(")")
-						 .addField("username", username)
-						 .addField("mapid", game.map)
-						 .addField("missionid", game.mission)
-						 .addField("campaignid", campaign > 0 ? campaign : QVariant(QMetaType::fromType<int>()))
-						 .addField("level", game.level)
-						 .addField("success", false)
-						 .addField("mode", game.mode)
-						 .execInsertAsInt();
+	QueryBuilder q(db);
+
+	q.addQuery("INSERT INTO game (").setFieldPlaceholder()
+			.addQuery(") VALUES (").setValuePlaceholder()
+			.addQuery(")")
+			.addField("username", username)
+			.addField("mapid", game.map)
+			.addField("missionid", game.mission)
+			.addField("campaignid", campaign > 0 ? campaign : QVariant(QMetaType::fromType<int>()))
+			.addField("level", game.level)
+			.addField("success", false)
+			.addField("mode", game.mode)
+			;
+
+	if (game.timestamp > 0) {
+		QDateTime dt = QDateTime::fromMSecsSinceEpoch(game.timestamp).toUTC();
+		q.addField("timestamp", dt.toString(QStringLiteral("yyyy-MM-dd HH:mm:ss")));
+	}
+
+	const auto &gameId = q.execInsertAsInt();
 
 	LAMBDA_SQL_ASSERT_ROLLBACK(gameId);
 
@@ -1083,7 +1106,6 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 		g.level = qq.value("level").toInt();
 		g.mode = qq.value("mode").value<GameMap::GameMode>();
 		g.campaign = qq.value("campaignid", -1).toInt();
-		g.passitemid = qq.value("passitemid", -1).toInt();
 
 
 		// Wallet, currency
@@ -1127,140 +1149,142 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, const UserGame &game,
 										const QJsonObject &inventory, const QJsonArray &statistics,
 										const bool &success, const int &xp, const int &duration,
-										bool *okPtr, QPointer<RpgEngine> engine)
+										bool *okPtr, QPointer<RpgEngine> engine, const GameFinishMode &mode)
 {
 	if (okPtr)
 		*okPtr = false;
 
 	LOG_CDEBUG("client") << "Finish game" << id << "for user:" << qPrintable(username) << "success:" << success;
 
-	LAMBDA_THREAD_BEGIN(username, statistics, id, inventory, xp, duration, success, game, okPtr, engine);
-
-	// Statistics
-
-	if (!statistics.isEmpty())
-		_addStatistics(username, statistics);
-
-	int sumXP = xp;
+	LAMBDA_THREAD_BEGIN(username, statistics, id, inventory, xp, duration, success, game, okPtr, engine, mode);
 
 	QJsonObject retObj;
 
-	const int &baseXP = m_service->config().get("gameBaseXP").toInt(100);
-	const int &oldSolved = _solverInfo(this, username, game.map, game.mission, game.level).value_or(0);
+	if (mode & GameFinishGameOnly) {
+		// Statistics
 
-	if (success) {
-		// Solved XP
+		if (!statistics.isEmpty())
+			_addStatistics(username, statistics);
 
-		const int &xpSolved = GameMap::computeSolvedXpFactor(game.level, oldSolved, game.mode) * baseXP;
-
-		sumXP += xpSolved;
-		retObj[QStringLiteral("xpSolved")] = xpSolved;
-
-		// Duration XP
-
-		const auto &s = QueryBuilder::q(db)
-						.addQuery("SELECT COALESCE(MIN(duration),0) AS duration FROM game "
-								  "WHERE success=true AND username=").addValue(username)
-						.addQuery(" AND mapid=").addValue(game.map)
-						.addQuery(" AND missionid=").addValue(game.mission)
-						.addQuery(" AND level=").addValue(game.level)
-						.addQuery(" AND mode=").addValue(game.mode)
-						.execToValue("duration");
-
-		LAMBDA_SQL_ASSERT(s);
-
-		const int &shortestDuration = s->toInt();
-
-		if (shortestDuration > 0 && duration < shortestDuration) {
-			const int &durationXP = (shortestDuration-duration)/1000 * baseXP * XP_FACTOR_DURATION_SEC;
-			sumXP += durationXP;
-			retObj[QStringLiteral("xpDuration")] = durationXP;
-		}
+		int sumXP = xp;
 
 
+		const int &baseXP = m_service->config().get("gameBaseXP").toInt(100);
+		const int &oldSolved = _solverInfo(this, username, game.map, game.mission, game.level).value_or(0);
 
-		// Streak XP
+		if (success) {
+			// Solved XP
 
+			const int &xpSolved = GameMap::computeSolvedXpFactor(game.level, oldSolved, game.mode) * baseXP;
 
-		const auto &ss = QueryBuilder::q(db)
-						 .addQuery("SELECT COALESCE(MAX(streak),0) AS streak FROM streak WHERE username=").addValue(username)
-						 .execToValue("streak");
+			sumXP += xpSolved;
+			retObj[QStringLiteral("xpSolved")] = xpSolved;
 
-		LAMBDA_SQL_ASSERT(ss);
+			// Duration XP
 
-		const int &longestStreak = ss->toInt();
+			const auto &s = QueryBuilder::q(db)
+							.addQuery("SELECT COALESCE(MIN(duration),0) AS duration FROM game "
+									  "WHERE success=true AND username=").addValue(username)
+							.addQuery(" AND mapid=").addValue(game.map)
+							.addQuery(" AND missionid=").addValue(game.mission)
+							.addQuery(" AND level=").addValue(game.level)
+							.addQuery(" AND mode=").addValue(game.mode)
+							.execToValue("duration");
 
-		QueryBuilder q(db);
-		q.addQuery("SELECT COALESCE(streak, 0) AS streak, COALESCE((ended_on = date('now')), false) AS streakToday "
-				   "FROM streak WHERE ended_on >= date('now', '-1 day') AND username=").addValue(username);
+			LAMBDA_SQL_ASSERT(s);
 
-		LAMBDA_SQL_ASSERT(q.exec());
+			const int &shortestDuration = s->toInt();
 
-		const bool &hasFirst = q.sqlQuery().first();
-
-		const bool &sToday = hasFirst ? q.value("streakToday", false).toBool() : false;
-		const int &streak = hasFirst ? q.value("streak", 0).toInt() : 0;
-
-		if (!sToday && streak > 0) {
-			if (streak+1 > longestStreak) {
-				const int &streakXP = (streak+1) * baseXP * XP_FACTOR_NEW_STREAK;
-				sumXP += streakXP;
-				retObj[QStringLiteral("longestStreak")] = true;
-				retObj[QStringLiteral("xpStreak")] = streakXP;
-			} else {
-				const int &streakXP = (streak+1) * baseXP * XP_FACTOR_STREAK;
-				sumXP += streakXP;
-				retObj[QStringLiteral("longestStreak")] = false;
-				retObj[QStringLiteral("xpStreak")] = streakXP;
+			if (shortestDuration > 0 && duration < shortestDuration) {
+				const int &durationXP = (shortestDuration-duration)/1000 * baseXP * XP_FACTOR_DURATION_SEC;
+				sumXP += durationXP;
+				retObj[QStringLiteral("xpDuration")] = durationXP;
 			}
-			retObj[QStringLiteral("streak")] = streak+1;
+
+
+
+			// Streak XP
+
+
+			const auto &ss = QueryBuilder::q(db)
+							 .addQuery("SELECT COALESCE(MAX(streak),0) AS streak FROM streak WHERE username=").addValue(username)
+							 .execToValue("streak");
+
+			LAMBDA_SQL_ASSERT(ss);
+
+			const int &longestStreak = ss->toInt();
+
+			QueryBuilder q(db);
+			q.addQuery("SELECT COALESCE(streak, 0) AS streak, COALESCE((ended_on = date('now')), false) AS streakToday "
+					   "FROM streak WHERE ended_on >= date('now', '-1 day') AND username=").addValue(username);
+
+			LAMBDA_SQL_ASSERT(q.exec());
+
+			const bool &hasFirst = q.sqlQuery().first();
+
+			const bool &sToday = hasFirst ? q.value("streakToday", false).toBool() : false;
+			const int &streak = hasFirst ? q.value("streak", 0).toInt() : 0;
+
+			if (!sToday && streak > 0) {
+				if (streak+1 > longestStreak) {
+					const int &streakXP = (streak+1) * baseXP * XP_FACTOR_NEW_STREAK;
+					sumXP += streakXP;
+					retObj[QStringLiteral("longestStreak")] = true;
+					retObj[QStringLiteral("xpStreak")] = streakXP;
+				} else {
+					const int &streakXP = (streak+1) * baseXP * XP_FACTOR_STREAK;
+					sumXP += streakXP;
+					retObj[QStringLiteral("longestStreak")] = false;
+					retObj[QStringLiteral("xpStreak")] = streakXP;
+				}
+				retObj[QStringLiteral("streak")] = streak+1;
+			}
 		}
-	}
 
-	retObj[QStringLiteral("sumXP")] = sumXP;
-	retObj[QStringLiteral("xpGame")] = xp;
+		retObj[QStringLiteral("sumXP")] = sumXP;
+		retObj[QStringLiteral("xpGame")] = xp;
 
-	retObj[QStringLiteral("success")] = success;
-	retObj[QStringLiteral("id")] = id;
-
-
-	db.transaction();
-
-	LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db).addQuery("DELETE FROM runningGame WHERE gameid=").addValue(id).exec());
-
-	if (sumXP <= 0 && duration < 5 && !success) {
-		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
-								   .addQuery("DELETE FROM game WHERE id=")
-								   .addValue(id)
-								   .exec());
-	} else {
-		const auto &scoreId = QueryBuilder::q(db)
-							  .addQuery("INSERT INTO score (").setFieldPlaceholder()
-							  .addQuery(") VALUES (").setValuePlaceholder()
-							  .addQuery(")")
-							  .addField("username", username)
-							  .addField("xp", sumXP)
-							  .execInsertAsInt();
-
-		LAMBDA_SQL_ASSERT_ROLLBACK(scoreId);
+		retObj[QStringLiteral("success")] = success;
+		retObj[QStringLiteral("id")] = id;
 
 
-		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
-								   .addQuery("UPDATE game SET ").setCombinedPlaceholder()
-								   .addField("duration", duration)
-								   .addField("success", success)
-								   .addField("scoreid", *scoreId)
-								   .addQuery(" WHERE id=")
-								   .addValue(id)
-								   .exec());
-	}
+		db.transaction();
 
+		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db).addQuery("DELETE FROM runningGame WHERE gameid=").addValue(id).exec());
+
+		if (sumXP <= 0 && duration < 5 && !success) {
+			LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+									   .addQuery("DELETE FROM game WHERE id=")
+									   .addValue(id)
+									   .exec());
+		} else {
+			const auto &scoreId = QueryBuilder::q(db)
+								  .addQuery("INSERT INTO score (").setFieldPlaceholder()
+								  .addQuery(") VALUES (").setValuePlaceholder()
+								  .addQuery(")")
+								  .addField("username", username)
+								  .addField("xp", sumXP)
+								  .execInsertAsInt();
+
+			LAMBDA_SQL_ASSERT_ROLLBACK(scoreId);
+
+
+			LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+									   .addQuery("UPDATE game SET ").setCombinedPlaceholder()
+									   .addField("duration", duration)
+									   .addField("success", success)
+									   .addField("scoreid", *scoreId)
+									   .addQuery(" WHERE id=")
+									   .addValue(id)
+									   .exec());
+		}
 
 
 
-	// Inventory
 
-	/*if (success && game.mode == GameMap::Action) {
+		// Inventory
+
+		/*if (success && game.mode == GameMap::Action) {
 		QJsonArray iList;
 
 		for (auto it = inventory.constBegin(); it != inventory.constEnd(); ++it) {
@@ -1289,30 +1313,30 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 		retObj[QStringLiteral("inventory")] = iList;
 	}*/
 
-	if (success && game.mode == GameMap::Rpg) {
-		QJsonArray iList;
+		if (success && game.mode == GameMap::Rpg) {
+			QJsonArray iList;
 
-		for (auto it = inventory.constBegin(); it != inventory.constEnd(); ++it) {
-			if (it.key() == QStringLiteral("map")) {
-				LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
-										   .addQuery("INSERT OR IGNORE INTO wallet(").setFieldPlaceholder()
-										   .addQuery(") VALUES (").setValuePlaceholder().addQuery(")")
-										   .addField("username", username)
-										   .addField("type", (int) RpgMarket::Map)
-										   .addField("name", it.value().toString())
-										   .addField("amount", 1)
-										   .exec()
-										   );
+			for (auto it = inventory.constBegin(); it != inventory.constEnd(); ++it) {
+				if (it.key() == QStringLiteral("map")) {
+					LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+											   .addQuery("INSERT OR IGNORE INTO wallet(").setFieldPlaceholder()
+											   .addQuery(") VALUES (").setValuePlaceholder().addQuery(")")
+											   .addField("username", username)
+											   .addField("type", (int) RpgMarket::Map)
+											   .addField("name", it.value().toString())
+											   .addField("amount", 1)
+											   .exec()
+											   );
 
 
-				LOG_CDEBUG("client") << "Achieved map:" << it.value().toString() << qPrintable(username);
+					LOG_CDEBUG("client") << "Achieved map:" << it.value().toString() << qPrintable(username);
+				}
 			}
 		}
-	}
 
-	db.commit();
+		db.commit();
 
-	/*
+		/*
 	QueryBuilder qg(db);
 	qg.addQuery("SELECT DISTINCT id FROM studentGroupInfo WHERE username=").addValue(username);
 
@@ -1328,14 +1352,22 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 	}
 */
 
-	if (success) {
-		LAMBDA_SQL_ASSERT(TeacherAPI::_evaluateCampaign(this, game.campaign, username, game.passitemid));
+
 	}
 
 
-	// Clear wallet
 
-	TeacherAPI::_clearWallet(databaseMain(), m_service);
+	if (mode & GameFinishCampaignOnly) {
+		if (success) {
+			LAMBDA_SQL_ASSERT(TeacherAPI::_evaluateCampaign(this, game.campaign, username));
+		}
+
+
+		// Clear wallet
+
+		TeacherAPI::_clearWallet(databaseMain(), m_service);
+
+	}
 
 	response = responseOk(retObj);
 
@@ -1347,6 +1379,106 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 		QMetaObject::invokeMethod(engine, std::bind(&RpgEngine::playerSetFinal, engine, id, retObj), Qt::QueuedConnection);
 
 	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief UserAPI::permitCreate
+ * @param credential
+ * @param campaign
+ * @param json
+ * @return
+ */
+
+QHttpServerResponse UserAPI::permitCreate(const Credential &credential, const int &campaign, const QJsonObject &json)
+{
+	LOG_CDEBUG("client") << "Request permit" << credential.username() << "for campaign:" << campaign << "device:" << credential.devicePub().toBase64();
+
+	const qint64 clientClock = json.value(QStringLiteral("clock")).toInteger();
+
+	if (clientClock <= 0)
+		return responseError("missing clock");
+
+
+	OfflineServerEngine engine(m_service);
+
+	const auto &permit = engine.createPermit(credential.username(), campaign, credential.devicePub(), clientClock);
+
+	if (!permit)
+		return responseError("permit create error");
+
+	return responseOk(permit->toJson());
+}
+
+
+
+
+/**
+ * @brief UserAPI::permitUpload
+ * @param credential
+ * @param json
+ * @return
+ */
+
+QHttpServerResponse UserAPI::permitUpload(const Credential &credential, const QJsonObject &json)
+{
+	QByteArray content = QByteArray::fromBase64(json.value(QStringLiteral("data")).toString().toLatin1());
+
+
+	PublicKeySigner signer;
+	signer.setPublicKey(credential.devicePub());
+
+	const std::optional<ReceiptList> data = signer.verifyTo<ReceiptList>(content);
+
+	if (!data)
+		return responseError("invalid content");
+
+	OfflineServerEngine engine(m_service);
+
+	const std::optional<PermitContent> permit = engine.verifyPermit(data->permit);
+
+	if (!permit)
+		return responseError("invalid permit");
+
+	if (permit->deviceid != credential.devicePub())
+		return responseError("invalid device");
+
+	LOG_CINFO("client") << "Upload permit receipts" << credential.username() << "for campaign:" << permit->campaign << "device:" << credential.devicePub().toBase64();
+
+	std::vector<Receipt> list;
+	list.reserve(data->receipts.size());
+
+
+	// check receipt hashes
+
+	QByteArray prev;
+
+	for (const QByteArray &d : data->receipts) {
+		Receipt receipt;
+
+		receipt.fromCbor(QCborValue::fromCbor(d));
+
+		if (!prev.isEmpty() && receipt.prevHash != prev) {
+			LOG_CERROR("client") << "Receipt hash chain error";
+			return responseError("receipt list error");
+		}
+
+		prev = OfflineEngine::computeMapHash(d);
+
+		list.push_back(std::move(receipt));
+	}
+
+	if (list.empty())
+		return responseError("empty receipt list");
+
+	const auto &ptr = engine.uploadReceipts(this, *permit, list);
+
+	if (!ptr)
+		return responseError("internal error");
+
+	return responseOk(ptr->toJson());
+
 }
 
 
@@ -1631,6 +1763,63 @@ void UserAPI::setCurrency(const QString &username, const int &gameid, const int 
 	databaseMainWorker()->execInThread([this, username, gameid, amount]() {
 		_setCurrency(username, gameid, amount);
 	});
+}
+
+
+
+/**
+ * @brief UserAPI::solverInfo
+ * @param dbMain
+ * @param username
+ * @param map
+ * @return
+ */
+
+std::optional<QMap<QString, GameMap::SolverInfo> > UserAPI::solverInfo(const DatabaseMain *dbMain, const QString &username, const QString &map)
+{
+	Q_ASSERT(dbMain);
+
+	QDefer ret;
+
+	QMap<QString, GameMap::SolverInfo> solver;
+
+	dbMain->worker()->execInThread([dbMain, username, map, ret, &solver]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
+
+		QMutexLocker _locker(dbMain->mutex());
+
+		QueryBuilder q(db);
+
+		q.addQuery("SELECT missionid, level, deathmatch, COUNT(*) AS num FROM game WHERE username=").addValue(username)
+				.addQuery(" AND success=true")
+				.addQuery(" AND mapid=").addValue(map)
+				.addQuery(" GROUP BY missionid, level, deathmatch");
+
+		if (!q.exec())
+			return ret.reject();
+
+		while (q.sqlQuery().next()) {
+			const QString &mission = q.value("missionid").toString();
+
+			GameMap::SolverInfo s;
+
+			if (solver.contains(mission))
+				s = solver.value(mission);
+
+			s.setSolved(q.value("level").toInt(), q.value("num").toInt());
+
+			solver.insert(mission, s);
+		}
+
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+
+	if (ret.state() == RESOLVED)
+		return solver;
+	else
+		return std::nullopt;
 }
 
 
@@ -1962,48 +2151,7 @@ std::optional<QJsonArray> UserAPI::getGroupScore(const DatabaseMain *database, c
 std::optional<QMap<QString, GameMap::SolverInfo> > UserAPI::solverInfo(const AbstractAPI *api, const QString &username, const QString &map)
 {
 	Q_ASSERT(api);
-
-	QDefer ret;
-
-	QMap<QString, GameMap::SolverInfo> solver;
-
-	api->databaseMainWorker()->execInThread([api, username, map, ret, &solver]() mutable {
-		QSqlDatabase db = QSqlDatabase::database(api->databaseMain()->dbName());
-
-		QMutexLocker _locker(api->databaseMain()->mutex());
-
-		QueryBuilder q(db);
-
-		q.addQuery("SELECT missionid, level, deathmatch, COUNT(*) AS num FROM game WHERE username=").addValue(username)
-				.addQuery(" AND success=true")
-				.addQuery(" AND mapid=").addValue(map)
-				.addQuery(" GROUP BY missionid, level, deathmatch");
-
-		if (!q.exec())
-			return ret.reject();
-
-		while (q.sqlQuery().next()) {
-			const QString &mission = q.value("missionid").toString();
-
-			GameMap::SolverInfo s;
-
-			if (solver.contains(mission))
-				s = solver.value(mission);
-
-			s.setSolved(q.value("level").toInt(), q.value("num").toInt());
-
-			solver.insert(mission, s);
-		}
-
-		ret.resolve();
-	});
-
-	QDefer::await(ret);
-
-	if (ret.state() == RESOLVED)
-		return solver;
-	else
-		return std::nullopt;
+	return solverInfo(api->databaseMain(), username, map);
 }
 
 

@@ -75,9 +75,6 @@ public:
 
 	QList<int> images(const QVariantMap &) const override { return QList<int>(); }
 
-	static QString numberToKey(const int &number);
-	static int keyToNumber(const QString &key);
-
 private:
 	static QVector<int> m_numbers;
 	static QVector<int> m_optionsRange;

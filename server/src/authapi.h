@@ -49,10 +49,20 @@ public:
 	bool authorizePlain(const Credential &credential, const QString &password) const;
 	bool authorizeOAuth2(const Credential &credential, const char *oauthType) const;
 
-	QJsonObject getToken(const Credential &credential) const;
+	QJsonObject getToken(const Credential &credential, const QByteArray &session, const QByteArray &devicePub) const;
 
 	void updateOAuth2TokenInfo (OAuth2CodeFlow *flow) const;
 	void updateOAuth2UserData (OAuth2CodeFlow *flow) const;
+
+
+	struct DeviceIdentity {
+		QByteArray id;
+		QByteArray session;
+		QByteArray publicKey;
+	};
+
+	std::optional<DeviceIdentity> createRawDeviceToken(const QJsonObject &obj) const;
+
 };
 
 #endif // AUTHAPI_H

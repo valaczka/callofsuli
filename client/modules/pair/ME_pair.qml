@@ -18,8 +18,10 @@ QFormColumn {
 
 	onModifiedChanged: if (objectiveEditor) objectiveEditor.modified = true
 
-	readonly property bool isBinding: storage && (storage.module == "binding" || storage.module == "numbers")
-	readonly property bool isBlock: storage && storage.module == "block"
+	readonly property bool isBinding: storage && (storage.module == "binding" || storage.module == "numbers" ||
+												  storage.module == "mergebinding")
+	readonly property bool isBlock: storage && (storage.module == "block" || storage.module == "mergeblock")
+	readonly property bool isMergeBinding: storage && (storage.module == "mergebinding" || storage.module == "mergeblock")
 
 	QFormTextField {
 		id: _question
@@ -39,6 +41,15 @@ QFormColumn {
 		icon.source: Qaterial.Icons.cards
 
 		visible: !isBinding && !isBlock
+	}
+
+	QFormSectionSelector {
+		id: _sectionSelector
+
+		form: root
+		field: "sections"
+		visible: isMergeBinding
+		storage: root.storage
 	}
 
 	QFormBindingField {
@@ -103,12 +114,12 @@ QFormColumn {
 		valueRole: "value"
 		textRole: "text"
 
-		model: [
-			{value: "first", text: qsTr("Bal oldaliakhoz")},
-			{value: "second", text: qsTr("Jobb oldaliakhoz")},
-			{value: "both", text: qsTr("Véletlenszerű oldaliakhoz")},
-			{value: "shuffle", text: qsTr("Keverve")}
-		]
+		model: ListModel {
+			ListElement {value: "first"; text: qsTr("Bal oldaliakhoz")}
+			ListElement {value: "second"; text: qsTr("Jobb oldaliakhoz")}
+			ListElement {value: "both"; text: qsTr("Véletlenszerű oldaliakhoz")}
+			ListElement {value: "shuffle"; text: qsTr("Keverve")}
+		}
 
 		combo.onActivated: if (objectiveEditor) objectiveEditor.previewRefresh()
 	}
@@ -121,7 +132,7 @@ QFormColumn {
 
 	MapEditorSpinStorageCount {
 		id: _countBinding
-		visible: isBinding
+		visible: isBinding || isBlock
 	}
 
 
@@ -130,6 +141,9 @@ QFormColumn {
 	function loadData() {
 		let _items = isBlock ? [_question, _spinOptions, _modeOrder, _spinCount, _checkLinebreak] :
 							   [_question, _spinOptions, _modeOrder, _spinCount, _checkLinebreak]
+
+		if (isMergeBinding)
+			_items.push(_sectionSelector)
 
 		_countBinding.value = objective.storageCount
 		setItems(_items, objective.data)
@@ -149,9 +163,13 @@ QFormColumn {
 
 
 	function previewData() {
-		let d = getItems(isBlock ? [_question, _spinOptions, _modeOrder, _spinCount, _checkLinebreak] :
-								   [_question, _spinOptions, _modeOrder, _spinCount, _checkLinebreak]
-						 )
+		let _items = isBlock ? [_question, _spinOptions, _modeOrder, _spinCount, _checkLinebreak] :
+							   [_question, _spinOptions, _modeOrder, _spinCount, _checkLinebreak]
+
+		if (isMergeBinding)
+			_items.push(_sectionSelector)
+
+		let d = getItems(_items)
 
 		if (!isBinding && !isBlock)
 			d.pairs = _binding.saveToList()

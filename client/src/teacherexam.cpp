@@ -36,18 +36,16 @@
 #include "stb_image_write.h"
 #include "csv.hpp"
 #include "examgame.h"
-#include "../modules/binary/modulebinary.h"
 #include "xlsxdocument.h"
+#include "../modules/doublechoice/moduledoublechoice.h"
 
 #ifndef Q_OS_WASM
 #include <QPdfPageRenderer>
 #endif
 
-/**
- * @brief TeacherExam::m_optionLetters
- */
 
-const QString TeacherExam::m_optionLetters = QStringLiteral("ABCDEF?????????????????????????????????????????????");
+
+
 const QStringList TeacherExam::m_nonNumberedModules = QStringList{
 													  QStringLiteral("pair"),
 													  QStringLiteral("fillout"),
@@ -55,6 +53,7 @@ const QStringList TeacherExam::m_nonNumberedModules = QStringList{
 													  };
 const QStringList TeacherExam::m_numberedModules = QStringList{
 												   QStringLiteral("simplechoice"),
+												   QStringLiteral("doublechoice"),
 												   QStringLiteral("multichoice"),
 												   QStringLiteral("truefalse"),
 												   QStringLiteral("order"),
@@ -259,11 +258,12 @@ void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfC
 
 		if (!pdfConfig.file.isEmpty()) {		// TODO: WASM implementation
 			QFile f(pdfConfig.file);
-			f.open(QIODevice::WriteOnly);
-			f.write(content);
-			f.close();
+			if (f.open(QIODevice::WriteOnly)) {
+				f.write(content);
+				f.close();
 
-			emit pdfFileGenerated(pdfConfig.file);
+				emit pdfFileGenerated(pdfConfig.file);
+			}
 		}
 
 #ifndef Q_OS_WASM
@@ -363,6 +363,9 @@ void TeacherExam::scanDataAppend(const QString &filename)
 	});
 #endif*/
 }
+
+
+
 
 /**
  * @brief TeacherExam::scanImageDir
@@ -1403,7 +1406,7 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 										? QJsonArray{ tr("hamis"), tr("igaz") }
 										: obj.value(QStringLiteral("options")).toArray();
 			for (int i=0; i<options.size(); ++i) {
-				html += QStringLiteral("&nbsp;&nbsp;&nbsp;<b>(")+m_optionLetters.at(i)
+				html += QStringLiteral("&nbsp;&nbsp;&nbsp;<b>(")+ExamPaper::toOptionLetters(i)
 						+QStringLiteral(")</b> ");
 
 				if (obj.value(QStringLiteral("monospace")).toBool())
@@ -1414,6 +1417,57 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 				if (i<options.size()-1)
 					html += QStringLiteral(",");
 			}
+
+		} else if (module == QStringLiteral("doublechoice")) {
+			const QJsonArray &optionsA = obj.value(QStringLiteral("optionsA")).toArray();
+			QString htmlA;
+
+			for (int i=0; i<optionsA.size(); ++i) {
+				htmlA += QStringLiteral("&nbsp;&nbsp;&nbsp;<b>(")+ModuleDoublechoice::getOptionString(i, true)
+						+QStringLiteral(")</b> ");
+
+				if (obj.value(QStringLiteral("monospace")).toBool())
+					htmlA += Question::monspaceTagStart() + optionsA.at(i).toString() + Question::monspaceTagEnd();
+				else
+					htmlA += optionsA.at(i).toString();
+
+				if (i<optionsA.size()-1)
+					htmlA += QStringLiteral(",");
+			}
+
+
+			const QJsonArray &optionsB = obj.value(QStringLiteral("optionsB")).toArray();
+
+			QString htmlB;
+
+			for (int i=0; i<optionsB.size(); ++i) {
+				htmlB += QStringLiteral("&nbsp;&nbsp;&nbsp;<b>(")+ModuleDoublechoice::getOptionString(i, false)
+						+QStringLiteral(")</b> ");
+
+				if (obj.value(QStringLiteral("monospace")).toBool())
+					htmlB += Question::monspaceTagStart() + optionsB.at(i).toString() + Question::monspaceTagEnd();
+				else
+					htmlB += optionsB.at(i).toString();
+
+				if (i<optionsB.size()-1)
+					htmlB += QStringLiteral(",");
+			}
+
+
+			QString placeholder = obj.value(QStringLiteral("placeholder")).toString();
+
+
+			if (!placeholder.contains(QStringLiteral("%1"))) {
+				placeholder.prepend(QStringLiteral("%1 "));
+			}
+
+			if (!placeholder.contains(QStringLiteral("%2"))) {
+				placeholder.append(QStringLiteral("&nbsp;&nbsp;&nbsp; | %2"));
+			}
+
+			html += placeholder.arg(htmlA).arg(htmlB);
+
+
 		} else if (module == QStringLiteral("order")) {
 			const QJsonArray &list = obj.value(QStringLiteral("list")).toArray();
 			const bool linebreak = obj.value(QStringLiteral("break")).toBool();
@@ -1425,7 +1479,7 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 				if (linebreak)
 					html += QStringLiteral("<p style=\"align=justify\">");
 
-				html += QStringLiteral("&nbsp;&nbsp;&nbsp;<b>(")+m_optionLetters.at(i)
+				html += QStringLiteral("&nbsp;&nbsp;&nbsp;<b>(")+ExamPaper::toOptionLetters(i)
 						+QStringLiteral(")</b> ");
 
 				const QString &str = list.at(i).toObject().value(QStringLiteral("text")).toString();
@@ -1483,7 +1537,7 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 				if (i>0)
 					html += QStringLiteral("&nbsp;&nbsp;&nbsp;");
 
-				html += QStringLiteral("<b>(")+m_optionLetters.at(i)
+				html += QStringLiteral("<b>(")+ExamPaper::toOptionLetters(i)
 						+QStringLiteral(")</b> ")+options.at(i).toString();
 
 				if (i<options.size()-1)
@@ -1515,7 +1569,7 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 				if (i>0)
 					html += QStringLiteral("&nbsp;&nbsp;&nbsp;");
 
-				html += QStringLiteral("<b>(")+m_optionLetters.at(i)
+				html += QStringLiteral("<b>(")+ExamPaper::toOptionLetters(i)
 						+QStringLiteral(")</b> ");
 
 				if (obj.value(QStringLiteral("monospace")).toBool())
@@ -1552,7 +1606,7 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 			html += "<p style=\"margin-left: 30px;\">";
 
 			for (int i=0; i<options.size(); ++i) {
-				html += QStringLiteral("&nbsp;&nbsp;&nbsp;<b>(")+m_optionLetters.at(i)
+				html += QStringLiteral("&nbsp;&nbsp;&nbsp;<b>(")+ExamPaper::toOptionLetters(i)
 						+QStringLiteral(")</b> ")+options.at(i).toString();
 				if (i<options.size()-1)
 					html += QStringLiteral(",");
@@ -1594,7 +1648,7 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 
 				if (answer > 0) {
 					html += QStringLiteral("[<span style=\"font-weight: 600;\">");
-					html += ModuleBinary::numberToKey(answer);
+					html += ExamPaper::getOptionString(answer);
 					html += QStringLiteral("</span>] ");
 				}
 
@@ -2369,17 +2423,15 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 		maxPoint += point;
 
 		if (module == QStringLiteral("truefalse")) {
-			const auto &aList = letterToOptions(answer, num++);
-			if (aList.size() != 1 || aList.at(0) == -1) {
+			if (const auto &ptr = ExamPaper::toOptionValue(answer, num++); !ptr) {
 				ret.append(QJsonValue{});
 				corr.append(0);
 			} else {
-				const int &a = aList.at(0);
-				const bool success = (correctAnswer.toInt(-1) == a);
+				const bool success = (correctAnswer.toInt(-1) == *ptr);
 				const int p = success ? point : 0; sumPoint += p;
 
 				ret.append(QJsonObject{
-							   { QStringLiteral("index"), a },
+							   { QStringLiteral("index"), *ptr },
 						   });
 				corr.append(QJsonObject{
 								{ QStringLiteral("p"), p },
@@ -2388,17 +2440,15 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 			}
 
 		} else if (module == QStringLiteral("simplechoice")) {
-			const auto &aList = letterToOptions(answer, num++);
-			if (aList.size() != 1 || aList.at(0) == -1) {
+			if (const auto &ptr = ExamPaper::toOptionValue(answer, num++); !ptr) {
 				ret.append(QJsonValue{});
 				corr.append(0);
 			} else {
-				const int &a = aList.at(0);
-				const bool success = (correctAnswer.toInt(-1) == a);
+				const bool success = (correctAnswer.toInt(-1) == *ptr);
 				const int p = success ? point : 0; sumPoint += p;
 
 				ret.append(QJsonObject{
-							   { QStringLiteral("index"), a },
+							   { QStringLiteral("index"), *ptr },
 						   });
 				corr.append(QJsonObject{
 								{ QStringLiteral("p"), p },
@@ -2406,11 +2456,51 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 							});
 			}
 
+		} else if (module == QStringLiteral("doublechoice")) {
+			if (const quint8 ptr = ExamPaper::getOptionValue(answer.value(QStringLiteral("q")+QString::number(num++)).toString()); !ptr) {
+				ret.append(QJsonValue{});
+				corr.append(0);
+			} else {
+				const auto ptrA = ModuleDoublechoice::getOptionValue(ptr, true);
+				const auto ptrB = ModuleDoublechoice::getOptionValue(ptr, false);
+				const QJsonObject &ans = correctAnswer.toObject();
+
+				float factor = 0.f;
+
+				if (ptrA && (ans.value(QStringLiteral("first")).toInt(-1) == *ptrA))
+					factor += .5;
+
+				if (ptrB && (ans.value(QStringLiteral("second")).toInt(-1) == *ptrB))
+					factor += .5;
+
+				const int p = point * factor; sumPoint += p;
+
+				ret.append(QJsonObject{
+							   { QStringLiteral("indexA"), ptrA.value_or(QJsonValue::Null) },
+							   { QStringLiteral("indexB"), ptrB.value_or(QJsonValue::Null) },
+						   });
+				corr.append(QJsonObject{
+								{ QStringLiteral("p"), p },
+								{ QStringLiteral("success"), factor == 1. }
+							});
+			}
+
 		} else if (module == QStringLiteral("multichoice")) {
-			const auto &aList = letterToOptions(answer, num++);
+			const QSet<ExamPaper::OptionLetter> letterList = ExamPaper::getOptionLetterList(answer, num++);
+
+			static const QList<ExamPaper::OptionLetter> _list =  {
+				ExamPaper::LetterA,
+				ExamPaper::LetterB,
+				ExamPaper::LetterC,
+				ExamPaper::LetterD,
+				ExamPaper::LetterE,
+				ExamPaper::LetterF,
+			};
+
 			QJsonArray r;
-			for (const int &i : aList) {
-				if (i != -1)
+
+			for (int i=0; i<_list.size(); ++i) {
+				if (letterList.contains(_list.at(i)))
 					r.append(i);
 			}
 
@@ -2454,10 +2544,7 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 			const QJsonArray &aList = correctAnswer.toArray();
 
 			for (int i=0; i<list.size(); ++i) {
-				const auto &aL = letterToOptions(answer, num++);
-				const int &idx = aL.size() == 1 ? aL.at(0) : -1;
-
-				if (idx < 0 || idx >= list.size()) {
+				if (const auto &ptr = ExamPaper::toOptionValue(answer, num++); !ptr || *ptr >= list.size()) {
 					retList.append(QJsonObject{
 									   { QStringLiteral("answer"), QJsonValue::Null },
 									   { QStringLiteral("success"), false }
@@ -2465,7 +2552,7 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 					success = false;
 					--p;
 				} else {
-					const int vInt = list.at(idx).toObject().value(QStringLiteral("num")).toInt(-2);
+					const int vInt = list.at(*ptr).toObject().value(QStringLiteral("num")).toInt(-2);
 					const int vv = i<aList.size() ? aList.at(i).toInt(-1) : -1;
 
 					if (vInt == vv) {
@@ -2514,15 +2601,13 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 			QJsonArray l;
 
 			for (int i=0; i<list.size(); ++i) {
-				const auto &aList = letterToOptions(answer, num++);
-				if (aList.size() != 1 || aList.at(0) == -1) {
+				if (const auto &ptr = ExamPaper::toOptionValue(answer, num++); !ptr) {
 					l.append(QJsonValue::Null);
 				} else {
-					const int idx = aList.at(0);
-					if (idx<0 || idx>=options.size())
+					if (*ptr >= options.size())
 						l.append(QJsonValue::Null);
 					else
-						l.append(options.at(idx));
+						l.append(options.at(*ptr));
 				}
 			}
 
@@ -2585,8 +2670,7 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 				if (q.isEmpty())
 					continue;
 
-				const auto &aList = letterToOptions(answer, num++);
-				if (aList.size() != 1 || aList.at(0) == -1) {
+				if (const auto &ptr = ExamPaper::toOptionValue(answer, num++); !ptr) {
 					retList.append(QJsonObject{
 									   { QStringLiteral("q"), q },
 									   { QStringLiteral("answer"), QJsonValue::Null },
@@ -2595,8 +2679,7 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 					success = false;
 					--p;
 				} else {
-					const int idx = aList.at(0);
-					if (idx<0 || idx>=options.size()) {
+					if (*ptr >= options.size()) {
 						retList.append(QJsonObject{
 										   { QStringLiteral("q"), q },
 										   { QStringLiteral("answer"), QJsonValue::Null },
@@ -2605,7 +2688,7 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 						success = false;
 						--p;
 					} else {
-						const QString &opt = options.at(idx).toString();
+						const QString &opt = options.at(*ptr).toString();
 						const bool s = (opt == aObj.value(q).toString());
 						retList.append(QJsonObject{
 										   { QStringLiteral("q"), q },
@@ -2640,7 +2723,7 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 				ret.append(QJsonValue{});
 				corr.append(0);
 			} else {
-				const int answerNum = ModuleBinary::keyToNumber(key);
+				const int answerNum = ExamPaper::getOptionValue(key);
 				const bool success = (correctAnswer.toInt(-1) == answerNum);
 				const int p = success ? point : 0; sumPoint += p;
 
@@ -2655,17 +2738,15 @@ void TeacherExam::getResult(const QJsonArray &qList, const QJsonObject &answer, 
 			}
 		} else if (module == QStringLiteral("selector")) {
 			const int correctAnswer = obj.value(QStringLiteral("correct")).toInt(-1);
-			const auto &aList = letterToOptions(answer, num++);
-			if (aList.size() != 1 || aList.at(0) == -1) {
+			if (const auto &ptr = ExamPaper::toOptionValue(answer, num++); !ptr) {
 				ret.append(QJsonValue{});
 				corr.append(0);
 			} else {
-				const int &a = aList.at(0);
-				const bool success = (correctAnswer == a);
+				const bool success = (correctAnswer == *ptr);
 				const int p = success ? point : 0; sumPoint += p;
 
 				ret.append(QJsonObject{
-							   { QStringLiteral("index"), a },
+							   { QStringLiteral("index"), *ptr },
 						   });
 				corr.append(QJsonObject{
 								{ QStringLiteral("p"), p },
@@ -2982,191 +3063,6 @@ ExamScanDataList* TeacherExam::scanData() const
 
 
 
-
-
-
-/**
- * @brief ExamScanData::ExamScanData
- * @param parent
- */
-
-ExamScanData::ExamScanData(QObject *parent)
-	: SelectableObject(parent)
-{
-
-}
-
-QString ExamScanData::path() const
-{
-	return m_path;
-}
-
-void ExamScanData::setPath(const QString &newPath)
-{
-	if (m_path == newPath)
-		return;
-	m_path = newPath;
-	emit pathChanged();
-}
-
-ExamScanData::ScanFileState ExamScanData::state() const
-{
-	return m_state;
-}
-
-void ExamScanData::setState(const ScanFileState &newState)
-{
-	if (m_state == newState)
-		return;
-	m_state = newState;
-	emit stateChanged();
-}
-
-int ExamScanData::examId() const
-{
-	return m_examId;
-}
-
-void ExamScanData::setExamId(int newExamId)
-{
-	if (m_examId == newExamId)
-		return;
-	m_examId = newExamId;
-	emit examIdChanged();
-}
-
-int ExamScanData::contentId() const
-{
-	return m_contentId;
-}
-
-void ExamScanData::setContentId(int newContentId)
-{
-	if (m_contentId == newContentId)
-		return;
-	m_contentId = newContentId;
-	emit contentIdChanged();
-}
-
-QJsonObject ExamScanData::result() const
-{
-	return m_result;
-}
-
-void ExamScanData::setResult(const QJsonObject &newResult)
-{
-	if (m_result == newResult)
-		return;
-	m_result = newResult;
-	emit resultChanged();
-}
-
-QString ExamScanData::outputPath() const
-{
-	return m_outputPath;
-}
-
-void ExamScanData::setOutputPath(const QString &newOutputPath)
-{
-	if (m_outputPath == newOutputPath)
-		return;
-	m_outputPath = newOutputPath;
-	emit outputPathChanged();
-}
-
-QJsonArray ExamScanData::serverAnswer() const
-{
-	return m_serverAnswer;
-}
-
-void ExamScanData::setServerAnswer(const QJsonArray &newServerAnswer)
-{
-	if (m_serverAnswer == newServerAnswer)
-		return;
-	m_serverAnswer = newServerAnswer;
-	emit serverAnswerChanged();
-}
-
-QString ExamScanData::username() const
-{
-	return m_username;
-}
-
-void ExamScanData::setUsername(const QString &newUsername)
-{
-	if (m_username == newUsername)
-		return;
-	m_username = newUsername;
-	emit usernameChanged();
-}
-
-bool ExamScanData::upload() const
-{
-	return m_upload;
-}
-
-void ExamScanData::setUpload(bool newUpload)
-{
-	if (m_upload == newUpload)
-		return;
-	m_upload = newUpload;
-	emit uploadChanged();
-}
-
-QJsonArray ExamScanData::correction() const
-{
-	return m_correction;
-}
-
-void ExamScanData::setCorrection(const QJsonArray &newCorrection)
-{
-	if (m_correction == newCorrection)
-		return;
-	m_correction = newCorrection;
-	emit correctionChanged();
-}
-
-int ExamScanData::maxPoint() const
-{
-	return m_maxPoint;
-}
-
-void ExamScanData::setMaxPoint(int newMaxPoint)
-{
-	if (m_maxPoint == newMaxPoint)
-		return;
-	m_maxPoint = newMaxPoint;
-	emit maxPointChanged();
-}
-
-int ExamScanData::point() const
-{
-	return m_point;
-}
-
-void ExamScanData::setPoint(int newPoint)
-{
-	if (m_point == newPoint)
-		return;
-	m_point = newPoint;
-	emit pointChanged();
-}
-
-int ExamScanData::gradeId() const
-{
-	return m_gradeId;
-}
-
-void ExamScanData::setGradeId(int newGradeId)
-{
-	if (m_gradeId == newGradeId)
-		return;
-	m_gradeId = newGradeId;
-	emit gradeIdChanged();
-}
-
-
-
 /**
  * @brief ExamUser::ExamUser
  * @param parent
@@ -3243,7 +3139,7 @@ void ExamUser::getContent(const int &index, QQuickTextDocument *document,
 
 				if (answer > 0) {
 					html += QStringLiteral("[<span style=\"font-weight: 600;\">");
-					html += ModuleBinary::numberToKey(answer);
+					html += ExamPaper::getOptionString(answer);
 					html += QStringLiteral("</span>] ");
 				}
 

@@ -36,7 +36,7 @@
 
 
 
-#define USER_AGENT_SIGN_HEADER		QByteArrayLiteral("User-Agent-Sign")
+#define HEADER_CONTENT_SIGNATURE	QByteArrayLiteral("Content-Signature")
 
 
 HttpConnection::HttpConnection(Client *client)
@@ -138,7 +138,7 @@ void HttpConnection::setServer(Server *newServer)
  * @param server
  */
 
-void HttpConnection::connectToServer(Server *server)
+HttpReply* HttpConnection::connectToServer(Server *server)
 {
 	if (!server)
 		server = m_server;
@@ -148,12 +148,12 @@ void HttpConnection::connectToServer(Server *server)
 #ifdef Q_OS_WASM
 	if (!server) {
 		m_client->messageError(tr("Nincs megadva szerver"), tr("Belső hiba"));
-		return;
+		return nullptr;
 	}
 #else
 	if (!server || server->url().isEmpty()) {
 		m_client->messageError(tr("Nincs megadva szerver"), tr("Belső hiba"));
-		return;
+		return nullptr;
 	}
 #endif
 
@@ -216,6 +216,8 @@ void HttpConnection::connectToServer(Server *server)
 		emit pendingSslErrors(errorList);
 	});
 #endif
+
+	return wr;
 }
 
 
@@ -390,13 +392,14 @@ HttpReply *HttpConnection::send(const API &api, const QString &path, const QJson
 
 	if (!m_server->token().isEmpty()) {
 		r.setRawHeader(QByteArrayLiteral("Authorization"), QByteArrayLiteral("Bearer ")+m_server->token().toLocal8Bit());
+
+		if (const QByteArray &sig = Application::instance()->userAgentSign(content, m_server->sessionId()); !sig.isEmpty())
+			r.setRawHeader(HEADER_CONTENT_SIGNATURE, sig.toBase64());
 	}
 
 
 	r.setHeader(QNetworkRequest::ContentTypeHeader, QByteArrayLiteral("application/json"));
 	r.setHeader(QNetworkRequest::UserAgentHeader, m_client->application()->userAgent());
-	if (const auto &h = Application::userAgentSign(content); !h.isEmpty())
-		r.setRawHeader(USER_AGENT_SIGN_HEADER, h);
 
 	QNetworkReply *reply = m_networkManager->post(r, content);
 
@@ -441,12 +444,14 @@ HttpReply *HttpConnection::send(const API &api, const QString &path, const QByte
 
 	if (!m_server->token().isEmpty()) {
 		r.setRawHeader(QByteArrayLiteral("Authorization"), QByteArrayLiteral("Bearer ")+m_server->token().toLocal8Bit());
+
+		if (const QByteArray &sig = Application::instance()->userAgentSign(content, m_server->sessionId()); !sig.isEmpty())
+			r.setRawHeader(HEADER_CONTENT_SIGNATURE, sig.toBase64());
 	}
 
 	r.setHeader(QNetworkRequest::ContentTypeHeader, QByteArrayLiteral("application/octet-stream"));
 	r.setHeader(QNetworkRequest::UserAgentHeader, m_client->application()->userAgent());
-	if (const auto &h = Application::userAgentSign(content); !h.isEmpty())
-		r.setRawHeader(USER_AGENT_SIGN_HEADER, h);
+
 
 	QNetworkReply *reply = m_networkManager->post(r, content);
 
@@ -494,6 +499,9 @@ HttpReply *HttpConnection::get(const QString &path)
 
 	if (!m_server->token().isEmpty()) {
 		r.setRawHeader(QByteArrayLiteral("Authorization"), QByteArrayLiteral("Bearer ")+m_server->token().toLocal8Bit());
+
+		if (const QByteArray &sig = Application::instance()->userAgentSign(QByteArray(), m_server->sessionId()); !sig.isEmpty())
+			r.setRawHeader(HEADER_CONTENT_SIGNATURE, sig.toBase64());
 	}
 
 	r.setHeader(QNetworkRequest::UserAgentHeader, m_client->application()->userAgent());

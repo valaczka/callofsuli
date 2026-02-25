@@ -178,6 +178,61 @@ QMarginsF MobileUtils::getSafeMargins()
 
 
 
+/**
+ * @brief getApkSigningCertSha256
+ * @return
+ */
+
+QByteArray MobileUtils::getApkSigningCertSha256() {
+
+	QJniObject activity = QNativeInterface::QAndroidApplication::context();
+
+	if (!activity.isValid())
+		return {};
+
+
+	QJniObject jArray = activity.callObjectMethod(
+							"getSigningCertSha256",
+							"()[Ljava/lang/String;"
+							);
+
+	if (!jArray.isValid()) {
+		LOG_CERROR("app") << "No signing certificate";
+		return {};
+	}
+
+
+	QJniEnvironment env;
+	jobjectArray array = static_cast<jobjectArray>(jArray.object());
+
+	const jsize len = env->GetArrayLength(array);
+
+	if (len > 0) {
+		QJniObject jStr( env->GetObjectArrayElement(array, 0) );
+		return QByteArray::fromHex(jStr.toString().toLatin1());
+	}
+
+	return {};
+}
+
+
+
+
+/**
+ * @brief MobileUtils::msecSinceBoot
+ * @return
+ */
+
+quint64 MobileUtils::msecSinceBoot()
+{
+	return (quint64) QJniObject::callStaticMethod<jlong>(
+				"android/os/SystemClock",
+				"elapsedRealtime",
+				"()J"
+				);
+}
+
+
 
 
 #ifdef __cplusplus
@@ -189,6 +244,9 @@ Java_hu_piarista_vjp_callofsuli_ClientActivity_setUrl(JNIEnv *env,
 													  jobject ,
 													  jstring url)
 {
+	if (!url)
+		return;
+
 	const char *urlStr = env->GetStringUTFChars(url, NULL);
 
 	QUrl _url(QString::fromUtf8(urlStr));
@@ -201,4 +259,6 @@ Java_hu_piarista_vjp_callofsuli_ClientActivity_setUrl(JNIEnv *env,
 #ifdef __cplusplus
 }
 #endif
+
+
 

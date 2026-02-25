@@ -68,7 +68,7 @@ public:
 
 	void registerQmlTypes() const override {};
 
-        QVariantList generateBlock(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
+	QVariantList generateBlock(const QVariantMap &data, const QVariantMap &storageData, StorageSeed *seed) const;
 	QVariantMap generateOne(const QVariantMap &data) const;
 
 	QList<int> images(const QVariantMap &) const override { return QList<int>(); }

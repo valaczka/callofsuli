@@ -31,7 +31,7 @@
 	<key>NSMicrophoneUsageDescription</key>
 	<string>QtMultimedia compatibility</string>
 	<key>NSHumanReadableCopyright</key>
-	<string>© Valaczka János Pál, 2012-2025</string>
+	<string>© Valaczka János Pál, 2012-2026</string>
 	<key>UILaunchStoryboardName</key>
 	<string>COSLaunchScreen</string>
 	<key>UIRequiresFullScreen</key>

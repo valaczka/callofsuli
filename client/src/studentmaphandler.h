@@ -32,6 +32,12 @@
 #include "teachergroup.h"
 
 class Campaign;
+class OfflineClientEngine;
+
+#ifndef OPAQUE_PTR_OfflineClientEngine
+#define OPAQUE_PTR_OfflineClientEngine
+Q_DECLARE_OPAQUE_POINTER(OfflineClientEngine*)
+#endif
 
 
 /**
@@ -43,6 +49,7 @@ class StudentMapHandler : public BaseMapHandler
 	Q_OBJECT
 
 	Q_PROPERTY(StudentMapList *mapList READ mapList CONSTANT)
+	Q_PROPERTY(OfflineClientEngine *offlineEngine READ offlineEngine WRITE setOfflineEngine NOTIFY offlineEngineChanged FINAL)
 
 public:
 	explicit StudentMapHandler(QObject *parent = nullptr);
@@ -52,17 +59,26 @@ public:
 	Q_INVOKABLE void checkDownloads();
 
 	Q_INVOKABLE void getUserCampaign(Campaign *campaign);
-    Q_INVOKABLE void playCampaignMap(Campaign *campaign, StudentMap *map, const QString &missionUuid);
+	Q_INVOKABLE void playCampaignMap(Campaign *campaign, StudentMap *map, const QString &missionUuid);
 
 	StudentMapList *mapList() const;
 
 	Q_INVOKABLE void reloadFreePlayMapList(TeacherGroupFreeMapList *list);
+
+	OfflineClientEngine *offlineEngine() const;
+	void setOfflineEngine(OfflineClientEngine *newOfflineEngine);
+
+signals:
+	void offlineEngineChanged();
 
 protected:
 	void reloadList() override;
 
 private:
 	std::unique_ptr<StudentMapList> m_mapList;
+	QPointer<OfflineClientEngine> m_offlineEngine;
+
+	friend class OfflineClientEngine;
 };
 
 

@@ -55,6 +55,9 @@ void BaseMap::loadFromJson(const QJsonObject &object, const bool &allField)
 	if (object.contains(QStringLiteral("md5")) || allField)
 		setMd5(object.value(QStringLiteral("md5")).toString());
 
+	/*if (object.contains(QStringLiteral("hash")) || allField)
+		setHash(object.value(QStringLiteral("hash")).toByteArray());*/
+
 	if (object.contains(QStringLiteral("cache")) || allField)
 		setCache(object.value(QStringLiteral("cache")).toObject());
 }
@@ -171,4 +174,17 @@ QJsonObject BaseMap::findMission(const QString &uuid) const
 	}
 
 	return {};
+}
+
+QByteArray BaseMap::hash() const
+{
+	return m_hash;
+}
+
+void BaseMap::setHash(const QByteArray &newHash)
+{
+	if (m_hash == newHash)
+		return;
+	m_hash = newHash;
+	emit hashChanged();
 }

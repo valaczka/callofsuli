@@ -40,6 +40,10 @@ protected:
 	virtual bool loadMainQml() override;
 	virtual Client *createClient() override;
 
+	virtual QByteArray getDeviceIdentityPlatform() const override;
+	virtual bool getDeviceKeyPlatform() override;
+
+
 };
 
 #endif // ONLINEAPPLICATION_H
