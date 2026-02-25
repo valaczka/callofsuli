@@ -207,6 +207,7 @@ void MapPlayCampaign::onCurrentGamePrepared()
 	}
 
 
+	/*
 	if (ActionRpgMultiplayerGame *agame = qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
 		RpgConfigBase gameData;
 		gameData.mapUuid = m_gameMap->uuid();
@@ -260,7 +261,7 @@ void MapPlayCampaign::onCurrentGamePrepared()
 
 		return;
 	}
-
+*/
 
 
 	setFinishedData({});
@@ -328,7 +329,7 @@ void MapPlayCampaign::onCurrentGameFinished()
 	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
 
 
-	if (qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
+	/*if (qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
 		if (levelGame->finishState() == AbstractGame::Neutral) {
 			destroyCurrentGame();
 			setGameState(StateSelect);
@@ -344,7 +345,7 @@ void MapPlayCampaign::onCurrentGameFinished()
 		m_finishTimer.start();
 
 		return;
-	}
+	}*/
 
 
 	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_client->currentGame());
@@ -383,12 +384,12 @@ void MapPlayCampaign::onCurrentGameFinished()
 										 { QStringLiteral("extended"), extended },
 									 });
 
-		if (ActionRpgGame *rpgGame = qobject_cast<ActionRpgGame*>(m_client->currentGame())) {
+		/*if (ActionRpgGame *rpgGame = qobject_cast<ActionRpgGame*>(m_client->currentGame())) {
 			if (RpgGame *g = rpgGame->rpgGame()) {
 				m_finishObject.insert(QStringLiteral("wallet"), g->usedWalletAsArray());
 				m_finishObject.insert(QStringLiteral("currency"), g->currency());
 			}
-		}
+		}*/
 
 		levelGame->clearStatistics(stat);
 
@@ -423,10 +424,10 @@ void MapPlayCampaign::onUpdateTimerTimeout()
 	if (levelGame->mode() == GameMap::Practice)
 		return;
 
-	if (qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
+	/*if (qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
 		/// ----- statistics!!!!
 		return;
-	}
+	}*/
 
 
 	const QJsonArray &stat = levelGame->getStatistics();
@@ -437,12 +438,12 @@ void MapPlayCampaign::onUpdateTimerTimeout()
 		{ QStringLiteral("statistics"), stat }
 	};
 
-	if (ActionRpgGame *rpgGame = qobject_cast<ActionRpgGame*>(m_client->currentGame())) {
+	/*if (ActionRpgGame *rpgGame = qobject_cast<ActionRpgGame*>(m_client->currentGame())) {
 		if (RpgGame *g = rpgGame->rpgGame()) {
 			data.insert(QStringLiteral("wallet"), g->usedWalletAsArray());
 			data.insert(QStringLiteral("currency"), g->currency());
 		}
-	} else if (stat.isEmpty() && m_lastXP == xp) {
+	} else*/ if (stat.isEmpty() && m_lastXP == xp) {
 		return;
 	}
 
@@ -477,7 +478,7 @@ void MapPlayCampaign::onFinishTimerTimeout()
 	LOG_CDEBUG("client") << "Try finishing game" << m_finishTries;
 
 
-	if (ActionRpgMultiplayerGame *game = qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
+	/*if (ActionRpgMultiplayerGame *game = qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
 		if (const QJsonObject &data = game->finalData(); !data.isEmpty()) {
 			m_finishTimer.stop();
 			m_finishObject = QJsonObject();
@@ -503,7 +504,7 @@ void MapPlayCampaign::onFinishTimerTimeout()
 		}
 
 		return;
-	}
+	}*/
 
 	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
 	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_client->currentGame());
@@ -559,10 +560,10 @@ AbstractLevelGame *MapPlayCampaign::createLevelGame(MapPlayMissionLevel *level, 
 
 	switch (mode) {
 		case GameMap::Rpg:
-			if (multi)
+			/*if (multi)
 				g = new CampaignActionRpgMultiplayerGame(level->missionLevel(), m_client);
 			else
-				g = new CampaignActionRpgGame(level->missionLevel(), m_client);
+				g = new CampaignActionRpgGame(level->missionLevel(), m_client);*/
 			break;
 
 		case GameMap::Lite:

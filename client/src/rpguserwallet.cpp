@@ -28,8 +28,6 @@
 #include "Logger.h"
 #include "application.h"
 #include "client.h"
-#include "rpgarmory.h"
-#include "rpggame.h"
 #include "utils_.h"
 #include "server.h"
 
@@ -148,7 +146,7 @@ QString RpgUserWalletList::getWeaponImage(const QString &name, const int &subTyp
 
 QString RpgUserWalletList::getWeaponImage(const RpgGameData::Weapon::WeaponType &type, const int &subType)
 {
-	return getWeaponImage(RpgArmory::weaponHash().value(type), subType);
+	return /*getWeaponImage(RpgArmory::weaponHash().value(type), subType)*/{};
 }
 
 
@@ -362,7 +360,7 @@ void RpgUserWallet::setExtendedInfo(const QList<RpgMarketExtendedInfo> &newExten
  * @param def
  * @return
  */
-
+/*
 QList<RpgMarketExtendedInfo> RpgUserWallet::getExtendedInfo(const RpgGameDefinition &def)
 {
 	QList<RpgMarketExtendedInfo> list;
@@ -381,7 +379,7 @@ QList<RpgMarketExtendedInfo> RpgUserWallet::getExtendedInfo(const RpgGameDefinit
 
 	return list;
 }
-
+*/
 
 /**
  * @brief RpgUserWallet::getExtendedInfo
@@ -490,6 +488,7 @@ QList<RpgMarketExtendedInfo> RpgUserWallet::getExtendedInfo(const RpgMarket &mar
  * @return
  */
 
+/*
 QList<RpgMarketExtendedInfo> RpgUserWallet::getExtendedInfo(const RpgPlayerCharacterConfig &player)
 {
 	QList<RpgMarketExtendedInfo> list;
@@ -567,7 +566,7 @@ QList<RpgMarketExtendedInfo> RpgUserWallet::getExtendedInfo(const RpgPlayerChara
 	return list;
 }
 
-
+*/
 
 /**
  * @brief RpgUserWallet::hasCharacter
@@ -802,6 +801,8 @@ void RpgUserWalletList::loadWallet(const QJsonObject &json)
 	for (RpgUserWallet *w : *this) {
 		const RpgMarket &market = w->market();
 
+
+		/*
 		if (w->marketType() == RpgMarket::Weapon) {
 			const auto t = RpgArmory::weaponHash().key(market.name, RpgGameData::Weapon::WeaponInvalid);
 
@@ -838,6 +839,7 @@ void RpgUserWalletList::loadWallet(const QJsonObject &json)
 				w->setSubImage(getWeaponImage(arm.cw, arm.s));
 			}
 		}
+		*/
 
 		const bool found = std::find_if(mList.cbegin(), mList.cend(), [&market](const RpgWallet &m){
 			return m.isEqual(market);
@@ -880,7 +882,7 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 
 		QList<RpgMarketExtendedInfo> info;
 
-		if (market.type == RpgMarket::Map) {
+		/*if (market.type == RpgMarket::Map) {
 			const auto t = RpgGame::terrains().find(market.name);
 
 			if (t == RpgGame::terrains().constEnd()) {
@@ -918,7 +920,7 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 			w->setReadableName(RpgWeapon::weaponNameEn(t));
 			w->setSortName(QStringLiteral("%1").arg(t, 2, u'0'));
 
-		} /*else if (market.type == RpgMarket::Bullet) {
+		} //else if (market.type == RpgMarket::Bullet) {
 			const auto t = RpgPickableObject::typeFromString(market.name);
 
 			if (t == RpgPickableObject::PickableInvalid) {
@@ -928,7 +930,7 @@ void RpgUserWalletList::updateMarket(const RpgMarket &market)
 
 			w->setReadableName(RpgPickableObject::pickableNameEn(t));
 			w->setSortName(QStringLiteral("%1").arg(t, 2, u'0'));
-		} */ else if (market.type == RpgMarket::Hp) {
+		} else */ if (market.type == RpgMarket::Hp) {
 			w->setReadableName(tr("HP"));
 		} else if (market.type == RpgMarket::Time) {
 			w->setReadableName(tr("Second"));
@@ -1107,7 +1109,7 @@ RpgGameData::Armory RpgUserWalletList::getArmory(const QString &character) const
 
 	QHash<RpgGameData::Weapon::WeaponType, Data> wData;
 
-	for (RpgUserWallet *w : *this) {
+	/*for (RpgUserWallet *w : *this) {
 		if (w->marketType() != RpgMarket::Weapon || !w->available() || w->market().belongs.isEmpty())
 			continue;
 
@@ -1156,7 +1158,7 @@ RpgGameData::Armory RpgUserWalletList::getArmory(const QString &character) const
 				it->bullet = amount;
 			}
 		}
-	}
+	}*/
 
 
 
@@ -1170,14 +1172,14 @@ RpgGameData::Armory RpgUserWalletList::getArmory(const QString &character) const
 			}
 		}
 	} else {
-		const auto &ch = RpgGame::characters().value(character);
+		/*const auto &ch = RpgGame::characters().value(character);
 		const auto t = RpgArmory::weaponHash().key(ch.weapon, RpgGameData::Weapon::WeaponInvalid);
 
 		if (t != RpgGameData::Weapon::WeaponInvalid) {
 			armory.add(t, ch.weaponSub, ch.bullet);
 			armory.cw = t;
 			armory.s = ch.weaponSub;
-		}
+		}*/
 	}
 
 

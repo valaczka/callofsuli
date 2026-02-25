@@ -27,8 +27,6 @@
 #ifndef MAPPLAYCAMPAIGN_H
 #define MAPPLAYCAMPAIGN_H
 
-#include "actionrpggame.h"
-#include "actionrpgmultiplayergame.h"
 #include "mapplay.h"
 #include "studentmaphandler.h"
 #include "campaign.h"
@@ -121,44 +119,6 @@ protected:
 
 
 
-
-
-/**
- * @brief The CampaignActionRpgGame class
- */
-
-class CampaignActionRpgGame : public ActionRpgGame, public CampaignGameIface
-{
-	Q_OBJECT
-
-public:
-	explicit CampaignActionRpgGame(GameMapMissionLevel *missionLevel, Client *client)
-		: ActionRpgGame(missionLevel, client) {}
-	virtual ~CampaignActionRpgGame() {}
-
-	virtual QJsonObject getServerExtendedData() const { return m_serverExtended; };
-};
-
-
-
-
-
-/**
- * @brief The CampaignActionRpgMultiplayerGame class
- */
-
-
-class CampaignActionRpgMultiplayerGame : public ActionRpgMultiplayerGame, public CampaignGameIface
-{
-	Q_OBJECT
-
-public:
-	explicit CampaignActionRpgMultiplayerGame(GameMapMissionLevel *missionLevel, Client *client)
-		: ActionRpgMultiplayerGame(missionLevel, client) {}
-	virtual ~CampaignActionRpgMultiplayerGame() {}
-
-	virtual QJsonObject getServerExtendedData() const { return m_serverExtended; };
-};
 
 
 /**

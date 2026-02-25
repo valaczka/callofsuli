@@ -30,7 +30,6 @@
 #include "Logger.h"
 #include "application.h"
 #include "isometricentity.h"
-#include "rpgenemyiface.h"
 #include "tiledspritehandler.h"
 #include "tileddebugdraw.h"
 #include "utils_.h"
@@ -362,8 +361,8 @@ std::optional<QStringList> TiledGame::getDynamicTilesets(const TiledGameDefiniti
 							const QString type = atts.value(QStringLiteral("type")).toString();
 							const QString name = atts.value(QStringLiteral("name")).toString();
 
-							list.append(RpgEnemyIface::directoryBaseName(RpgEnemyIface::typeFromString(type),
-																		 name) + QStringLiteral(".dres"));
+							/*list.append(RpgEnemyIface::directoryBaseName(RpgEnemyIface::typeFromString(type),
+																		 name) + QStringLiteral(".dres"));*/
 						}
 
 						xml.skipCurrentElement();

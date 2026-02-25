@@ -44,8 +44,6 @@
 #include "Logger.h"
 #include "mapgame.h"
 #include "updater.h"
-#include "rpgplayer.h"
-#include "rpggame.h"
 #include "downloader.h"
 #include "server.h"
 #include <QScreen>
@@ -85,9 +83,11 @@ Client::Client(Application *app)
 
 	connect(&m_oauthData.timer, &QTimer::timeout, this, &Client::onOAuthPendingTimer);
 
+	/* TODO: CONNECT RPG RELOAD
 	connect(m_downloader.get(), &Downloader::contentDownloaded, this, &RpgGame::reloadTerrains);
 	connect(m_downloader.get(), &Downloader::contentDownloaded, this, &RpgGame::reloadCharacters);
 	connect(m_downloader.get(), &Downloader::contentDownloaded, this, &RpgGame::reloadWorld);
+	*/
 
 	startCache();
 
@@ -626,8 +626,8 @@ void Client::onServerDisconnected()
 
 	m_downloader->contentClear();
 	m_downloader->setServer(nullptr);
-	RpgGame::reloadTerrains();
-	RpgGame::reloadCharacters();
+	/*RpgGame::reloadTerrains();
+	RpgGame::reloadCharacters();*/
 }
 
 

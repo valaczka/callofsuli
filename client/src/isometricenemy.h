@@ -215,7 +215,6 @@ protected:
 	bool m_isSleeping = false;
 
 	friend class TiledGame;
-	friend class RpgGame;
 };
 
 #endif // ISOMETRICENEMY_H

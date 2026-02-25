@@ -37,19 +37,7 @@
 #include <chipmunk/chipmunk_structs.h>
 
 
-#ifndef QT_NO_DEBUG
-#include "rpgplayer.h"
-#include "rpgenemy.h"
-
-#define BODY_ERROR(body, msg) { \
-	if (const RpgPlayer *p = dynamic_cast<const RpgPlayer*>(body)) \
-	LOG_CERROR("scene") << msg << p; \
-	else if (const RpgEnemy *p = dynamic_cast<const RpgEnemy*>(body)) \
-	LOG_CERROR("scene") << msg << p; \
-	}
-#else
 #define BODY_ERROR(body, msg) LOG_CERROR("scene") << msg << body;
-#endif
 
 
 #define CHECK_BODY()		{ \

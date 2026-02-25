@@ -208,8 +208,6 @@ SOURCES += \
 	abstractgame.cpp \
 	abstractlevelgame.cpp \
 	abstractudpengine.cpp \
-	actionrpggame.cpp \
-	actionrpgmultiplayergame.cpp \
 	application.cpp \
 	basemap.cpp \
 	basemaphandler.cpp \
@@ -252,36 +250,7 @@ SOURCES += \
 	offsetmodel.cpp \
 	pass.cpp \
 	question.cpp \
-	rpgarmory.cpp \
-	rpgarrow.cpp \
-	rpgaxe.cpp \
-	rpgbroadsword.cpp \
-	rpgcontrol.cpp \
-	rpgcontrolcollection.cpp \
-	rpgcontrolcontainer.cpp \
-	rpgcontrolgate.cpp \
-	rpgcontrollight.cpp \
-	rpgcontrolrandomizer.cpp \
-	rpgcontrolteleport.cpp \
-	rpgdagger.cpp \
-	rpgenemy.cpp \
-	rpgenemybase.cpp \
-	rpgfireball.cpp \
-	rpgfirefog.cpp \
-	rpggame.cpp \
-	rpghammer.cpp \
-	rpglightning.cpp \
-	rpglongbow.cpp \
-	rpglongsword.cpp \
-	rpgmace.cpp \
-	rpgpickable.cpp \
-	rpgplayer.cpp \
-	rpgquestion.cpp \
-	rpgshield.cpp \
-	rpgshortbow.cpp \
-	rpgudpengine.cpp \
 	rpguserwallet.cpp \
-	rpgwerebear.cpp \
 	rpgworldlanddata.cpp \
 	scorelist.cpp \
 	server.cpp \
@@ -329,8 +298,6 @@ HEADERS += \
 	abstracttiledmotor.h \
 	abstractudpengine.h \
 	abstractudpengine_p.h \
-	actionrpggame.h \
-	actionrpgmultiplayergame.h \
 	application.h \
 	basemap.h \
 	basemaphandler.h \
@@ -372,39 +339,7 @@ HEADERS += \
 	offsetmodel.h \
 	pass.h \
 	question.h \
-	rpgarmory.h \
-	rpgarrow.h \
-	rpgaxe.h \
-	rpgbroadsword.h \
-	rpgcontrol.h \
-	rpgcontrolcollection.h \
-	rpgcontrolcontainer.h \
-	rpgcontrolgate.h \
-	rpgcontrollight.h \
-	rpgcontrolrandomizer.h \
-	rpgcontrolteleport.h \
-	rpgdagger.h \
-	rpgenemy.h \
-	rpgenemybase.h \
-	rpgenemyiface.h \
-	rpgfireball.h \
-	rpgfirefog.h \
-	rpggame.h \
-	rpggamedataiface.h \
-	rpggamedataiface_t.h \
-	rpghammer.h \
-	rpglightning.h \
-	rpglongbow.h \
-	rpglongsword.h \
-	rpgmace.h \
-	rpgpickable.h \
-	rpgplayer.h \
-	rpgquestion.h \
-	rpgshield.h \
-	rpgshortbow.h \
-	rpgudpengine.h \
 	rpguserwallet.h \
-	rpgwerebear.h \
 	rpgworldlanddata.h \
 	rpgworldlanddata_p.h \
 	scorelist.h \

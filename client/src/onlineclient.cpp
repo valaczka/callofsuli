@@ -38,8 +38,6 @@
 #include "server.h"
 #include "utils_.h"
 #include "httpconnection.h"
-#include "rpgplayer.h"
-#include "rpggame.h"
 
 
 OnlineClient::OnlineClient(Application *app)

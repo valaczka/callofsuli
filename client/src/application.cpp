@@ -26,16 +26,17 @@
  */
 
 #include "Logger.h"
-#include "actionrpggame.h"
-#include "actionrpgmultiplayergame.h"
 #include "classobject.h"
 #include "commonsettings.h"
+#include "downloader.h"
 #include "exam.h"
 #include "examgame.h"
 #include "examresultmodel.h"
 #include "fetchmodel.h"
 #include "fontimage.h"
 #include "gamequestioncomponent.h"
+#include "isometricplayer.h"
+#include "isometricenemy.h"
 #include "isometricobject.h"
 #include "litegame.h"
 #include "mapeditor.h"
@@ -60,13 +61,13 @@
 #include "teachermaphandler.h"
 #include "teacherpass.h"
 #include "testgame.h"
-#include "rpggame.h"
 #include "tileddebugdraw.h"
 #include "tiledeffectfog.h"
 #include "tiledobject.h"
 #include "tiledscene.h"
 #include "tiledspritehandler.h"
 #include "tiledvisualitem.h"
+#include "tiledweapon.h"
 #include "userimporter.h"
 #include "userloglist.h"
 #include "utils_.h"
@@ -356,8 +357,6 @@ void Application::registerQmlTypes()
 	LOG_CTRACE("app") << "Register QML types";
 
 	qmlRegisterUncreatableType<AbstractGame>("CallOfSuli", 1, 0, "AbstractGame", "AbstractGame is uncreatable");
-	qmlRegisterUncreatableType<ActionRpgGame>("CallOfSuli", 1, 0, "ActionRpgGame", "ActionRpgGame is uncreatable");
-	qmlRegisterUncreatableType<ActionRpgMultiplayerGame>("CallOfSuli", 1, 0, "ActionRpgMultiplayerGame", "ActionRpgMultiplayerGame is uncreatable");
 	qmlRegisterUncreatableType<Downloader>("CallOfSuli", 1, 0, "Downloader", "Downloader is uncreatable");
 	qmlRegisterUncreatableType<ExamGame>("CallOfSuli", 1, 0, "ExamGame", "ExamGame is uncreatable");
 	qmlRegisterUncreatableType<EditorUndoStack>("CallOfSuli", 1, 0, "EditorUndoStack", "EditorUndoStack is uncreatable");
@@ -380,15 +379,10 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<MapPlayMissionLevel>("CallOfSuli", 1, 0, "MapPlayMissionLevel", "MapPlayMissionLevel is uncreatable");
 	qmlRegisterUncreatableType<MapPlayOffline>("CallOfSuli", 1, 0, "MapPlayOffline", "MapPlayOffline is uncreatable");
 	qmlRegisterUncreatableType<OfflineClientEngine>("CallOfSuli", 1, 0, "OfflineClientEngine", "OfflineClientEngine is uncreatable");
-	qmlRegisterUncreatableType<RpgActiveControlObject>("CallOfSuli", 1, 0, "RpgActiveControl", "RpgActiveControl is uncreatable");
-	qmlRegisterUncreatableType<RpgArmory>("CallOfSuli", 1, 0, "RpgArmory", "RpgArmory is uncreatable");
-	qmlRegisterUncreatableType<RpgEnemy>("CallOfSuli", 1, 0, "RpgEnemy", "RpgEnemy is uncreatable");
-	qmlRegisterUncreatableType<RpgPlayer>("CallOfSuli", 1, 0, "RpgPlayer", "RpgPlayer is uncreatable");
 	qmlRegisterUncreatableType<RpgMarket>("CallOfSuli", 1, 0, "RpgMarket", "RpgMarket is uncreatable");
 	qmlRegisterUncreatableType<RpgMarketExtendedInfo>("CallOfSuli", 1, 0, "RpgMarketExtendedInfo", "RpgWalletExtendedInfo is uncreatable");
 	qmlRegisterUncreatableType<RpgQuest>("CallOfSuli", 1, 0, "RpgQuest", "RpgQuest is uncreatable");
 	qmlRegisterUncreatableType<RpgUserWallet>("CallOfSuli", 1, 0, "RpgUserWallet", "RpgUserWallet is uncreatable");
-	qmlRegisterUncreatableType<RpgWeapon>("CallOfSuli", 1, 0, "RpgWeapon", "RpgWeapon is uncreatable");
 	qmlRegisterUncreatableType<Server>("CallOfSuli", 1, 1, "Server", "Server is uncreatable");
 	qmlRegisterUncreatableType<Sound>("CallOfSuli", 1, 1, "Sound", "Server is uncreatable");
 	qmlRegisterUncreatableType<TestGame>("CallOfSuli", 1, 0, "TestGame", "TestGame is uncreatable");
@@ -471,7 +465,6 @@ void Application::registerQmlTypes()
 	qmlRegisterType<TeacherMapList>("CallOfSuli", 1, 0, "TeacherMapList");
 	qmlRegisterType<TeacherPass>("CallOfSuli", 1, 0, "TeacherPass");
 	qmlRegisterType<TeacherPassResultModel>("CallOfSuli", 1, 0, "TeacherPassResultModel");
-	qmlRegisterType<RpgGame>("CallOfSuli", 1, 0, "RpgGameImpl");
 	qmlRegisterType<RpgUserWorld>("CallOfSuli", 1, 0, "RpgUserWorld");
 	qmlRegisterType<RpgWorldLandData>("CallOfSuli", 1, 0, "RpgWorldLandData");
 	qmlRegisterType<RpgWorldLandDataList>("CallOfSuli", 1, 0, "RpgWorldLandDataList");

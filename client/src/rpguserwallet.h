@@ -27,11 +27,12 @@
 #ifndef RPGUSERWALLET_H
 #define RPGUSERWALLET_H
 
+#include "qquickitem.h"
 #include "rank.h"
 #include "rpgconfig.h"
-#include "rpggame.h"
 #include "rpgworldlanddata.h"
 #include <QObject>
+#include <QMutex>
 
 #pragma GCC diagnostic ignored "-Wunused-parameter"
 #pragma GCC diagnostic ignored "-Wunused-variable"
@@ -126,9 +127,9 @@ signals:
 	void subImageChanged();
 
 private:
-	static QList<RpgMarketExtendedInfo> getExtendedInfo(const RpgGameDefinition &def);
+	//static QList<RpgMarketExtendedInfo> getExtendedInfo(const RpgGameDefinition &def);
 	static QList<RpgMarketExtendedInfo> getExtendedInfo(const RpgMarket &market);
-	static QList<RpgMarketExtendedInfo> getExtendedInfo(const RpgPlayerCharacterConfig &player);
+	//static QList<RpgMarketExtendedInfo> getExtendedInfo(const RpgPlayerCharacterConfig &player);
 
 	bool hasCharacter(const QString &character, RpgUserWalletList *list = nullptr) const;
 	bool isBelongsSolved() const;

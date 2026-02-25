@@ -129,7 +129,6 @@ private:
 	IsometricPlayerPrivate *d = nullptr;
 
 	friend class TiledGame;
-	friend class RpgGame;
 };
 
 #endif // ISOMETRICPLAYER_H
