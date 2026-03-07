@@ -65,8 +65,6 @@ SOURCES += \
 	oauth2codeflow.cpp \
 	offlineserverengine.cpp \
 	rpgengine.cpp \
-	rpgevent.cpp \
-	rpgsnapshotstorage.cpp \
 	serverservice.cpp \
 	serversettings.cpp \
 	teacherapi.cpp \
@@ -100,8 +98,6 @@ HEADERS += \
 	querybuilder.hpp \
 	rpgengine.h \
 	rpgengine_p.h \
-	rpgevent.h \
-	rpgsnapshotstorage.h \
 	serverservice.h \
 	serversettings.h \
 	teacherapi.h \

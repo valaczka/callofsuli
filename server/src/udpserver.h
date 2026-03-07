@@ -28,6 +28,7 @@
 #define UDPSERVER_H
 
 #include "qlambdathreadworker.h"
+#include "udpbitstream.hpp"
 #include "udphelper.h"
 #include <enet/enet.h>
 #include <QThread>

@@ -32,6 +32,7 @@
 #include <QMutex>
 #include <enet/enet.h>
 #include <sodium/crypto_box.h>
+#include "credential.h"
 #include "qjsonobject.h"
 #include "udpbitstream.hpp"
 #include "udpserver.h"
@@ -54,23 +55,25 @@ struct PeerData
 	std::weak_ptr<UdpEngine> engine;
 	AbstractEngine::Type type = AbstractEngine::EngineInvalid;
 	UdpChallenge challenge;
-	UdpAuthKey authKey;
+	std::optional<PublicKeySigner> signer = std::nullopt;
 
 	bool hasChallenge = false;
-	bool hasAuthKey = false;
 
 	QJsonObject connectionToken;			// azért QJsonObject, hogy pl. RpgConnectionToken is lehessen
 	QString username;
 	QDeadlineTimer deadline;
+	QByteArray session;
+	QByteArray publicKey;
 
 	void reset() {
 		peerId = 0;
 		engine.reset();
 		type = AbstractEngine::EngineInvalid;
 		challenge.fill(0);
-		authKey.fill(0);
+		signer = std::nullopt;
 		hasChallenge = false;
-		hasAuthKey = false;
+		session.clear();
+		publicKey.clear();
 		connectionToken = QJsonObject();
 		username.clear();
 		deadline.setRemainingTime(-1);
@@ -107,8 +110,8 @@ public:
 	bool removePeer(const quint32 &peerId);
 	bool removeIndex(const quint32 &idx);
 
-	std::optional<UdpBitStream> updateConnection(const quint32 &peerId, const AbstractEngine::Type &type, const QJsonObject &token);
-	std::optional<UdpBitStream> updateChallenge(const UdpConnectionToken &connToken, const UdpChallengeResponseStream &stream, ENetPeer *peer);
+	std::optional<UdpBitStream> updateConnection(const UdpConnectionToken &token, const AbstractEngine::Type &type, const QJsonObject &tokenObj);
+	std::optional<UdpBitStream> updateChallenge(const UdpConnectionToken &connToken, const QByteArray &content, ENetPeer *peer);
 	bool updateEngine(const quint32 &peerId, const std::shared_ptr<UdpEngine> &engine);
 
 	void removeEngine(UdpEngine *engine);

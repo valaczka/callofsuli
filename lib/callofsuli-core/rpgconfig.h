@@ -853,26 +853,6 @@ public:
 
 
 
-/**
- * @brief The ConnectToken class
- */
-
-class ConnectionToken : public UdpConnectionToken
-{
-	Q_GADGET
-
-public:
-	ConnectionToken(const QString &_user = QString(), const quint32 &_peer = 0, const qint64 &_exp = 0)
-		: UdpConnectionToken(1, _user, _peer, _exp)								// 1 = AbstractEngine::Rpg
-	{}
-
-	QS_SERIALIZABLE
-
-	QS_OBJECT(RpgConfigBase, config)		// mission level data
-};
-
-
-
 
 
 

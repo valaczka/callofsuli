@@ -664,85 +664,62 @@ bool UdpServerPrivate::packetConnectReceived(std::unique_ptr<UdpBitStream> &&dat
 
 bool UdpServerPrivate::packetChallengeReceived(std::unique_ptr<UdpBitStream> &&data, const ENetEvent &event)
 {
-	QByteArray token;
-	QByteArray encrypted;
-
-
-	if (!data->getChallengeResponse(&token, &encrypted)) {
-		LOG_CWARNING("engine") << "Invalid connect message" << UdpServerPeer::address(event.peer);
+	if (!data)
 		return false;
-	}
 
-
-	if (encrypted.size() <= crypto_box_SEALBYTES) {
-		LOG_CWARNING("engine") << "Buffer size error" << UdpServerPeer::address(event.peer);
+	if (data->type() != UdpBitStream::MessageChallenge)
 		return false;
-	}
+
+	auto ptrToken = data->readByteArray();
+
+	if (!ptrToken)
+		return false;
+
+	auto ptrSignedContent = data->readByteArray();
+
+	if (!ptrSignedContent)
+		return false;
 
 
 	QByteArray hash;
 
-	auto connectionToken = verifyToken(token, &hash);
+	auto connectionToken = verifyToken(*ptrToken, &hash);
 
 	if (!connectionToken) {
 		LOG_CWARNING("engine") << "Invalid token" << UdpServerPeer::address(event.peer);
 		return false;
 	}
 
-	UdpConnectionToken usertoken;
-	usertoken.fromJson(*connectionToken);
-
 	static constexpr ENetAddress empty{.host = 0, .port = 0};
 
 	const ENetAddress address = m_pendingClient.value(hash, empty);
 
 	if (address.host != event.peer->address.host || address.port != event.peer->address.port) {
-		LOG_CWARNING("engine") << "Invalid response (pending not found)" << usertoken.user << UdpServerPeer::address(event.peer);
+		LOG_CWARNING("engine") << "Invalid response (pending not found)" << UdpServerPeer::address(event.peer);
 		return false;
 	}
 
+	UdpConnectionToken usertoken;
+	usertoken.fromJson(*connectionToken);
 
 
+	auto stream = m_lobby->updateChallenge(usertoken, *ptrSignedContent, event.peer);
 
-
-	const qsizetype len = encrypted.size() - crypto_box_SEALBYTES;
-
-	std::vector<unsigned char> msg(len);
-
-	if (crypto_box_seal_open(msg.data(),
-							 reinterpret_cast<const unsigned char*>(encrypted.constData()),
-							 encrypted.size(),
-							 m_keyPair.publicKey.data(),
-							 m_keyPair.secretKey.data()) == 0) {
-
-		UdpChallengeResponseStream decrypted(msg);
-
-		LOG_CERROR("engine") << "**CH" << decrypted;
-
-		auto stream = m_lobby->updateChallenge(usertoken, decrypted, event.peer);
-
-		LOG_CDEBUG("engine") << "**AFTERCH" << decrypted;
-
-		if (!stream.has_value()) {
-			LOG_CWARNING("engine") << "Challenge error" << usertoken.peer << usertoken.user << UdpServerPeer::address(event.peer);
-			return false;
-		}
-
-		m_pendingClient.remove(hash);
-		m_connectTokenHash.insert(hash, QDateTime::currentMSecsSinceEpoch());
-
-		// Régieket töröljük
-
-		m_connectTokenHash.removeIf([](const auto &ptr) {
-			return ptr.value() < QDateTime::currentMSecsSinceEpoch() - 1000*60*240;
-		});
-
-		sendPacket(event.peer, stream->data(), false);
-
-	} else {
-		LOG_CWARNING("engine") << "Seal open error" << usertoken.peer << usertoken.user << UdpServerPeer::address(event.peer);
+	if (!stream.has_value()) {
+		LOG_CWARNING("engine") << "Challenge error" << usertoken.peer << usertoken.user << UdpServerPeer::address(event.peer);
 		return false;
 	}
+
+	m_pendingClient.remove(hash);
+	m_connectTokenHash.insert(hash, QDateTime::currentMSecsSinceEpoch());
+
+	// Régieket töröljük
+
+	m_connectTokenHash.removeIf([](const auto &ptr) {
+		return ptr.value() < QDateTime::currentMSecsSinceEpoch() - 1000*60*240;
+	});
+
+	sendPacket(event.peer, stream->data(), false);
 
 	return true;
 }
@@ -773,12 +750,12 @@ bool UdpServerPrivate::packetUserReceived(std::unique_ptr<UdpBitStream> &&data, 
 		return false;
 	}
 
-	if (!peerData->hasAuthKey) {
-		LOG_CWARNING("engine") << "Missing auth key" << peerData->peerId << peerData->username << UdpServerPeer::address(event.peer);
+	if (!peerData->signer.has_value()) {
+		LOG_CWARNING("engine") << "Missing public key" << peerData->peerId << peerData->username << UdpServerPeer::address(event.peer);
 		return false;
 	}
 
-	const auto &lastPos = data->verifyBuffer(peerData->authKey);
+	const auto &lastPos = data->verifyBuffer(peerData->signer.value());
 
 	if (!lastPos) {
 		LOG_CWARNING("engine") << "Authentication error" << peerData->peerId << peerData->username << UdpServerPeer::address(event.peer);
@@ -850,10 +827,13 @@ QByteArray UdpServerPrivate::hashToken(const QByteArray &token)
 
 QByteArray UdpServerPrivate::hashToken(const uint8_t *data, const std::size_t &size)
 {
-	unsigned char hash[crypto_generichash_BYTES];
+	QByteArray hash(crypto_generichash_BYTES, Qt::Uninitialized);
 
-	crypto_generichash(hash, sizeof hash, data, size, NULL, 0);
-	return QByteArray((const char*) hash, sizeof hash);
+	crypto_generichash(reinterpret_cast<unsigned char*>(hash.data()),
+					   hash.size(),
+					   data, size,
+					   NULL, 0);
+	return hash;
 }
 
 
@@ -1281,23 +1261,23 @@ bool Lobby::removeIndex(const quint32 &idx)
  * @return
  */
 
-std::optional<UdpBitStream> Lobby::updateConnection(const quint32 &peerId, const AbstractEngine::Type &type, const QJsonObject &token)
+std::optional<UdpBitStream> Lobby::updateConnection(const UdpConnectionToken &token, const AbstractEngine::Type &type, const QJsonObject &tokenObj)
 {
 	Q_ASSERT(m_server);
 
-	if (peerId == 0)
+	if (token.peer == 0)
 		return std::nullopt;
 
 	QMutexLocker l(&m_mutex);
 
-	auto idx = _index(peerId);
+	auto idx = _index(token.peer);
 
 	if (!idx.has_value())
 		return std::nullopt;
 
 	PeerData &d = m_data[idx.value()];
 
-	if (d.hasAuthKey) {
+	if (d.signer.has_value()) {
 		// Already connected
 
 		return std::optional<UdpBitStream>(std::in_place, d.peerId, idx.value());
@@ -1309,9 +1289,12 @@ std::optional<UdpBitStream> Lobby::updateConnection(const quint32 &peerId, const
 		}
 
 		d.type = type;
-		d.connectionToken = token;
+		d.peerId = token.peer;
+		d.session = QByteArray::fromBase64(token.ses.toLatin1());
+		d.publicKey = QByteArray::fromBase64(token.pub.toLatin1());
+		d.connectionToken = tokenObj;
 
-		return std::optional<UdpBitStream>(std::in_place, d.challenge, m_server->m_keyPair.publicKey);
+		return std::optional<UdpBitStream>(std::in_place, d.challenge);
 	}
 }
 
@@ -1324,7 +1307,7 @@ std::optional<UdpBitStream> Lobby::updateConnection(const quint32 &peerId, const
  * @return
  */
 
-std::optional<UdpBitStream> Lobby::updateChallenge(const UdpConnectionToken &connToken, const UdpChallengeResponseStream &stream,
+std::optional<UdpBitStream> Lobby::updateChallenge(const UdpConnectionToken &connToken, const QByteArray &content,
 												   ENetPeer *peer)
 {
 	Q_ASSERT(m_server);
@@ -1342,7 +1325,7 @@ std::optional<UdpBitStream> Lobby::updateChallenge(const UdpConnectionToken &con
 
 	PeerData &d = m_data[idx.value()];
 
-	if (!d.hasAuthKey) {
+	if (!d.signer.has_value()) {
 		// Not yet connected
 
 		if (!d.hasChallenge) {
@@ -1350,22 +1333,29 @@ std::optional<UdpBitStream> Lobby::updateChallenge(const UdpConnectionToken &con
 			return std::nullopt;
 		}
 
-		std::array<std::uint8_t, CHALLENGE_BYTES> challenge;
-		std::array<std::uint8_t, crypto_auth_KEYBYTES> authKey;
-
-		if (!stream.getResponse(&challenge, &authKey)) {
-			LOG_CWARNING("engine") << "Invalid response" << connToken.peer << connToken.user << qPrintable(UdpServerPeer::address(peer));
+		if (d.publicKey.isEmpty()) {
+			LOG_CWARNING("engine") << "Missing public key" << connToken.peer << connToken.user << qPrintable(UdpServerPeer::address(peer));
 			return std::nullopt;
 		}
 
-		if (challenge != d.challenge) {
+		QByteArray challenge = QByteArray::fromRawData(reinterpret_cast<const char*>(d.challenge.data()), d.challenge.size());
+
+		PublicKeySigner signer(d.publicKey);
+
+		auto res = UdpBitStream::verifyBuffer(signer, reinterpret_cast<const unsigned char*>(content.data()), content.size());
+
+		if (!res.has_value() || *res < 0 || *res >= (size_t) content.size()) {
+			LOG_CWARNING("engine") << "Invalid challenge" << connToken.peer << connToken.user << qPrintable(UdpServerPeer::address(peer));
+			return std::nullopt;
+		}
+
+		if (challenge != content.first(*res)) {
 			LOG_CWARNING("engine") << "Challenge mismatch" << connToken.peer << connToken.user << qPrintable(UdpServerPeer::address(peer));
 			return std::nullopt;
 		}
 
 
-		d.authKey = std::move(authKey);
-		d.hasAuthKey = true;
+		d.signer = std::move(signer);
 
 		LOG_CINFO("engine") << "Peer connected:" << connToken.peer << connToken.user << qPrintable(UdpServerPeer::address(peer));
 	}
@@ -1548,7 +1538,7 @@ QString Lobby::dumpPeers() const
 			   .arg(d.peerId, 12)
 			   .arg(i, 4)
 			   .arg(d.hasChallenge ? '*' : ' ')
-			   .arg(d.hasAuthKey ? '*' : ' ')
+			   .arg(d.signer.has_value() ? '*' : ' ')
 			   .arg(d.type)
 			   .arg(e ? e->id() : 0, 3)
 			   .arg(d.username)

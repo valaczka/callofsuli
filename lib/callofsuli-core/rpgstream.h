@@ -28,7 +28,6 @@
 #define RPGSTREAM_H
 
 #include "udpbitstream.hpp"
-#include "udphelper.h"
 
 
 #define ENGINE_ID_TYPE				quint32
@@ -94,6 +93,31 @@ void writeBitsAs(UdpBitStream &stream, const C &value, const size_t &bits) {
 
 
 
+
+
+
+/**
+ * @brief The RpgConnectionToken class
+ */
+
+class ConnectionToken : public UdpConnectionToken
+{
+	Q_GADGET
+
+public:
+	ConnectionToken(const QString &_user = {}, const quint32 &_peer = 0, const qint64 &_exp = 0)
+		: UdpConnectionToken(1, _user, _peer, _exp)
+		, campaign(-1)
+		, duration(0)
+	{}
+
+	QS_SERIALIZABLE
+	QS_FIELD(QString, mapUuid)
+	QS_FIELD(QString, missionUuid)
+	QS_FIELD(int, missionLevel)
+	QS_FIELD(int, campaign)
+	QS_FIELD(int, duration)
+};
 
 
 
@@ -377,12 +401,12 @@ public:
 
 	static constexpr quint8 CurrentVersion = 1;
 
-	EngineStream(const UdpAuthKey &authKey, const quint32 &peerIndex, const Operation &operation)
+	EngineStream(const std::array<unsigned char, crypto_auth_KEYBYTES> &secret,
+				 const quint32 &peerIndex, const Operation &operation)
 		: UdpBitStream(MessageUser)
 		, m_operation(operation)
 		, m_version(CurrentVersion)
-		, m_authKey(authKey)
-		, m_hasAuthKey(true)
+		, m_signer(AuthKeySigner(secret))
 	{
 		writePeerIndex(peerIndex);
 		writeOperation(*this);
@@ -393,8 +417,6 @@ public:
 		: UdpBitStream(MessageUser)
 		, m_operation(operation)
 		, m_version(CurrentVersion)
-		, m_authKey({})
-		, m_hasAuthKey(false)
 	{
 		writePeerIndex(peerIndex);
 		writeOperation(*this);
@@ -405,8 +427,6 @@ public:
 		: UdpBitStream(MessageUser)
 		, m_operation(operation)
 		, m_version(CurrentVersion)
-		, m_authKey({})
-		, m_hasAuthKey(false)
 	{
 		writeOperation(*this);
 		writeVersion(*this);
@@ -422,18 +442,16 @@ public:
 
 	virtual std::vector<std::uint8_t> data() const override;
 
-	const bool &hasAuthKey() const { return m_hasAuthKey; }
-	const UdpAuthKey &authKey() const { return m_authKey; }
-	void setAuthKey(const UdpAuthKey &key) {
-		m_authKey = key;
-		m_hasAuthKey = true;
-	}
+	void setSecret(const std::array<unsigned char, crypto_auth_KEYBYTES> &secret) { m_signer = AuthKeySigner(secret); }
+	void setSecret(const QByteArray &secret) { m_signer = AuthKeySigner(secret); }
+	void clearSecret() { m_signer = std::nullopt; }
+
+	const std::optional<AuthKeySigner> &signer() const { return m_signer; }
 
 	void finalize() const;
 
 protected:
-	UdpAuthKey m_authKey;
-	bool m_hasAuthKey;
+	std::optional<AuthKeySigner> m_signer = std::nullopt;
 	mutable bool m_hasFinalized = false;
 };
 

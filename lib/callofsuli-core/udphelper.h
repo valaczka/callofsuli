@@ -28,9 +28,9 @@
 #define UDPHELPER_H
 
 
+#include <QDateTime>
 #include "qdeadlinetimer.h"
 #include "qelapsedtimer.h"
-#include "udpbitstream.hpp"
 #include <deque>
 #include <map>
 #include <vector>
@@ -39,11 +39,6 @@
 #include "qmutex.h"
 #include <enet/enet.h>
 #endif
-
-typedef std::array<std::uint8_t, CHALLENGE_BYTES>				UdpChallenge;
-typedef std::array<std::uint8_t, crypto_auth_KEYBYTES>			UdpAuthKey;
-typedef std::array<std::uint8_t, crypto_box_PUBLICKEYBYTES>		UdpPublicKey;
-
 
 
 

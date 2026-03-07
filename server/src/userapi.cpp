@@ -895,18 +895,19 @@ QHttpServerResponse UserAPI::gameCreate(const QString &username, const int &camp
 
 QHttpServerResponse UserAPI::gameTokenCreate(const Credential &credential, const int &campaign, const QJsonObject &json)
 {
-	RpgConfigBase g;
+	RpgStream::ConnectionToken token;
 
-	g.fromJson(json);
-	g.campaign = campaign;
+	token.fromJson(json);
+	token.campaign = campaign;
+	token.type = 1;
 
-	if (g.mapUuid.isEmpty() || g.missionUuid.isEmpty())
+	if (token.mapUuid.isEmpty() || token.missionUuid.isEmpty())
 		return responseError("missing map/mission");
 
-	if (g.missionLevel < 0)
+	if (token.missionLevel < 0)
 		return responseError("invalid level");
 
-	if (g.campaign < 0)
+	if (token.campaign < 0)
 		return responseError("invalid campaign");
 
 	UdpServer *udpServer = m_service->udpServer();
@@ -915,9 +916,7 @@ QHttpServerResponse UserAPI::gameTokenCreate(const Credential &credential, const
 		return responseError("internal error");
 
 
-	RpgGameData::ConnectionToken token;
-	QDateTime exp = QDateTime::currentDateTimeUtc();
-	exp = exp.addSecs(120);
+	QDateTime exp = QDateTime::currentDateTimeUtc().addSecs(120);
 
 	quint32 id = 0;
 	std::shared_ptr<RpgEngine> engine = RpgEngine::peerFind(udpServer, credential.username(), &id);
@@ -940,9 +939,9 @@ QHttpServerResponse UserAPI::gameTokenCreate(const Credential &credential, const
 	}
 
 	token.user = credential.username();
-	token.config = g;
 	token.exp = exp.toSecsSinceEpoch();
-
+	token.ses = QString::fromLatin1(credential.session().toBase64());
+	token.pub = QString::fromLatin1(credential.devicePub().toBase64());
 
 	Token jwt;
 

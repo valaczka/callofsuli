@@ -104,8 +104,8 @@ void EngineStream::finalize() const
 		m_stream.writeBit(0, true);
 		m_stream.write<uint8_t>(0, true);
 
-		if (m_hasAuthKey)
-			this->authBuffer(m_authKey);
+		if (m_signer.has_value())
+			this->authBuffer(m_signer.value());
 
 		m_hasFinalized = true;
 	}
