@@ -18,10 +18,12 @@
 		android:name=\"org.qtproject.qt.android.bindings.QtApplication\"
 		android:hardwareAccelerated=\"true\"
 		android:label=\"Call of Suli\"
-	android:icon=\"@mipmap/ic_launcher\"
-	android:usesCleartextTraffic=\"true\"
+		android:icon=\"@mipmap/ic_launcher\"
+		android:theme=\"@style/AppTheme\"
+		android:usesCleartextTraffic=\"true\"
 		android:requestLegacyExternalStorage=\"true\"
 		android:allowNativeHeapPointerTagging=\"false\"
+		android:enableOnBackInvokedCallback=\"true\"
 		android:allowBackup=\"true\"
 		android:fullBackupOnly=\"false\">
 		<activity
@@ -31,6 +33,7 @@
 			android:theme=\"@style/AppTheme\"
 			android:launchMode=\"singleInstance\"
 			android:screenOrientation=\"unspecified\"
+			android:resizeableActivity=\"true\"
 			android:exported=\"true\">
 			<intent-filter>
 				<action android:name=\"android.intent.action.MAIN\" />
