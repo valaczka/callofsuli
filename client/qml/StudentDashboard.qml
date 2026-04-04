@@ -21,8 +21,11 @@ QItemGradient {
 
 	appBar.rightComponent: Row {
 		Qaterial.AppBarButton {
+			id: _btnProfile
 			icon.source: Qaterial.Icons.account
 			onClicked: Client.stackPushPage("PageStudentProfile.qml")
+
+			Component.onCompleted: _tour.list[0].target = _btnProfile
 		}
 		Qaterial.AppBarButton {
 			icon.source: Qaterial.Icons.cogOutline
@@ -331,6 +334,17 @@ QItemGradient {
 	}
 
 
+	SpotlightCoachTour {
+		id: _tour
+
+		page: "studentdashboard"
+
+		list: [
+			{ target: null, title: qsTr("Profil"), text: qsTr("Itt módosíthatod az adataidat, és kérheted az e-mailes értesítéseket")},
+			//{ id: 1, target: null, title: qsTr("Offline mód"), text: qsTr("Ehhez a szerverhez offline is tudsz csatlakozni") },
+		]
+	}
+
 
 	Connections {
 		target: user
@@ -371,6 +385,8 @@ QItemGradient {
 
 	StackView.onActivated: {
 		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentDasboard)
+		_tour.start()
+
 		reload()
 		if (!user)
 			return

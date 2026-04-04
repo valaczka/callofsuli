@@ -18,9 +18,12 @@ QPageGradient {
 	progressBarEnabled: true
 
 	property bool _firstRun: studentMapHandler && !studentMapHandler.offlineEngine
+	property alias _tour: _tour
 
 	appBar.rightComponent: Qaterial.AppBarButton
 	{
+		id: _btnOffline
+
 		icon.source: campaign && campaign.offlineState == Campaign.OfflineInvalid ?
 						 Qaterial.Icons.cloudPlus :
 						 Qaterial.Icons.cloudRemoveOutline
@@ -50,6 +53,8 @@ QPageGradient {
 
 		visible: Client.server && Client.server.offlineEngine && campaign && !studentMapHandler.offlineEngine &&
 				 Client.server.offlineEngine.engineState != OfflineClientEngine.EngineInvalid
+
+		Component.onCompleted: control._tour.list[0].target = _btnOffline
 	}
 
 
@@ -197,10 +202,20 @@ QPageGradient {
 	}
 
 
+	SpotlightCoachTour {
+		id: _tour
+
+		page: "freeplay"
+
+		list: [
+			{ target: null, title: qsTr("Offline mód"), text: qsTr("Itt tudod bekapcsolni, ha offline is használni szeretnéd")},
+		]
+	}
 
 
 	StackView.onActivated: {
 		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentFreePlay)
+		_tour.start()
 		reloadList()
 	}
 

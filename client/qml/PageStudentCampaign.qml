@@ -21,6 +21,7 @@ QPageGradient {
 	property bool withResult: false
 
 	property bool _firstRun: studentMapHandler && !studentMapHandler.offlineEngine
+	property alias _tour: _tour
 
 	stackPopFunction: function() {
 		if (!_scrollable.flickable.atYBeginning) {
@@ -35,6 +36,7 @@ QPageGradient {
 
 		Qaterial.AppBarButton
 		{
+			id: _btnOffline
 			icon.source: campaign && campaign.offlineState == Campaign.OfflineInvalid ?
 							 Qaterial.Icons.cloudPlus :
 							 Qaterial.Icons.cloudRemoveOutline
@@ -62,13 +64,16 @@ QPageGradient {
 
 			}
 
-			visible: Client.server && Client.server.offlineEngine && campaign && !studentMapHandler.offlineEngine &&
+			visible: Client.server && Client.server.offlineEngine && campaign && studentMapHandler && !studentMapHandler.offlineEngine &&
 					 Client.server.offlineEngine.engineState != OfflineClientEngine.EngineInvalid
+
+			Component.onCompleted: root._tour.list[0].target = _btnOffline
 		}
 
 
 		Qaterial.AppBarButton
 		{
+			id: _btnResult
 			icon.source: Qaterial.Icons.eye
 			ToolTip.text: qsTr("Eredmények megjelenítése")
 			onClicked: {
@@ -76,6 +81,8 @@ QPageGradient {
 				reload()
 			}
 			visible: !withResult
+
+			Component.onCompleted: root._tour.list[1].target = _btnResult
 		}
 	}
 
@@ -337,10 +344,23 @@ QPageGradient {
 	}
 
 
+	SpotlightCoachTour {
+		id: _tour
+
+		page: "studentcampaign"
+
+		list: [
+			{ target: null, title: qsTr("Offline mód"), text: qsTr("Itt tudod bekapcsolni, ha ezt a kihívást online is használni szeretnéd")},
+			{ id: 1, target: null, title: qsTr("Eredmények"), text: qsTr("Ezzel tudod megjeleníteni a korábbi eredményeidet") },
+		]
+	}
+
 
 
 	StackView.onActivated: {
 		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentCampaign)
+		_tour.start()
+
 		reload()
 	}
 
@@ -361,8 +381,8 @@ QPageGradient {
 			}
 		}
 
-		if (withResult && campaign && studentMapHandler) {
-			if (studentMapHandler.offlineEngine)
+		if (withResult && campaign) {
+			if (studentMapHandler && studentMapHandler.offlineEngine)
 				studentMapHandler.offlineEngine.loadCampaignResult(_view.offsetModel, campaign)
 			else
 				_view.offsetModel.reload()

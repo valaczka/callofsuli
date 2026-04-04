@@ -12,16 +12,17 @@ Item {
 	property bool active: false
 	property var list: []
 	property string page: "untitled"
+	property int maxStep: 2
 
 
 	// internal
 	property int _step: 0
+	property int _realStep: 0
 	property int _lastId: -1
 	property int _lastSeen: -1
 	property bool _success: true
-	readonly property int _version: Client.Utils.versionCode()
 
-	readonly property string _settingsPrefix: "notification/tour_"+page+"_"
+	readonly property string _settingsPrefix: "notification/tour_"+page
 
 
 	SpotlightCoachMark {
@@ -53,6 +54,7 @@ Item {
 
 				active = false
 				_step = 0
+				_realStep = 0
 				_lastId = -1
 				_lastSeen = -1
 				_success = true
@@ -71,19 +73,31 @@ Item {
 			if (d.after !== undefined)
 				minId = d.after
 
-			let seen = Client.Utils.settingsGet(_settingsPrefix+id, 0)
 
-			if (_lastId != -1 && id != _lastId)
+			let lst = loadList()
+
+			let seen = lst.includes(id)
+
+			let finish = false
+
+			if (_lastId != -1 && id != _lastId) {
 				save()
+
+				if (_realStep >= maxStep)
+					finish = true
+			}
 
 			_lastId = id
 
 
 			if (minId > -1 && _lastSeen < minId) {
 				_success = false
-			} else if (seen > 0) {
+			} else if (seen) {
 				_lastSeen = Math.max(_lastSeen, id)
 			} else {
+				if (finish)
+					break
+
 				if (load(d))
 					break
 				else
@@ -92,6 +106,16 @@ Item {
 
 			++_step
 		}
+	}
+
+
+	function loadList() {
+		let l = Client.Utils.settingsGet(_settingsPrefix, "")
+
+		if (l === "")
+			return []
+
+		return l.split(",").map(s => Number(s.trim()))
 	}
 
 	function load(d) {
@@ -107,6 +131,7 @@ Item {
 		_coach.open()
 
 		++_step
+		++_realStep
 
 		return true
 	}
@@ -117,8 +142,13 @@ Item {
 		if (_lastId < 0)
 			return
 
-		if (_success)
-			Client.Utils.settingsSet(_settingsPrefix+_lastId, _version)
+		if (_success) {
+			let lst = loadList()
+
+			if (!lst.includes(_lastId))
+				lst.push(_lastId)
+			Client.Utils.settingsSet(_settingsPrefix, lst.join(","))
+		}
 
 		_success = true
 	}
