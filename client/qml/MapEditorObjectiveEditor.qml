@@ -68,51 +68,55 @@ QPage {
 	QScrollable {
 		anchors.fill: parent
 
-
-		Row {
+		QExpandableHeader {
 			visible: storage
 			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
 			anchors.horizontalCenter: parent.horizontalCenter
 
-			Qaterial.IconLabel {
-				width: parent.width-parent.spacing-_editButton.width
+			text: _infoStorage.name !== undefined ? _infoStorage.name : ""
+			icon: _infoStorage.icon !== undefined ? _infoStorage.icon : ""
+			textColor: Qaterial.Colors.green400
+			font: Qaterial.Style.textTheme.headline6
 
-				anchors.verticalCenter: parent.verticalCenter
+			expanded: _storageContainer.showContent
 
-				horizontalAlignment: Text.AlignLeft
-				text: _infoStorage.name !== undefined ? _infoStorage.name : ""
-				elide: Text.ElideRight
-
-				icon.source: _infoStorage.icon !== undefined ? _infoStorage.icon : ""
-
-				icon.width: 2.2 * Qaterial.Style.pixelSize
-				icon.height: 2.2 * Qaterial.Style.pixelSize
-
-				font: Qaterial.Style.textTheme.headline6
-				color: Qaterial.Colors.green400
+			onClicked: {
+				_storageContainer.showContent = !_storageContainer.showContent
+				editor.settings.storageExpanded = _storageContainer.showContent
 			}
 
-
-			Qaterial.RoundButton {
+			rightSourceComponent: Qaterial.RoundButton {
 				id: _editButton
 				icon.source: _storageLoader.item && !_storageLoader.item.readOnly ? Qaterial.Icons.pencilOff : Qaterial.Icons.pencil
 				ToolTip.text: qsTr("Szerkesztés")
-				enabled: _storageLoader.item
+				enabled: _storageLoader.item && _storageContainer.showContent
 				onClicked: _storageLoader.item.readOnly = !_storageLoader.item.readOnly
-				anchors.verticalCenter: parent.verticalCenter
+				//anchors.verticalCenter: parent.verticalCenter
 			}
 		}
 
 
-		Loader {
-			id: _storageLoader
+		Item {
+			id: _storageContainer
+
+			property bool showContent: editor && editor.settings.storageExpanded !== undefined ? editor.settings.storageExpanded : true
+
 			width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
 			anchors.horizontalCenter: parent.horizontalCenter
 
-			onStatusChanged: {
-				if (status == Loader.Ready) {
-					item.loadData()
-					previewRefresh()
+			height: _storageLoader.item && showContent ? _storageLoader.item.height : 0
+
+			opacity: showContent ? 1.0 : 0.0
+
+			Loader {
+				id: _storageLoader
+				width: parent.width
+
+				onStatusChanged: {
+					if (status == Loader.Ready) {
+						item.loadData()
+						previewRefresh()
+					}
 				}
 			}
 		}

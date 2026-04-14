@@ -3491,3 +3491,16 @@ void MapPlayEditor::onCurrentGameFinished()
 	m_client->currentGame()->setReadyToDestroy(true);
 	setGameState(StateFinished);
 }
+
+QVariantMap MapEditor::settings() const
+{
+	return m_settings;
+}
+
+void MapEditor::setSettings(const QVariantMap &newSettings)
+{
+	if (m_settings == newSettings)
+		return;
+	m_settings = newSettings;
+	emit settingsChanged();
+}
