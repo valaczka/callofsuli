@@ -174,6 +174,8 @@ QPageGradient {
 
 		page: "studentprofile"
 
+		basePage: root
+
 		list: [
 			{ target: null, title: qsTr("E-mailes értesítések"), text: qsTr("Itt tudsz kérni értesítéseket e-mailben")},
 			{ id: 1, target: null, title: qsTr("Becenév"), text: qsTr("Itt tudsz beállítani magadnak becenevet") },

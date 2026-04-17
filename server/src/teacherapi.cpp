@@ -319,6 +319,58 @@ TeacherAPI::TeacherAPI(Handler *handler, ServerService *service)
 		return mapDelete(*credential, QJsonArray{uuid});
 	});
 
+
+	server->route(path+"map/<arg>/tags", QHttpServerRequest::Method::Post, [this](const QString &uuid, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return mapTags(*credential, QJsonArray{uuid}, jsonObject->value(QStringLiteral("tags")).toArray());
+	});
+
+	server->route(path+"map/tags", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return mapTags(*credential,
+					   jsonObject->value(QStringLiteral("uuids")).toArray(),
+					   jsonObject->value(QStringLiteral("tags")).toArray());
+	});
+
+	server->route(path+"map/tag/create", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return mapTagCreate(*credential, *jsonObject);
+	});
+
+	server->route(path+"map/tag/<arg>/update", QHttpServerRequest::Method::Post, [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return mapTagUpdate(*credential, id, *jsonObject);
+	});
+
+	server->route(path+"map/tag", QHttpServerRequest::Method::Put, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return mapTagCreate(*credential, *jsonObject);
+	});
+
+	server->route(path+"map/tag/<arg>/delete", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return mapTagDelete(*credential, QJsonArray{id});
+	});
+
+	server->route(path+"map/tag/", QHttpServerRequest::Method::Delete, [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return mapTagDelete(*credential, QJsonArray{id});
+	});
+
+	server->route(path+"map/tag/delete", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return mapTagDelete(*credential, jsonObject->value(QStringLiteral("list")).toArray());
+	});
+
+
+
 	server->route(path+"map/", QHttpServerRequest::Method::Delete, [this](const QString &uuid, const QHttpServerRequest &request){
 		AUTHORIZE_API();
 		return mapDelete(*credential, QJsonArray{uuid});
@@ -1623,7 +1675,8 @@ QHttpServerResponse TeacherAPI::map(const Credential &credential, const QString 
 	QueryBuilder q(db);
 	q.addQuery("SELECT mapdb.map.uuid, name, version, md5, CAST(strftime('%s', lastModified) AS INTEGER) AS lastModified, "
 			   "COALESCE((SELECT version FROM mapdb.draft WHERE mapdb.draft.uuid=mapdb.map.uuid),-1) AS draftVersion, "
-			   "mapdb.cache.data AS cache, length(mapdb.map.data) as size, lastEditor "
+			   "mapdb.cache.data AS cache, length(mapdb.map.data) as size, lastEditor, "
+			   "(SELECT GROUP_CONCAT(tagid) FROM mapTagBind WHERE mapTagBind.mapuuid=mapdb.map.uuid) AS tags "
 			   "FROM mapdb.map LEFT JOIN mapdb.cache ON (mapdb.cache.uuid=mapdb.map.uuid) "
 			   "WHERE mapdb.map.uuid IN "
 			   "(SELECT mapuuid FROM mapOwner WHERE username=").addValue(username).addQuery(")");
@@ -1634,14 +1687,34 @@ QHttpServerResponse TeacherAPI::map(const Credential &credential, const QString 
 	const auto &list = q.execToJsonArray({
 											 { QStringLiteral("cache"), [](const QVariant &v) {
 												   return QJsonDocument::fromJson(v.toString().toUtf8()).object();
-											   } }
+											   }}
+											 ,
+											 { QStringLiteral("tags"), [](const QVariant &v) {
+												   const QStringList l = v.toString().split(',', Qt::SkipEmptyParts);
+												   QJsonArray a;
+												   for (const QString &s : l) {
+													   a.append(s.toInt());
+												   }
+												   return a;
+											   }}
 										 });
 
 	LAMBDA_SQL_ASSERT(list);
 
-	if (uuid.isEmpty())
-		response = responseResult("list", *list);
-	else if (list->isEmpty())
+	if (uuid.isEmpty()) {
+		const auto &tags = QueryBuilder::q(db)
+						   .addQuery("SELECT id, tag, COALESCE(parentId, -1) AS parent FROM mapTag WHERE username=")
+						   .addValue(username)
+						   .execToJsonArray();
+
+		LAMBDA_SQL_ASSERT(tags);
+
+		QJsonObject o {
+			{ QStringLiteral("tags"), *tags },
+			{ QStringLiteral("list"), *list },
+		};
+		response = responseOk(o);
+	} else if (list->isEmpty())
 		response = responseError("not found");
 	else
 		response = QHttpServerResponse(list->at(0).toObject());
@@ -1977,6 +2050,185 @@ QHttpServerResponse TeacherAPI::mapContent(const Credential &credential, const Q
 		response = QHttpServerResponse(b);
 	} else
 		response = responseError("not found");
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+
+
+
+/**
+ * @brief TeacherAPI::mapTags
+ * @param credential
+ * @param uuidList
+ * @param tagList
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::mapTags(const Credential &credential, const QJsonArray &uuidList, const QJsonArray &tagList)
+{
+	LOG_CTRACE("client") << "Update map tags" << uuidList << tagList;
+
+	if (uuidList.isEmpty())
+		return responseError("missing uuid");
+
+	LAMBDA_THREAD_BEGIN(credential, uuidList, tagList);
+
+	db.transaction();
+
+	LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+							   .addQuery("DELETE FROM mapTagBind WHERE mapuuid IN ("
+										 "SELECT mapuuid FROM mapOwner WHERE username=").addValue(credential.username())
+							   .addQuery(" AND mapuuid IN (")
+							   .addList(uuidList.toVariantList())
+							   .addQuery("))")
+							   .exec()
+							   );
+
+	if (!tagList.isEmpty()) {
+		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+								   .addQuery("INSERT INTO mapTagBind(mapuuid, tagid) "
+											 "SELECT mapuuid, id FROM mapOwner CROSS JOIN mapTag "
+											 "WHERE mapOwner.username=").addValue(credential.username())
+								   .addQuery(" AND mapTag.username=").addValue(credential.username())
+								   .addQuery(" AND mapuuid IN (")
+								   .addList(uuidList.toVariantList())
+								   .addQuery(") AND mapTag.id IN (")
+								   .addList(tagList.toVariantList())
+								   .addQuery(")")
+								   .exec()
+								   );
+	}
+
+	db.commit();
+
+	LOG_CDEBUG("client") << "Map tag modified:" << uuidList << tagList;
+
+	response = responseOk();
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+
+
+/**
+ * @brief TeacherAPI::mapTagCreate
+ * @param credential
+ * @param json
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::mapTagCreate(const Credential &credential, const QJsonObject &json)
+{
+	LOG_CTRACE("client") << "Create map tag" << credential.username();
+
+	const QString &name = json.value(QStringLiteral("name")).toString();
+
+	if (name.isEmpty())
+		return responseError("missing name");
+
+	LAMBDA_THREAD_BEGIN(credential, json, name);
+
+	const QString &username = credential.username();
+	const int parent = json.value(QStringLiteral("parent")).toInt(0);
+
+	const auto &id = QueryBuilder::q(db)
+					 .addQuery("INSERT INTO mapTag(")
+					 .setFieldPlaceholder()
+					 .addQuery(") VALUES (")
+					 .setValuePlaceholder()
+					 .addQuery(")")
+					 .addField("tag", name)
+					 .addField("username", username)
+					 .addField("parentId", parent>0 ? parent : QVariant(QMetaType::fromType<int>()))
+					 .execInsertAsInt()
+					 ;
+
+	LAMBDA_SQL_ASSERT(id);
+
+	LOG_CDEBUG("client") << "Map tag created:" << qPrintable(name) << *id;
+	response = responseResult("id", *id);
+
+	LAMBDA_THREAD_END;
+
+}
+
+
+
+
+
+/**
+ * @brief TeacherAPI::mapTagUpdate
+ * @param credential
+ * @param id
+ * @param json
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::mapTagUpdate(const Credential &credential, const int &id, const QJsonObject &json)
+{
+	LOG_CTRACE("client") << "Update map tag" << id;
+
+	if (id <= 0)
+		return responseError("invalid id");
+
+	LAMBDA_THREAD_BEGIN(credential, id, json);
+
+	const QString &username = credential.username();
+
+	QueryBuilder q(db);
+	q.addQuery("UPDATE mapTag SET ").setCombinedPlaceholder();
+
+	if (json.contains(QStringLiteral("name")))
+		q.addField("tag", json.value(QStringLiteral("name")).toString());
+
+	/*if (json.contains(QStringLiteral("parent")))
+		q.addField("parentId", json.value(QStringLiteral("parent")).toInt()); */
+
+	q.addQuery(" WHERE id=").addValue(id)
+			.addQuery(" AND username=").addValue(username);
+
+	LAMBDA_SQL_ASSERT(q.fieldCount() && q.exec());
+
+	LOG_CDEBUG("client") << "Tag modified:" << id;
+
+	response = responseOk();
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+
+/**
+ * @brief TeacherAPI::mapTagDelete
+ * @param credential
+ * @param list
+ * @return
+ */
+
+QHttpServerResponse TeacherAPI::mapTagDelete(const Credential &credential, const QJsonArray &list)
+{
+	LOG_CTRACE("client") << "Delete tag" << list;
+
+	if (list.isEmpty())
+		return responseError("invalid id");
+
+	LAMBDA_THREAD_BEGIN(credential, list);
+
+	const QString &username = credential.username();
+
+	LAMBDA_SQL_ASSERT(QueryBuilder::q(db).
+					  addQuery("DELETE FROM mapTag WHERE id IN (").addList(list.toVariantList())
+					  .addQuery(") AND username=").addValue(username)
+					  .exec());
+
+	LOG_CDEBUG("client") << "Map tags deleted:" << list;
+	response = responseOk();
 
 	LAMBDA_THREAD_END;
 }

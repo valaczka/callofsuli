@@ -244,5 +244,8 @@
         <file>DashboardTimingTag.qml</file>
         <file>SpotlightCoachMark.qml</file>
         <file>SpotlightCoachTour.qml</file>
+        <file>QMapDialog.qml</file>
+        <file>QMapPathSelector.qml</file>
+        <file>QMapTagDialog.qml</file>
     </qresource>
 </RCC>

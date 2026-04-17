@@ -13,6 +13,7 @@ Item {
 	property var list: []
 	property string page: "untitled"
 	property int maxStep: 2
+	property Item basePage: parent
 
 
 	// internal
@@ -23,6 +24,8 @@ Item {
 	property bool _success: true
 
 	readonly property string _settingsPrefix: "notification/tour_"+page
+
+	readonly property bool _active: basePage && basePage.StackView.view && basePage.StackView.status === StackView.Active
 
 
 	SpotlightCoachMark {
@@ -40,6 +43,26 @@ Item {
 		onTriggered: next()
 	}
 
+
+	// loadFromTabBar
+	//
+	// tabBar (Item)
+	// tabIdxList - list of tabBar item indices
+	// start - root.list start index
+
+	function loadFromTabBar(tabBar, tabIdxList, start) {
+		for (let i=0; i<tabIdxList.length; ++i) {
+			let o = tabBar.itemAt(tabIdxList[i])
+			if (o && !list[start+i].target)
+				list[start+i].target = o
+		}
+	}
+
+
+
+
+
+
 	function start() {
 		active = true
 	}
@@ -47,6 +70,10 @@ Item {
 
 	function next() {
 		while (true) {
+			if (!_active) {
+				break
+			}
+
 			if (_step >= list.length) {
 				if (_lastId > -1) {
 					save()

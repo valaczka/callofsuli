@@ -183,6 +183,7 @@ QPage {
 			}
 
 			QDashboardButton {
+				id: _btnGroupAdd
 				action: actionGroupAdd
 				highlighted: false
 				outlined: true
@@ -258,6 +259,8 @@ QPage {
 			anchors.horizontalCenter: parent.horizontalCenter
 
 			QDashboardButton {
+				id: _btnMaps
+
 				visible: Client.server && ((Client.server.user.roles & Credential.Teacher) || (Client.server.user.roles & Credential.Admin))
 				text: qsTr("Pályák")
 				icon.source: Qaterial.Icons.briefcaseVariant
@@ -402,6 +405,20 @@ QPage {
 		}
 	}
 
+	SpotlightCoachTour {
+		id: _tour
+
+		page: "teacherdashboard"
+
+		basePage: root
+
+		list: [
+			{ target: _btnGroupAdd, title: qsTr("Csoport létrehozása"), text: qsTr("Itt tudsz új csoportot létrehozni")},
+			{ target: _btnMaps, title: qsTr("Pályák kezelése"), text: qsTr("Itt tudsz új pályát készíteni, vagy meglévőt feltölteni")},
+			//{ id: 1, target: null, title: qsTr("Offline mód"), text: qsTr("Ehhez a szerverhez offline is tudsz csatlakozni") },
+		]
+	}
+
 
 	StackView.onActivated: {
 		Client.contextHelper.setCurrentContext(ContextHelperData.ContextTeacherDasboard)
@@ -413,5 +430,7 @@ QPage {
 		}
 
 		mapHandler.reload()
+
+		_tour.start()
 	}
 }

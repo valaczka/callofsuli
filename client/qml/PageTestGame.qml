@@ -346,6 +346,8 @@ Page {
 
 		page: "testgame"
 
+		basePage: control
+
 		list: [
 			{ target: _buttonRow, title: qsTr("Navigálás"), text: qsTr("A kérdések között előbbre és vissza is tudsz lépni")},
 		]

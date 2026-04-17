@@ -247,59 +247,64 @@ QPage {
 
 
 
-				QFormComboBox {
-					id: _comboMap
-					text: qsTr("Pálya:")
-
-					combo.width: Math.min(parent.width-spacing-label.width, Math.max(combo.implicitWidth, 300*Qaterial.Style.pixelSizeRatio))
-
-					enabled: exam && exam.state < Exam.Active
+				Row {
+					spacing: 10
 
 					visible: exam && exam.mode != Exam.ExamVirtual
 
-					valueRole: "uuid"
-					textRole: "name"
-
-					model: mapHandler ? mapHandler.mapList : null
-
-					inPlaceButtonsVisible: true
-					inPlaceButtons.onSaveRequest: text => {
-													  Client.send(HttpConnection.ApiTeacher, "exam/%1/update".arg(exam.examId),
-																  {
-																	  mapuuid: _comboMap.currentValue
-																  })
-													  .done(root, function(r){
-														  reloadExam()
-														  inPlaceButtons.saved()
-													  })
-													  .fail(root, function(err) {
-														  Client.messageWarning(err, qsTr("Módosítás sikertelen"))
-														  inPlaceButtons.revert()
-													  })
-												  }
-
-					Component.onCompleted: {
-						if (exam)  {
-							inPlaceButtons.set(combo.indexOfValue(exam.mapUuid))
-						} else
-							inPlaceButtons.set(-1)
+					Qaterial.LabelBody1 {
+						anchors.verticalCenter: parent.verticalCenter
+						text: qsTr("Pálya:")
 					}
 
+
+					QButton {
+						id: _btnMap
+
+						anchors.verticalCenter: parent.verticalCenter
+
+						text: {
+							if (!exam || exam.mapUuid === "" || !mapHandler)
+								return qsTr("- kiválasztás -")
+
+							let t = Client.findOlmObject(mapHandler.mapList, "uuid", exam.mapUuid)
+
+							return t ? t.name : exam.mapUuid
+						}
+
+						enabled: exam && exam.state < Exam.Active && (_teacherExam.missionUuid == "" || _teacherExam.level <= 0)
+
+						icon.source: exam && exam.mapUuid != "" ? Qaterial.Icons.briefcaseCheck : Qaterial.Icons.briefcaseRemoveOutline
+
+						display: AbstractButton.TextBesideIcon
+
+						onClicked: Qaterial.DialogManager.openFromComponent(_cmpMapSelect)
+
+					}
+
+					QButton {
+						id: _btnOpen
+						text: qsTr("Küldetés fájlból")
+
+						anchors.verticalCenter: parent.verticalCenter
+
+						flat: true
+						outlined: true
+						highlighted: false
+						textColor: Qaterial.Style.iconColor()
+
+						visible: (_teacherExam.missionUuid == "" || _teacherExam.level <= 0) &&
+								 exam && exam.mode != Exam.ExamVirtual && exam.state < Exam.Active
+
+						icon.source: Qaterial.Icons.fileSearch
+
+						display: AbstractButton.TextBesideIcon
+
+						onClicked: Qaterial.DialogManager.openFromComponent(_cmpOpenMap)
+					}
 				}
 
-				QButton {
-					id: _btnOpen
-					text: qsTr("Küldetés fájlból")
 
-					visible: (_teacherExam.missionUuid == "" || _teacherExam.level <= 0) &&
-							 exam && exam.mode != Exam.ExamVirtual && exam.state < Exam.Active
-
-					icon.source: Qaterial.Icons.fileSearch
-
-					display: AbstractButton.TextBesideIcon
-
-					onClicked: Qaterial.DialogManager.openFromComponent(_cmpOpenMap)
-				}
 
 
 				TeacherPassItemLink {
@@ -1064,6 +1069,28 @@ QPage {
 	}
 
 
+
+	Component {
+		id: _cmpMapSelect
+
+		QMapDialog {
+			title: qsTr("Pálya kiválasztása")
+			handler: mapHandler
+
+			onMapSelected: (uuid, map) => {
+				Client.send(HttpConnection.ApiTeacher, "exam/%1/update".arg(exam.examId),
+							{
+								mapuuid: uuid
+							})
+				.done(root, function(r){
+					reloadExam()
+				})
+				.fail(root, function(err) {
+					Client.messageWarning(err, qsTr("Módosítás sikertelen"))
+				})
+			}
+		}
+	}
 
 
 	Action {

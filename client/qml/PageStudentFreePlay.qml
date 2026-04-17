@@ -207,6 +207,8 @@ QPageGradient {
 
 		page: "freeplay"
 
+		basePage: control
+
 		list: [
 			{ target: null, title: qsTr("Offline mód"), text: qsTr("Itt tudod bekapcsolni, ha offline is használni szeretnéd")},
 		]

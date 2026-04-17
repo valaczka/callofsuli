@@ -89,6 +89,8 @@ QPage {
 			model.append({ text: qsTr("Kihívások"), source: Qaterial.Icons.trophyBroken, color: "pink" })
 			model.append({ text: qsTr("Résztvevők"), source: Qaterial.Icons.accountSupervisor, color: "green" })
 			model.append({ text: qsTr("Log"), source: Qaterial.Icons.listBoxOutline, color: "yellow" })
+
+			_tour.loadFromTabBar(tabBar, [1,2], 0)
 		}
 	}
 
@@ -97,5 +99,29 @@ QPage {
 		text: qsTr("Frissítés")
 		icon.source: Qaterial.Icons.refresh
 		onTriggered: _result.resultModel.reloadContent()
+	}
+
+
+	Component.onCompleted: {
+		_tour.loadFromTabBar(tabBar, [1,2], 0)
+
+	}
+
+	StackView.onActivated: {
+		_tour.start()
+	}
+
+
+	SpotlightCoachTour {
+		id: _tour
+
+		page: "teachercampaign"
+
+		basePage: control
+
+		list: [
+			{ target: null, title: qsTr("Résztvevők"), text: qsTr("Itt tudod megtekinteni a tanulók elért eredményeit")},
+			{ target: null, title: qsTr("Log"), text: qsTr("Itt tudod megtekinteni időrendben a diákok konkrét tevékenységeit")},
+		]
 	}
 }

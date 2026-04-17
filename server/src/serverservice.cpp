@@ -919,7 +919,7 @@ int ServerService::exec()
 
 		LOG_CTRACE("service") << "Create backup:" << qPrintable(fname) << "->" << qPrintable(fn);
 
-		if (!QFile::copy(fname, fn)) {
+		if (QFile::exists(fname) && !QFile::copy(fname, fn)) {
 			LOG_CERROR("service") << "Failed to create backup file:" << qPrintable(fn);
 			return false;
 		}

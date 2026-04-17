@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=Call of Suli server
+Name=Call of Suli Server
 Exec=callofsuli-server %u
 Icon=callofsuli-server
 StartupNotify=false

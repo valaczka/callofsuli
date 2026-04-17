@@ -24,9 +24,9 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <QJsonArray>
 #include "teachermap.h"
-#include "application.h"
-#include "utils_.h"
+
 
 TeacherMap::TeacherMap(QObject *parent)
 	: BaseMap{parent}
@@ -54,6 +54,9 @@ void TeacherMap::loadFromJson(const QJsonObject &object, const bool &allField)
 
 	if (object.contains(QStringLiteral("lastEditor")) || allField)
 		setLastEditor(object.value(QStringLiteral("lastEditor")).toString());
+
+	if (object.contains(QStringLiteral("tags")) || allField)
+		setTags(object.value(QStringLiteral("tags")).toArray().toVariantList());
 
 	BaseMap::loadFromJson(object, allField);
 }
@@ -114,4 +117,88 @@ void TeacherMap::setLastEditor(const QString &newLastEditor)
 		return;
 	m_lastEditor = newLastEditor;
 	emit lastEditorChanged();
+}
+
+
+
+/**
+ * @brief TeacherMapTag::TeacherMapTag
+ * @param parent
+ */
+
+TeacherMapTag::TeacherMapTag(QObject *parent)
+	: SelectableObject{parent}
+{
+
+}
+
+void TeacherMapTag::loadFromJson(const QJsonObject &object, const bool &allField)
+{
+	if (object.contains(QStringLiteral("id")) || allField)
+		setTagId(object.value(QStringLiteral("id")).toInt());
+
+	if (object.contains(QStringLiteral("tag")) || allField)
+		setName(object.value(QStringLiteral("tag")).toString());
+
+	if (object.contains(QStringLiteral("parent")) || allField)
+		setParentId(std::max(0, object.value(QStringLiteral("parent")).toInt()));
+}
+
+
+/**
+ * @brief TeacherMapTag::tagId
+ * @return
+ */
+
+int TeacherMapTag::tagId() const
+{
+	return m_tagId;
+}
+
+void TeacherMapTag::setTagId(int newTagId)
+{
+	if (m_tagId == newTagId)
+		return;
+	m_tagId = newTagId;
+	emit tagIdChanged();
+}
+
+QString TeacherMapTag::name() const
+{
+	return m_name;
+}
+
+void TeacherMapTag::setName(const QString &newName)
+{
+	if (m_name == newName)
+		return;
+	m_name = newName;
+	emit nameChanged();
+}
+
+
+int TeacherMapTag::parentId() const
+{
+	return m_parentId;
+}
+
+void TeacherMapTag::setParentId(int newParentId)
+{
+	if (m_parentId == newParentId)
+		return;
+	m_parentId = newParentId;
+	emit parentIdChanged();
+}
+
+QVariantList TeacherMap::tags() const
+{
+	return m_tags;
+}
+
+void TeacherMap::setTags(const QVariantList &newTags)
+{
+	if (m_tags == newTags)
+		return;
+	m_tags = newTags;
+	emit tagsChanged();
 }

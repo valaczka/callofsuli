@@ -43,6 +43,7 @@ class TeacherMapHandler : public BaseMapHandler
 	Q_OBJECT
 
 	Q_PROPERTY(TeacherMapList *mapList READ mapList CONSTANT)
+	Q_PROPERTY(TeacherMapTagList *tagList READ tagList CONSTANT)
 	Q_PROPERTY(TeacherMapEditor *mapEditor READ mapEditor WRITE setMapEditor NOTIFY mapEditorChanged)
 
 public:
@@ -58,7 +59,10 @@ public:
 
 	Q_INVOKABLE bool mapExport(const QUrl &file, const QList<TeacherMap*> &list) const;
 
+	Q_INVOKABLE QString getTagFullName(const int &tagId) const;
+
 	TeacherMapList *mapList() const;
+	TeacherMapTagList *tagList() const;
 
 	TeacherMapEditor *mapEditor() const;
 	void setMapEditor(TeacherMapEditor *newMapEditor);
@@ -85,9 +89,9 @@ private:
 	void _mapImportContent(const QString &name, const QByteArray &content);
 
 private:
-	TeacherMapList *const m_mapList;
+	std::unique_ptr<TeacherMapList> m_mapList;
+	std::unique_ptr<TeacherMapTagList> m_tagList;
 	TeacherMapEditor *m_mapEditor = nullptr;
-
 };
 
 

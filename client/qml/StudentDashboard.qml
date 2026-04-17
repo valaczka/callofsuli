@@ -14,6 +14,9 @@ QItemGradient {
 	property User user: Client.server ? Client.server.user : null
 	property CampaignList campaignList: Client.cache("studentCampaignList")
 
+	property QPage basePage: null
+	property QTabBar baseTabBar: null
+
 	property bool _firstRun: true
 	property bool _notifyDailyRate80: false
 	property bool _notifyDailyRate100: false
@@ -333,15 +336,26 @@ QItemGradient {
 		}
 	}
 
+	onBaseTabBarChanged: {
+		if (!baseTabBar)
+			return
+
+		_tour.loadFromTabBar(baseTabBar, [0,1,3], 1)
+	}
+
 
 	SpotlightCoachTour {
 		id: _tour
 
 		page: "studentdashboard"
 
+		basePage: root.basePage
+
 		list: [
 			{ target: null, title: qsTr("Profil"), text: qsTr("Itt módosíthatod az adataidat, és kérheted az e-mailes értesítéseket")},
-			//{ id: 1, target: null, title: qsTr("Offline mód"), text: qsTr("Ehhez a szerverhez offline is tudsz csatlakozni") },
+			{ id: 1, target: null, title: qsTr("Kihívások"), text: qsTr("Itt tudod megnézni a folyamatban lévő és a korábbi kihívásaid eredményét") },
+			{ id: 1, target: null, title: qsTr("Dolgozatok"), text: qsTr("Itt tudod megnézni a dolgozataid eredményét") },
+			{ id: 1, target: null, title: qsTr("Call Pass"), text: qsTr("Itt tudod megnézni a folyamatban lévő és a korábbi Call Pass eredményeidet") },
 		]
 	}
 

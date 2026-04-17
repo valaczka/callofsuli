@@ -121,7 +121,7 @@ QPage {
 			}
 
 
-			Row
+			Flow
 			{
 				width: parent.width
 

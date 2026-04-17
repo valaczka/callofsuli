@@ -743,6 +743,8 @@ QPageGradient {
 
 		page: "mapplaymission"
 
+		basePage: root
+
 		list: [
 			{ target: _groupBoxMode, title: qsTr("Játék választás"), text: qsTr("Ha játszható többféleképpen is, itt tudod kiválasztani, hogyan szeretnéd játszani")},
 		]

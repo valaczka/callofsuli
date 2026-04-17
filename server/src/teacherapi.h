@@ -83,6 +83,11 @@ public:
 	QHttpServerResponse mapUpload(const Credential &credential, const QString &uuid, const int &version, const QByteArray &body);
 	QHttpServerResponse mapContent(const Credential &credential, const QString &uuid, const int &draftVersion = -1);
 
+	QHttpServerResponse mapTags(const Credential &credential, const QJsonArray &uuidList, const QJsonArray &tagList);
+	QHttpServerResponse mapTagCreate(const Credential &credential, const QJsonObject &json);
+	QHttpServerResponse mapTagUpdate(const Credential &credential, const int &id, const QJsonObject &json);
+	QHttpServerResponse mapTagDelete(const Credential &credential, const QJsonArray &list);
+
 	QHttpServerResponse campaign(const Credential &credential, const int &id);
 	QHttpServerResponse campaignCreate(const Credential &credential, const int &group, const QJsonObject &json);
 	QHttpServerResponse campaignUpdate(const Credential &credential, const int &id, const QJsonObject &json);
@@ -169,7 +174,7 @@ public:
 	static std::optional<QJsonArray> _groupGameResult(const AbstractAPI *api, const int &group,
 									   const int &limit = DEFAULT_LIMIT, const int &offset = 0);
 
-        static bool _evaluateCampaign(const AbstractAPI *api, const int &campaign, const QString &username);
+		static bool _evaluateCampaign(const AbstractAPI *api, const int &campaign, const QString &username);
 	static std::optional<float> _evaluateCriterionXP(const AbstractAPI *api, const int &campaign, const QJsonObject &criterion, const QString &username);
 	static std::optional<float> _evaluateCriterionMission(const AbstractAPI *api, /*const int &campaign,*/ const QJsonObject &criterion, const QString &map,
 										  const QString &username);

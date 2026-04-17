@@ -184,20 +184,37 @@ QPage {
 
 
 
-			QFormComboBox {
+			Row {
 				id: _map
-				text: qsTr("Pálya:")
 
-				combo.width: Math.min(parent.width-spacing-label.width, Math.max(combo.implicitWidth, 300*Qaterial.Style.pixelSizeRatio))
+				spacing: 10
 
 				visible: _module.currentValue === "mission" || _module.currentValue === "mapmission" || _module.currentValue === "levels"
 
-				valueRole: "uuid"
-				textRole: "name"
+				property TeacherMap map: null
 
-				model: mapHandler ? mapHandler.mapList : null
+				Qaterial.LabelBody1 {
+					anchors.verticalCenter: parent.verticalCenter
+					text: qsTr("Pálya:")
+				}
 
-				onCurrentIndexChanged: refresh()
+
+				QButton {
+					id: _btnMap
+
+					anchors.verticalCenter: parent.verticalCenter
+
+					text: _map.map ? _map.map.name : qsTr("- kiválasztás -")
+
+					icon.source: _map.map ? Qaterial.Icons.briefcaseCheck : Qaterial.Icons.briefcaseRemoveOutline
+
+					display: AbstractButton.TextBesideIcon
+
+					onClicked: Qaterial.DialogManager.openFromComponent(_cmpMapSelect)
+
+				}
+
+				onMapChanged: refresh()
 
 
 				function refresh() {
@@ -212,10 +229,13 @@ QPage {
 
 
 				function reloadMissionList(_withLevels) {
-					let m = mapHandler.mapList.get(currentIndex)
+					let m = map
 
 					_mission.currentIndex = -1
 					_missionModel.clear()
+
+					if (!m)
+						return
 
 					for (let i=0; i<m.cache.missions.length; ++i) {
 						let mis = m.cache.missions[i]
@@ -254,8 +274,9 @@ QPage {
 						}
 					}
 				}
-
 			}
+
+
 
 
 			QFormComboBox {
@@ -358,7 +379,7 @@ QPage {
 					d.required = _required.checked
 
 					if (_map.visible)
-						d.mapuuid = _map.currentValue
+						d.mapuuid = _map.map ? _map.map.uuid : ""
 
 
 					let criterion = {}
@@ -413,6 +434,19 @@ QPage {
 	}
 
 
+	Component {
+		id: _cmpMapSelect
+
+		QMapDialog {
+			title: qsTr("Pálya kiválasztása")
+			handler: mapHandler
+
+			onMapSelected: (uuid, map) => {
+				_map.map = map
+			}
+		}
+	}
+
 
 	Component.onCompleted: {
 		var m = Client.cache("gradeList")
@@ -437,7 +471,7 @@ QPage {
 
 			_required.checked = task.required
 			_module.currentIndex = _module.combo.indexOfValue(task.criterion.module)
-			_map.currentIndex = _map.combo.indexOfValue(task.mapUuid)
+			_map.map = mapHandler.findMap(task.mapUuid)
 
 			_map.reloadMissionList(task.criterion.module !== "levels")
 

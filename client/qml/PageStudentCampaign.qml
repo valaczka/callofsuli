@@ -349,6 +349,8 @@ QPageGradient {
 
 		page: "studentcampaign"
 
+		basePage: root
+
 		list: [
 			{ target: null, title: qsTr("Offline mód"), text: qsTr("Itt tudod bekapcsolni, ha ezt a kihívást online is használni szeretnéd")},
 			{ id: 1, target: null, title: qsTr("Eredmények"), text: qsTr("Ezzel tudod megjeleníteni a korábbi eredményeidet") },
