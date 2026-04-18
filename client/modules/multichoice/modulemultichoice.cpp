@@ -294,6 +294,7 @@ QVariantList ModuleMultichoice::generateBlock(const QVariantMap &data, const QVa
 			m[QStringLiteral("question")] = question;
 
 		m[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+		m[QStringLiteral("break")] = data.value(QStringLiteral("break")).toBool();
 
 		helper.append(m, idx.first);
 	}
@@ -325,6 +326,8 @@ QVariantMap ModuleMultichoice::generateOne(const QVariantMap &data) const
 	m[QStringLiteral("question")] = data.value(QStringLiteral("question")).toString();
 
 	m[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+
+	m[QStringLiteral("break")] = data.value(QStringLiteral("break")).toBool();
 
 	return m;
 }

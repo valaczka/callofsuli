@@ -229,6 +229,12 @@ QFormColumn {
 		text: qsTr("Válaszlehetőségek monospace betűtípussal")
 	}
 
+	QFormCheckButton {
+		id: _checkLinebreak
+		field: "break"
+		text: qsTr("Nyomtatásban a válaszlehetőségek több sorba")
+	}
+
 	QFormSpinBox {
 		id: _spinOptions
 		field: "maxOptions"
@@ -254,13 +260,13 @@ QFormColumn {
 
 
 	function loadData() {
-		let _items = isBinding ? [_question, _modeBinding, _spinOptions, _checkMonospace] :
+		let _items = isBinding ? [_question, _modeBinding, _spinOptions, _checkMonospace, _checkLinebreak] :
 								 isImages ? (objective.data.mode === "image" ?
-												 [_modeImages, _questionII, _answerImage, _checkMonospace] :
+												 [_modeImages, _questionII, _answerImage, _checkMonospace, _checkLinebreak] :
 												 [_modeImages, _questionIT]) :
-											isBlock ? [_modeBlock, _questionBlock, _spinOptions, _checkMonospace] :
-													  isSequence ? [_questionSqMin, _questionSqMax, _spinOptions, _checkMonospace ] :
-																   [_question, _correctAnswer, _spinOptions, _checkMonospace]
+											isBlock ? [_modeBlock, _questionBlock, _spinOptions, _checkMonospace, _checkLinebreak] :
+													  isSequence ? [_questionSqMin, _questionSqMax, _spinOptions, _checkMonospace, _checkLinebreak ] :
+																   [_question, _correctAnswer, _spinOptions, _checkMonospace, _checkLinebreak]
 
 		if (isMergeBinding)
 			_items.push(_sectionSelector)
@@ -280,13 +286,13 @@ QFormColumn {
 
 
 	function previewData() {
-		let _items = isBinding ? [_question, _modeBinding, _spinOptions, _checkMonospace] :
+		let _items = isBinding ? [_question, _modeBinding, _spinOptions, _checkMonospace, _checkLinebreak] :
 								 isImages ? (_modeImages.currentValue === "image" ?
-												 [_modeImages, _questionII, _answerImage, _checkMonospace] :
+												 [_modeImages, _questionII, _answerImage, _checkMonospace, _checkLinebreak] :
 												 [_modeImages, _questionIT]) :
-											isBlock ? [_modeBlock, _questionBlock, _spinOptions, _checkMonospace] :
-													  isSequence ? [_questionSqMin, _questionSqMax, _spinOptions, _checkMonospace ] :
-																   [_question, _correctAnswer, _answers, _spinOptions, _checkMonospace]
+											isBlock ? [_modeBlock, _questionBlock, _spinOptions, _checkMonospace, _checkLinebreak] :
+													  isSequence ? [_questionSqMin, _questionSqMax, _spinOptions, _checkMonospace, _checkLinebreak ] :
+																   [_question, _correctAnswer, _answers, _spinOptions, _checkMonospace, _checkLinebreak ]
 
 		if (isMergeBinding)
 			_items.push(_sectionSelector)

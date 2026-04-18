@@ -375,6 +375,15 @@ QPage {
 					onToggled: _actionGenerate.noShuffle = checked
 				}
 
+				QFormSwitchButton {
+					id: _pdfNoColor
+					anchors.horizontalCenter: parent.horizontalCenter
+					text: qsTr("Szöveg színének törlése (minden fekete)")
+					checked: _actionPDF.noColor
+					visible: exam && exam.mode == Exam.ExamPaper
+					onToggled: _actionPDF.noColor = checked
+				}
+
 				QFormComboBox {
 					id: _pdfPageSize
 					anchors.horizontalCenter: parent.horizontalCenter
@@ -735,7 +744,8 @@ QPage {
 								let config = {
 									"file": file,
 									"fontSize": _actionPDF.pdfFontSize,
-									"pageSize": _actionPDF.pdfPageSize
+									"pageSize": _actionPDF.pdfPageSize,
+									"noColor": _actionPDF.noColor
 								}
 
 								let l = []
@@ -930,6 +940,7 @@ QPage {
 
 		property int pdfFontSize: 8
 		property int pdfPageSize: 50
+		property bool noColor: false
 
 		text: qsTr("PDF letöltése")
 

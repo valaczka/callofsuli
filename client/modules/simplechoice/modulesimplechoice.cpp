@@ -229,6 +229,7 @@ QVariantList ModuleSimplechoice::generateAll(const QVariantMap &data, ModuleInte
 
 		m[QStringLiteral("question")] = data.value(QStringLiteral("question")).toString();
 		m[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+		m[QStringLiteral("break")] = data.value(QStringLiteral("break")).toBool();
 
 		QString correct = data.value(QStringLiteral("correct")).toString();
 
@@ -306,6 +307,7 @@ QVariantList ModuleSimplechoice::generateBinding(const QVariantMap &data, const 
 			retMap[QStringLiteral("question")] = question;
 
 		retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+		retMap[QStringLiteral("break")] = data.value(QStringLiteral("break")).toBool();
 
 		QStringList alist;
 
@@ -391,6 +393,7 @@ QVariantList ModuleSimplechoice::generateMergeBinding(const QVariantMap &data, c
 			retMap[QStringLiteral("question")] = question;
 
 		retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+		retMap[QStringLiteral("break")] = data.value(QStringLiteral("break")).toBool();
 
 		QStringList alist;
 
@@ -451,6 +454,7 @@ QVariantList ModuleSimplechoice::generateImages(const QVariantMap &data, const Q
 			retMap[QStringLiteral("imageAnswers")] = true;
 
 		retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+		retMap[QStringLiteral("break")] = data.value(QStringLiteral("break")).toBool();
 
 		QStringList alist;
 
@@ -582,6 +586,7 @@ QVariantList ModuleSimplechoice::generateBlockContains(const QVariantMap &data, 
 					retMap[QStringLiteral("question")] = question;
 
 				retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+				retMap[QStringLiteral("break")] = data.value(QStringLiteral("break")).toBool();
 
 				QStringList alist;
 
@@ -652,6 +657,7 @@ QVariantList ModuleSimplechoice::generateBlockExclude(const QVariantMap &data, c
 				retMap[QStringLiteral("question")] = question;
 
 			retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+			retMap[QStringLiteral("break")] = data.value(QStringLiteral("break")).toBool();
 
 
 			QList<Data> alist;
@@ -733,6 +739,7 @@ QVariantList ModuleSimplechoice::generateBlockSimple(const QVariantMap &data, co
 				retMap[QStringLiteral("question")] = question;
 
 			retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+			retMap[QStringLiteral("break")] = data.value(QStringLiteral("break")).toBool();
 
 			//const int idx = QRandomGenerator::global()->bounded(right.size());
 			const int idx = helper.getSubBOffset(right.size(), it->blockidx+1);
@@ -800,6 +807,7 @@ QVariantList ModuleSimplechoice::generateBlockQuiz(const QVariantMap &data, cons
 				retMap[QStringLiteral("question")] = question;
 
 			retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+			retMap[QStringLiteral("break")] = data.value(QStringLiteral("break")).toBool();
 
 			const QString correct = right.takeFirst();
 
@@ -865,6 +873,7 @@ QVariantList ModuleSimplechoice::generateSequence(const QVariantMap &data, const
 
 		retMap[QStringLiteral("question")] = isMax ? questionMax : questionMin;
 		retMap[QStringLiteral("monospace")] = data.value(QStringLiteral("monospace")).toBool();
+		retMap[QStringLiteral("break")] = data.value(QStringLiteral("break")).toBool();
 
 		QStringList alist;
 

@@ -228,7 +228,7 @@ void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfC
 			html += pdfTitle(pdfConfig, username, id, &document);
 			html += pdfSheet(pdfConfig.sheetSize, count==0, layout.paintRectPoints().width()-(20+2*margin), autoQuestion, &document);
 			html += pdfInstruction(pdfConfig);
-			html += pdfQuestion(qList, autoQuestion);
+			html += pdfQuestion(qList, autoQuestion, pdfConfig);
 
 			html += QStringLiteral("</td><td width=%1 align=left><img width=%2 src=\"imgdata://bgR.png\"></td></tr></table>").arg(margin).arg(width);
 
@@ -295,6 +295,9 @@ void TeacherExam::createPdf(const QList<ExamUser*> &list, const QVariantMap &pdf
 
 	if (pdfConfig.contains(QStringLiteral("fontSize")))
 		c.fontSize = pdfConfig.value(QStringLiteral("fontSize")).toInt();
+
+	if (pdfConfig.contains(QStringLiteral("noColor")))
+		c.noColor = pdfConfig.value(QStringLiteral("noColor")).toBool();
 
 	if (pdfConfig.contains(QStringLiteral("file")))
 		c.file = pdfConfig.value(QStringLiteral("file")).toUrl().toLocalFile();
@@ -755,7 +758,7 @@ void TeacherExam::generateExamContent(const QList<ExamUser*> &list, const bool &
 
 		// Numbering questions from PDF
 
-		pdfQuestion(qList, hasAutoQuestion(qList), &numberedList);
+		pdfQuestion(qList, hasAutoQuestion(qList), PdfConfig{}, &numberedList);
 
 		userdata[QStringLiteral("q")] = numberedList;
 
@@ -1357,11 +1360,25 @@ QString TeacherExam::pdfInstruction(const PdfConfig &pdfConfig)
  * @return
  */
 
-QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestions, QJsonArray *numberedListPtr)
+QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestions,
+								 const PdfConfig &pdfConfig, QJsonArray *numberedListPtr)
 {
 	QString html;
 
 	int num = 1;
+
+
+	const auto fnRemoveColor = [&pdfConfig](QString str) {
+		if (!pdfConfig.noColor)
+			return str;
+
+		static const QRegularExpression exp(R"(</?font\b[^>]*>)");
+
+		str.replace(exp, QString());
+
+		return str;
+	};
+
 
 	for (const QJsonValue &v : list) {
 		const QJsonObject &obj = v.toObject();
@@ -1370,7 +1387,7 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 			continue;
 
 		const QString &module = obj.value(QStringLiteral("module")).toString();
-		const QString &question = Question::convertToMonospace(obj.value(QStringLiteral("question")).toString());
+		const QString &question = Question::convertToMonospace(fnRemoveColor(obj.value(QStringLiteral("question")).toString()));
 		const int &point = obj.value(QStringLiteral("examPoint")).toInt();
 
 		if (numberedListPtr) {
@@ -1402,19 +1419,34 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 		if (module == QStringLiteral("simplechoice") ||
 				module == QStringLiteral("multichoice") ||
 				module == QStringLiteral("truefalse")) {
+
+			const bool linebreak = obj.value(QStringLiteral("break")).toBool();
+
 			const QJsonArray &options = module == QStringLiteral("truefalse")
 										? QJsonArray{ tr("hamis"), tr("igaz") }
 										: obj.value(QStringLiteral("options")).toArray();
+
+			if (linebreak)
+				html += QStringLiteral("</p>");
+
 			for (int i=0; i<options.size(); ++i) {
-				html += QStringLiteral("&nbsp;&nbsp;&nbsp;<b>(")+ExamPaper::toOptionLetters(i)
+
+				if (linebreak)
+					html += QStringLiteral("<p style=\"margin-left: 30px; align=justify\">");
+				else
+					html += QStringLiteral("&nbsp;&nbsp;&nbsp;");
+
+				html += QStringLiteral("<b>(")+ExamPaper::toOptionLetters(i)
 						+QStringLiteral(")</b> ");
 
 				if (obj.value(QStringLiteral("monospace")).toBool())
-					html += Question::monspaceTagStart() + options.at(i).toString() + Question::monspaceTagEnd();
+					html += Question::monspaceTagStart() + fnRemoveColor(options.at(i).toString()) + Question::monspaceTagEnd();
 				else
-					html += options.at(i).toString();
+					html += fnRemoveColor(options.at(i).toString());
 
-				if (i<options.size()-1)
+				if (linebreak)
+					html += QStringLiteral("</p>");
+				else if (i<options.size()-1)
 					html += QStringLiteral(",");
 			}
 
@@ -1427,9 +1459,9 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 						+QStringLiteral(")</b> ");
 
 				if (obj.value(QStringLiteral("monospace")).toBool())
-					htmlA += Question::monspaceTagStart() + optionsA.at(i).toString() + Question::monspaceTagEnd();
+					htmlA += Question::monspaceTagStart() + fnRemoveColor(optionsA.at(i).toString()) + Question::monspaceTagEnd();
 				else
-					htmlA += optionsA.at(i).toString();
+					htmlA += fnRemoveColor(optionsA.at(i).toString());
 
 				if (i<optionsA.size()-1)
 					htmlA += QStringLiteral(",");
@@ -1445,9 +1477,9 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 						+QStringLiteral(")</b> ");
 
 				if (obj.value(QStringLiteral("monospace")).toBool())
-					htmlB += Question::monspaceTagStart() + optionsB.at(i).toString() + Question::monspaceTagEnd();
+					htmlB += Question::monspaceTagStart() + fnRemoveColor(optionsB.at(i).toString()) + Question::monspaceTagEnd();
 				else
-					htmlB += optionsB.at(i).toString();
+					htmlB += fnRemoveColor(optionsB.at(i).toString());
 
 				if (i<optionsB.size()-1)
 					htmlB += QStringLiteral(",");
@@ -1482,7 +1514,7 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 				html += QStringLiteral("&nbsp;&nbsp;&nbsp;<b>(")+ExamPaper::toOptionLetters(i)
 						+QStringLiteral(")</b> ");
 
-				const QString &str = list.at(i).toObject().value(QStringLiteral("text")).toString();
+				const QString &str = fnRemoveColor(list.at(i).toObject().value(QStringLiteral("text")).toString());
 
 				if (obj.value(QStringLiteral("monospace")).toBool())
 					html += Question::monspaceTagStart() + str + Question::monspaceTagEnd();
@@ -1513,6 +1545,8 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 					html += QStringLiteral("(")+obj.value(QStringLiteral("placeholderMax")).toString()+QStringLiteral(")");
 			}
 		} else if (module == QStringLiteral("pair")) {
+			const bool linebreak = obj.value(QStringLiteral("break")).toBool();
+
 			html += QStringLiteral("</p>");
 			html += QStringLiteral("<p style=\"margin-left: 30px;\" align=justify>");
 
@@ -1534,13 +1568,15 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 
 			const QJsonArray &options = obj.value(QStringLiteral("options")).toArray();
 			for (int i=0; i<options.size(); ++i) {
-				if (i>0)
+				if (i>0 && !linebreak)
 					html += QStringLiteral("&nbsp;&nbsp;&nbsp;");
 
 				html += QStringLiteral("<b>(")+ExamPaper::toOptionLetters(i)
-						+QStringLiteral(")</b> ")+options.at(i).toString();
+						+QStringLiteral(")</b> ")+fnRemoveColor(options.at(i).toString());
 
-				if (i<options.size()-1)
+				if (linebreak)
+					html += QStringLiteral("<br/>");
+				else if (i<options.size()-1)
 					html += QStringLiteral(",");
 			}
 
@@ -1553,9 +1589,9 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 					html += QStringLiteral(" ");
 
 					if (obj.value(QStringLiteral("monospace")).toBool())
-						html += Question::monspaceTagStart() + data.value(QStringLiteral("w")).toString() + Question::monspaceTagEnd();
+						html += Question::monspaceTagStart() + fnRemoveColor(data.value(QStringLiteral("w")).toString()) + Question::monspaceTagEnd();
 					else
-						html += data.value(QStringLiteral("w")).toString();
+						html += fnRemoveColor(data.value(QStringLiteral("w")).toString());
 
 				} else
 					html += QStringLiteral(" <b>(")+QString::number(num++)+QStringLiteral(".)____</b>");
@@ -1573,9 +1609,9 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 						+QStringLiteral(")</b> ");
 
 				if (obj.value(QStringLiteral("monospace")).toBool())
-					html += Question::monspaceTagStart() + options.at(i).toString() + Question::monspaceTagEnd();
+					html += Question::monspaceTagStart() + fnRemoveColor(options.at(i).toString()) + Question::monspaceTagEnd();
 				else
-					html += options.at(i).toString();
+					html += fnRemoveColor(options.at(i).toString());
 
 				if (i<options.size()-1)
 					html += QStringLiteral(",");
@@ -1643,7 +1679,7 @@ QString TeacherExam::pdfQuestion(const QJsonArray &list, const bool &autoQuestio
 				html += QStringLiteral("<p style=\"margin-top: 3px;\" align=justify>");
 
 				const int answer = obj.value(QStringLiteral("answer")).toInt();
-				const QString data = obj.value(QStringLiteral("data")).toString();
+				const QString data = fnRemoveColor(obj.value(QStringLiteral("data")).toString());
 
 
 				if (answer > 0) {

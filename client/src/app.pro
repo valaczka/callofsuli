@@ -444,8 +444,5 @@ HEADERS += \
 	websocket.h
 
 DISTFILES += \
-	../qml/DashboardTimingTag.qml \
-	../qml/QMapPathSelector.qml \
-	../qml/StudentDashboardNotification.qml \
 	translation.pri
 
