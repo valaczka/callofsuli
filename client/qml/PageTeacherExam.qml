@@ -395,6 +395,7 @@ QPage {
 					textRole: "text"
 
 					model: ListModel {
+						ListElement { value: 75; text: "A4 / 75" }
 						ListElement { value: 50; text: "A4 / 50" }
 						ListElement { value: 25; text: "A4 / 25" }
 						ListElement { value: 40; text: "A5 / 40" }

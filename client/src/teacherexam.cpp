@@ -333,6 +333,11 @@ void TeacherExam::createPdf(const QList<ExamUser*> &list, const QVariantMap &pdf
 				c.pageSize = QPageSize::A4;
 				c.sheetSize = 50;
 				break;
+
+			case 75:
+				c.pageSize = QPageSize::A4;
+				c.sheetSize = 75;
+				break;
 		}
 
 	}
@@ -2164,12 +2169,6 @@ void TeacherExam::runOMR()
 		}
 
 		QString tmp = QStringLiteral(":/internal/exam/template%1.json").arg(m_omrTemplateCode);
-
-		if (m_omrTemplateCode <= 0) {
-			//setScanState(ScanErrorFileSystem);
-			tmp = QStringLiteral(":/internal/exam/template.json");			// DEPREACTED
-			LOG_CWARNING("client") << "Missing template code, using deprecated template";
-		}
 
 		if (!QFile::copy(tmp,
 						 m_scanTempDir->filePath(QStringLiteral("input/template.json")))) {
