@@ -26,9 +26,9 @@
         <item name="android:windowBackground">@android:color/transparent</item>
 
         <!-- Optional: keep full-screen layout stable when system UI changes -->
-        <item name="android:fitsSystemWindows">false</item>
+        <item name="android:fitsSystemWindows">true</item>
 
-        <item name="android:windowOptOutEdgeToEdgeEnforcement">true</item>
+
 
     </style>
 

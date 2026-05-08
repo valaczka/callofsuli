@@ -42,7 +42,9 @@
 
 TeacherMapHandler::TeacherMapHandler(QObject *parent)
 	: BaseMapHandler{QStringLiteral("teachermaps"), parent}
-	, m_mapList(new TeacherMapList(this))
+	, m_mapList(new TeacherMapList)
+	, m_tagList(new TeacherMapTagList)
+
 {
 	LOG_CTRACE("client") << "TeacherMapHandler created" << this;
 }
@@ -54,7 +56,6 @@ TeacherMapHandler::TeacherMapHandler(QObject *parent)
 
 TeacherMapHandler::~TeacherMapHandler()
 {
-	m_mapList->deleteLater();
 	LOG_CTRACE("client") << "TeacherMapHandler destroyed" << this;
 }
 
@@ -147,6 +148,36 @@ bool TeacherMapHandler::mapExport(const QUrl &file, const QList<TeacherMap *> &l
 }
 
 
+/**
+ * @brief TeacherMapHandler::getTagFullName
+ * @param tagId
+ * @return
+ */
+
+QString TeacherMapHandler::getTagFullName(const int &tagId) const
+{
+	if (tagId <= 0 || m_tagList->empty())
+		return QString();
+
+	QStringList path;
+	int id = tagId;
+
+	while (id > 0) {
+		TeacherMapTag *tag = qobject_cast<TeacherMapTag*>(OlmLoader::find(m_tagList.get(), "tagId", id));
+
+		if (!tag) {
+			path.prepend(tr("tag#").append(QString::number(id)));
+			break;
+		} else {
+			path.prepend(tag->name());
+			id = tag->parentId();
+		}
+	}
+
+	return path.join('/');
+}
+
+
 
 
 /**
@@ -158,8 +189,13 @@ void TeacherMapHandler::reloadList()
 	m_client->httpConnection()->send(HttpConnection::ApiTeacher, QStringLiteral("map"))
 			->fail(this, [this](const QString &err){m_client->messageWarning(err, tr("Letöltési hiba"));})
 			->done(this, [this](const QJsonObject &data){
+
+
+		const QJsonArray &tags = data.value(QStringLiteral("tags")).toArray();
 		const QJsonArray &list = data.value(QStringLiteral("list")).toArray();
-		OlmLoader::loadFromJsonArray<TeacherMap>(m_mapList, list, "uuid", "uuid", true);
+
+		OlmLoader::loadFromJsonArray<TeacherMapTag>(m_tagList.get(), tags, "id", "tagId", true);
+		OlmLoader::loadFromJsonArray<TeacherMap>(m_mapList.get(), list, "uuid", "uuid", true);
 		checkDownloads();
 		emit reloaded();
 	});
@@ -301,7 +337,7 @@ void TeacherMapHandler::unsetMapEditor()
 
 TeacherMapList *TeacherMapHandler::mapList() const
 {
-	return m_mapList;
+	return m_mapList.get();
 }
 
 
@@ -553,4 +589,7 @@ void TeacherMapEditor::setUuid(const QString &newUuid)
 	emit uuidChanged();
 }
 
-
+TeacherMapTagList *TeacherMapHandler::tagList() const
+{
+	return m_tagList.get();
+}

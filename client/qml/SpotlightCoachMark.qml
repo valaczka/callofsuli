@@ -197,7 +197,7 @@ Popup {
 		}
 	}
 
-	implicitWidth: Math.min(Overlay.overlay.width*0.75, Math.max(175, _title.implicitWidth, _text.implicitWidth) + 2*padding)
+	implicitWidth: Overlay.overlay ? Math.min(Overlay.overlay.width*0.75, Math.max(175, _title.implicitWidth, _text.implicitWidth) + 2*padding) : 10
 	implicitHeight: Math.max(150, _button.height + _col.height + 3*padding + arrowSize)
 
 

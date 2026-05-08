@@ -52,6 +52,7 @@ class MapEditor : public QObject
 	Q_PROPERTY(bool modified READ modified WRITE setModified NOTIFY modifiedChanged)
 	Q_PROPERTY(bool autoSaved READ autoSaved WRITE setAutoSaved NOTIFY autoSavedChanged)
 	Q_PROPERTY(QVariantList availableMedals READ availableMedals CONSTANT)
+	Q_PROPERTY(QVariantMap settings READ settings WRITE setSettings NOTIFY settingsChanged FINAL)
 
 public:
 	explicit MapEditor(QObject *parent = nullptr);
@@ -156,6 +157,9 @@ public:
 
 	const QVariantList &availableMedals() const;
 
+	QVariantMap settings() const;
+	void setSettings(const QVariantMap &newSettings);
+
 public slots:
 	void save();
 	void saveAuto();
@@ -184,6 +188,8 @@ signals:
 	void modifiedChanged();
 	void autoSavedChanged();
 
+	void settingsChanged();
+
 protected:
 	QString m_currentFileName;
 	QString m_currentBackupName;
@@ -210,6 +216,7 @@ private:
 	static const QString m_backupSuffix;
 
 	QVariantList m_availableMedals;
+	QVariantMap m_settings;
 };
 
 

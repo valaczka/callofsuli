@@ -126,7 +126,7 @@ void StandaloneClient::onMainWindowChanged()
 #if QT_VERSION >= 0x060900
 
 #	if defined(Q_OS_ANDROID) || defined(Q_OS_IOS)
-	m_mainWindow->setFlags(m_mainWindow->flags() | Qt::ExpandedClientAreaHint | Qt::NoTitleBarBackgroundHint);
+	m_mainWindow->setFlags(m_mainWindow->flags() | Qt::Window | Qt::ExpandedClientAreaHint | Qt::NoTitleBarBackgroundHint);
 #	endif
 
 	connect(m_mainWindow, &QWindow::safeAreaMarginsChanged, this, [this](const QMargins &){ safeMarginsGet(); });

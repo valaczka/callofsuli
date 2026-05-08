@@ -130,6 +130,8 @@ QPageGradient {
 		}
 
 		Qaterial.GroupBox {
+			id: _groupBoxMode
+
 			title: qsTr("Játék mód kiválasztása")
 
 			width: Math.min(300*Qaterial.Style.pixelSizeRatio, parent.width, Qaterial.Style.maxContainerSize)
@@ -736,8 +738,22 @@ QPageGradient {
 
 	}
 
+	SpotlightCoachTour {
+		id: _tour
+
+		page: "mapplaymission"
+
+		basePage: root
+
+		list: [
+			{ target: _groupBoxMode, title: qsTr("Játék választás"), text: qsTr("Ha játszható többféleképpen is, itt tudod kiválasztani, hogyan szeretnéd játszani")},
+		]
+	}
+
 	StackView.onActivated: {
 		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentPlayLevel)
+		_tour.start()
+
 		reload()
 		_modeGroup.clicked(null)
 		if (map.gameState == MapPlay.StateFinished) {

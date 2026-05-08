@@ -444,6 +444,8 @@ QPage {
 
 		page: "start"
 
+		basePage: control
+
 		list: [
 			{ target: _btnNew, title: qsTr("Új szerver hozzáadása"), text: qsTr("Vegyél fel egy szervert, amihez csatlakozni szeretnél")},
 			{ id: 1, target: null, title: qsTr("Offline mód"), text: qsTr("Ehhez a szerverhez offline is tudsz csatlakozni") },

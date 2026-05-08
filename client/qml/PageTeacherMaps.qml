@@ -15,6 +15,9 @@ QPage {
 			return false
 		}
 
+		if (_selector.upStack())
+			return false
+
 		return true
 	}
 
@@ -43,24 +46,62 @@ QPage {
 
 	property TeacherMapHandler handler: null
 
+	QMapPathSelector {
+		id: _selector
+		width: view.width
+		anchors.horizontalCenter: parent.horizontalCenter
+		anchors.top: parent.top
+		visible: view.visible
+	}
+
+	Qaterial.HorizontalLineSeparator {
+		id: _separator
+		width: view.width
+		anchors.horizontalCenter: parent.horizontalCenter
+		anchors.top: _selector.bottom
+		visible: view.visible
+	}
+
+	QRefreshProgressBar {
+		id: progressbar
+		anchors.top: parent.top
+		visible: Client.httpConnection.pending
+	}
+
+	ListModel {
+		id: _tagModel
+	}
 
 	QListView {
 		id: view
 
 		currentIndex: -1
 
-		height: parent.height
 		width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
 		anchors.horizontalCenter: parent.horizontalCenter
+		anchors.top: _separator.bottom
+		anchors.bottom: parent.bottom
+
+		visible: handler && handler.mapList.length
+
+		clip: true
 
 		autoSelectChange: true
 
-		refreshProgressVisible: Client.httpConnection.pending
+		refreshProgressVisible: false
 		refreshEnabled: true
 		onRefreshRequest: reload()
 
 		model: SortFilterProxyModel {
 			sourceModel: handler ? handler.mapList : null
+
+			filters: [
+				ExpressionFilter {
+					expression: _selector.currentTagId < 0 ||
+								(_selector.currentTagId == 0 && tags.length === 0) ||
+								tags.includes(_selector.currentTagId)
+				}
+			]
 
 			sorters: [
 				StringSorter {
@@ -69,6 +110,146 @@ QPage {
 				}
 			]
 		}
+
+		header: Column {
+			Repeater {
+				model: SortFilterProxyModel {
+					sourceModel: _tagModel
+
+					filters: AnyOf {
+						ValueFilter {
+							roleName: "parent"
+							value: _selector.currentTagId
+						}
+
+						ValueFilter {
+							roleName: "type"
+							value: 1				// Új tag hozzáadása
+							enabled: _selector.currentTagId >= 0
+						}
+					}
+
+					sorters: [
+						RoleSorter {
+							roleName: "type"
+							priority: 2
+							sortOrder: Qt.DescendingOrder
+						},
+						StringSorter {
+							roleName: "name"
+							priority: 1
+						}
+					]
+				}
+
+
+				delegate: QIconLoaderItemDelegate {
+					id: _tagItem
+					width: view.width
+
+					required property int type
+					required property int id
+					required property string name
+					required property int index
+
+					text: name
+					iconSource: type == 3 ? Qaterial.Icons.tagMultiple :
+											type == 1 ? Qaterial.Icons.tagPlusOutline : Qaterial.Icons.tag
+					iconColor: Qaterial.Style.accentColor
+					textColor: Qaterial.Style.accentColor
+
+
+					rightSourceComponent: Qaterial.RoundButton {
+						icon.source: Qaterial.Icons.dotsVertical
+
+						visible: _tagItem.type == 2			// Csak normál tag-eknél
+
+						onClicked: _contextMenu.popup()
+
+						Qaterial.Menu {
+							id: _contextMenu
+
+							QMenuItem {
+								text: qsTr("Átnevezés")
+								icon.source: Qaterial.Icons.renameBox
+
+								enabled: _tagItem
+
+								onTriggered: {
+									Qaterial.DialogManager.showTextFieldDialog({
+																				   textTitle: qsTr("Címke neve"),
+																				   title: qsTr("Címke átnevezése"),
+																				   text: _tagItem.name,
+																				   standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok,
+																				   onAccepted: function(_text, _noerror) {
+																					   if (_noerror && _text.length && _tagItem)
+																						   Client.send(HttpConnection.ApiTeacher, "map/tag/%1/update".arg(_tagItem.id), {
+																										   name: _text
+																									   })
+																					   .done(control, function(r){
+																						   reload()
+																					   })
+																					   .fail(control, JS.failMessage("Átnevezés sikertelen"))
+																				   }
+																			   })
+								}
+							}
+
+							QMenuItem {
+								text: qsTr("Törlés")
+								icon.source: Qaterial.Icons.tagRemove
+
+								enabled: _tagItem
+
+								onTriggered: {
+									JS.questionDialog({
+														  onAccepted: function()
+														  {
+															  Client.send(HttpConnection.ApiTeacher, "map/tag/%1/delete".arg(_tagItem.id))
+															  .done(control, function(r){
+																  reload()
+															  })
+															  .fail(control, JS.failMessage("Törlés sikertelen"))
+														  },
+														  text: qsTr("Biztosan töröld a címkét és minden hozzá tartozó alcímkét?\n%1").arg(_tagItem.name),
+														  title: qsTr("Címke törlése"),
+														  iconSource: Qaterial.Icons.tagRemove
+													  })
+
+								}
+							}
+
+
+						}
+					}
+
+					onClicked: {
+						if (_tagItem.type == 1) {
+							Qaterial.DialogManager.showTextFieldDialog({
+																		   textTitle: qsTr("Új címke neve"),
+																		   title: qsTr("Új címke létrehozása"),
+																		   standardButtons: DialogButtonBox.Cancel | DialogButtonBox.Ok,
+																		   onAccepted: function(_text, _noerror) {
+																			   if (_noerror && _text.length)
+																				   Client.send(HttpConnection.ApiTeacher, "map/tag/create", {
+																								   name: _text,
+																								   parent: _selector.currentTagId
+																							   })
+																			   .done(control, function(r){
+																				   reload()
+																			   })
+																			   .fail(control, JS.failMessage("Címke létrehozása sikertelen"))
+																		   }
+																	   })
+						} else
+							_selector.addToStack(_tagItem.id, _tagItem.name)
+					}
+
+				}
+
+			}
+		}
+
 
 		delegate: QIconLoaderItemDelegate {
 			id: item
@@ -87,6 +268,28 @@ QPage {
 									 : ""
 
 			rightSourceComponent: Row {
+				QTagList {
+					visible: mapObject && mapObject.tags.length > 0
+					anchors.verticalCenter: parent.verticalCenter
+					model: {
+						if (!mapObject)
+							return []
+
+						let l = []
+
+						for (let i=0; i<mapObject.tags.length; ++i) {
+							let id = mapObject.tags[i]
+							l.push({
+									   color: Qaterial.Style.accentColor,
+									   textColor: Qaterial.Colors.black,
+									   text: handler.getTagFullName(id)
+								   })
+						}
+
+						return l
+					}
+				}
+
 				QDownloadProgressIcon {
 					map: mapObject
 					anchors.verticalCenter: parent.verticalCenter
@@ -117,6 +320,7 @@ QPage {
 			QMenuItem { action: actionMapAdd }
 			QMenuItem { action: actionMapRename }
 			QMenuItem { action: actionMapRemove }
+			QMenuItem { action: actionMapTag }
 			Qaterial.MenuSeparator {}
 			QMenuItem { action: actionMapPublish }
 			QMenuItem { action: actionMapDeleteDraft }
@@ -158,6 +362,51 @@ QPage {
 	}*/
 
 
+
+
+
+
+
+	function loadModel() {
+		_tagModel.clear()
+
+		if (!handler || !handler.tagList)
+			return
+
+		if (handler.tagList.count === 0)
+			return
+
+		_tagModel.append({
+							 type: 3, id: -2, parent: 0, name: qsTr("[Minden pálya]")
+						 })
+
+		for (let i=0; i<handler.tagList.count; ++i) {
+			let t = handler.tagList.get(i)
+
+			_tagModel.append({
+								 type: 2, id: t.tagId, parent: t.parentId, name: t.name
+							 })
+		}
+
+		_tagModel.append({
+							 type: 1, id: -1, parent: -1, name: qsTr("[új címke létrehozása]")
+						 })
+	}
+
+
+	onHandlerChanged: {
+		loadModel()
+		_selector.resetStack()
+	}
+
+	Connections {
+		target: handler
+
+		function onReloaded() {
+			loadModel()
+		}
+	}
+
 	property TeacherMap _importToMap: null
 
 	Component {
@@ -168,9 +417,9 @@ QPage {
 			filters: [ "*.map" ]
 			onFileSelected: file => {
 								if (_importToMap)
-									handler.mapReplace(_importToMap, file)
+								handler.mapReplace(_importToMap, file)
 								else
-									handler.mapImport(file)
+								handler.mapImport(file)
 
 								Client.Utils.settingsSet("folder/teacherMap", modelFolder.toString())
 							}
@@ -267,6 +516,54 @@ QPage {
 	}
 
 
+	property var _baseMapObjects: []
+
+
+	Component {
+		id: _cmpDialogTag
+
+		QMapTagDialog {
+			handler: control.handler
+			title: qsTr("Címkék alkalmazása")
+			baseMapObject: _baseMapObjects.length > 0 ? _baseMapObjects[0] : null
+
+			onTagSelected: tags => {
+							   if (_baseMapObjects.length <= 0) return
+
+							   let u = []
+
+							   for (let i=0; i<_baseMapObjects.length; ++i)
+							   u.push(_baseMapObjects[i].uuid)
+
+							   Client.send(HttpConnection.ApiTeacher, "map/tags", {
+											   uuids: u,
+											   tags: tags
+										   })
+							   .done(control, function(r){
+								   reload()
+							   })
+							   .fail(control, JS.failMessage("Címkék beállítása sikertelen"))
+						   }
+		}
+	}
+
+	Action {
+		id: actionMapTag
+		text: qsTr("Címkék")
+		icon.source: Qaterial.Icons.tagMultipleOutline
+		onTriggered: {
+			var l = view.getSelected()
+			/*for (let i=0; i<l.length; ++i)
+				handler.mapDownload(l[i])
+			view.unselectAll()*/
+
+			_baseMapObjects = l
+
+			Qaterial.DialogManager.openFromComponent(_cmpDialogTag)
+		}
+	}
+
+
 	Action {
 		id: actionMapExport
 		text: qsTr("Exportálás")
@@ -283,7 +580,7 @@ QPage {
 			/*if (Qt.platform.os == "wasm")
 				mapEditor.wasmSaveAs(false)
 			else*/
-				Qaterial.DialogManager.openFromComponent(_cmpFileExport)
+			Qaterial.DialogManager.openFromComponent(_cmpFileExport)
 		}
 	}
 
@@ -297,12 +594,12 @@ QPage {
 			isSave: true
 			suffix: ".tar"
 			onFileSelected: file => {
-				if (Client.Utils.fileExists(file))
-					overrideQuestion(file)
-				else
-					exportToFile(file)
-				Client.Utils.settingsSet("folder/mapEditor", modelFolder.toString())
-			}
+								if (Client.Utils.fileExists(file))
+								overrideQuestion(file)
+								else
+								exportToFile(file)
+								Client.Utils.settingsSet("folder/mapEditor", modelFolder.toString())
+							}
 
 			folder: Client.Utils.settingsGet("folder/mapEditor")
 		}
@@ -403,6 +700,8 @@ QPage {
 
 		}
 	}
+
+
 
 
 

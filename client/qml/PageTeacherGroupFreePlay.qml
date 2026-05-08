@@ -123,40 +123,21 @@ QPage {
 	}
 
 
-	ListModel {
-		id: _dlgModel
 
-		function open() {
-			clear()
+	property var _disabledUuids: []
 
-			let l=handler.mapList
+	Component {
+		id: _cmpMapSelect
 
-			for (let i=0; i<l.length; ++i) {
-				var m = l.get(i)
+		QMapDialog {
+			title: qsTr("Pálya hozzáadása")
+			handler: control.handler
+			disabledUuids: _disabledUuids
 
-				if (!group.findMapInFreePlayMapList(m)) {
-					append({
-							   uuid: m.uuid,
-							   text: m.name,
-							   map: m
-						   })
-				}
-			}
-
-			Qaterial.DialogManager.openListView(
-						{
-							onAccepted: function(idx)
-							{
-								if (idx === -1)
-									return
-
-								_dlgMission.open(_dlgModel.get(idx).map)
-							},
-							title: qsTr("Pálya hozzáadása"),
-							model: _dlgModel
-						})
+			onMapSelected: (uuid, map) => _dlgMission.open(map)
 		}
 	}
+
 
 
 	ListModel {
@@ -215,7 +196,20 @@ QPage {
 		enabled: group && handler
 
 		onTriggered: {
-			_dlgModel.open()
+			let list = []
+
+			let l=handler.mapList
+
+			for (let i=0; i<l.length; ++i) {
+				var m = l.get(i)
+
+				if (group.findMapInFreePlayMapList(m))
+					list.push(m.uuid)
+			}
+
+			_disabledUuids = list
+
+			Qaterial.DialogManager.openFromComponent(_cmpMapSelect)
 		}
 	}
 

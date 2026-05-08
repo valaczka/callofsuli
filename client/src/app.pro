@@ -379,7 +379,5 @@ HEADERS += \
 	websocket.h
 
 DISTFILES += \
-	../qml/DashboardTimingTag.qml \
-	../qml/StudentDashboardNotification.qml \
 	translation.pri
 

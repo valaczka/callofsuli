@@ -13,6 +13,6 @@ include(../../common.pri)
 		write_file($$AGENT_SIGN_QRC, sign_lines)
 
 		RESOURCES += $$AGENT_SIGN_QRC
-	}
+	} else: error(Missing agent signature)
 
 }

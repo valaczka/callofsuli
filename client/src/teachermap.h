@@ -40,6 +40,54 @@ class TeacherMap;
 using TeacherMapList = qolm::QOlm<TeacherMap>;
 Q_DECLARE_METATYPE(TeacherMapList*)
 
+
+class TeacherMapTag;
+using TeacherMapTagList = qolm::QOlm<TeacherMapTag>;
+Q_DECLARE_METATYPE(TeacherMapTagList*)
+
+
+
+
+/**
+ * @brief The TeacherMapTag class
+ */
+
+class TeacherMapTag : public SelectableObject
+{
+	Q_OBJECT
+
+	Q_PROPERTY(int tagId READ tagId WRITE setTagId NOTIFY tagIdChanged FINAL)
+	Q_PROPERTY(QString name READ name WRITE setName NOTIFY nameChanged FINAL)
+	Q_PROPERTY(int parentId READ parentId WRITE setParentId NOTIFY parentIdChanged FINAL)
+
+public:
+	explicit TeacherMapTag(QObject *parent = nullptr);
+
+	void loadFromJson(const QJsonObject &object, const bool &allField = true);
+
+	int tagId() const;
+	void setTagId(int newTagId);
+
+	QString name() const;
+	void setName(const QString &newName);
+
+	int parentId() const;
+	void setParentId(int newParentId);
+
+signals:
+	void tagIdChanged();
+	void nameChanged();
+	void parentIdChanged();
+
+private:
+	int m_tagId;
+	QString m_name;
+	int m_parentId = -1;
+};
+
+
+
+
 /**
  * @brief The TeacherMap class
  */
@@ -52,6 +100,7 @@ class TeacherMap : public BaseMap
 	Q_PROPERTY(int draftVersion READ draftVersion WRITE setDraftVersion NOTIFY draftVersionChanged)
 	Q_PROPERTY(QDateTime lastModified READ lastModified WRITE setLastModified NOTIFY lastModifiedChanged)
 	Q_PROPERTY(QString lastEditor READ lastEditor WRITE setLastEditor NOTIFY lastEditorChanged)
+	Q_PROPERTY(QVariantList tags READ tags WRITE setTags NOTIFY tagsChanged FINAL)
 
 public:
 	explicit TeacherMap(QObject *parent = nullptr);
@@ -70,17 +119,22 @@ public:
 	const QString &lastEditor() const;
 	void setLastEditor(const QString &newLastEditor);
 
+	QVariantList tags() const;
+	void setTags(const QVariantList &newTags);
+
 signals:
 	void versionChanged();
 	void draftVersionChanged();
 	void lastModifiedChanged();
 	void lastEditorChanged();
+	void tagsChanged();
 
 private:
 	int m_version = 0;
 	int m_draftVersion = -2;
 	QDateTime m_lastModified;
 	QString m_lastEditor;
+	QVariantList m_tags;
 };
 
 #endif // TEACHERMAP_H

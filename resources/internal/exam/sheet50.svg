@@ -3,13 +3,13 @@
 
 <svg
    sodipodi:docname="sheet50.svg"
-   width="556.47534"
-   height="116.64452"
-   viewBox="0 0 147.2341 30.862194"
+   width="556.73779"
+   height="174.96678"
+   viewBox="0 0 147.30354 46.29329"
    version="1.1"
    id="svg5"
-   inkscape:version="1.2.2 (b0a8486541, 2022-12-01)"
-   inkscape:export-filename="sheet50.png"
+   inkscape:version="1.4 (e7c3feb100, 2024-10-09)"
+   inkscape:export-filename="/home/valaczka/sheet75.png"
    inkscape:export-xdpi="300"
    inkscape:export-ydpi="300"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
@@ -28,11 +28,11 @@
      inkscape:deskcolor="#d1d1d1"
      inkscape:document-units="px"
      showgrid="false"
-     inkscape:zoom="2.8284271"
-     inkscape:cx="265.69537"
-     inkscape:cy="144.60334"
+     inkscape:zoom="2"
+     inkscape:cx="181.5"
+     inkscape:cy="211.25"
      inkscape:window-width="2520"
-     inkscape:window-height="1411"
+     inkscape:window-height="1412"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
@@ -43,7 +43,7 @@
      inkscape:label="Réteg 1"
      inkscape:groupmode="layer"
      id="layer1"
-     transform="translate(-16.781275,-22.174925)">
+     transform="translate(-16.711834,-22.174925)">
     <g
        id="g4923"
        inkscape:tile-cx="12.43304"
@@ -365,15 +365,41 @@
        xlink:href="#g4923"
        transform="translate(0,27.775975)"
        id="use5284" />
-    <text
-       x="48.083103"
-       y="24.668058"
-       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
-       id="text5314"><tspan
-         x="48.083103"
-         y="24.668058"
-         id="tspan5312"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">11</tspan></text>
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(0,30.862194)"
+       id="use5276-3" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(0,33.948413)"
+       id="use5278-6" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(0,37.034633)"
+       id="use5280-7" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(0,40.120852)"
+       id="use5282-5" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(0,43.207072)"
+       id="use5284-3" />
     <g
        id="g5358"
        inkscape:tile-cx="12.43304"
@@ -1287,360 +1313,738 @@
        transform="translate(0,27.775975)"
        id="use5862" />
     <text
-       x="47.817158"
-       y="27.754278"
+       x="17.028015"
+       y="55.492096"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
-       id="text5866"><tspan
-         x="47.817158"
-         y="27.754278"
-         id="tspan5864"
+       id="text5314-6"><tspan
+         x="17.028015"
+         y="55.492096"
+         id="tspan5312-0"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">11</tspan></text>
+    <text
+       x="16.762068"
+       y="58.578316"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text5866-6"><tspan
+         x="16.762068"
+         y="58.578316"
+         id="tspan5864-2"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">12</tspan></text>
     <text
-       x="47.806812"
-       y="30.840496"
+       x="16.751726"
+       y="61.664536"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
-       id="text5870"><tspan
-         x="47.806812"
-         y="30.840496"
-         id="tspan5868"
+       id="text5870-6"><tspan
+         x="16.751726"
+         y="61.664536"
+         id="tspan5868-1"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">13</tspan></text>
     <text
-       x="47.698959"
-       y="33.926716"
+       x="16.643869"
+       y="64.750755"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
-       id="text5874"><tspan
-         x="47.698959"
-         y="33.926716"
-         id="tspan5872"
+       id="text5874-8"><tspan
+         x="16.643869"
+         y="64.750755"
+         id="tspan5872-7"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">14</tspan></text>
     <text
-       x="47.797951"
-       y="37.012936"
+       x="16.742861"
+       y="67.836975"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
-       id="text5878"><tspan
-         x="47.797951"
-         y="37.012936"
-         id="tspan5876"
+       id="text5878-9"><tspan
+         x="16.742861"
+         y="67.836975"
+         id="tspan5876-2"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">15</tspan></text>
     <text
        x="47.771355"
-       y="40.099155"
+       y="24.711113"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text5882"><tspan
          x="47.771355"
-         y="40.099155"
+         y="24.711113"
          id="tspan5880"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">16</tspan></text>
     <text
        x="47.873302"
-       y="43.185371"
+       y="27.797329"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text5886"><tspan
          x="47.873302"
-         y="43.185371"
+         y="27.797329"
          id="tspan5884"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">17</tspan></text>
     <text
        x="47.759533"
-       y="46.271591"
+       y="30.883549"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text5890"><tspan
          x="47.759533"
-         y="46.271591"
+         y="30.883549"
          id="tspan5888"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">18</tspan></text>
     <text
        x="47.784653"
-       y="49.357811"
+       y="33.969769"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text5894"><tspan
          x="47.784653"
-         y="49.357811"
+         y="33.969769"
          id="tspan5892"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">19</tspan></text>
     <text
        x="47.503929"
-       y="52.444031"
+       y="37.055988"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text5898"><tspan
          x="47.503929"
-         y="52.444031"
+         y="37.055988"
          id="tspan5896"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">20</tspan></text>
     <text
-       x="79.170769"
-       y="24.668058"
+       x="47.818634"
+       y="40.056099"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text5902"><tspan
-         x="79.170769"
-         y="24.668058"
+         x="47.818634"
+         y="40.056099"
          id="tspan5900"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">21</tspan></text>
     <text
-       x="78.904816"
-       y="27.754278"
+       x="47.552689"
+       y="43.142319"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text5906"><tspan
-         x="78.904816"
-         y="27.754278"
+         x="47.552689"
+         y="43.142319"
          id="tspan5904"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">22</tspan></text>
     <text
-       x="78.894478"
-       y="30.840496"
+       x="47.542347"
+       y="46.228539"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text5910"><tspan
-         x="78.894478"
-         y="30.840496"
+         x="47.542347"
+         y="46.228539"
          id="tspan5908"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">23</tspan></text>
     <text
-       x="78.786621"
-       y="33.926716"
+       x="47.43449"
+       y="49.314758"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text5914"><tspan
-         x="78.786621"
-         y="33.926716"
+         x="47.43449"
+         y="49.314758"
          id="tspan5912"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">24</tspan></text>
     <text
-       x="78.885612"
-       y="37.012936"
+       x="47.533482"
+       y="52.400978"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text5918"><tspan
-         x="78.885612"
-         y="37.012936"
+         x="47.533482"
+         y="52.400978"
          id="tspan5916"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">25</tspan></text>
     <text
-       x="78.859016"
-       y="40.099155"
+       x="47.506886"
+       y="55.56086"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
-       id="text5922"><tspan
-         x="78.859016"
-         y="40.099155"
-         id="tspan5920"
+       id="text5922-0"><tspan
+         x="47.506886"
+         y="55.56086"
+         id="tspan5920-2"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">26</tspan></text>
     <text
-       x="78.96096"
-       y="43.185371"
+       x="47.608829"
+       y="58.647076"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
-       id="text5926"><tspan
-         x="78.96096"
-         y="43.185371"
-         id="tspan5924"
+       id="text5926-3"><tspan
+         x="47.608829"
+         y="58.647076"
+         id="tspan5924-7"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">27</tspan></text>
     <text
-       x="78.847198"
-       y="46.271591"
+       x="47.495064"
+       y="61.733295"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
-       id="text5930"><tspan
-         x="78.847198"
-         y="46.271591"
-         id="tspan5928"
+       id="text5930-5"><tspan
+         x="47.495064"
+         y="61.733295"
+         id="tspan5928-9"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">28</tspan></text>
     <text
-       x="78.872314"
-       y="49.357811"
+       x="47.52018"
+       y="64.819519"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
-       id="text5934"><tspan
-         x="78.872314"
-         y="49.357811"
-         id="tspan5932"
+       id="text5934-2"><tspan
+         x="47.52018"
+         y="64.819519"
+         id="tspan5932-2"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">29</tspan></text>
     <text
-       x="78.841286"
-       y="52.444031"
+       x="47.489155"
+       y="67.905739"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
-       id="text5938"><tspan
-         x="78.841286"
-         y="52.444031"
-         id="tspan5936"
+       id="text5938-8"><tspan
+         x="47.489155"
+         y="67.905739"
+         id="tspan5936-9"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">30</tspan></text>
     <text
-       x="110.5347"
-       y="24.668058"
-       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
-       id="text6642"><tspan
-         x="110.5347"
-         y="24.668058"
-         id="tspan6640"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">31</tspan></text>
-    <text
-       x="110.26875"
-       y="27.754278"
-       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
-       id="text6646"><tspan
-         x="110.26875"
-         y="27.754278"
-         id="tspan6644"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">32</tspan></text>
-    <text
-       x="110.25841"
-       y="30.840496"
-       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
-       id="text6650"><tspan
-         x="110.25841"
-         y="30.840496"
-         id="tspan6648"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">33</tspan></text>
-    <text
-       x="110.15055"
-       y="33.926716"
-       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
-       id="text6654"><tspan
-         x="110.15055"
-         y="33.926716"
-         id="tspan6652"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">34</tspan></text>
-    <text
-       x="110.24954"
-       y="37.012936"
-       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
-       id="text6658"><tspan
-         x="110.24954"
-         y="37.012936"
-         id="tspan6656"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">35</tspan></text>
-    <text
-       x="110.22295"
+       x="110.52732"
        y="40.099155"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text6662"><tspan
-         x="110.22295"
+         x="110.52732"
          y="40.099155"
          id="tspan6660"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">36</tspan></text>
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">51</tspan></text>
     <text
-       x="110.3249"
+       x="110.26137"
        y="43.185371"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text6666"><tspan
-         x="110.3249"
+         x="110.26137"
          y="43.185371"
          id="tspan6664"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">37</tspan></text>
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">52</tspan></text>
     <text
-       x="110.21113"
+       x="110.25103"
        y="46.271591"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text6670"><tspan
-         x="110.21113"
-         y="46.271591"
-         id="tspan6668"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">38</tspan></text>
+         sodipodi:role="line"
+         id="tspan21"
+         x="110.25103"
+         y="46.271591">53<tspan
+   x="110.25103"
+   y="46.271591"
+   id="tspan6668"
+   style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326" /></tspan></text>
     <text
-       x="110.23625"
+       x="110.14317"
        y="49.357811"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text6674"><tspan
-         x="110.23625"
+         x="110.14317"
          y="49.357811"
          id="tspan6672"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">39</tspan></text>
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">54</tspan></text>
     <text
-       x="110.17863"
+       x="110.24216"
        y="52.444031"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text6678"><tspan
-         x="110.17863"
+         x="110.24216"
          y="52.444031"
          id="tspan6676"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">55</tspan></text>
+    <text
+       x="79.155991"
+       y="24.658934"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6642-1"><tspan
+         x="79.155991"
+         y="24.658934"
+         id="tspan6640-4"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">31</tspan></text>
+    <text
+       x="78.890045"
+       y="27.745153"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6646-9"><tspan
+         x="78.890045"
+         y="27.745153"
+         id="tspan6644-2"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">32</tspan></text>
+    <text
+       x="78.8797"
+       y="30.831371"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6650-0"><tspan
+         x="78.8797"
+         y="30.831371"
+         id="tspan6648-6"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">33</tspan></text>
+    <text
+       x="78.771851"
+       y="33.917591"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6654-8"><tspan
+         x="78.771851"
+         y="33.917591"
+         id="tspan6652-9"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">34</tspan></text>
+    <text
+       x="78.870842"
+       y="37.003811"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6658-2"><tspan
+         x="78.870842"
+         y="37.003811"
+         id="tspan6656-6"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">35</tspan></text>
+    <text
+       x="78.844246"
+       y="40.090031"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6662-6"><tspan
+         x="78.844246"
+         y="40.090031"
+         id="tspan6660-4"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">36</tspan></text>
+    <text
+       x="78.94619"
+       y="43.176247"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6666-9"><tspan
+         x="78.94619"
+         y="43.176247"
+         id="tspan6664-50"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">37</tspan></text>
+    <text
+       x="78.83242"
+       y="46.262466"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6670-4"><tspan
+         x="78.83242"
+         y="46.262466"
+         id="tspan6668-8"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">38</tspan></text>
+    <text
+       x="78.857544"
+       y="49.348686"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6674-7"><tspan
+         x="78.857544"
+         y="49.348686"
+         id="tspan6672-17"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">39</tspan></text>
+    <text
+       x="78.799919"
+       y="52.434906"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6678-2"><tspan
+         x="78.799919"
+         y="52.434906"
+         id="tspan6676-7"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">40</tspan></text>
     <text
-       x="141.42252"
+       x="110.21557"
+       y="55.49424"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6662-7"><tspan
+         x="110.21557"
+         y="55.49424"
+         id="tspan6660-8"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">56</tspan></text>
+    <text
+       x="110.31751"
+       y="58.580456"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6666-4"><tspan
+         x="110.31751"
+         y="58.580456"
+         id="tspan6664-5"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">57</tspan></text>
+    <text
+       x="110.20375"
+       y="61.666676"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6670-0"><tspan
+         x="110.20375"
+         y="61.666676"
+         id="tspan6668-3"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">58</tspan></text>
+    <text
+       x="110.22887"
+       y="64.752899"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6674-6"><tspan
+         x="110.22887"
+         y="64.752899"
+         id="tspan6672-1"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">59</tspan></text>
+    <text
+       x="110.1742"
+       y="67.839119"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6678-0"><tspan
+         x="110.1742"
+         y="67.839119"
+         id="tspan6676-6"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">60</tspan></text>
+    <text
+       x="141.89024"
        y="24.668058"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text6682"><tspan
-         x="141.42252"
+         x="141.89024"
          y="24.668058"
          id="tspan6680"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">41</tspan></text>
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">61</tspan></text>
     <text
-       x="141.15657"
+       x="141.6243"
        y="27.754278"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text6686"><tspan
-         x="141.15657"
+         x="141.6243"
          y="27.754278"
          id="tspan6684"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">42</tspan></text>
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">62</tspan></text>
     <text
-       x="141.14622"
+       x="141.61395"
        y="30.840496"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text6690"><tspan
-         x="141.14622"
+         x="141.61395"
          y="30.840496"
          id="tspan6688"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">43</tspan></text>
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">63</tspan></text>
     <text
-       x="141.03838"
+       x="141.5061"
        y="33.926716"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text6694"><tspan
-         x="141.03838"
+         x="141.5061"
          y="33.926716"
          id="tspan6692"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">44</tspan></text>
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">64</tspan></text>
     <text
-       x="141.13737"
+       x="141.60509"
        y="37.012936"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text6698"><tspan
-         x="141.13737"
+         x="141.60509"
          y="37.012936"
          id="tspan6696"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">65</tspan></text>
+    <text
+       x="79.114624"
+       y="55.529701"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6682-7"><tspan
+         x="79.114624"
+         y="55.529701"
+         id="tspan6680-3"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">41</tspan></text>
+    <text
+       x="78.848671"
+       y="58.615921"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6686-6"><tspan
+         x="78.848671"
+         y="58.615921"
+         id="tspan6684-1"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">42</tspan></text>
+    <text
+       x="78.838333"
+       y="61.702141"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6690-2"><tspan
+         x="78.838333"
+         y="61.702141"
+         id="tspan6688-9"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">43</tspan></text>
+    <text
+       x="78.730476"
+       y="64.788368"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6694-3"><tspan
+         x="78.730476"
+         y="64.788368"
+         id="tspan6692-1"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">44</tspan></text>
+    <text
+       x="78.829468"
+       y="67.874588"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6698-9"><tspan
+         x="78.829468"
+         y="67.874588"
+         id="tspan6696-4"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">45</tspan></text>
     <text
-       x="141.11078"
+       x="141.57849"
        y="40.099155"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text6702"><tspan
-         x="141.11078"
+         x="141.57849"
          y="40.099155"
          id="tspan6700"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">46</tspan></text>
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">66</tspan></text>
     <text
-       x="141.21272"
+       x="141.68044"
        y="43.185371"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text6706"><tspan
-         x="141.21272"
+         x="141.68044"
          y="43.185371"
          id="tspan6704"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">47</tspan></text>
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">67</tspan></text>
     <text
-       x="141.09895"
+       x="141.56668"
        y="46.271591"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text6710"><tspan
-         x="141.09895"
+         x="141.56668"
          y="46.271591"
          id="tspan6708"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">48</tspan></text>
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">68</tspan></text>
     <text
-       x="141.12407"
+       x="141.5918"
        y="49.357811"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text6714"><tspan
-         x="141.12407"
+         x="141.5918"
          y="49.357811"
          id="tspan6712"
-         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">49</tspan></text>
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">69</tspan></text>
     <text
-       x="141.1418"
+       x="141.76318"
        y="52.444031"
        style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
        id="text6718"><tspan
-         x="141.1418"
+         x="141.76318"
          y="52.444031"
          id="tspan6716"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">70</tspan></text>
+    <text
+       x="110.18159"
+       y="24.583054"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6702-2"><tspan
+         x="110.18159"
+         y="24.583054"
+         id="tspan6700-26"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">46</tspan></text>
+    <text
+       x="110.28353"
+       y="27.66927"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6706-1"><tspan
+         x="110.28353"
+         y="27.66927"
+         id="tspan6704-0"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">47</tspan></text>
+    <text
+       x="110.16976"
+       y="30.755489"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6710-6"><tspan
+         x="110.16976"
+         y="30.755489"
+         id="tspan6708-1"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">48</tspan></text>
+    <text
+       x="110.19489"
+       y="33.841709"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6714-59"><tspan
+         x="110.19489"
+         y="33.841709"
+         id="tspan6712-49"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">49</tspan></text>
+    <text
+       x="110.21262"
+       y="36.927929"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6718-0"><tspan
+         x="110.21262"
+         y="36.927929"
+         id="tspan6716-9"
          style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">50</tspan></text>
+    <text
+       x="142.07788"
+       y="55.69268"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6702-3"><tspan
+         x="142.07788"
+         y="55.69268"
+         id="tspan6700-2"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">71</tspan></text>
+    <text
+       x="141.81194"
+       y="58.778896"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6706-0"><tspan
+         x="141.81194"
+         y="58.778896"
+         id="tspan6704-6"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">72</tspan></text>
+    <text
+       x="141.80159"
+       y="61.865116"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6710-1"><tspan
+         x="141.80159"
+         y="61.865116"
+         id="tspan6708-5"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">73</tspan></text>
+    <text
+       x="141.69374"
+       y="64.951332"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6714-5"><tspan
+         x="141.69374"
+         y="64.951332"
+         id="tspan6712-4"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">74</tspan></text>
+    <text
+       x="141.79272"
+       y="68.037552"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326;stroke-dasharray:none;stroke-opacity:1"
+       id="text6718-7"><tspan
+         x="141.79272"
+         y="68.037552"
+         id="tspan6716-6"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:2.95497px;font-family:Rajdhani;-inkscape-font-specification:'Rajdhani, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;stroke:none;stroke-width:0.249326">75</tspan></text>
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(31.3856,30.862194)"
+       id="use1" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(31.3856,33.948413)"
+       id="use2" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(31.3856,37.034633)"
+       id="use3" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(31.3856,40.120852)"
+       id="use4" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(31.3856,43.207072)"
+       id="use5" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(62.7712,30.862194)"
+       id="use6" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(62.7712,33.948413)"
+       id="use7" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(62.7712,37.034633)"
+       id="use8" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(62.7712,40.120852)"
+       id="use9" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(62.7712,43.207072)"
+       id="use10" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(94.1568,30.862194)"
+       id="use11" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(94.1568,33.948413)"
+       id="use12" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(94.1568,37.034633)"
+       id="use13" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(94.1568,40.120852)"
+       id="use14" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(94.1568,43.207072)"
+       id="use15" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(125.5424,30.862194)"
+       id="use16" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(125.5424,33.948413)"
+       id="use17" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(125.5424,37.034633)"
+       id="use18" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(125.5424,40.120852)"
+       id="use19" />
+    <use
+       x="0"
+       y="0"
+       inkscape:tiled-clone-of="#g4923"
+       xlink:href="#g4923"
+       transform="translate(125.5424,43.207072)"
+       id="use20" />
   </g>
   <g
      inkscape:groupmode="layer"
      id="layer2"
      inkscape:label="Markers"
-     transform="translate(-5.7579525,-9.3089229)" />
+     transform="translate(-5.6885112,-9.3089229)" />
 </svg>

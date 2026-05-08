@@ -331,12 +331,27 @@ Page {
 				}
 
 				ScriptAction {
-					script: game.onStarted()
+					script: {
+						game.onStarted()
+						_tour.start()
+					}
 				}
 			}
 		}
 	]
 
+
+	SpotlightCoachTour {
+		id: _tour
+
+		page: "testgame"
+
+		basePage: control
+
+		list: [
+			{ target: _buttonRow, title: qsTr("Navigálás"), text: qsTr("A kérdések között előbbre és vissza is tudsz lépni")},
+		]
+	}
 
 	StackView.onActivated: {
 		state = "start"

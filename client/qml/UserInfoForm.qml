@@ -17,6 +17,8 @@ QFormColumn {
 	property int api: HttpConnection.ApiUser
 	property string path: "update"
 
+	property alias tfNickName: _nickName
+
 	QFormTextField {
 		id: _username
 		title: qsTr("Felhasználónév")

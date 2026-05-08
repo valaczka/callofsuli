@@ -226,6 +226,8 @@ public:
 		QString file;
 		QPageSize::PageSizeId pageSize = QPageSize::A4;
 		int sheetSize = 50;
+		int pagePerUser = 0;
+		bool noColor = false;
 	};
 
 	enum ScanState {
@@ -340,7 +342,8 @@ private:
 	static QString pdfTitle(const PdfConfig &pdfConfig, const QString &username, const int &contentId, QTextDocument *document);
 	static QString pdfSheet(const int &size, const bool &addResource, const int &width, const bool &autoQuestion, QTextDocument *document);
 	static QString pdfInstruction(const PdfConfig &pdfConfig);
-	static QString pdfQuestion(const QJsonArray &list, const bool &autoQuestions, QJsonArray *numberedListPtr = nullptr);
+	static QString pdfQuestion(const QJsonArray &list, const bool &autoQuestions, const PdfConfig &pdfConfig,
+							   QJsonArray *numberedListPtr = nullptr);
 	static bool hasAutoQuestion(const QJsonArray &list);
 
 	void loadUserList();

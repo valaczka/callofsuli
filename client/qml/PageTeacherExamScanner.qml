@@ -279,7 +279,7 @@ QPage {
 			Repeater {
 				id: _rptrQuestion
 
-				model: 50
+				model: 75
 				delegate: Row {
 					id: _row
 					readonly property int qNum: index+1

@@ -28,6 +28,12 @@ import android.content.pm.Signature;
 import java.security.MessageDigest;
 import java.util.ArrayList;
 
+import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
+
+
 
 public class ClientActivity extends QtActivity
 {
@@ -120,10 +126,29 @@ public class ClientActivity extends QtActivity
 	public void enterImmersive() {
 		View qtView = getWindow().getDecorView();
 
-		if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+		// Edge-to-edge: a tartalom menjen ki a rendszer UI alá
+		WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+
+
+		if (Build.VERSION.SDK_INT >= 28) {
 			getWindow().setFlags(WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-					WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
-			getWindow().getAttributes().layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+						WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS);
+
+			WindowManager.LayoutParams lp = getWindow().getAttributes();
+			lp.layoutInDisplayCutoutMode =
+					Build.VERSION.SDK_INT >= 35
+							? WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_ALWAYS
+							: WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+			getWindow().setAttributes(lp);
+		}
+
+		WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
+
+		if (controller != null) {
+			controller.setSystemBarsBehavior(
+					WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+			);
+			controller.hide(WindowInsetsCompat.Type.systemBars());
 		}
 
 		if (Build.VERSION.SDK_INT >= 28 && Build.VERSION.SDK_INT < 30) {
@@ -136,11 +161,23 @@ public class ClientActivity extends QtActivity
 			qtView.setFitsSystemWindows(false);
 			qtView.setOnApplyWindowInsetsListener((v, insets) -> insets);
 		}
+
+		qtView.requestApplyInsets();
+
 	}
 
 
 	private void reloadLayout() {
 		View qtView = getWindow().getDecorView();
+
+		WindowInsetsControllerCompat controller = WindowCompat.getInsetsController(getWindow(), qtView);
+
+		if (controller != null) {
+			controller.setSystemBarsBehavior(
+					WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+			);
+			controller.hide(WindowInsetsCompat.Type.systemBars());
+		}
 
 		qtView.requestApplyInsets();
 		qtView.requestLayout();

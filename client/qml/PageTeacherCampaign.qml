@@ -131,6 +131,8 @@ QPage {
 			model.append({ text: qsTr("Kihívás"), source: Qaterial.Icons.trophyVariantOutline, color: Qaterial.Colors.indigo200 })
 			model.append({ text: qsTr("Időzítés"), source: Qaterial.Icons.timer, color: Qaterial.Colors.pink200 })
 			model.append({ text: qsTr("Eredmények"), source: Qaterial.Icons.chartBar, color: Qaterial.Colors.green200 })
+
+			_tour.loadFromTabBar(tabBar, [1,2], 0)
 		}
 	}
 
@@ -206,6 +208,26 @@ QPage {
 
 	StackView.onActivated: {
 		_details.reloadCampaign()
+		_tour.start()
 	}
 
+
+	Component.onCompleted: {
+		_tour.loadFromTabBar(tabBar, [1,2], 0)
+	}
+
+
+
+	SpotlightCoachTour {
+		id: _tour
+
+		page: "teachercampaignedit"
+
+		basePage: control
+
+		list: [
+			{ target: null, title: qsTr("Időzítés"), text: qsTr("Itt tudod kézzel elindítani vagy leállítani a kihívást")},
+			{ target: null, title: qsTr("Eredmények"), text: qsTr("Itt tudod megtekinteni a diákoknak a kihívásban elért aktuális eredményét")},
+		]
+	}
 }

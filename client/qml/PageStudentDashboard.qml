@@ -118,6 +118,8 @@ QPage {
 
 		StudentDashboard {
 			studentMapHandler: control.studentMapHandler
+			basePage: control
+			baseTabBar: tabBar
 		}
 	}
 

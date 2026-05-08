@@ -461,6 +461,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<TeacherGroupList>("CallOfSuli", 1, 0, "TeacherGroupList");
 	qmlRegisterType<TeacherGroupResultModel>("CallOfSuli", 1, 0, "TeacherGroupResultModel");
 	qmlRegisterType<TeacherMap>("CallOfSuli", 1, 0, "TeacherMap");
+	qmlRegisterType<TeacherMapTag>("CallOfSuli", 1, 0, "TeacherMapTag");
 	qmlRegisterType<TeacherMapHandler>("CallOfSuli", 1, 0, "TeacherMapHandler");
 	qmlRegisterType<TeacherMapList>("CallOfSuli", 1, 0, "TeacherMapList");
 	qmlRegisterType<TeacherPass>("CallOfSuli", 1, 0, "TeacherPass");

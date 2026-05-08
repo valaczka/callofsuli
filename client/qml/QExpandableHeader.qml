@@ -12,6 +12,8 @@ Rectangle {
 	property string text
 	property string icon
 	property bool separator: true
+	property alias textColor: _iconLabel.color
+	property alias font: _iconLabel.font
 	property alias rightSource: _loader.source
 	property alias rightSourceComponent: _loader.sourceComponent
 

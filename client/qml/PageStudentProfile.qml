@@ -19,6 +19,7 @@ QPageGradient {
 	property var userData: null
 
 	property bool _isFirst: true
+	property alias _tour: _tour
 
 	appBar.rightComponent: Qaterial.AppBarButton {
 		icon.source: Qaterial.Icons.logoutVariant
@@ -74,6 +75,8 @@ QPageGradient {
 				pictureEditable: Client.server && Client.server.config.pictureUpdateEditable === true
 
 				Component.onCompleted: {
+					root._tour.list[1].target = _form.tfNickName
+
 					if (root.userData)
 						loadData(root.userData)
 				}
@@ -119,9 +122,12 @@ QPageGradient {
 			expanded: false
 
 			header: QExpandableHeader {
+				id: _headerNotification
 				text: qsTr("Emailes értesítések")
 				icon: Qaterial.Icons.emailAlertOutline
 				expandable: _expNotification
+
+				Component.onCompleted: root._tour.list[0].target = button
 			}
 
 			delegate: UserInfoNotification {
@@ -163,8 +169,23 @@ QPageGradient {
 	}
 
 
+	SpotlightCoachTour {
+		id: _tour
+
+		page: "studentprofile"
+
+		basePage: root
+
+		list: [
+			{ target: null, title: qsTr("E-mailes értesítések"), text: qsTr("Itt tudsz kérni értesítéseket e-mailben")},
+			{ id: 1, target: null, title: qsTr("Becenév"), text: qsTr("Itt tudsz beállítani magadnak becenevet") },
+		]
+	}
+
+
 	StackView.onActivated: {
 		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentProfile)
+		_tour.start()
 
 		if (_isFirst) {
 			reload()
