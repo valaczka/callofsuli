@@ -232,10 +232,7 @@ void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfC
 
 			html += QStringLiteral("</td><td width=%1 align=left><img width=%2 src=\"imgdata://bgR.png\"></td></tr></table>").arg(margin).arg(width);
 
-			++count;
-
-			/*
-			// Check page
+			// Check user page
 
 			++count;
 
@@ -246,7 +243,7 @@ void TeacherExam::createPdf(const QList<ExamUser *> &list, const PdfConfig &pdfC
 
 			if (reqPages > 0)
 				html += QStringLiteral("<p style=\"page-break-before: always;\">&nbsp;</p>").repeated(reqPages);
-				*/
+
 		}
 
 		html.append(QStringLiteral("</body></html>"));
@@ -301,6 +298,9 @@ void TeacherExam::createPdf(const QList<ExamUser*> &list, const QVariantMap &pdf
 
 	if (pdfConfig.contains(QStringLiteral("file")))
 		c.file = pdfConfig.value(QStringLiteral("file")).toUrl().toLocalFile();
+
+	if (pdfConfig.contains(QStringLiteral("userPage")))
+		c.pagePerUser = pdfConfig.value(QStringLiteral("userPage")).toInt();
 
 	if (pdfConfig.contains(QStringLiteral("pageSize"))) {
 		const int s = pdfConfig.value(QStringLiteral("pageSize")).toInt();

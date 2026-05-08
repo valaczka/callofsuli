@@ -226,6 +226,7 @@ public:
 		QString file;
 		QPageSize::PageSizeId pageSize = QPageSize::A4;
 		int sheetSize = 50;
+		int pagePerUser = 0;
 		bool noColor = false;
 	};
 

@@ -271,7 +271,7 @@ QPage {
 			Row {
 				anchors.left: parent.left
 
-				visible: missionLevelModes & (GameMap.Lite|GameMap.Rpg)
+				visible: missionLevelModes & GameMap.Lite
 
 				Qaterial.ColorIcon {
 					color: Qaterial.Style.colorTheme.primaryText
@@ -290,7 +290,7 @@ QPage {
 
 				QSpinBox {
 					anchors.verticalCenter: parent.verticalCenter
-					from: 1
+					from: 2
 					to: 10
 					stepSize: 1
 
@@ -333,7 +333,7 @@ QPage {
 
 				QSpinBox {
 					anchors.verticalCenter: parent.verticalCenter
-					from: 10
+					from: 80
 					to: 100
 					stepSize: 5
 

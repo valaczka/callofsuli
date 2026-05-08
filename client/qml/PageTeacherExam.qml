@@ -419,6 +419,17 @@ QPage {
 					onValueChanged: _actionPDF.pdfFontSize = value
 				}
 
+				QFormSpinBox {
+					id: _pdfUserPerPage
+					anchors.horizontalCenter: parent.horizontalCenter
+					text: qsTr("Minimum oldal tanulónként:")
+					from: 0
+					to: 16
+					value: _actionPDF.pdfUserPage
+					visible: exam && exam.mode == Exam.ExamPaper
+					onValueChanged: _actionPDF.pdfUserPage = value
+				}
+
 				QDashboardGrid {
 					anchors.horizontalCenter: parent.horizontalCenter
 
@@ -746,6 +757,7 @@ QPage {
 									"file": file,
 									"fontSize": _actionPDF.pdfFontSize,
 									"pageSize": _actionPDF.pdfPageSize,
+									"userPage": _actionPDF.pdfUserPage,
 									"noColor": _actionPDF.noColor
 								}
 
@@ -941,6 +953,7 @@ QPage {
 
 		property int pdfFontSize: 8
 		property int pdfPageSize: 50
+		property int pdfUserPage: 0
 		property bool noColor: false
 
 		text: qsTr("PDF letöltése")

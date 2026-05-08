@@ -4799,6 +4799,7 @@ QHttpServerResponse TeacherAPI::passItemList(const Credential &credential, const
 								 "AND NOT EXISTS(SELECT * FROM exam WHERE passitemid=passItem.id) "
 								 "AND NOT EXISTS(SELECT * FROM campaign WHERE passitemid=passItem.id) "
 								 "AND passItem.includepass IS NULL "
+								 "AND (pass.endtime IS NULL OR pass.endtime>datetime('now')) "
 								 "AND pass.groupid=")
 					   .addValue(groupid)
 					   .execToJsonArray();

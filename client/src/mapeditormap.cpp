@@ -1214,6 +1214,8 @@ MapEditorMissionLevel *MapEditorMission::createNextLevel(MapEditorMap *map) cons
 
 	MapEditorMissionLevel *level = new MapEditorMissionLevel(const_cast<MapEditorMission*>(this));
 	level->setLevel(l);
+	level->setStartHP(2);
+	level->setPassed(0.8);
 
 	return level;
 }
