@@ -248,11 +248,9 @@ QItemGradient {
 	SwipeView.onIsCurrentItemChanged: if (SwipeView.isCurrentItem) _examList.reload()
 
 	StackView.onActivated: {
-		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentGroupExam)
 		_examList.reload()
 	}
 
 	StackView.onDeactivating: {
-		Client.contextHelper.unsetContext(ContextHelperData.ContextStudentGroupExam)
 	}
 }

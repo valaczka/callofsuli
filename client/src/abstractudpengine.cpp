@@ -33,8 +33,6 @@
 #include <QDataStream>
 #include <QIODevice>
 #include <BMLib/BinaryStream.hpp>
-#include "sodium/crypto_box.h"
-#include "utils_.h"
 
 
 
@@ -96,9 +94,9 @@ AbstractUdpEngine::~AbstractUdpEngine()
  * @return
  */
 
-const UdpAuthKey &AbstractUdpEngine::authKey() const
+const PublicKeySigner &AbstractUdpEngine::signer() const
 {
-	return d->m_secretKey;
+	return d->m_signer;
 }
 
 
@@ -236,8 +234,13 @@ void AbstractUdpEngine::setCurrentRtt(const int &rtt)
 AbstractUdpEnginePrivate::AbstractUdpEnginePrivate(AbstractUdpEngine *engine)
 	: q(engine)
 {
-	crypto_auth_keygen(m_secretKey.data());
-	LOG_CINFO("client") << "secret generated" << QByteArray::fromRawData((const char*) m_secretKey.data(), m_secretKey.size()).toBase64();
+	std::array<unsigned char, crypto_sign_SECRETKEYBYTES> key;
+
+	randombytes_buf(key.data(), key.size());
+
+	m_signer.setSecret(key);
+
+	LOG_CINFO("client") << "secret generated" << QByteArray::fromRawData((const char*) key.data(), key.size()).toBase64();
 }
 
 
@@ -534,30 +537,18 @@ bool AbstractUdpEnginePrivate::packetChallengeReceived(const std::unique_ptr<Udp
 		return false;
 	}
 
-	UdpChallenge challenge;
-	UdpPublicKey publicKey;
+	const auto &ptr = data->readChallenge();
 
-	if (!data->getChallenge(&challenge, &publicKey)) {
+	if (!ptr) {
 		LOG_CWARNING("engine") << "Challenge error";
 		return false;
 	}
 
-	UdpChallengeResponseStream response(challenge, m_secretKey);
+	const QByteArray challenge = QByteArray::fromRawData(reinterpret_cast<const char*>(ptr->data()), ptr->size());
 
-	const std::vector<std::uint8_t> content = response.data();
+	const QByteArray content = m_signer.sign(challenge);
 
-	const qsizetype len = crypto_box_SEALBYTES + content.size();
-
-	std::vector<std::uint8_t> dest(len);
-
-	if (crypto_box_seal(dest.data(),
-						content.data(), content.size(),
-						publicKey.data()) != 0) {
-		LOG_CERROR("client") << "Seal errror";
-		return false;
-	}
-
-	UdpBitStream msg(m_connectionToken, dest);
+	UdpBitStream msg(m_connectionToken, content);
 
 	sendMessage(*msg, true);
 

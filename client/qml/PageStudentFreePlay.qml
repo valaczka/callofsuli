@@ -216,13 +216,11 @@ QPageGradient {
 
 
 	StackView.onActivated: {
-		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentFreePlay)
 		_tour.start()
 		reloadList()
 	}
 
 	StackView.onDeactivating: {
-		Client.contextHelper.unsetContext(ContextHelperData.ContextStudentFreePlay)
 	}
 
 

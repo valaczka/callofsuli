@@ -201,7 +201,7 @@
         <file>RpgMarketCard.qml</file>
         <file>RpgQuestsDialog.qml</file>
         <file>UserInfoNotification.qml</file>
-        <file>TiledEnemyMarker.qml</file>
+        <file>RpgEnemyMarker.qml</file>
         <file>RpgKeyboardInfoDialog.qml</file>
         <file>PageTeacherExamShowJoker.qml</file>
         <file>TiledSceneEffectRain.qml</file>
@@ -222,7 +222,6 @@
         <file>RpgQuestDelegate.qml</file>
         <file>RpgConnect.qml</file>
         <file>QUpgradeButton.qml</file>
-        <file>ContextHelperDialog.qml</file>
         <file>RpgPlayerMarker.qml</file>
         <file>PageStudentProfile.qml</file>
         <file>StudentGroupButton.qml</file>

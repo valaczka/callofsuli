@@ -10,12 +10,12 @@ Column {
 
 	spacing: 10 * Qaterial.Style.pixelSizeRatio
 
-	Qaterial.SwitchButton {
+	/*Qaterial.SwitchButton {
 		anchors.horizontalCenter: parent.horizontalCenter
 		text: qsTr("Súgó megjelenítése")
 		checked: Client.contextHelper.enabled
 		onToggled: Client.contextHelper.enabled = checked
-	}
+	}*/
 
 	Qaterial.SwitchButton {
 		anchors.horizontalCenter: parent.horizontalCenter

@@ -59,8 +59,8 @@ private:
  * @brief TiledRotationMotor::TiledRotationMotor
  */
 
-TiledRotationMotor::TiledRotationMotor()
-	: AbstractTiledMotor(RotationMotor)
+TiledRotationMotor::TiledRotationMotor(AbstractGame::TickTimer *timer)
+	: AbstractTiledMotor(timer)
 	, d(new TiledRotationMotorPrivate(this))
 {
 
@@ -86,10 +86,10 @@ TiledRotationMotor::~TiledRotationMotor()
  * @param timer
  */
 
-void TiledRotationMotor::updateBody(TiledObject *object, const float &, AbstractGame::TickTimer *timer)
+void TiledRotationMotor::updateBody(TiledObject *object)
 {
 	Q_ASSERT(object);
-	Q_ASSERT(timer);
+	Q_ASSERT(m_timer);
 
 	object->stop();
 
@@ -97,13 +97,13 @@ void TiledRotationMotor::updateBody(TiledObject *object, const float &, Abstract
 	if (d->m_waitTimerEnd <= 0) {
 		d->m_currentDirection = m_direction;
 		object->setCurrentAngle(TiledObject::toRadian(m_from));
-	} else if (timer->currentTick() < d->m_waitTimerEnd) {
+	} else if (m_timer->currentTick() < d->m_waitTimerEnd) {
 		return;
 	} else {
 		d->update(object);
 	}
 
-	d->m_waitTimerEnd = timer->tickAddMsec(m_waitMs);
+	d->m_waitTimerEnd = m_timer->tickAddMsec(m_waitMs);
 }
 
 

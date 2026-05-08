@@ -238,17 +238,10 @@ Page {
 
 
 	StackView.onDeactivating: {
-		Client.contextHelper.unsetContext(ContextHelperData.ContextStudentPlayMultiplayer)
-		Client.contextHelper.unsetContext(ContextHelperData.ContextStudentPlayRpg)
 	}
 
 	StackView.onActivated: {
 		_notification.check()
-
-		if (_multiplayer)
-			Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentPlayMultiplayer)
-		else
-			Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentPlayRpg)
 
 		if (game)
 			game.playMenuBgMusic()

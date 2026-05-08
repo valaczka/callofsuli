@@ -34,26 +34,23 @@
 class AbstractTiledMotor
 {
 public:
-	enum Type {
-		Invalid = 0,
-		PathMotor,
-		ReturnPathMotor,
-		FixPositionMotor,
-		RotationMotor
-	};
-
-	AbstractTiledMotor(const Type &type)
-		: m_type(type)
+	AbstractTiledMotor(AbstractGame::TickTimer *timer = nullptr)
+		: m_timer(timer)
 	{}
+
 	virtual ~AbstractTiledMotor() {}
 
-	const Type &type() const { return m_type; }
+	virtual void updateBody(TiledObject *object) = 0;
 
-	virtual void updateBody(TiledObject *object, const float &speed, AbstractGame::TickTimer *timer = nullptr) = 0;
-	virtual cpVect basePoint() = 0;
+	AbstractGame::TickTimer *timer() const { return m_timer; }
+	void setTimer(AbstractGame::TickTimer *newTimer) { m_timer = newTimer; }
 
 protected:
-	const Type m_type;
+	AbstractGame::TickTimer *m_timer = nullptr;
 };
+
+
+
+
 
 #endif // ABSTRACTTILEDMOTOR_H

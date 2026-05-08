@@ -178,12 +178,10 @@ QPage {
 
 
 			StackView.onActivated: {
-				Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentScore)
 				_scoreList.reload()
 			}
 
 			StackView.onDeactivating: {
-				Client.contextHelper.unsetContext(ContextHelperData.ContextStudentScore)
 			}
 		}
 	}

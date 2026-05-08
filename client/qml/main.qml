@@ -320,20 +320,6 @@ Qaterial.ApplicationWindow
 	}
 
 
-	property var contextDialogSettings: null
-
-	Component {
-		id: _cmpContextHelperDialog
-
-		ContextHelperDialog {
-			title: contextDialogSettings.title
-			image: contextDialogSettings.image
-			description: contextDialogSettings.description
-			iconSource: contextDialogSettings.icon
-			iconColor: contextDialogSettings.iconColor
-		}
-	}
-
 
 	function messageDialog(_text : string, _title : string, _type : string) {
 		var _icon = Qaterial.Icons.informationOutline
@@ -362,11 +348,6 @@ Qaterial.ApplicationWindow
 
 
 
-
-	function contextHelperDialog(_data) {
-		contextDialogSettings = _data
-		Qaterial.DialogManager.openFromComponent(_cmpContextHelperDialog)
-	}
 
 
 	function closeQuestion(_text : string, _pop : bool, _index: int) {

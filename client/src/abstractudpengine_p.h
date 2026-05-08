@@ -109,7 +109,7 @@ private:
 	UdpCacheQueue<UdpPacketRcv> m_cacheRcv;
 	UdpCacheQueue<UdpPacketSnd> m_cacheSnd;
 
-	UdpAuthKey m_secretKey;
+	PublicKeySigner m_signer;
 
 	QByteArray m_connectionToken;
 

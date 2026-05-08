@@ -86,11 +86,9 @@ QPage {
 	}
 
 	StackView.onActivated: {
-		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentSelectWorld)
 	}
 
 	StackView.onDeactivating: {
-		Client.contextHelper.unsetContext(ContextHelperData.ContextStudentSelectWorld)
 	}
 }
 

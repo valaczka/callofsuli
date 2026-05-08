@@ -421,8 +421,6 @@ QPage {
 
 
 	StackView.onActivated: {
-		Client.contextHelper.setCurrentContext(ContextHelperData.ContextTeacherDasboard)
-
 		if (Client.server) {
 			Client.reloadCache("teacherGroupList", root, function() {
 				_firstRun = false

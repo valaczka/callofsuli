@@ -79,7 +79,7 @@ public:
 	{}
 
 	QS_SERIALIZABLE
-	QS_FIELD(int, id)
+	QS_FIELD(quint32, id)
 	QS_FIELD(QString, file)
 	QS_FIELD(QString, ambient)
 	QS_FIELD(QString, music)
@@ -125,7 +125,7 @@ public:
 	void startMusic();
 	void stopMusic();
 
-	int sceneId() const { return m_sceneId; }
+	const quint32 &sceneId() const { return m_sceneId; }
 
 	TiledGame *game() const;
 	void setGame(TiledGame *newGame);
@@ -164,7 +164,7 @@ protected:
 	QList<QQuickItem*> m_visualItems;
 
 	cpSpace *m_space = nullptr;
-	int m_sceneId = -1;
+	quint32 m_sceneId = 0;
 
 	std::unique_ptr<Tiled::Map> m_map;
 	QString m_ambientSound;

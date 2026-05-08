@@ -38,7 +38,6 @@
 #include <QNetworkReply>
 #include "QQuickWindow"
 #include "sound.h"
-#include "contexthelper.h"
 
 
 class Application;
@@ -90,7 +89,6 @@ class Client : public QObject
 	Q_PROPERTY(Utils* Utils READ utils CONSTANT)
 	Q_PROPERTY(bool debug READ debug CONSTANT)
 	Q_PROPERTY(Updater *updater READ updater CONSTANT)
-	Q_PROPERTY(ContextHelper *contextHelper READ contextHelper CONSTANT)
 
 	Q_PROPERTY(AbstractGame* currentGame READ currentGame NOTIFY currentGameChanged)
 
@@ -266,8 +264,6 @@ public:
 	virtual bool fullScreenHelper() const;
 	virtual void setFullScreenHelper(bool newFullScreenHelper);
 
-	ContextHelper *contextHelper() const;
-
 public slots:
 	virtual void onHttpConnectionError(const QNetworkReply::NetworkError &code);
 
@@ -354,7 +350,6 @@ protected:
 	std::unique_ptr<Updater> m_updater;
 	std::unique_ptr<QTranslator> m_translator;
 	std::unique_ptr<Downloader> m_downloader;
-	std::unique_ptr<ContextHelper> m_contextHelper;
 
 	std::unique_ptr<Server> m_staticServer;
 

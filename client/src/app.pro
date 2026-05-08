@@ -215,7 +215,6 @@ SOURCES += \
 	classobject.cpp \
 	client.cpp \
 	clientcache.cpp \
-	contexthelper.cpp \
 	downloader.cpp \
 	editorundostack.cpp \
 	exam.cpp \
@@ -230,10 +229,8 @@ SOURCES += \
 	grade.cpp \
 	httpconnection.cpp \
 	isometricbullet.cpp \
-	isometricenemy.cpp \
 	isometricentity.cpp \
 	isometricobject.cpp \
-	isometricplayer.cpp \
 	litegame.cpp \
 	main.cpp \
 	mapeditor.cpp \
@@ -305,7 +302,6 @@ HEADERS += \
 	classobject.h \
 	client.h \
 	clientcache.h \
-	contexthelper.h \
 	downloader.h \
 	editorundostack.h \
 	exam.h \
@@ -320,10 +316,8 @@ HEADERS += \
 	grade.h \
 	httpconnection.h \
 	isometricbullet.h \
-	isometricenemy.h \
 	isometricentity.h \
 	isometricobject.h \
-	isometricplayer.h \
 	litegame.h \
 	mapeditor.h \
 	mapeditormap.h \

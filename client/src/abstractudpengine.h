@@ -87,7 +87,7 @@ public:
 	explicit AbstractUdpEngine(QObject *parent = nullptr);
 	virtual ~AbstractUdpEngine();
 
-	const UdpAuthKey &authKey() const;
+	const PublicKeySigner &signer() const;
 	const quint32 &peerIndex() const;
 
 	void sendMessage(const std::vector<uint8_t> &data, const bool &reliable = true);

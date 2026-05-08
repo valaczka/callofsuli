@@ -61,8 +61,10 @@ public:
 
 	Q_ENUM(WaitTimerState);
 
-	TiledPathMotor(const QPolygonF &polygon, const Direction &direction = Forward);
-	TiledPathMotor() : TiledPathMotor(QPolygonF()) {}
+	TiledPathMotor(AbstractGame::TickTimer *timer, const QPolygonF &polygon = QPolygon(), const Direction &direction = Forward);
+	TiledPathMotor(const QPolygonF &polygon, const Direction &direction = Forward)
+		: TiledPathMotor(nullptr, polygon, direction) {}
+	TiledPathMotor() : TiledPathMotor(nullptr) {}
 
 	QPolygonF linesToPolygon() const;
 
@@ -78,8 +80,8 @@ public:
 	cpVect getShortestPoint(const cpVect &pos, float *dstDistance = nullptr, int *dstSegment = nullptr, float *dstFactor = nullptr);
 	std::optional<cpVect> getLastSegmentPoint();
 
-	void updateBody(TiledObject *object, const float &speed, AbstractGame::TickTimer *timer = nullptr) override;
-	cpVect basePoint() override;
+	void updateBody(TiledObject *object) override;
+	cpVect basePoint();
 
 
 	bool atBegin(TiledObjectBody *body = nullptr) const;
@@ -104,6 +106,9 @@ public:
 	int lastSegment() const;
 	float lastSegmentFactor() const;
 
+	float speed() const;
+	void setSpeed(float newSpeed);
+
 private:
 	struct Line {
 		QLineF line;
@@ -113,6 +118,7 @@ private:
 	void loadLines();
 	qreal angleFromLine(const Line &line) const;
 
+	float m_speed = 15.;
 
 	QPolygonF m_polygon;
 	Direction m_direction = Forward;

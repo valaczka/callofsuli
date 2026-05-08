@@ -751,7 +751,6 @@ QPageGradient {
 	}
 
 	StackView.onActivated: {
-		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentPlayLevel)
 		_tour.start()
 
 		reload()
@@ -765,7 +764,6 @@ QPageGradient {
 
 
 	StackView.onDeactivating: {
-		Client.contextHelper.unsetContext(ContextHelperData.ContextStudentPlayLevel)
 	}
 
 	Connections {

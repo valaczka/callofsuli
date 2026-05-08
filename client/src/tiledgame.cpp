@@ -94,10 +94,10 @@ private:
 		}
 		static void spaceDestroy(cpSpace *space);
 
-		void reloadTcodMap();
+		TCODMap* reloadTcodMap(const cpBitmask &excludedCategories);
 		void destroyScene();
 
-		int sceneId = -1;
+		quint32 sceneId = 0;
 		QQuickItem *container = nullptr;
 		TiledScene *scene = nullptr;
 		unique_space_ptr space;
@@ -145,7 +145,7 @@ private:
 	std::vector<T*> getObjects(cpSpace *world);
 
 	TiledObjectBody *findObject(const TiledObjectBody::ObjectId &id);
-	TiledObjectBody *findObject(const int &ownerId, const int &sceneId, const int &id) {
+	TiledObjectBody *findObject(const quint32 &ownerId, const quint32 &sceneId, const quint32 &id) {
 		return findObject(TiledObjectBody::ObjectId{.ownerId = ownerId, .sceneId = sceneId, .id = id});
 	}
 
@@ -185,7 +185,7 @@ private:
 
 	std::vector<TiledObjectBody*> m_removeBodyList;
 
-	int m_nextBodyId = 0;
+	quint32 m_nextBodyId = 0;
 	KeyboardJoystickState m_keyboardJoystickState;
 	static std::unordered_map<QString, std::unique_ptr<QSGTexture>> m_sharedTextures;
 
@@ -488,7 +488,7 @@ QVector<TiledScene *> TiledGame::sceneList() const
  * @return
  */
 
-TiledScene *TiledGame::findScene(const int &id) const
+TiledScene *TiledGame::findScene(const quint32 &id) const
 {
 	QMutexLocker locker(&d->m_stepMutex);
 
@@ -555,7 +555,7 @@ bool TiledGame::loadScene(const TiledSceneDefinition &def, const QString &basePa
 	}
 
 
-	item->sceneId = def.id;
+	item->sceneId = static_cast<quint32>(def.id);
 	item->space = item->spaceCreate();
 
 	cpSpaceSetCollisionBias(item->space.get(), cpfpow(1.0f - 0.5f, 60.0f));
@@ -577,7 +577,7 @@ bool TiledGame::loadScene(const TiledSceneDefinition &def, const QString &basePa
 		return false;
 	}
 
-	item->reloadTcodMap();
+	item->reloadTcodMap(m_groundCategory);
 
 	item->scene->setAmbientSound(def.ambient);
 	item->scene->setBackgroundMusic(def.music);
@@ -704,13 +704,13 @@ TiledObjectBody *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *obje
 
 
 
-	TiledObjectBody *mapObject = createObject<TiledObjectBody>(-1, scene, object->id(),
+	TiledObjectBody *mapObject = createObject<TiledObjectBody>(0, scene, object->id(),
 															   object, this, renderer, CP_BODY_TYPE_STATIC);
 
 	if (!mapObject)
 		return nullptr;
 
-	mapObject->filterSet(TiledObjectBody::FixtureGround);
+	mapObject->filterSet(m_groundCategory);
 
 	QPointF delta;
 
@@ -1085,6 +1085,23 @@ void TiledGame::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene
 
 
 
+/**
+ * @brief TiledGame::groundCategory
+ * @return
+ */
+
+const cpBitmask &TiledGame::groundCategory() const
+{
+	return m_groundCategory;
+}
+
+void TiledGame::setGroundCategory(cpBitmask newGroundCategory)
+{
+	m_groundCategory = newGroundCategory;
+}
+
+
+
 
 
 
@@ -1303,18 +1320,19 @@ void TiledGame::updateStepTimer()
  * @param bodyPtr
  */
 
-TiledObjectBody *TiledGame::addObject(std::unique_ptr<TiledObjectBody> &body, const int &sceneId, const int &id, const int &owner)
+TiledObjectBody *TiledGame::addObject(std::unique_ptr<TiledObjectBody> &body,
+									  const quint32 &sceneId, const quint32 &id, const quint32 &owner)
 {
 	Q_ASSERT(body);
 
-	if (id < 0 || (id == 0 && owner != 0)) {
+	if (id == 0 && owner != 0) {
 		LOG_CERROR("scene") << "Invalid object id" << owner << sceneId << id;
 		return nullptr;
 	}
 
 	QMutexLocker locker(&d->m_stepMutex);
 
-	int newId = id;
+	quint32 newId = id;
 	if (id == 0 && owner == 0)
 		newId = ++d->m_nextBodyId;
 
@@ -2317,10 +2335,10 @@ void TiledGamePrivate::stepWorlds()
  * @brief TiledScene::reloadTcodMap
  */
 
-void TiledGame::reloadTcodMap(cpSpace *space)
+TCODMap *TiledGame::reloadTcodMap(cpSpace *space)
 {
 	if (!space)
-		return;
+		return nullptr;
 
 	QMutexLocker locker(&d->m_stepMutex);
 
@@ -2331,10 +2349,10 @@ void TiledGame::reloadTcodMap(cpSpace *space)
 
 	if (it == d->m_sceneList.end()) {
 		LOG_CERROR("scene") << "Invalid space" << space;
-		return;
+		return nullptr;
 	}
 
-	it->get()->reloadTcodMap();
+	return it->get()->reloadTcodMap(m_groundCategory);
 }
 
 
@@ -2358,7 +2376,7 @@ std::optional<QPolygonF> TiledGame::findShortestPath(TiledObjectBody *body, cons
 	if (!space)
 		return std::nullopt;
 
-	const RayCastInfo &info = body->rayCast(to, TiledObjectBody::FixtureGround);
+	const RayCastInfo &info = body->rayCast(to, m_groundCategory);
 
 	bool isWalkable = true;
 
@@ -2413,7 +2431,7 @@ std::optional<QPolygonF> TiledGame::findShortestPath(TiledObjectBody *body, cons
 
 					const cpVect &pos = TiledObjectBody::toVect(it->get()->tcodMap.chunkMiddle(chunkX, chunkY));
 
-					const RayCastInfo &info = body->rayCast(pos, TiledObjectBody::FixtureGround);
+					const RayCastInfo &info = body->rayCast(pos, m_groundCategory);
 
 					bool isWalkable = true;
 
@@ -2675,11 +2693,11 @@ void TiledGamePrivate::Scene::spaceDestroy(cpSpace *space)
  * @brief TiledGamePrivate::Scene::reloadTcodMap
  */
 
-void TiledGamePrivate::Scene::reloadTcodMap()
+ TCODMap* TiledGamePrivate::Scene::reloadTcodMap(const cpBitmask &excludedCategories)
 {
 	if (!space || cpSpaceIsLocked(space.get())) {
 		LOG_CERROR("scene") << "Missing or locked space" << this;
-		return;
+		return nullptr;
 	}
 
 
@@ -2693,7 +2711,7 @@ void TiledGamePrivate::Scene::reloadTcodMap()
 
 	if (tcodMap.viewport.isEmpty()) {
 		LOG_CERROR("scene") << "Invalid viewport" << space.get();
-		return;
+		return nullptr;
 	}
 
 	static const qreal chunkSize = 30.;
@@ -2727,16 +2745,19 @@ void TiledGamePrivate::Scene::reloadTcodMap()
 			struct _d {
 				int i, j;
 				TCODMap *map;
+				cpBitmask mask;
 			};
 
 			_d d;
 			d.i = i;
 			d.j = j;
 			d.map = tcodMap.map.get();
+			d.mask = excludedCategories;
 
 			static const auto fn = [](cpShape *shape, cpContactPointSet *, void *data) {
-				if (cpShapeGetFilter(shape).categories & TiledObjectBody::FixtureGround) {
-					_d *d = (_d*)(data);
+				_d *d = (_d*)(data);
+
+				if (cpShapeGetFilter(shape).categories & d->mask) {
 					d->map->setProperties(d->i, d->j, true, false);
 				}
 			};
@@ -2746,6 +2767,8 @@ void TiledGamePrivate::Scene::reloadTcodMap()
 			cpShapeFree(chunk);
 		}
 	}
+
+	return tcodMap.map.get();
 }
 
 

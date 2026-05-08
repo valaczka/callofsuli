@@ -52,10 +52,11 @@ private:
 	static void removeShape(cpShape *shape, const bool &deleteShape = true);
 	static void removeShapeFn(cpBody *, cpShape *shape, void *) { removeShape(shape); }
 
-	void setSensorPolygon(const float &length, const float &range);
-	void addVirtualCircle(const float &length);
+	void setSensorPolygon(const float &length, const float &range,
+						  const cpBitmask &category, const cpBitmask &virtualCircleCategory);
+	void addVirtualCircle(const float &length, const cpBitmask &category);
 	void removeVirtualCircle();
-	void addTargetCircle(const float &length);
+        void addTargetCircle(const float &length, const cpShapeFilter &filter);
 
 	void setVelocity(const cpVect &speed);
 

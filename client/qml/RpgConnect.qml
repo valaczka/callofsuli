@@ -106,10 +106,8 @@ QItemGradient {
 
 
     StackView.onActivated: {
-        Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentSelectEngine)
     }
 
     StackView.onDeactivating: {
-        Client.contextHelper.unsetContext(ContextHelperData.ContextStudentSelectEngine)
     }
 }

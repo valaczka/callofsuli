@@ -184,7 +184,6 @@ QPageGradient {
 
 
 	StackView.onActivated: {
-		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentProfile)
 		_tour.start()
 
 		if (_isFirst) {
@@ -194,7 +193,6 @@ QPageGradient {
 	}
 
 	StackView.onDeactivating: {
-		Client.contextHelper.unsetContext(ContextHelperData.ContextStudentProfile)
 	}
 
 	function reload() {

@@ -115,10 +115,8 @@ QPageGradient {
 	}
 
 	StackView.onActivated: {
-		Client.contextHelper.setCurrentContext(ContextHelperData.ContextSettings)
 	}
 
 	StackView.onDeactivating: {
-		Client.contextHelper.unsetContext(ContextHelperData.ContextSettings)
 	}
 }

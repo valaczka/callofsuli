@@ -35,8 +35,6 @@
 #include "fetchmodel.h"
 #include "fontimage.h"
 #include "gamequestioncomponent.h"
-#include "isometricplayer.h"
-#include "isometricenemy.h"
 #include "isometricobject.h"
 #include "litegame.h"
 #include "mapeditor.h"
@@ -362,8 +360,6 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<EditorUndoStack>("CallOfSuli", 1, 0, "EditorUndoStack", "EditorUndoStack is uncreatable");
 	qmlRegisterUncreatableType<HttpConnection>("CallOfSuli", 1, 0, "HttpConnection", "HttpConnection is uncreatable");
 	qmlRegisterUncreatableType<HttpReply>("CallOfSuli", 1, 0, "HttpConnectionReply", "HttpConnectionReply is uncreatable");
-	qmlRegisterUncreatableType<IsometricPlayer>("CallOfSuli", 1, 0, "IsometricPlayer", "IsometricPlayer is uncreatable");
-	qmlRegisterUncreatableType<IsometricEnemy>("CallOfSuli", 1, 0, "IsometricEnemy", "IsometricEnemy is uncreatable");
 	qmlRegisterUncreatableType<LiteGame>("CallOfSuli", 1, 0, "LiteGame", "LiteGame is uncreatable");
 	qmlRegisterUncreatableType<MapEditorChapter>("CallOfSuli", 1, 0, "MapEditorChapter", "MapEditorChapter is uncreatable");
 	qmlRegisterUncreatableType<MapEditorImage>("CallOfSuli", 1, 0, "MapEditorImage", "MapEditorImage is uncreatable");
@@ -396,7 +392,6 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
 
 
-	qmlRegisterUncreatableType<ContextHelperData>("CallOfSuli", 1, 0, "ContextHelperData", "ContextHelperData is uncreatable");
 	qmlRegisterUncreatableType<Credential>("CallOfSuli", 1, 0, "Credential", "Credential is uncreatable");
 	qmlRegisterUncreatableType<GameMap>("CallOfSuli", 1, 0, "GameMap", "GameMap is uncreatable");
 	qmlRegisterUncreatableType<GameMapMission>("CallOfSuli", 1, 0, "GameMapMission", "GameMapMission is uncreatable");

@@ -28,8 +28,8 @@
 #include "tiledobject.h"
 #include <Logger.h>
 
-TiledPathMotor::TiledPathMotor(const QPolygonF &polygon, const Direction &direction)
-	: AbstractTiledMotor(PathMotor)
+TiledPathMotor::TiledPathMotor(AbstractGame::TickTimer *timer, const QPolygonF &polygon, const Direction &direction)
+	: AbstractTiledMotor(timer)
 	, m_polygon(polygon)
 	, m_direction(direction)
 {
@@ -135,6 +135,16 @@ qreal TiledPathMotor::angleFromLine(const Line &line) const
 		return 180+line.angle;
 	else
 		return line.angle-180;
+}
+
+float TiledPathMotor::speed() const
+{
+	return m_speed;
+}
+
+void TiledPathMotor::setSpeed(float newSpeed)
+{
+	m_speed = newSpeed;
 }
 
 float TiledPathMotor::lastSegmentFactor() const
@@ -270,11 +280,12 @@ std::optional<cpVect> TiledPathMotor::getLastSegmentPoint()
  * @param maximumSpeed
  */
 
-void TiledPathMotor::updateBody(TiledObject *body, const float &speed, AbstractGame::TickTimer *timer)
+void TiledPathMotor::updateBody(TiledObject *body)
 {
 	Q_ASSERT(body);
+	Q_ASSERT(m_timer);
 
-	const float threshold = 2*speed/60.;			// 60 fps-nél 2 frame alatt megtett távolság a küszöb
+	const float threshold = 2*m_speed/60.;			// 60 fps-nél 2 frame alatt megtett távolság a küszöb
 
 	if (m_lastSegment >= 0 && m_lastSegment < m_lines.size()) {
 		float factor = -1.;
@@ -306,7 +317,7 @@ void TiledPathMotor::updateBody(TiledObject *body, const float &speed, AbstractG
 			m_lastSegmentFactor = std::max(dstFactor, (float) 0.);
 		}
 
-		body->moveTowards(dst, speed);
+		body->moveTowards(dst, m_speed);
 		return;
 	}
 
@@ -314,11 +325,11 @@ void TiledPathMotor::updateBody(TiledObject *body, const float &speed, AbstractG
 	// Ha nincs zárva és a végén vagyunk
 
 	if (!isClosed()) {
-		const WaitTimerState s = waitTimerState(timer);
+		const WaitTimerState s = waitTimerState(m_timer);
 
 		if (m_direction == Backward && atBegin(body)) {
 			if (s == Invalid && m_waitAtBegin > 0) {
-				m_waitTimerEnd = timer->tickAddMsec(m_waitAtBegin);
+				m_waitTimerEnd = m_timer->tickAddMsec(m_waitAtBegin);
 				body->stop();
 				return;
 			} else if (s == Running) {
@@ -330,7 +341,7 @@ void TiledPathMotor::updateBody(TiledObject *body, const float &speed, AbstractG
 			}
 		} else if (m_direction == Forward && atEnd(body)) {
 			if (s == Invalid && m_waitAtEnd > 0) {
-				m_waitTimerEnd = timer->tickAddMsec(m_waitAtBegin);
+				m_waitTimerEnd = m_timer->tickAddMsec(m_waitAtBegin);
 				body->stop();
 				return;
 			} else if (s == Running) {
@@ -350,7 +361,7 @@ void TiledPathMotor::updateBody(TiledObject *body, const float &speed, AbstractG
 	// Near of the lastSegmentPoint
 
 	const QLineF &line = m_lines.at(m_lastSegment).line;
-	const float delta = (speed/60.)/line.length();
+	const float delta = (m_speed/60.)/line.length();
 
 	if (m_direction == Forward) {
 		if (m_lastSegmentFactor + delta > 1.) {
@@ -368,7 +379,7 @@ void TiledPathMotor::updateBody(TiledObject *body, const float &speed, AbstractG
 			m_lastSegmentFactor += delta;
 		}
 
-		body->moveTowards(TiledObject::toVect(line.p2()), speed);
+		body->moveTowards(TiledObject::toVect(line.p2()), m_speed);
 	} else if (m_direction == Backward) {
 		if (m_lastSegmentFactor - delta < 0.) {
 			if (m_lastSegment-1 < 0 && !isClosed()) {
@@ -385,7 +396,7 @@ void TiledPathMotor::updateBody(TiledObject *body, const float &speed, AbstractG
 			m_lastSegmentFactor -= delta;
 		}
 
-		body->moveTowards(TiledObject::toVect(line.p1()), speed);
+		body->moveTowards(TiledObject::toVect(line.p1()), m_speed);
 	}
 
 }

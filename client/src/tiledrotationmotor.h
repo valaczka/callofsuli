@@ -39,7 +39,7 @@ class TiledRotationMotorPrivate;
 class TiledRotationMotor : public AbstractTiledMotor
 {
 public:
-	TiledRotationMotor();
+	TiledRotationMotor(AbstractGame::TickTimer *timer = nullptr);
 	virtual ~TiledRotationMotor();
 
 	enum Direction {
@@ -47,8 +47,7 @@ public:
 		DirectionCW
 	};
 
-	void updateBody(TiledObject *object, const float &distance, AbstractGame::TickTimer *timer = nullptr) override;
-	cpVect basePoint() override { return m_point; }
+	void updateBody(TiledObject *object) override;
 
 	float from() const;
 	void setFrom(float newFrom);

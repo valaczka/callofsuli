@@ -27,6 +27,7 @@
 #ifndef TILEDGAME_H
 #define TILEDGAME_H
 
+#include "libtcod/fov.hpp"
 #include "qsgtexture.h"
 #include "tiledscene.h"
 #include "abstractgame.h"
@@ -135,7 +136,7 @@ public:
 
 	QVector<TiledScene*> sceneList() const;
 
-	TiledScene *findScene(const int &id) const;
+	TiledScene *findScene(const quint32 &id) const;
 
 	TiledScene *currentScene() const;
 	void setCurrentScene(TiledScene *newCurrentScene);
@@ -167,7 +168,7 @@ public:
 
 	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type,
 			  class... Args>
-	T* createObject(const int &ownerId, TiledScene *scene, const int &id, Args&&... args) {
+	T* createObject(const quint32 &ownerId, TiledScene *scene, const quint32 &id, Args&&... args) {
 		Q_ASSERT(scene);
 		std::unique_ptr<T> dptr(new T(std::forward<Args>(args)...));
 		initSpace(dptr.get(), scene);
@@ -232,10 +233,12 @@ public:
 									  const QString &source,
 									  const QString &layer = QStringLiteral("default"));
 
-	void reloadTcodMap(cpSpace *space);
-	void reloadTcodMap(TiledScene *scene) {
+	TCODMap* reloadTcodMap(cpSpace *space);
+	TCODMap* reloadTcodMap(TiledScene *scene) {
 		if (scene && scene->m_space)
-			reloadTcodMap(scene->m_space);
+			return reloadTcodMap(scene->m_space);
+		else
+			return nullptr;
 	}
 
 
@@ -280,6 +283,9 @@ public:
 	bool paused() const;
 	void setPaused(bool newPaused);
 
+	const cpBitmask &groundCategory() const;
+	void setGroundCategory(cpBitmask newGroundCategory);
+
 signals:
 	void gameLoaded();
 	void gameLoadFailed(const QString &errorString);
@@ -299,7 +305,7 @@ signals:
 	void pausedChanged();
 
 protected:
-	TiledObjectBody *addObject(std::unique_ptr<TiledObjectBody> &body, const int &sceneId, const int &id, const int &owner = -1);
+	TiledObjectBody *addObject(std::unique_ptr<TiledObjectBody> &body, const quint32 &sceneId, const quint32 &id, const quint32 &owner = 0);
 	bool initSpace(TiledObjectBody *body, TiledScene *scene);
 	virtual void onShapeAboutToDeletePrivate(cpShape *shape) { Q_UNUSED(shape); }
 	/*bool changeSpace(TiledObjectBody *body, cpSpace *newSpace);
@@ -340,6 +346,7 @@ protected:
 	virtual void sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene);
 
 protected:
+	cpBitmask m_groundCategory = 0;
 	TiledScene *m_currentScene = nullptr;
 
 	std::unique_ptr<AbstractGame::TickTimer> m_tickTimer;

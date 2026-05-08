@@ -454,7 +454,6 @@ QPage {
 
 	StackView.onActivated: {
 		view.forceActiveFocus()
-		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStart)
 		_tour.start()
 	}
 

@@ -12,7 +12,9 @@ Column {
 
 	readonly property bool _isEntity: target && target.hp !== undefined
 	property alias progressBar: _progress
+	property alias progressBarColor: _progress.color
 	property real entityHeight: 120
+
 
 	parent: target ? target.scene : null
 
@@ -67,22 +69,7 @@ Column {
 
 		Material.accent: color
 
-		property color color: {
-			if (!target || !target.game || !_isEntity)
-				return Qaterial.Colors.gray
-
-			let p = target.hp/target.maxHp
-
-			/*if (target.game.followedItem != target)
-				return Qaterial.Colors.blue500*/
-
-			if (p > 0.5)
-				return Qaterial.Colors.green500
-			else if (p > 0.3)
-				return Qaterial.Colors.amber500
-			else
-				return Qaterial.Colors.red500
-		}
+		property color color: Qaterial.Colors.green500
 
 		Behavior on value {
 			NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }

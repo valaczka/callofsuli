@@ -27,8 +27,8 @@
 #include "tiledfixpositionmotor.h"
 
 
-TiledFixPositionMotor::TiledFixPositionMotor()
-	: AbstractTiledMotor(FixPositionMotor)
+TiledFixPositionMotor::TiledFixPositionMotor(AbstractGame::TickTimer *timer)
+	: AbstractTiledMotor(timer)
 {
 
 }
@@ -42,7 +42,7 @@ TiledFixPositionMotor::TiledFixPositionMotor()
  * @param maximumSpeed
  */
 
-void TiledFixPositionMotor::updateBody(TiledObject *object, const float &, AbstractGame::TickTimer *)
+void TiledFixPositionMotor::updateBody(TiledObject *object)
 {
 	Q_ASSERT(object);
 	object->stop();

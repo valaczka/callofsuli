@@ -28,8 +28,8 @@
 #include "tiledscene.h"
 #include "tiledgame.h"
 
-TiledReturnPathMotor::TiledReturnPathMotor(const cpVect &basePoint)
-	: AbstractTiledMotor(ReturnPathMotor)
+TiledReturnPathMotor::TiledReturnPathMotor(const cpVect &basePoint, AbstractGame::TickTimer *timer)
+	: AbstractTiledMotor(timer)
 	, m_basePoint(basePoint)
 {
 
@@ -44,7 +44,7 @@ TiledReturnPathMotor::TiledReturnPathMotor(const cpVect &basePoint)
  * @param timer
  */
 
-void TiledReturnPathMotor::updateBody(TiledObject *object, const float &speed, AbstractGame::TickTimer *timer)
+void TiledReturnPathMotor::updateBody(TiledObject *object)
 {
 	Q_ASSERT (object);
 
@@ -59,7 +59,8 @@ void TiledReturnPathMotor::updateBody(TiledObject *object, const float &speed, A
 			m_path.clear();
 			setIsReturning(false);
 		} else {
-			m_pathMotor->updateBody(object, speed, timer);
+			m_pathMotor->setSpeed(m_speed);
+			m_pathMotor->updateBody(object);
 		}
 	} else {
 		setIsReturning(false);
@@ -184,7 +185,7 @@ void TiledReturnPathMotor::finish(TiledObject *body, AbstractGame::TickTimer *ti
 		return;
 	}
 
-	m_pathMotor.reset(new TiledPathMotor);
+	m_pathMotor.reset(new TiledPathMotor(m_timer));
 	m_pathMotor->setDirection(TiledPathMotor::Forward);
 
 	// A raycast pontatlan (átmegy az objektumokon, ezért kihagyjuk:
@@ -292,6 +293,16 @@ void TiledReturnPathMotor::addPoint(const cpVect &point, const float &angle)
 
 	m_path << TiledObject::toPointF(point);
 	m_lastAngle = angle;
+}
+
+float TiledReturnPathMotor::speed() const
+{
+	return m_speed;
+}
+
+void TiledReturnPathMotor::setSpeed(float newSpeed)
+{
+	m_speed = newSpeed;
 }
 
 

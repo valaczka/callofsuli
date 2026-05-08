@@ -37,11 +37,10 @@
 class TiledFixPositionMotor : public AbstractTiledMotor
 {
 public:
-	TiledFixPositionMotor();
+	TiledFixPositionMotor(AbstractGame::TickTimer *timer = nullptr);
 	virtual ~TiledFixPositionMotor() {}
 
-	void updateBody(TiledObject *object, const float &distance, AbstractGame::TickTimer *timer = nullptr) override;
-	cpVect basePoint() override { return m_point; }
+	void updateBody(TiledObject *object) override;
 
 	cpVect point() const;
 	void setPoint(const cpVect &newPoint);

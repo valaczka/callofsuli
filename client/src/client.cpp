@@ -65,7 +65,6 @@ Client::Client(Application *app)
 	, m_httpConnection(new HttpConnection(this))
 	, m_updater(new Updater(this))
 	, m_downloader(new Downloader)
-	, m_contextHelper(new ContextHelper(this))
 	, m_sound(new Sound(nullptr))
 {
 	Q_ASSERT(app);
@@ -93,7 +92,7 @@ Client::Client(Application *app)
 
 	retranslate(Utils::settingsGet(QStringLiteral("window/language"), QStringLiteral("hu")).toString());
 
-	m_application->application()->installEventFilter(m_contextHelper.get());
+	///m_application->application()->installEventFilter(m_contextHelper.get());
 
 	LOG_CTRACE("app") << "Client created" << this;
 }
@@ -434,7 +433,6 @@ void Client::onApplicationStarted()
 		m_startPage = stackPushPage(QStringLiteral("PageStart.qml"));
 		emit startPageLoaded();
 		m_updater->checkAvailableUpdates(false);
-		m_contextHelper->download();
 	});
 }
 
@@ -2025,12 +2023,3 @@ void Client::setFullScreenHelper(bool newFullScreenHelper)
 }
 
 
-/**
- * @brief Client::contextHelper
- * @return
- */
-
-ContextHelper *Client::contextHelper() const
-{
-	return m_contextHelper.get();
-}

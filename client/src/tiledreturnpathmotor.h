@@ -41,11 +41,11 @@
 class TiledReturnPathMotor : public AbstractTiledMotor
 {
 public:
-	TiledReturnPathMotor(const cpVect &basePoint);
+	TiledReturnPathMotor(const cpVect &basePoint, AbstractGame::TickTimer *timer = nullptr);
 	virtual ~TiledReturnPathMotor() {}
 
-	void updateBody(TiledObject *object, const float &speed, AbstractGame::TickTimer *timer = nullptr) override;
-	cpVect basePoint() override;
+	void updateBody(TiledObject *object) override;
+	cpVect basePoint();
 
 	void moveBody(TiledObject *body, const cpVect &point, const float &speed);
 	void record(TiledObject *body);
@@ -62,6 +62,9 @@ public:
 
 	bool isReturnReady(AbstractGame::TickTimer *timer) const;
 
+	float speed() const;
+	void setSpeed(float newSpeed);
+
 private:
 	void addPoint(const cpVect &point, const float &angle);
 
@@ -71,6 +74,8 @@ private:
 	bool m_hasReturned = false;
 	qint64 m_waitMsec = 2500;
 	qint64 m_waitEnd = 0;
+
+	float m_speed = 15.;
 
 	QPolygonF m_path;
 	float m_lastAngle = 0.;

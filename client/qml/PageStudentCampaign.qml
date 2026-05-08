@@ -360,14 +360,12 @@ QPageGradient {
 
 
 	StackView.onActivated: {
-		Client.contextHelper.setCurrentContext(ContextHelperData.ContextStudentCampaign)
 		_tour.start()
 
 		reload()
 	}
 
 	StackView.onDeactivating: {
-		Client.contextHelper.unsetContext(ContextHelperData.ContextStudentCampaign)
 	}
 
 

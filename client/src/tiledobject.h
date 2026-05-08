@@ -123,47 +123,19 @@ public:
 	// ObjectId id
 
 	struct ObjectId {
-		int ownerId = -1;
-		int sceneId = -1;
-		int id = -1;
+		quint32 ownerId = 0;
+		quint32 sceneId = 0;
+		quint32 id = 0;
 
 		friend bool operator== (const ObjectId &l, const ObjectId &r) {
 			return l.ownerId == r.ownerId && l.id == r.id && l.sceneId == r.sceneId;
 		}
 	};
 
-	enum FixtureCategory {
-		FixtureInvalid		= 0,
-		FixtureGround		= 0x1,
-		FixturePlayerBody	= 0x1 << 1,
-		FixtureEnemyBody	= 0x1 << 2,
-		FixtureBulletBody	= 0x1 << 3,
-		FixtureTarget		= 0x1 << 4,
-		FixtureControl		= 0x1 << 5,
-		FixtureTrigger		= 0x1 << 6,
-		FixtureVirtualCircle = 0x1 << 7,
-		FixtureSensor		= 0x1 << 8,
 
-		FixtureAll =
-		FixtureGround |
-		FixturePlayerBody |
-		FixtureEnemyBody |
-		FixtureBulletBody |
-		FixtureTarget |
-		FixtureControl |
-		FixtureTrigger |
-		FixtureVirtualCircle |
-		FixtureSensor
-	};
-
-	Q_ENUM(FixtureCategory);
-	Q_DECLARE_FLAGS(FixtureCategories, FixtureCategory);
-	Q_FLAG(FixtureCategories);
-
-
-	virtual ObjectId objectId() const;
+	virtual const ObjectId &objectId() const;
 	virtual void setObjectId(const ObjectId &newObjectId);
-	virtual void setObjectId(const int &ownerId, const int &sceneId, const int &id);
+	virtual void setObjectId(const quint32 &ownerId, const quint32 &sceneId, const quint32 &id);
 
 	TiledGame *game() const;
 
@@ -183,8 +155,8 @@ public:
 	float currentSpeedSq() const;
 
 	cpShapeFilter filterGet() const;
-	void filterSet(const FixtureCategories &categories);
-	void filterSet(const FixtureCategories &categories, const FixtureCategories &collidesWith);
+	void filterSet(const cpBitmask &categories);
+	void filterSet(const cpBitmask &categories, const cpBitmask &collidesWith);
 
 	bool isSensor() const;
 	void setSensor(const bool &sensor);
@@ -225,19 +197,22 @@ public:
 	static TiledObjectBody *fromBodyRef(cpBody *ref);
 	static TiledObjectBody *fromShapeRef(cpShape *ref);
 
-	static cpShapeFilter getFilter(const FixtureCategories &categories);
-	static cpShapeFilter getFilter(const FixtureCategories &categories, const FixtureCategories &collidesWith);
+	static cpShapeFilter getFilter(const cpBitmask &categories);
+	static cpShapeFilter getFilter(const cpBitmask &categories, const cpBitmask &collidesWith);
 
 
-	void setSensorPolygon(const float &length, const float &range);
-	void setSensorPolygon(const float &length, const float &range, const FixtureCategories &collidesWith);
-	void addVirtualCircle(const float &length = 0.);
-	void addVirtualCircle(const FixtureCategories &collidesWith, const float &length = 0.);
+	void setSensorPolygon(const float &length, const float &range,
+						  const cpBitmask &category, const cpBitmask &virtualCircleCategory);
+	void setSensorPolygon(const float &length, const float &range,
+						  const cpBitmask &category, const cpBitmask &virtualCircleCategory, const cpBitmask &collidesWith);
+	void addVirtualCircle(const cpBitmask &category, const float &length = 0.);
+	void addVirtualCircle(const cpBitmask &category, const cpBitmask &collidesWith, const float &length = 0.);
 	void removeVirtualCircle();
-	void addTargetCircle(const float &length);
+	void addTargetCircle(const float &length, const cpShapeFilter &filter);
 
 	RayCastInfo rayCast(const cpVect &dest,
-						const TiledObjectBody::FixtureCategories &categories = FixtureAll,
+						const cpBitmask &groundCategories = 0,
+						const cpBitmask &categories = CP_ALL_CATEGORIES,
 						const float &radius = 7.) const;
 
 	virtual void debugDraw(TiledDebugDraw *draw) const;
@@ -278,13 +253,6 @@ protected:
 	void drawSensor(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth = 1., const bool filled = true, const bool outlined = true) const;
 	void drawVirtualCircle(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth = 1., const bool filled = false, const bool outlined = true) const;
 	void drawTargetCircle(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth = 1., const bool filled = false, const bool outlined = true) const;
-	/**
-	 * @brief TiledObjectBody::drawCenter
-	 * @param draw
-	 * @param colorX
-	 * @param colorY
-	 * @param lineWidth
-	 */
 	void drawCenter(TiledDebugDraw *draw, const QColor &colorX, const QColor &colorY, const qreal &lineWidth = 2.) const;
 
 	TiledGame *const m_game;
@@ -319,8 +287,6 @@ private:
 	friend class TiledGamePrivate;
 };
 
-
-Q_DECLARE_OPERATORS_FOR_FLAGS(TiledObjectBody::FixtureCategories);
 
 
 
