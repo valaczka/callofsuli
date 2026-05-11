@@ -8,7 +8,7 @@ import "JScript.js" as JS
 QItemGradient {
     id: root
 
-    property ActionRpgMultiplayerGame game: null
+    property RpgGame game: null
 
     property bool _isFirst: true
 
@@ -92,7 +92,7 @@ QItemGradient {
         Qaterial.LabelHeadline6 {
             id: _labelFull
 
-            visible: !game || (game.enginesModel.maxPlayer === 0 && !game.canAddEngine)
+            ///visible: !game || (game.enginesModel.maxPlayer === 0 && !game.canAddEngine)
             anchors.centerIn: parent
             text: qsTr("A szerver tele van, jelenleg nem tudsz új szobát létrehozni")
             color: Qaterial.Style.accentColor

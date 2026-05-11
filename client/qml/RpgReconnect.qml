@@ -8,6 +8,8 @@ import "JScript.js" as J
 Rectangle {
 	id: root
 
+	property bool firstConnect: false
+
 	color: Client.Utils.colorSetAlpha(Qaterial.Colors.black, 0.85)
 
 	Column {
@@ -28,7 +30,7 @@ Rectangle {
 			Qaterial.LabelWithCaption {
 				id: txt
 				anchors.verticalCenter: parent.verticalCenter
-				text: qsTr("Újracsatlakozás...")
+				text: firstConnect ? qsTr("Csatlakozás a szerverhez...") : qsTr("Újracsatlakozás...")
 				caption: Client.server ? Client.server.url : ""
 			}
 		}

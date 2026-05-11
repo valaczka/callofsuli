@@ -250,7 +250,7 @@ public:
 		debug.nospace() << '\n';
 
 		return debug;
-	};
+	}
 
 protected:
 	mutable UdpBinaryStream m_stream;

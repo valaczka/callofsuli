@@ -82,6 +82,10 @@ HttpConnection::HttpConnection(Client *client)
 
 HttpConnection::~HttpConnection()
 {
+	abortAllReplies();
+
+	m_replies.clear();
+
 	LOG_CTRACE("http") << "HttpConnection destroyed";
 }
 
@@ -270,9 +274,16 @@ void HttpConnection::abort()
 
 void HttpConnection::abortAllReplies()
 {
-	LOG_CTRACE("http") << "Abort all replies";
-	foreach (HttpReply *r, m_replies)
+	/*LOG_CTRACE("http") << "Abort all replies";
+
+	for (HttpReply *r : m_replies) {
+		if (!r)
+			continue;
+
 		r->abort();
+	}
+
+	m_replies.clear();*/
 }
 
 
@@ -529,11 +540,12 @@ void HttpConnection::checkPending()
 {
 	bool pending = false;
 
-	foreach (HttpReply *r, m_replies)
+	for (HttpReply *r : m_replies) {
 		if (r && r->pending()) {
 			pending = true;
 			break;
 		}
+	}
 
 	setPending(pending);
 }
@@ -621,7 +633,6 @@ HttpReply::HttpReply(QNetworkReply *reply, HttpConnection *socket)
 		}
 
 		m_pending = false;
-		emit failed(this);
 		emit finished();
 
 		if (m_sslErrorCallback)
@@ -679,8 +690,11 @@ HttpReply::~HttpReply()
 {
 	if (m_socket) {
 		m_socket->m_replies.removeAll(this);
+
 		m_socket->checkPending();
 	}
+
+	m_socket = nullptr;
 
 	LOG_CTRACE("http") << "HttpConnectionReply destroyed" << this;
 }
@@ -695,13 +709,18 @@ void HttpReply::abort()
 {
 	m_pending = false;
 
-	emit failed(this);
-
 	LOG_CTRACE("http") << "Abort" << this;
 
 	emit finished();
 
 	QTimer::singleShot(HTTPREPLY_DELETE_AFTER_MSEC, this, &HttpReply::close);
+
+	if (m_socket) {
+		m_socket->m_replies.removeAll(this);
+		m_socket->checkPending();
+	}
+
+	m_socket = nullptr;
 
 	//close();
 }

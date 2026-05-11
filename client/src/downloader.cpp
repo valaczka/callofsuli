@@ -298,6 +298,7 @@ void Downloader::check()
 {
 	if (!m_server) {
 		LOG_CERROR("client") << "Missing server";
+		emit downloadError();
 		return;
 	}
 

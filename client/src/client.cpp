@@ -44,6 +44,7 @@
 #include "Logger.h"
 #include "mapgame.h"
 #include "updater.h"
+#include "rpggame.h"
 #include "downloader.h"
 #include "server.h"
 #include <QScreen>
@@ -82,11 +83,9 @@ Client::Client(Application *app)
 
 	connect(&m_oauthData.timer, &QTimer::timeout, this, &Client::onOAuthPendingTimer);
 
-	/* TODO: CONNECT RPG RELOAD
 	connect(m_downloader.get(), &Downloader::contentDownloaded, this, &RpgGame::reloadTerrains);
-	connect(m_downloader.get(), &Downloader::contentDownloaded, this, &RpgGame::reloadCharacters);
+	///connect(m_downloader.get(), &Downloader::contentDownloaded, this, &RpgGame::reloadCharacters);
 	connect(m_downloader.get(), &Downloader::contentDownloaded, this, &RpgGame::reloadWorld);
-	*/
 
 	startCache();
 
@@ -624,8 +623,10 @@ void Client::onServerDisconnected()
 
 	m_downloader->contentClear();
 	m_downloader->setServer(nullptr);
-	/*RpgGame::reloadTerrains();
-	RpgGame::reloadCharacters();*/
+
+	RpgGame::reloadTerrains();
+
+	/*RpgGame::reloadCharacters();*/
 }
 
 
@@ -917,8 +918,10 @@ void Client::initializeDynamicResources()
 	if (!server())
 		return;
 
-	m_downloader->contentClear();
-	m_downloader->setServer(server());
+	server()->setAvailableContent({});
+
+	//m_downloader->contentClear();
+	//m_downloader->setServer(server());
 
 	send(HttpConnection::ApiGeneral, QStringLiteral("content"))
 			->done(this, [this](const QJsonObject &json)
@@ -928,6 +931,9 @@ void Client::initializeDynamicResources()
 
 		const QJsonArray &list = json.value(QStringLiteral("list")).toArray();
 
+		QList<Server::DynamicContent> contentList;
+		contentList.reserve(list.size());
+
 		for (const QJsonValue &v : list) {
 			const QJsonObject &o = v.toObject();
 
@@ -936,8 +942,12 @@ void Client::initializeDynamicResources()
 			content.md5 = o.value(QStringLiteral("md5")).toString();
 			content.size = o.value(QStringLiteral("size")).toInteger();
 
-			m_downloader->contentAdd(content);
+			//m_downloader->contentAdd(content);
+
+			contentList.append(content);
 		}
+
+		server()->setAvailableContent(contentList);
 
 	})
 			->fail(this, [this](const QString &err){
@@ -1066,7 +1076,7 @@ void Client::connectToServer(Server *server)
 
 	if (engine) {
 		bool hasNetwork = QNetworkInformation::instance() &&
-				QNetworkInformation::instance()->reachability() == QNetworkInformation::Reachability::Online;
+						  QNetworkInformation::instance()->reachability() == QNetworkInformation::Reachability::Online;
 
 		if (!hasNetwork) {
 			m_httpConnection->setServer(server);
@@ -1909,11 +1919,11 @@ QQuickItem* Client::loadDemoMap(const QUrl &url)
 		connectToServer(getStaticServer());
 	}
 
-	QQuickItem *page = stackPushPage(QStringLiteral(""
-													"PageMapPlay.qml"), QVariantMap({
-																						{ QStringLiteral("title"), tr("Demó pálya") },
-																						{ QStringLiteral("map"), QVariant::fromValue(mapPlay.get()) }
-																					}));
+	QQuickItem *page = stackPushPage(QStringLiteral("PageMapPlay.qml"),
+									 QVariantMap({
+													 { QStringLiteral("title"), tr("Demó pálya") },
+													 { QStringLiteral("map"), QVariant::fromValue(mapPlay.get()) }
+												 }));
 
 	if (!page) {
 		messageError(tr("Nem lehet betölteni a demó oldalt!"));

@@ -25,6 +25,7 @@
  */
 
 #include "rpgworldlanddata.h"
+#include "Logger.h"
 #include "rpgworldlanddata_p.h"
 #include "rpguserwallet.h"
 
@@ -75,7 +76,7 @@ void RpgWorldLandData::setLandGeometry(const RpgWorldLandGeometry &geometry)
 
 void RpgWorldLandData::updateWallet(RpgUserWalletList *walletList)
 {
-	if (walletList && !m_mapBinding.map.isEmpty()) {
+	/*if (walletList && !m_mapBinding.map.isEmpty()) {
 		const auto it = std::find_if(walletList->cbegin(), walletList->cend(), [this](RpgUserWallet *w){
 						return w->market().type == RpgMarket::Map && w->market().name == m_mapBinding.map;
 	});
@@ -94,7 +95,7 @@ void RpgWorldLandData::updateWallet(RpgUserWalletList *walletList)
 			LOG_CTRACE("game") << "Update land" << m_landId << m_mapBinding.map << m_landState;
 			return;
 		}
-	}
+	}*/
 
 	d->m_walletMap = nullptr;
 	setLandState(LandUnused);

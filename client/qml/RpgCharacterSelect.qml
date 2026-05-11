@@ -9,7 +9,7 @@ import "./QaterialHelper" as Qaterial
 QItemGradient {
 	id: root
 
-	property ActionRpgGame game: null
+	property RpgGame game: null
 
 	readonly property ActionRpgMultiplayerGame _multiplayer: game && (game instanceof ActionRpgMultiplayerGame) ? game : null
 	property bool _isFirst: true

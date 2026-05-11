@@ -10,80 +10,71 @@ import "JScript.js" as JS
 FocusScope {
 	id: root
 
-	property ActionRpgGame game: null
-	readonly property ActionRpgMultiplayerGame _multiplayer: game && (game instanceof ActionRpgMultiplayerGame) ? game : null
+	property alias game: _item.game
 
-	property alias minimapVisible: _mapRect.visible
+	////property alias minimapVisible: _mapRect.visible
 	property real gameControlRatio: 1.0
 	readonly property real _controlRatioMin: 1.0
 	readonly property real _controlRatioMax: 2.5
 
-	readonly property bool _isPrepared: _prGameSet && _prGameLoaded && _prCmpCompleted && _prStackActivated
-
-	property bool _prGameSet: false
-	property bool _prGameLoaded: false
-	property bool _prCmpCompleted: false
-	property bool _prStackActivated: false
-
 	signal closeRequest()
 
 	onWidthChanged: {
-		setBaseScale()
-		_shotButton.reset()
+		_item.resetBaseScale()
+		///_shotButton.reset()
 	}
 
 	onHeightChanged: {
-		_shotButton.reset()
+		///_shotButton.reset()
 	}
 
-	function setBaseScale() {
-		if (width < 576 * Qaterial.Style.devicePixelSizeCorrection)
-			_game.baseScale = 0.5
-		else if (width < 786 * Qaterial.Style.devicePixelSizeCorrection)
-			_game.baseScale = 0.6
-		else if (width < 992 * Qaterial.Style.devicePixelSizeCorrection)
-			_game.baseScale = 0.7
-		else if (width < 1200 * Qaterial.Style.devicePixelSizeCorrection)
-			_game.baseScale = 0.8
-		else
-			_game.baseScale = 1.0
-	}
 
-	onGameChanged: {
-		if (game) {
-			game.rpgGame = _game
-			_prGameSet = true
-		}
-	}
 
-	Rectangle {
+	RpgGameItemImpl {
+		id: _item
 		anchors.fill: parent
-		color: Qaterial.Colors.black
-	}
 
-	RpgGameImpl {
-		id: _game
-		anchors.fill: parent
-		joystick: _gameJoystick
-		gameQuestion: _gameQuestion
+		joystickA: _gameJoystick
 		messageList: _messageList
 		defaultMessageColor: Qaterial.Style.iconColor()
 
-		visible: _isPrepared
+		visible: isContentReady
 
 		focus: true
 		layer.enabled: true
 
 		onGameLoadFailed: errorString => Client.messageError(errorString, qsTr("Pálya betöltése sikertelen"))
+		onIsContentReadyChanged: if (isContentReady) startGame()
 
-		onGameLoaded: _prGameLoaded = true
+		/*	onGameLoaded: _prGameLoaded = true
 
-		onMinimapToggleRequest: _mapRect.visible = !_mapRect.visible
+			onMinimapToggleRequest: _mapRect.visible = !_mapRect.visible
 
-		onQuestsRequest: showQuests()
+			onQuestsRequest: showQuests()*/
+
+		function resetBaseScale() {
+			if (width < 576 * Qaterial.Style.devicePixelSizeCorrection)
+				baseScale = 0.5
+			else if (width < 786 * Qaterial.Style.devicePixelSizeCorrection)
+				baseScale = 0.6
+			else if (width < 992 * Qaterial.Style.devicePixelSizeCorrection)
+				baseScale = 0.7
+			else if (width < 1200 * Qaterial.Style.devicePixelSizeCorrection)
+				baseScale = 0.8
+			else
+				baseScale = 1.0
+		}
 
 		Component.onCompleted: forceActiveFocus()
 	}
+
+
+	onGameChanged: {
+		if (game)
+			game.gameQuestion = _gameQuestion
+	}
+
+
 
 	Row {
 		id: _rowTime
@@ -94,7 +85,7 @@ FocusScope {
 		anchors.topMargin: Math.max(Client.safeMarginTop, 5)
 		anchors.leftMargin: Math.max(Client.safeMarginLeft, 10)
 
-		visible: _isPrepared
+		visible: _item.isContentReady
 
 		GameButton {
 			id: _backButton
@@ -106,7 +97,7 @@ FocusScope {
 			border.color: "white"
 			border.width: 1
 
-			fontImage.icon: _multiplayer || _gameQuestion.objectiveUuid != "" ? Qaterial.Icons.close : Qaterial.Icons.pause
+			fontImage.icon: /*_multiplayer ||*/ _gameQuestion.objectiveUuid != "" ? Qaterial.Icons.close : Qaterial.Icons.pause
 			fontImage.color: "white"
 			fontImageScale: 0.7
 
@@ -123,20 +114,21 @@ FocusScope {
 
 			iconLabel.icon.source: Qaterial.Icons.timerOutline
 
-			iconLabel.text: game.msecLeft >= 60000 ?
-								Client.Utils.formatMSecs(game.msecLeft) :
-								Client.Utils.formatMSecs(game.msecLeft, 1, false)
+			iconLabel.text: !game ? "---" :
+									game.msecLeft >= 60000 ?
+										Client.Utils.formatMSecs(game.msecLeft) :
+										Client.Utils.formatMSecs(game.msecLeft, 1, false)
 		}
 
-		GameLabel {
+		/*GameLabel {
 			id: _playerZ
 			visible: Qt.platform.os === "linux" && Client.debug && game && game.rpgGame.controlledPlayer && game.rpgGame.controlledPlayer.visualItem
 			iconLabel.text: visible ? game.rpgGame.controlledPlayer.visualItem.z : ""
 			color: Qaterial.Colors.white
-		}
+		}*/
 	}
 
-
+	/*
 	Row {
 		anchors.left: _rowTime.left
 		anchors.top: _rowTime.bottom
@@ -246,7 +238,7 @@ FocusScope {
 		}
 	}
 
-
+	*/
 
 
 
@@ -256,10 +248,10 @@ FocusScope {
 		id: _gameJoystick
 		anchors.bottom: parent.bottom
 		anchors.left: parent.left
-		visible: _game.controlledPlayer && _game.controlledPlayer.hp > 0 && _isPrepared &&
+		/*visible: _game.controlledPlayer && _game.controlledPlayer.hp > 0 && _isPrepared &&
 				 !_game.controlledPlayer.isHiding && !_game.controlledPlayer.isGameCompleted
 
-		extendedSize: !_game.mouseAttack && !_game.mouseNavigation
+		extendedSize: !_game.mouseAttack && !_game.mouseNavigation*/
 
 		size: 120 * Qaterial.Style.pixelSizeRatio * gameControlRatio
 		thumbSize: 40 * Qaterial.Style.pixelSizeRatio * gameControlRatio
@@ -271,7 +263,7 @@ FocusScope {
 
 
 
-
+	/*
 
 	GameSkullImage {
 		id: _skullImage
@@ -468,7 +460,7 @@ FocusScope {
 		visible: _game.controlledPlayer && _isPrepared
 		//onValueChanged: marked = true
 	}
-
+	*/
 	/*GameInfo {
 		id: _infoMP
 		anchors.horizontalCenter: parent.horizontalCenter
@@ -486,7 +478,7 @@ FocusScope {
 	}*/
 
 
-
+	/*
 
 	GameButton {
 		id: _nextWeaponButton
@@ -602,7 +594,7 @@ FocusScope {
 
 	}
 
-
+	*/
 
 
 
@@ -616,7 +608,7 @@ FocusScope {
 		anchors.margins: Math.max(10, Client.safeMarginRight, Client.safeMarginBottom,
 								  (Qt.platform.os == "android" || Qt.platform.os == "ios") ? 30 : 0)*/
 
-		readonly property RpgWeapon weapon: _game.controlledPlayer ? _game.controlledPlayer.armory.currentWeapon : null
+		/*readonly property RpgWeapon weapon: _game.controlledPlayer ? _game.controlledPlayer.armory.currentWeapon : null
 		readonly property bool _canAttack: weapon && (weapon.canHit || weapon.canShot)
 
 		visible: weapon && _isPrepared && _game.controlledPlayer && _game.controlledPlayer.hp > 0 &&
@@ -643,9 +635,11 @@ FocusScope {
 			function onAttackDone() {
 				_shotButton.tapAnim.start()
 			}
-		}
+		}*/
 	}
 
+
+	/*
 
 	GameButton {
 		id: _exitButton
@@ -673,7 +667,7 @@ FocusScope {
 	}
 
 
-
+	*/
 
 	GameQuestionAction {
 		id: _gameQuestion
@@ -694,14 +688,14 @@ FocusScope {
 
 		anchors.horizontalCenter: parent.horizontalCenter
 
-		y: Math.max(infoHP.y+infoHP.height, parent.height*0.1)
+		///y: Math.max(infoHP.y+infoHP.height, parent.height*0.1)
 		z: 6
 
 		width: Math.min(450*Qaterial.Style.pixelSizeRatio, parent.width-Client.safeMarginLeft-Client.safeMarginRight)
 	}
 
 
-
+	/*
 
 	Component {
 		id: _settingsDialog
@@ -799,6 +793,7 @@ FocusScope {
 		}
 	}
 
+
 	RpgGameMinimap {
 		id: _mapRect
 
@@ -808,9 +803,12 @@ FocusScope {
 		view.anchors.topMargin: Math.max(20, Client.safeMarginTop, _rowTime.y+_backButton.y+_backButton.height)
 		view.anchors.bottomMargin: Math.max(20, Client.safeMarginBottom)
 
-		game: _game
+		game: root
 		visible: false
 	}
+
+
+	*/
 
 	Rectangle {
 		id: _loadingRect
@@ -840,22 +838,16 @@ FocusScope {
 
 	Component.onCompleted: {
 		setGameControlRatio(Client.Utils.settingsGet("window/gameControls", 1.0))
-
-		_prCmpCompleted = true
 	}
 
 	StackView.onActivated: {
-		_prStackActivated = true
-		if (game)
-			game.rpgGameActivated()
 		_delayTimer.start()
+		game.loadGameItem()
 	}
-
-	on_IsPreparedChanged: startGame()
 
 	Timer {
 		id: _delayTimer
-		interval: 1700
+		interval: 100 ///1700
 		triggeredOnStart: false
 		running: false
 		repeat: false
@@ -870,7 +862,7 @@ FocusScope {
 
 
 
-	Connections {
+	/*Connections {
 		target: game
 
 		function onFinishDialogRequest(text, icon, success) {
@@ -880,17 +872,23 @@ FocusScope {
 
 			Qaterial.DialogManager.openFromComponent(_multiplayer ? _cmpUserDialog : _cmpFinishQuests)
 		}
-	}
+	}*/
 
 	function startGame() {
-		if (_isPrepared && _delayTimer._finished) {
-			game.gamePrepared()
+		if (_item.isContentReady && _delayTimer._finished) {
+			console.info("-------------------------------HIDE")
 			_loadingRect.visible = false
-			//showQuests()
+			game.gameItemPrepared()
 		}
 	}
 
 
+	function setGameControlRatio(ratio) {
+		gameControlRatio = Math.min(_controlRatioMax, Math.max(_controlRatioMin, ratio))
+	}
+
+
+	/*
 
 	function showQuests() {
 		if (_multiplayer) {
@@ -905,9 +903,6 @@ FocusScope {
 	}
 
 
-	function setGameControlRatio(ratio) {
-		gameControlRatio = Math.min(_controlRatioMax, Math.max(_controlRatioMin, ratio))
-	}
 
 
 	Component {
@@ -968,6 +963,13 @@ FocusScope {
 						}
 		}
 	}
+
+	*/
+
+
+
+
+
 }
 
 

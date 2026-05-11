@@ -47,6 +47,8 @@
 #include "offlineclientengine.h"
 #include "qapplication.h"
 #include "qsjsonlistmodel.h"
+#include "rpggame.h"
+#include "rpggameitem.h"
 #include "rpguserwallet.h"
 #include "rpgworldlanddata.h"
 #include "scorelist.h"
@@ -151,6 +153,8 @@ Application::Application(QApplication *app)
 	m_instance = this;
 
 	QObject::connect(m_application, &QCoreApplication::aboutToQuit, [this](){
+		if (m_client->httpConnection())
+			m_client->httpConnection()->close();
 		m_engine.reset();
 		m_client.reset();
 	});
@@ -375,9 +379,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<MapPlayMissionLevel>("CallOfSuli", 1, 0, "MapPlayMissionLevel", "MapPlayMissionLevel is uncreatable");
 	qmlRegisterUncreatableType<MapPlayOffline>("CallOfSuli", 1, 0, "MapPlayOffline", "MapPlayOffline is uncreatable");
 	qmlRegisterUncreatableType<OfflineClientEngine>("CallOfSuli", 1, 0, "OfflineClientEngine", "OfflineClientEngine is uncreatable");
-	qmlRegisterUncreatableType<RpgMarket>("CallOfSuli", 1, 0, "RpgMarket", "RpgMarket is uncreatable");
-	qmlRegisterUncreatableType<RpgMarketExtendedInfo>("CallOfSuli", 1, 0, "RpgMarketExtendedInfo", "RpgWalletExtendedInfo is uncreatable");
-	qmlRegisterUncreatableType<RpgQuest>("CallOfSuli", 1, 0, "RpgQuest", "RpgQuest is uncreatable");
+	qmlRegisterUncreatableType<RpgGame>("CallOfSuli", 1, 0, "RpgGame", "RpgGame is uncreatable");
 	qmlRegisterUncreatableType<RpgUserWallet>("CallOfSuli", 1, 0, "RpgUserWallet", "RpgUserWallet is uncreatable");
 	qmlRegisterUncreatableType<Server>("CallOfSuli", 1, 1, "Server", "Server is uncreatable");
 	qmlRegisterUncreatableType<Sound>("CallOfSuli", 1, 1, "Sound", "Server is uncreatable");
@@ -397,9 +399,6 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<GameMapMission>("CallOfSuli", 1, 0, "GameMapMission", "GameMapMission is uncreatable");
 	qmlRegisterUncreatableType<GameMapMissionLevel>("CallOfSuli", 1, 0, "GameMapMissionLevel", "GameMapMissionLevel is uncreatable");
 	qmlRegisterUncreatableType<Rank>("CallOfSuli", 1, 0, "Rank", "Rank is uncreatable");
-	qmlRegisterUncreatableType<RpgConfig>("CallOfSuli", 1, 0, "RpgConfig", "RpgConfig is uncreatable");
-	qmlRegisterUncreatableType<RpgPlayerConfig>("CallOfSuli", 1, 0, "RpgPlayerConfig", "RpgPlayerConfig is uncreatable");
-	qmlRegisterUncreatableType<RpgGameData::Weapon>("CallOfSuli", 1, 0, "RpgWeaponType", "RpgWeapon is uncreatable");
 	qmlRegisterUncreatableType<OfflineReceipt>("CallOfSuli", 1, 0, "OfflineReceipt", "OfflineReceipt is uncreatable");
 
 
@@ -436,6 +435,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<PassList>("CallOfSuli", 1, 0, "PassList");
 	qmlRegisterType<PassItem>("CallOfSuli", 1, 0, "PassItem");
 	qmlRegisterType<PassItemList>("CallOfSuli", 1, 0, "PassItemList");
+	qmlRegisterType<RpgGameItem>("CallOfSuli", 1, 0, "RpgGameItemImpl");
 	qmlRegisterType<RpgUserWalletList>("CallOfSuli", 1, 0, "RpgUserWalletList");
 	qmlRegisterType<ScoreList>("CallOfSuli", 1, 0, "ScoreListImpl");
 	qmlRegisterType<SelectableObject>("CallOfSuli", 1, 0, "SelectableObject");
@@ -976,4 +976,5 @@ Client *Application::client() const
 {
 	return m_client.get();
 }
+
 

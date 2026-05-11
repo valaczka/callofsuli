@@ -9,9 +9,7 @@ import "JScript.js" as J
 Page {
 	id: root
 
-	property ActionRpgGame game: null
-
-	readonly property ActionRpgMultiplayerGame _multiplayer: game && (game instanceof ActionRpgMultiplayerGame) ? game : null
+	property RpgGame game: null
 
 
 	property string closeQuestion: _rpgVisible && !_forceExit ? qsTr("Biztosan kilépsz a játékból?") : ""
@@ -21,14 +19,14 @@ Page {
 	}
 
 	property var stackPopFunction: function() {
-		if (_stack.activeComponent == _cmpRpg) {
+		/*if (_stack.activeComponent == _cmpRpg) {
 			if (_stack.currentItem.minimapVisible === true) {
 				_stack.currentItem.minimapVisible = false
 				return false
 			}
-		}
+		}*/
 
-		if (game && game.config.gameState == RpgConfig.StateError)
+		/*if (game && game.config.gameState == RpgConfig.StateError)
 			return true
 
 
@@ -41,18 +39,19 @@ Page {
 		if (_rpgVisible && !game.rpgGame.paused && !_forceExit) {
 			game.rpgGame.paused = true
 			return false
-		}
+		}*/
 
 		return true
 	}
 
 
-	readonly property bool _rpgVisible: game && (game.config.gameState == RpgConfig.StatePlay ||
-												 game.config.gameState == RpgConfig.StatePrepare)
+	readonly property bool _rpgVisible: game && (game.gameState == RpgGame.GameStatePrepare ||
+												 game.gameState == RpgGame.GameStateInit ||
+												 game.gameState == RpgGame.GameStatePlay)
 
 
 	property bool _oldWindowState: Client.fullScreenHelper
-	property bool _forceExit: false
+	property bool _forceExit: true ///false
 
 
 
@@ -60,9 +59,9 @@ Page {
 		id: _cmpPause
 
 		RpgPauseDialog {
-			game: root.game ? root.game.rpgGame : null
+			//game: root.game ? root.game.rpgGame : null
 
-			onClosed: root.game.rpgGame.paused = false
+			//onClosed: root.game.rpgGame.paused = false
 
 			onExitRequest: {
 				_forceExit = true
@@ -71,6 +70,11 @@ Page {
 
 		}
 
+	}
+
+	Rectangle {
+		anchors.fill: parent
+		color: Qaterial.Colors.black
 	}
 
 	StackView {
@@ -84,14 +88,14 @@ Page {
 
 
 	Component {
-		id: _cmpConnect
+		id: _cmpLobby
 
-		RpgConnect {
+		RpgLobby {
 			game: root.game
 		}
 	}
 
-	Component {
+	/*Component {
 		id: _cmpCharacterSelect
 
 		RpgCharacterSelect {
@@ -99,7 +103,7 @@ Page {
 
 			onMarketRequest: Client.stackPushPage("PageMarket.qml")
 		}
-	}
+	}*/
 
 	Component {
 		id: _cmpRpg
@@ -107,7 +111,7 @@ Page {
 		RpgGameItem {
 			game: root.game
 
-			onCloseRequest: Client.stackPop(root)
+			//onCloseRequest: Client.stackPop(root)
 		}
 	}
 
@@ -116,6 +120,15 @@ Page {
 
 		RpgError {
 			game: root.game
+		}
+	}
+
+	Component {
+		id: _cmpFirstConnect
+
+		RpgReconnect {
+			firstConnect: true
+			//game: root.game
 		}
 	}
 
@@ -144,13 +157,13 @@ Page {
 	}
 
 
-	RpgReconnect {
+	/*RpgReconnect {
 		id: _reconnect
 
 		anchors.fill: parent
 
 		visible: game && game.isReconnecting
-	}
+	}*/
 
 
 	StudentDashboardNotification {
@@ -177,49 +190,54 @@ Page {
 	Connections {
 		target: game
 
-		function onGameModeChanged() {
+		/*function onGameModeChanged() {
 			if (game.gameMode == ActionRpgGame.MultiPlayerHost)
 				Client.snack(qsTr("You are the host now"))
-		}
+		}*/
 
-		function onConfigChanged() {
-			if (game.isReconnecting && game.config.gameState != RpgConfig.StateError)
-				return
+		function onGameStateChanged() {
+			/*if (game.isReconnecting && game.config.gameState != RpgConfig.StateError)
+				return*/
 
 			/*if (game.isReconnecting && game.config.gameState != RpgConfig.StateError) {
 				_stack.activeComponent = _cmpReconnect
 				return
 			}*/
 
-			switch (game.config.gameState) {
-			case RpgConfig.StatePrepare:
-			case RpgConfig.StatePlay:
+			switch (game.gameState) {
+			case RpgGame.GameStatePrepare:
+			case RpgGame.GameStateInit:
+			case RpgGame.GameStatePlay:
 				_stack.activeComponent = _cmpRpg
 				break
 
-			case RpgConfig.StateError:
+			case RpgGame.GameStateError:
 				_stack.activeComponent = _cmpError
 				break
 
-			case RpgConfig.StateCharacterSelect:
+			case RpgGame.GameStateCharacterSelect:
 				_stack.activeComponent = _cmpCharacterSelect
 				break
 
-			case RpgConfig.StateFinished:
-				if (!_multiplayer)
-					Client.stackPop(root)
+			case RpgGame.GameStateFinished:
+				//if (!_multiplayer)
+				Client.stackPop(root)
 				return
 
-			case RpgConfig.StateDownloadStatic:
+			case RpgGame.GameStateDownloadStatic:
 				_stack.activeComponent = _cmpStaticDownload
 				return
 
-			case RpgConfig.StateDownloadContent:
+			case RpgGame.GameStateDownloadContent:
 				_stack.activeComponent = _cmpDownload
 				return
 
+			case RpgGame.GameStateLobby:
+				_stack.activeComponent = _cmpLobby
+				break
+
 			default:
-				_stack.activeComponent = _cmpConnect
+				_stack.activeComponent = _cmpFirstConnect
 				break
 			}
 		}
@@ -227,14 +245,14 @@ Page {
 
 
 
-	Connections {
+	/*Connections {
 		target: game && !_multiplayer ? game.rpgGame : null
 
 		function onPausedChanged() {
 			if (game.rpgGame.paused)
 				Qaterial.DialogManager.openFromComponent(_cmpPause)
 		}
-	}
+	}*/
 
 
 	StackView.onDeactivating: {
@@ -244,7 +262,7 @@ Page {
 		_notification.check()
 
 		if (game)
-			game.playMenuBgMusic()
+			game.menuBgMusicPlay()
 
 		if (Qt.platform.os != "android" && Qt.platform.os != "ios" && !Client.debug) {
 			_oldWindowState = Client.fullScreenHelper
@@ -253,9 +271,8 @@ Page {
 	}
 
 	StackView.onRemoved: {
-		if (game) {
-			game.stopMenuBgMusic()
-		}
+		if (game)
+			game.menuBgMusicStop()
 
 		if (Qt.platform.os != "android" && Qt.platform.os != "ios" && !Client.debug) {
 			if (_oldWindowState != Client.fullScreenHelper)

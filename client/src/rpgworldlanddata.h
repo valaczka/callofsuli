@@ -27,7 +27,7 @@
 #ifndef RPGWORLDLANDDATA_H
 #define RPGWORLDLANDDATA_H
 
-#include "rpgconfig.h"
+#include "rpglogic.h"
 #include <QObject>
 
 #include <QObject>

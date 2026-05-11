@@ -28,6 +28,7 @@
 #include "abstractgame.h"
 #include "litegame.h"
 #include "mapimage.h"
+#include "rpggame.h"
 #include "testgame.h"
 #include "utils_.h"
 #include "application.h"
@@ -303,7 +304,7 @@ AbstractLevelGame *MapPlay::createLevelGame(MapPlayMissionLevel *level, const Ga
 
 	switch (mode) {
 		case GameMap::Rpg:
-			///g = new ActionRpgGame(level->missionLevel(), m_client);
+			g = new RpgGame(level->missionLevel(), m_client);
 			break;
 
 		case GameMap::Lite:

@@ -229,7 +229,6 @@ SOURCES += \
 	grade.cpp \
 	httpconnection.cpp \
 	isometricbullet.cpp \
-	isometricentity.cpp \
 	isometricobject.cpp \
 	litegame.cpp \
 	main.cpp \
@@ -247,6 +246,10 @@ SOURCES += \
 	offsetmodel.cpp \
 	pass.cpp \
 	question.cpp \
+	rpgentity.cpp \
+	rpggame.cpp \
+	rpggameitem.cpp \
+	rpgobject.cpp \
 	rpguserwallet.cpp \
 	rpgworldlanddata.cpp \
 	scorelist.cpp \
@@ -316,7 +319,6 @@ HEADERS += \
 	grade.h \
 	httpconnection.h \
 	isometricbullet.h \
-	isometricentity.h \
 	isometricobject.h \
 	litegame.h \
 	mapeditor.h \
@@ -333,6 +335,11 @@ HEADERS += \
 	offsetmodel.h \
 	pass.h \
 	question.h \
+	rpgentity.h \
+	rpggame.h \
+	rpggame_p.h \
+	rpggameitem.h \
+	rpgobject.h \
 	rpguserwallet.h \
 	rpgworldlanddata.h \
 	rpgworldlanddata_p.h \

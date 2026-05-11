@@ -31,7 +31,6 @@
 #include "qsgtexture.h"
 #include "tiledscene.h"
 #include "abstractgame.h"
-#include "tiledrotationmotor.h"
 #include <QQuickItem>
 #include <QSerializer>
 
@@ -80,7 +79,12 @@ class TiledGame : public QQuickItem
 	QML_ELEMENT
 
 	Q_PROPERTY(TiledScene *currentScene READ currentScene WRITE setCurrentScene NOTIFY currentSceneChanged FINAL)
-	Q_PROPERTY(QQuickItem *joystick READ joystick WRITE setJoystick NOTIFY joystickChanged FINAL)
+
+	Q_PROPERTY(QQuickItem* joystickA READ joystickA WRITE setJoystickA NOTIFY joystickAChanged FINAL)
+	Q_PROPERTY(QQuickItem* joystickB READ joystickB WRITE setJoystickB NOTIFY joystickBChanged FINAL)
+	Q_PROPERTY(QQuickItem* joystickC READ joystickC WRITE setJoystickC NOTIFY joystickCChanged FINAL)
+	Q_PROPERTY(QQuickItem* joystickD READ joystickD WRITE setJoystickD NOTIFY joystickDChanged FINAL)
+
 	Q_PROPERTY(TiledObject *followedItem READ followedItem WRITE setFollowedItem NOTIFY followedItemChanged FINAL)
 	Q_PROPERTY(bool debugView READ debugView WRITE setDebugView NOTIFY debugViewChanged FINAL)
 	Q_PROPERTY(QQuickItem *messageList READ messageList WRITE setMessageList NOTIFY messageListChanged FINAL)
@@ -113,16 +117,16 @@ public:
 		}
 	};
 
-	struct EnemyMotorData {
-		QPolygonF path;
+	enum Joystick {
+		JoystickA = 0,
+		JoystickB,
+		JoystickC,
+		JoystickD,
 
-		bool rotation = false;
-		float from = 0;
-		float to = 0;
-		int steps = 4;
-		TiledRotationMotor::Direction direction = TiledRotationMotor::DirectionCCW;
-		qint64 wait = 250;
+		JoystickCount
 	};
+
+	Q_ENUM(Joystick)
 
 
 	bool load(const TiledGameDefinition &def);
@@ -143,11 +147,6 @@ public:
 
 	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const int &buttons, const int &modifiers);
 
-	virtual void onPlayerDead(TiledObject *player) = 0;
-	virtual void onEnemyDead(TiledObject *enemy) = 0;
-	virtual void onEnemySleepingStart(TiledObject *enemy) = 0;
-	virtual void onEnemySleepingEnd(TiledObject *enemy) = 0;
-
 	void playSfx(const QString &source, TiledScene *scene, const float &baseVolume = 1.) const;
 	void playSfx(const QString &source, TiledScene *scene, const QPointF &position, const float &baseVolume = 1.) const;
 
@@ -161,19 +160,17 @@ public:
 	}
 	void setMessageEnabled(const bool &enabled = true);
 
-	Q_INVOKABLE bool joystickInteractive() const { return m_joystickState.hasKeyboard || m_joystickState.hasTouch; }
-
 
 
 
 	template <typename T, typename = std::enable_if<std::is_base_of<TiledObjectBody, T>::value>::type,
 			  class... Args>
-	T* createObject(const quint32 &ownerId, TiledScene *scene, const quint32 &id, Args&&... args) {
+	T* createObject(const TiledObjectBody::ObjectId &id, TiledScene *scene, Args&&... args) {
 		Q_ASSERT(scene);
 		std::unique_ptr<T> dptr(new T(std::forward<Args>(args)...));
 		initSpace(dptr.get(), scene);
 		std::unique_ptr<TiledObjectBody> b(std::move(dptr));
-		return dynamic_cast<T*>(addObject(b, scene->sceneId(), id, ownerId));
+		return dynamic_cast<T*>(addObject(b, id));
 	}
 
 	bool removeObject(TiledObjectBody *body);
@@ -233,12 +230,36 @@ public:
 									  const QString &source,
 									  const QString &layer = QStringLiteral("default"));
 
-	TCODMap* reloadTcodMap(cpSpace *space);
-	TCODMap* reloadTcodMap(TiledScene *scene) {
+
+	struct TcodMapData {
+		std::unique_ptr<TCODMap> map;
+		QRectF viewport;
+		qreal chunkSize = 0.;
+		qreal chunkWidth = 0.;
+		qreal chunkHeight = 0.;
+
+		QPoint getChunk(const cpVect &pos) const;
+		QPoint getChunk(const qreal &x, const qreal &y) const;
+
+		QPointF chunkMiddle(const int &x, const int &y) const;
+
+		std::optional<QPolygonF> findShortestPath(const cpVect &from, const cpVect &to) const;
+		std::optional<QPolygonF> findShortestPath(const qreal &x1, const qreal &y1, const qreal &x2, const qreal &y2) const;
+	};
+
+
+	TcodMapData* reloadTcodMap(cpSpace *space, const cpBitmask &categories, const qreal chunkSize = 0.f);
+	TcodMapData* reloadTcodMap(cpSpace *space, const qreal chunkSize = 0.f) {
+		return reloadTcodMap(space, m_groundCategory, chunkSize);
+	}
+	TcodMapData* reloadTcodMap(TiledScene *scene, const cpBitmask &categories, const qreal chunkSize) {
 		if (scene && scene->m_space)
-			return reloadTcodMap(scene->m_space);
+			return reloadTcodMap(scene->m_space, categories, chunkSize);
 		else
 			return nullptr;
+	}
+	TcodMapData* reloadTcodMap(TiledScene *scene, const qreal chunkSize = 0.f) {
+		return reloadTcodMap(scene, m_groundCategory, chunkSize);
 	}
 
 
@@ -249,12 +270,6 @@ public:
 
 	AbstractGame::TickTimer *tickTimer() const { return m_tickTimer.get(); }
 	void setTickTimer(std::unique_ptr<AbstractGame::TickTimer> &timer) { m_tickTimer = std::move(timer); }
-
-	QQuickItem *joystick() const;
-	void setJoystick(QQuickItem *newJoystick);
-
-	JoystickState joystickState() const;
-	void setJoystickState(const JoystickState &newJoystickState);
 
 	bool debugView() const;
 	void setDebugView(bool newDebugView);
@@ -286,14 +301,34 @@ public:
 	const cpBitmask &groundCategory() const;
 	void setGroundCategory(cpBitmask newGroundCategory);
 
+	QQuickItem *joystickA() const { return joystickGet(JoystickA); }
+	void setJoystickA(QQuickItem *item) { if (joystickSet(JoystickA, item)) emit joystickAChanged(); }
+
+	QQuickItem *joystickB() const { return joystickGet(JoystickB); }
+	void setJoystickB(QQuickItem *item) { if (joystickSet(JoystickB, item)) emit joystickAChanged(); }
+
+	QQuickItem *joystickC() const { return joystickGet(JoystickC); }
+	void setJoystickC(QQuickItem *item) { if (joystickSet(JoystickC, item)) emit joystickAChanged(); }
+
+	QQuickItem *joystickD() const { return joystickGet(JoystickD); }
+	void setJoystickD(QQuickItem *item) { if (joystickSet(JoystickD, item)) emit joystickAChanged(); }
+
+
+	JoystickState joystickState(const Joystick &joystick) const;
+	void setJoystickState(const Joystick &joystick, const JoystickState &newJoystickState);
+
+	Q_INVOKABLE bool joystickInteractive(const Joystick &joystick) const {
+		return m_joystick[joystick].joystickState.hasKeyboard ||
+				m_joystick[joystick].joystickState.hasTouch;
+	}
+
+
 signals:
 	void gameLoaded();
 	void gameLoadFailed(const QString &errorString);
 	void gameSynchronized();
 	void currentSceneChanged();
-	void joystickChanged();
 	void followedItemChanged();
-	void joystickStateChanged();
 	void debugViewChanged();
 	void gameModeChanged();
 	void messageListChanged();
@@ -304,17 +339,16 @@ signals:
 	void flickableInteractiveChanged();
 	void pausedChanged();
 
+	void joystickAChanged();
+	void joystickBChanged();
+	void joystickCChanged();
+	void joystickDChanged();
+	void joystickStateChanged(Joystick joystick);
+
 protected:
-	TiledObjectBody *addObject(std::unique_ptr<TiledObjectBody> &body, const quint32 &sceneId, const quint32 &id, const quint32 &owner = 0);
+	TiledObjectBody *addObject(std::unique_ptr<TiledObjectBody> &body, const TiledObjectBody::ObjectId &id);
 	bool initSpace(TiledObjectBody *body, TiledScene *scene);
 	virtual void onShapeAboutToDeletePrivate(cpShape *shape) { Q_UNUSED(shape); }
-	/*bool changeSpace(TiledObjectBody *body, cpSpace *newSpace);
-	bool changeSpace(TiledObjectBody *body, TiledScene *scene) {
-		if (scene && scene->m_space)
-			return changeSpace(body, scene->m_space);
-		else
-			return false;
-	}*/
 
 	bool loadScene(const TiledSceneDefinition &def, const QString &basePath);
 	virtual bool loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer);
@@ -341,7 +375,7 @@ protected:
 
 	virtual void keyPressEvent(QKeyEvent *event) override;
 	virtual void keyReleaseEvent(QKeyEvent *event) override;
-	virtual void joystickStateEvent(const JoystickState &newJoystickState) { Q_UNUSED(newJoystickState);}
+	virtual void joystickStateEvent(const Joystick &joystick, const JoystickState &state) { Q_UNUSED(joystick); Q_UNUSED(state);}
 
 	virtual void sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene);
 
@@ -354,15 +388,25 @@ protected:
 
 
 private:
-	void joystickConnect(const bool &connect = true);
+	QQuickItem* joystickGet(const Joystick &joystick) const { return m_joystick[joystick].joystick; }
+	bool joystickSet(const Joystick &joystick, QQuickItem *item);
+
+	void joystickConnect(const Joystick &joystick, const bool &connect = true);
 	Q_INVOKABLE void updateJoystick();
 	void updateKeyboardJoystick();
 	void updateStepTimer();
 
+	struct JoystickData {
+		QPointer<QQuickItem> joystick = nullptr;
+		JoystickState joystickState;
+	};
 
-	QPointer<QQuickItem> m_joystick = nullptr;
+	std::array<JoystickData, JoystickCount> m_joystick;
+
+
+
+
 	QPointer<TiledObject> m_followedItem = nullptr;
-	JoystickState m_joystickState;
 	bool m_debugView = false;
 	bool m_mouseNavigation = false;
 	bool m_mouseAttack = false;

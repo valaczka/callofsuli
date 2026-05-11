@@ -229,7 +229,6 @@ EngineStream &Engine::operator>>(EngineStream &stream) const
 EngineStream &GameConfig::operator<<(EngineStream &stream)
 {
 	readTerrain(stream);
-	readDuration(stream);
 
 	return stream;
 }
@@ -244,7 +243,6 @@ EngineStream &GameConfig::operator<<(EngineStream &stream)
 EngineStream &GameConfig::operator>>(EngineStream &stream) const
 {
 	writeTerrain(stream);
-	writeDuration(stream);
 
 	return stream;
 }
@@ -297,7 +295,7 @@ EngineStream &PlayerData::operator<<(EngineStream &stream)
 	readUserName(stream);
 	readNickName(stream);
 	readCharacter(stream);
-	readCompleted(stream);
+	readFlags(stream);
 
 	return stream;
 }
@@ -315,11 +313,218 @@ EngineStream &PlayerData::operator>>(EngineStream &stream) const
 	writeUserName(stream);
 	writeNickName(stream);
 	writeCharacter(stream);
-	writeCompleted(stream);
+	writeFlags(stream);
 
 	return stream;
 }
 
+
+/**
+ * @brief EntityState::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &EntityState::operator<<(EngineStream &stream)
+{
+	readDeltaMask(stream);
+	readPosXDelta(stream);
+	readPosYDelta(stream);
+	readVelXDelta(stream);
+	readVelYDelta(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief EntityState::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &EntityState::operator>>(EngineStream &stream) const
+{
+	writeDeltaMask(stream);
+	writePosXDelta(stream);
+	writePosYDelta(stream);
+	writeVelXDelta(stream);
+	writeVelYDelta(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief PlayerState::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &PlayerState::operator<<(EngineStream &stream)
+{
+	readDeltaMask(stream);
+	m_entityState.setIsDeltaMode(m_isDeltaMode);
+	m_entityState << stream;
+
+	readHpDelta(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief PlayerState::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &PlayerState::operator>>(EngineStream &stream) const
+{
+	writeDeltaMask(stream);
+	m_entityState.setIsDeltaMode(m_isDeltaMode);
+	m_entityState << stream;
+
+	writeHpDelta(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief Chunk::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &Chunk::operator<<(EngineStream &stream)
+{
+	readX(stream);
+	readY(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief Chunk::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &Chunk::operator>>(EngineStream &stream) const
+{
+	writeX(stream);
+	writeY(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief ChunkGrid::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &ChunkGrid::operator<<(EngineStream &stream)
+{
+	readViewportX(stream);
+	readViewportY(stream);
+	readViewportWidth(stream);
+	readViewportHeight(stream);
+
+	readChunkWidth(stream);
+	readChunkHeight(stream);
+
+	readExcludeList(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief ChunkGrid::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &ChunkGrid::operator>>(EngineStream &stream) const
+{
+	writeViewportX(stream);
+	writeViewportY(stream);
+	writeViewportWidth(stream);
+	writeViewportHeight(stream);
+
+	writeChunkWidth(stream);
+	writeChunkHeight(stream);
+
+	writeExcludeList(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief PlayerPosition::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &PlayerPosition::operator<<(EngineStream &stream)
+{
+	readPosX(stream);
+	readPosY(stream);
+	readTeam(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief PlayerPosition::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &PlayerPosition::operator>>(EngineStream &stream) const
+{
+	writePosX(stream);
+	writePosY(stream);
+	writeTeam(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief PlayerPositionList::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &PlayerPositionList::operator<<(EngineStream &stream)
+{
+	readList(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief PlayerPositionList::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &PlayerPositionList::operator>>(EngineStream &stream) const
+{
+	writeList(stream);
+
+	return stream;
+}
 
 
 

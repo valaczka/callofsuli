@@ -159,7 +159,7 @@ Flickable {
 	PinchArea {
 		anchors.fill: parent
 
-		enabled: _scene.game && !_scene.game.joystick.hasTouch
+		enabled: _scene.game && !_scene.game.joystickA.hasTouch
 
 		pinch.target: _scene
 		pinch.minimumScale: flick.minZoom
@@ -243,8 +243,8 @@ Flickable {
 			setYOffset()
 		}
 
-		function onJoystickStateChanged() {
-			if (_scene.game.joystickInteractive())
+		function onJoystickStateChanged(num) {
+			if (num === TiledGame.JoystickA && _scene.game.joystickInteractive(TiledGame.JoystickA))
 				_suspendFollowing = false
 		}
 	}

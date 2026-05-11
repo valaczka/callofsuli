@@ -29,7 +29,6 @@
 #include "tiledobject.h"
 #include "Logger.h"
 #include "application.h"
-#include "isometricentity.h"
 #include "tiledspritehandler.h"
 #include "tileddebugdraw.h"
 #include "utils_.h"
@@ -74,34 +73,21 @@ private:
 
 		~Scene() { destroyScene(); }
 
-		struct TcodMapData {
-			std::unique_ptr<TCODMap> map;
-			QRectF viewport;
-			qreal chunkWidth = 0.;
-			qreal chunkHeight = 0.;
 
-			QPoint getChunk(const cpVect &pos) const;
-			QPoint getChunk(const qreal &x, const qreal &y) const;
-
-			QPointF chunkMiddle(const int &x, const int &y) const;
-
-			std::optional<QPolygonF> findShortestPath(const cpVect &from, const cpVect &to) const;
-			std::optional<QPolygonF> findShortestPath(const qreal &x1, const qreal &y1, const qreal &x2, const qreal &y2) const;
-		};
 
 		static unique_space_ptr spaceCreate() {
 			return unique_space_ptr(cpSpaceNew(), &Scene::spaceDestroy);
 		}
 		static void spaceDestroy(cpSpace *space);
 
-		TCODMap* reloadTcodMap(const cpBitmask &excludedCategories);
+		TiledGame::TcodMapData* reloadTcodMap(const cpBitmask &excludedCategories, const qreal chunkSize = 0.);
 		void destroyScene();
 
 		quint32 sceneId = 0;
 		QQuickItem *container = nullptr;
 		TiledScene *scene = nullptr;
 		unique_space_ptr space;
-		TcodMapData tcodMap;
+		TiledGame::TcodMapData tcodMap;
 	};
 
 
@@ -278,6 +264,8 @@ TiledGame::~TiledGame()
 bool TiledGame::load(const TiledGameDefinition &def)
 {
 	LOG_CTRACE("game") << "Load game with base path:" << def.basePath;
+
+	QThread::currentThread()->eventDispatcher()->processEvents(QEventLoop::AllEvents);
 
 	for (const TiledSceneDefinition &s : std::as_const(def.scenes)) {
 		if (loadScene(s, def.basePath))
@@ -577,6 +565,8 @@ bool TiledGame::loadScene(const TiledSceneDefinition &def, const QString &basePa
 		return false;
 	}
 
+	QThread::currentThread()->eventDispatcher()->processEvents(QEventLoop::AllEvents);
+
 	item->reloadTcodMap(m_groundCategory);
 
 	item->scene->setAmbientSound(def.ambient);
@@ -704,7 +694,10 @@ TiledObjectBody *TiledGame::loadGround(TiledScene *scene, Tiled::MapObject *obje
 
 
 
-	TiledObjectBody *mapObject = createObject<TiledObjectBody>(0, scene, object->id(),
+	TiledObjectBody *mapObject = createObject<TiledObjectBody>(TiledObjectBody::ObjectId{.ownerId = 0,
+																						 .sceneId = scene->sceneId(),
+																						 .id = static_cast<quint32>(object->id())
+															   }, scene,
 															   object, this, renderer, CP_BODY_TYPE_STATIC);
 
 	if (!mapObject)
@@ -1084,6 +1077,32 @@ void TiledGame::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene
 }
 
 
+/**
+ * @brief TiledGame::joystickSet
+ * @param joystick
+ * @param item
+ * @return
+ */
+
+bool TiledGame::joystickSet(const Joystick &joystick, QQuickItem *item)
+{
+	if (m_joystick[joystick].joystick == item)
+		return false;
+
+	if (m_joystick[joystick].joystick)
+		joystickConnect(joystick, false);
+
+	m_joystick[joystick].joystick = item;
+
+	if (m_joystick[joystick].joystick)
+		joystickConnect(joystick, true);
+
+	m_joystick[joystick].joystick = item;
+
+	return true;
+}
+
+
 
 /**
  * @brief TiledGame::groundCategory
@@ -1110,16 +1129,18 @@ void TiledGame::setGroundCategory(cpBitmask newGroundCategory)
  * @param connect
  */
 
-void TiledGame::joystickConnect(const bool &connect)
+void TiledGame::joystickConnect(const Joystick &joystick, const bool &connect)
 {
-	if (!m_joystick)
+	const int j = static_cast<int>(joystick);
+
+	if (!m_joystick[j].joystick)
 		return;
 
 	const int methodIndex = this->metaObject()->indexOfMethod("updateJoystick()");
 
 	Q_ASSERT(methodIndex != -1);
 
-	const QMetaObject *mo = m_joystick->metaObject();
+	const QMetaObject *mo = m_joystick[j].joystick->metaObject();
 
 	static const QList<const char*> propList = {
 		"currentX",
@@ -1134,16 +1155,16 @@ void TiledGame::joystickConnect(const bool &connect)
 
 		if (p.hasNotifySignal()) {
 			if (connect)
-				QObject::connect(m_joystick, p.notifySignal(), this, this->metaObject()->method(methodIndex));
+				QObject::connect(m_joystick[j].joystick, p.notifySignal(), this, this->metaObject()->method(methodIndex));
 			else
-				QObject::disconnect(m_joystick, p.notifySignal(), this, this->metaObject()->method(methodIndex));
+				QObject::disconnect(m_joystick[j].joystick, p.notifySignal(), this, this->metaObject()->method(methodIndex));
 		}
 	}
 
 	if (connect)
-		LOG_CTRACE("scene") << "Joystick connected";
+		LOG_CTRACE("scene") << joystick << "connected";
 	else
-		LOG_CTRACE("scene") << "Joystick disconnected";
+		LOG_CTRACE("scene") << joystick << "disconnected";
 }
 
 
@@ -1154,18 +1175,33 @@ void TiledGame::joystickConnect(const bool &connect)
 
 void TiledGame::updateJoystick()
 {
-	JoystickState state;
+	QObject *o = sender();
 
-	if (m_joystick) {
-		state.dx = m_joystick->property("currentX").toReal();
-		state.dy = m_joystick->property("currentY").toReal();
-		state.distance = m_joystick->property("currentDistance").toReal();
-		state.angle = m_joystick->property("currentAngle").toReal();
-		state.hasTouch = m_joystick->property("hasTouch").toBool();
-		state.hasKeyboard = m_joystickState.hasKeyboard;
+	int i=0;
+
+	for (; i<JoystickCount; ++i) {
+		if (m_joystick[i].joystick == o)
+			break;
 	}
 
-	setJoystickState(state);
+	if (i >= JoystickCount) {
+		LOG_CERROR("scene") << "Joystick not connected" << o;
+		return;
+	}
+
+	QQuickItem *joystick = m_joystick[i].joystick;
+
+	JoystickState state;
+
+	state.dx = joystick->property("currentX").toReal();
+	state.dy = joystick->property("currentY").toReal();
+	state.distance = joystick->property("currentDistance").toReal();
+	state.angle = joystick->property("currentAngle").toReal();
+	state.hasTouch = joystick->property("hasTouch").toBool();
+	state.hasKeyboard = m_joystick[i].joystickState.hasKeyboard;
+
+
+	setJoystickState(QVariant(i).value<Joystick>(), state);
 }
 
 
@@ -1177,10 +1213,10 @@ void TiledGame::updateJoystick()
 
 void TiledGame::updateKeyboardJoystick()
 {
-	if (m_joystickState.hasTouch)
+	if (m_joystick[JoystickA].joystickState.hasTouch)
 		return;
 
-	JoystickState jState = m_joystickState;
+	JoystickState jState = m_joystick[JoystickA].joystickState;
 	jState.hasKeyboard = d->m_keyboardJoystickState.up ||
 						 d->m_keyboardJoystickState.down ||
 						 d->m_keyboardJoystickState.left ||
@@ -1240,12 +1276,12 @@ void TiledGame::updateKeyboardJoystick()
 	dx += 0.5;
 	dy += 0.5;
 
-	setJoystickState(jState);
+	setJoystickState(JoystickA, jState);
 
-	if (!m_joystick)
+	if (!m_joystick[JoystickA].joystick)
 		return;
 
-	QMetaObject::invokeMethod(m_joystick, "moveThumbRelative",
+	QMetaObject::invokeMethod(m_joystick[JoystickA].joystick, "moveThumbRelative",
 							  Q_ARG(QVariant, dx),
 							  Q_ARG(QVariant, dy)
 							  );
@@ -1320,28 +1356,13 @@ void TiledGame::updateStepTimer()
  * @param bodyPtr
  */
 
-TiledObjectBody *TiledGame::addObject(std::unique_ptr<TiledObjectBody> &body,
-									  const quint32 &sceneId, const quint32 &id, const quint32 &owner)
+TiledObjectBody *TiledGame::addObject(std::unique_ptr<TiledObjectBody> &body, const TiledObjectBody::ObjectId &id)
 {
 	Q_ASSERT(body);
 
-	if (id == 0 && owner != 0) {
-		LOG_CERROR("scene") << "Invalid object id" << owner << sceneId << id;
-		return nullptr;
-	}
-
 	QMutexLocker locker(&d->m_stepMutex);
 
-	quint32 newId = id;
-	if (id == 0 && owner == 0)
-		newId = ++d->m_nextBodyId;
-
-	if (d->findObject(sceneId, newId, owner)) {
-		LOG_CERROR("scene") << "Object already exists" << owner << sceneId << newId;
-		return nullptr;
-	}
-
-	body->setObjectId(owner, sceneId, newId);
+	body->setObjectId(id);
 
 	return d->addObject(body);
 }
@@ -1787,52 +1808,27 @@ void TiledGame::setMessageEnabled(const bool &enabled)
 
 
 
-
-/**
- * @brief TiledGame::joystick
- * @return
- */
-
-QQuickItem *TiledGame::joystick() const
-{
-	return m_joystick;
-}
-
-void TiledGame::setJoystick(QQuickItem *newJoystick)
-{
-	if (m_joystick == newJoystick)
-		return;
-
-	if (m_joystick)
-		joystickConnect(false);
-
-	m_joystick = newJoystick;
-	emit joystickChanged();
-
-	if (m_joystick)
-		joystickConnect(true);
-}
-
-
-
 /**
  * @brief TiledGame::joystickState
  * @return
  */
 
-TiledGame::JoystickState TiledGame::joystickState() const
+TiledGame::JoystickState TiledGame::joystickState(const Joystick &joystick) const
 {
-	return m_joystickState;
+	return m_joystick[joystick].joystickState;
 }
 
-void TiledGame::setJoystickState(const JoystickState &newJoystickState)
-{
-	if (m_joystickState == newJoystickState)
-		return;
-	m_joystickState = newJoystickState;
-	emit joystickStateChanged();
 
-	joystickStateEvent(newJoystickState);
+void TiledGame::setJoystickState(const Joystick &joystick, const JoystickState &newJoystickState)
+{
+	if (m_joystick[joystick].joystickState == newJoystickState)
+		return;
+
+	m_joystick[joystick].joystickState = newJoystickState;
+
+	emit joystickStateChanged(joystick);
+
+	joystickStateEvent(joystick, newJoystickState);
 }
 
 
@@ -2057,6 +2053,7 @@ bool TiledGame::appendToSpriteHandler(TiledSpriteHandler *handler, const QVector
 
 	return true;
 }
+
 
 
 
@@ -2335,7 +2332,7 @@ void TiledGamePrivate::stepWorlds()
  * @brief TiledScene::reloadTcodMap
  */
 
-TCODMap *TiledGame::reloadTcodMap(cpSpace *space)
+TiledGame::TcodMapData *TiledGame::reloadTcodMap(cpSpace *space, const cpBitmask &categories, const qreal chunkSize)
 {
 	if (!space)
 		return nullptr;
@@ -2352,7 +2349,7 @@ TCODMap *TiledGame::reloadTcodMap(cpSpace *space)
 		return nullptr;
 	}
 
-	return it->get()->reloadTcodMap(m_groundCategory);
+	return it->get()->reloadTcodMap(categories, chunkSize);
 }
 
 
@@ -2484,7 +2481,7 @@ std::optional<QPolygonF> TiledGame::findShortestPath(TiledObjectBody *body, cons
  * @return
  */
 
-QPoint TiledGamePrivate::Scene::TcodMapData::getChunk(const cpVect &pos) const
+QPoint TiledGame::TcodMapData::getChunk(const cpVect &pos) const
 {
 	return getChunk(pos.x, pos.y);
 }
@@ -2497,7 +2494,7 @@ QPoint TiledGamePrivate::Scene::TcodMapData::getChunk(const cpVect &pos) const
  * @return
  */
 
-QPoint TiledGamePrivate::Scene::TcodMapData::getChunk(const qreal &x, const qreal &y) const
+QPoint TiledGame::TcodMapData::getChunk(const qreal &x, const qreal &y) const
 {
 	QPoint p;
 
@@ -2517,7 +2514,7 @@ QPoint TiledGamePrivate::Scene::TcodMapData::getChunk(const qreal &x, const qrea
  * @return
  */
 
-QPointF TiledGamePrivate::Scene::TcodMapData::chunkMiddle(const int &x, const int &y) const
+QPointF TiledGame::TcodMapData::chunkMiddle(const int &x, const int &y) const
 {
 	return QPointF(
 				viewport.left() + (x+0.5) * chunkWidth,
@@ -2534,7 +2531,7 @@ QPointF TiledGamePrivate::Scene::TcodMapData::chunkMiddle(const int &x, const in
  * @return
  */
 
-std::optional<QPolygonF> TiledGamePrivate::Scene::TcodMapData::findShortestPath(const cpVect &from, const cpVect &to) const
+std::optional<QPolygonF> TiledGame::TcodMapData::findShortestPath(const cpVect &from, const cpVect &to) const
 {
 	return findShortestPath(from.x, from.y, to.x, to.y);
 }
@@ -2550,7 +2547,7 @@ std::optional<QPolygonF> TiledGamePrivate::Scene::TcodMapData::findShortestPath(
  * @return
  */
 
-std::optional<QPolygonF> TiledGamePrivate::Scene::TcodMapData::findShortestPath(const qreal &x1, const qreal &y1, const qreal &x2, const qreal &y2) const
+std::optional<QPolygonF> TiledGame::TcodMapData::findShortestPath(const qreal &x1, const qreal &y1, const qreal &x2, const qreal &y2) const
 {
 	if (qFuzzyCompare(x1, x2) && qFuzzyCompare(y1, y2))
 		return std::nullopt;
@@ -2693,7 +2690,7 @@ void TiledGamePrivate::Scene::spaceDestroy(cpSpace *space)
  * @brief TiledGamePrivate::Scene::reloadTcodMap
  */
 
- TCODMap* TiledGamePrivate::Scene::reloadTcodMap(const cpBitmask &excludedCategories)
+TiledGame::TcodMapData* TiledGamePrivate::Scene::reloadTcodMap(const cpBitmask &excludedCategories, const qreal chunkSize)
 {
 	if (!space || cpSpaceIsLocked(space.get())) {
 		LOG_CERROR("scene") << "Missing or locked space" << this;
@@ -2714,10 +2711,12 @@ void TiledGamePrivate::Scene::spaceDestroy(cpSpace *space)
 		return nullptr;
 	}
 
-	static const qreal chunkSize = 30.;
+	static const qreal defaultChunkSize = 30.;
 
-	const int wSize = std::ceil(tcodMap.viewport.width() / chunkSize);
-	const int hSize = std::ceil(tcodMap.viewport.height() / chunkSize);
+	tcodMap.chunkSize = chunkSize > 0 ? chunkSize : defaultChunkSize;
+
+	const int wSize = std::ceil(tcodMap.viewport.width() / tcodMap.chunkSize);
+	const int hSize = std::ceil(tcodMap.viewport.height() / tcodMap.chunkSize);
 
 	LOG_CDEBUG("scene") << "Reload tcod map" << wSize << hSize;
 
@@ -2768,7 +2767,7 @@ void TiledGamePrivate::Scene::spaceDestroy(cpSpace *space)
 		}
 	}
 
-	return tcodMap.map.get();
+	return &tcodMap;
 }
 
 
@@ -2849,3 +2848,4 @@ void TiledGamePrivate::collisionEnd(cpArbiter *arb, cpSpace *, cpDataPointer use
 	QMutexLocker locker(&d->m_stepMutex);
 	d->m_collisionEndList.emplace_back(bodyA, bodyB, shapeA, shapeB);
 }
+

@@ -26,7 +26,6 @@
 
 #include "mapplaydemo.h"
 #include "client.h"
-#include "qsettings.h"
 
 
 MapPlayDemo::MapPlayDemo(Client *client, QObject *parent)

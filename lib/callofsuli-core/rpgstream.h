@@ -28,6 +28,7 @@
 #define RPGSTREAM_H
 
 #include "udpbitstream.hpp"
+#include <QRectF>
 
 
 #define ENGINE_ID_TYPE				quint32
@@ -36,14 +37,48 @@
 #define ENGINE_READABLE_ID_TYPE		quint32
 #define ENGINE_READABLE_ID_BITS		20
 
-
 #define PLAYER_ID_TYPE				quint8
 #define PLAYER_ID_BITS				3
 
+#define CHUNK_SIZE_TYPE				quint32
+#define CHUNK_SIZE_BITS				12						// Max: 4096
+
+#define QUANTIZED_TYPE				quint32
+#define QUANTIZED_BITS				24
+
+#define QUANTIZED_SIGNED_TYPE		qint32
+#define QUANTIZED_SIGNED_BITS		24
 
 
 namespace RpgStream
 {
+
+// Quantization
+
+static constexpr float QUANTIZE_MIN = 0.f;
+static constexpr float QUANTIZE_MAX = 16500.f;
+
+static QUANTIZED_TYPE quantize(const float &value) {
+	return static_cast<QUANTIZED_TYPE>(std::round(std::clamp(value, QUANTIZE_MIN, QUANTIZE_MAX) * 1000.f));
+}
+
+static float dequantize(const QUANTIZED_TYPE &value) {
+	return static_cast<float>(value / 1000.f);
+}
+
+static constexpr float QUANTIZE_SIGNED_MIN = -8300.f;
+static constexpr float QUANTIZE_SIGNED_MAX = 8300.f;
+
+static QUANTIZED_SIGNED_TYPE quantizeSigned(const float &value) {
+	return static_cast<QUANTIZED_SIGNED_TYPE>(std::round(std::clamp(value, QUANTIZE_SIGNED_MIN, QUANTIZE_SIGNED_MAX) * 1000.f));
+}
+
+static float dequantizeSigned(const QUANTIZED_SIGNED_TYPE &value) {
+	return static_cast<float>(value / 1000.f);
+}
+
+
+
 
 template <typename T>
 T readBits(UdpBitStream &stream, const size_t &bits, const T &errorValue) {
@@ -164,7 +199,7 @@ public:
 
 #define STREAM_FIELD(type, field, name) \
 	private: \
-	type m_##field; \
+	mutable type m_##field; \
 	public: \
 	type& field() { return m_##field; } \
 	const type& field() const { return m_##field; } \
@@ -205,9 +240,6 @@ public:
 	return m_##field; } \
 	void write##name(EngineStream &stream) const { \
 	writeBitsAs<cast, type>(stream, m_##field, bits); }
-
-
-
 
 
 #define STREAM_MEMBER_BYTEARRAY(field, name) \
@@ -258,13 +290,46 @@ public:
 
 
 
+#define STREAM_MEMBER_QUANT(field, name, error) \
+	private: \
+	QUANTIZED_TYPE m_##field; \
+	public: \
+	QUANTIZED_TYPE& field() { return m_##field; } \
+	const QUANTIZED_TYPE& field() const { return m_##field; } \
+	void set##name(const QUANTIZED_TYPE &value) { m_##field = value; } \
+	float field##AsFloat() const { return dequantize(m_##field); } \
+	void set##name##AsFloat(const float &value) { m_##field = quantize(value); } \
+	public: \
+	const QUANTIZED_TYPE& read##name(EngineStream &stream) { \
+	m_##field = readBits<QUANTIZED_TYPE>(stream, QUANTIZED_BITS, error); \
+	return m_##field; } \
+	void write##name(EngineStream &stream) const { \
+	writeBits<QUANTIZED_TYPE>(stream, m_##field, QUANTIZED_BITS); }
+
+
+#define STREAM_MEMBER_QUANT_SIGNED(field, name, error) \
+	private: \
+	QUANTIZED_SIGNED_TYPE m_##field; \
+	public: \
+	QUANTIZED_SIGNED_TYPE& field() { return m_##field; } \
+	const QUANTIZED_SIGNED_TYPE& field() const { return m_##field; } \
+	void set##name(const QUANTIZED_SIGNED_TYPE &value) { m_##field = value; } \
+	float field##AsFloat() const { return dequantizeSigned(m_##field); } \
+	void set##name##AsFloat(const float &value) { m_##field = quantizeSigned(value); } \
+	public: \
+	const QUANTIZED_SIGNED_TYPE& read##name(EngineStream &stream) { \
+	m_##field = readBits<QUANTIZED_SIGNED_TYPE>(stream, QUANTIZED_SIGNED_BITS, error); \
+	return m_##field; } \
+	void write##name(EngineStream &stream) const { \
+	writeBits<QUANTIZED_SIGNED_TYPE>(stream, m_##field, QUANTIZED_SIGNED_BITS); }
+
 
 
 #define STREAM_DELTA_MASK(type, bits, ...) \
 	private:\
 	type m_deltaMask = 0; \
 	enum DeltaMaskBit { __VA_ARGS__ }; \
-	bool m_isDeltaMode = false; \
+	mutable bool m_isDeltaMode = false; \
 	public:\
 	const bool &isDeltaMode() const { return m_isDeltaMode; } \
 	void setIsDeltaMode(const bool &mode) { m_isDeltaMode = mode; } \
@@ -348,7 +413,14 @@ public:
 	STREAM_MEMBER_ADD_DELTA(quint64, field, name, msk)
 
 
+#define STREAM_DELTA_MEMBER_QUANT(field, name, error, msk) \
+	STREAM_MEMBER_QUANT(field, name, error) \
+	STREAM_MEMBER_ADD_DELTA(QUANTIZED_TYPE, field, name, msk)
 
+
+#define STREAM_DELTA_MEMBER_QUANT_SIGNED(field, name, error, msk) \
+	STREAM_MEMBER_QUANT_SIGNED(field, name, error) \
+	STREAM_MEMBER_ADD_DELTA(QUANTIZED_SIGNED_TYPE, field, name, msk)
 
 
 #define TO_DATA_STREAM(dataOp) \
@@ -468,7 +540,9 @@ class EngineDataStream : public EngineStream
 public:
 	enum DataOperation {
 		DataOperationInvalid = 0x0,
-		DataOperationCharacterSelect
+		DataOperationCharacterSelect,
+		DataOperationPlayerPosition,
+		DataOperationChunkGrid,
 	};
 
 	EngineDataStream(const DataOperation &dataOperation)
@@ -571,8 +645,99 @@ public:
 	EngineStream toStream() const;
 
 	STREAM_MEMBER_VECTOR(Engine, engines, Engines, quint8, 8)
-	STREAM_MEMBER_CAST(bool, canCreate, CanCreate, char, 1, false)
+	STREAM_MEMBER_CAST(bool, canCreate, CanCreate, quint8, 1, false)
 };
+
+
+
+
+/**
+ * @brief The Chunk class
+ */
+
+class Chunk
+{
+public:
+	Chunk() = default;
+	Chunk(const CHUNK_SIZE_TYPE &x, const CHUNK_SIZE_TYPE &y)
+		: m_x(x)
+		, m_y(y)
+	{}
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER(CHUNK_SIZE_TYPE, x, X, CHUNK_SIZE_BITS, 0);
+	STREAM_MEMBER(CHUNK_SIZE_TYPE, y, Y, CHUNK_SIZE_BITS, 0);
+};
+
+
+
+/**
+ * @brief The ChunkGrid class
+ */
+
+class ChunkGrid
+{
+public:
+	ChunkGrid() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	TO_DATA_STREAM(EngineDataStream::DataOperationChunkGrid)
+
+	STREAM_MEMBER_QUANT(viewportX, ViewportX, 0);
+	STREAM_MEMBER_QUANT(viewportY, ViewportY, 0);
+	STREAM_MEMBER_QUANT(viewportWidth, ViewportWidth, 0);
+	STREAM_MEMBER_QUANT(viewportHeight, ViewportHeight, 0);
+	STREAM_MEMBER_QUANT(chunkWidth, ChunkWidth, 0);
+	STREAM_MEMBER_QUANT(chunkHeight, ChunkHeight, 0);
+
+	STREAM_MEMBER_VECTOR(Chunk, excludeList, ExcludeList, quint64, 64);
+};
+
+
+
+
+/**
+ * @brief The PlayerPosition class
+ */
+
+class PlayerPosition
+{
+public:
+	PlayerPosition() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER_QUANT(posX, PosX, 0);
+	STREAM_MEMBER_QUANT(posY, PosY, 0);
+
+	STREAM_MEMBER(quint8, team, Team, 2, 0);
+};
+
+
+
+
+/**
+ * @brief The PlayerPositionList class
+ */
+
+class PlayerPositionList
+{
+public:
+	PlayerPositionList() = default;
+
+	TO_DATA_STREAM(EngineDataStream::DataOperationPlayerPosition)
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER_VECTOR(PlayerPosition, list, List, quint8, 8);
+};
+
 
 
 
@@ -589,17 +754,24 @@ public:
 	EngineStream& operator<<(EngineStream &stream);
 	EngineStream& operator>>(EngineStream &stream) const;
 
-	STREAM_MEMBER_RESOLVED(terrain, Terrain)
-	STREAM_MEMBER(quint32, duration, Duration, 32, 0)
+	enum Flags {
+		FlagNull				= 0,
+		FlagTerrain				= 1 << 0,				// terep elküldve
+		FlagPlayerPosition		= 1 << 1,				// kezdőpozíciók elküldve
+		FlagChunkGrid			= 1 << 2,				// ChunkGrid elküldve
+	};
 
-	/*QS_COLLECTION_OBJECTS(QList, PlayerPosition, positionList)
-	QS_FIELD(QString, terrain)
-	QS_OBJECT(Collection, collection)
-	QS_OBJECT(Randomizer, randomizer)
-	QS_FIELD(int, duration)*/
+
+	STREAM_MEMBER_RESOLVED(terrain, Terrain)
+	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 16, FlagNull)
 };
 
 
+
+
+/**
+ * @brief The PlayerData class
+ */
 
 class PlayerData
 {
@@ -609,6 +781,20 @@ public:
 	EngineStream& operator<<(EngineStream &stream);
 	EngineStream& operator>>(EngineStream &stream) const;
 
+	enum Flags {
+		FlagNull				= 0,
+		FlagCompleted			= 1 << 0,				// a karakterválasztás befejeződött, rányomott a play-re
+		FlagDownloadStarted		= 1 << 1,				// a szükséges letöltés elkezdődött
+		FlagDownloadCompleted	= 1 << 2,				// a szükséges letöltés sikerült
+		FlagLoadStarted			= 1 << 3,				// a játék betöltése helyben elkezdődőtt
+		FlagGamePrepared		= 1 << 4,				// a játék teljesen betöltődött (qml)
+		FlagInitCompleted		= 1 << 5,				// az elején szükséges lépések befejeződtek
+		FlagGameStarted			= 1 << 6,				// a játék elkezdődött
+		FlagGameFinished		= 1 << 7,				// a játék befejeződött
+		FlagPlayerOnline		= 1 << 8,				// a játékos elérhető (van udp-kapcsolat)
+	};
+
+
 
 	STREAM_MEMBER(PLAYER_ID_TYPE, playerId, PlayerId, PLAYER_ID_BITS, 0)
 	STREAM_MEMBER_BYTEARRAY(userName, UserName)
@@ -616,32 +802,9 @@ public:
 
 	STREAM_MEMBER_RESOLVED(character, Character)
 
-	STREAM_MEMBER_CAST(bool, completed, Completed, char, 1, false)
+	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 16, FlagNull)
 
 
-	/*QS_FIELD(int, playerId)
-	QS_FIELD(QString, username)
-	QS_FIELD(QString, nickname)
-
-	QS_FIELD(QString, character)
-	QS_FIELD(bool, completed)
-	QS_FIELD(bool, locked)											// lock the engine
-
-	// Character specification
-
-	QS_OBJECT(Armory, armory)
-	QS_FIELD(int, maxHp)
-	QS_FIELD(int, maxMp)
-	QS_FIELD(int, mp)
-
-	QS_OBJECT(GameConfig, gameConfig)
-
-	QS_FIELD(int, lastObjectId)
-
-	QS_FIELD(bool, finished)										// finished
-	QS_FIELD(int, xp)												// XP
-	QS_FIELD(int, cur)												// currency
-	QS_FIELD(int, kill)												// killed enemies*/
 };
 
 
@@ -656,21 +819,82 @@ public:
 	EngineStream& operator<<(EngineStream &stream);
 	EngineStream& operator>>(EngineStream &stream) const;
 
-	TO_DATA_STREAM(EngineDataStream::DataOperationCharacterSelect)
 
 	STREAM_FIELD(GameConfig, gameConfig, GameConfig)
 	STREAM_MEMBER_VECTOR(PlayerData, players, Players, PLAYER_ID_TYPE, PLAYER_ID_BITS)
 	STREAM_MEMBER(PLAYER_ID_TYPE, maxPlayers, MaxPlayers, PLAYER_ID_BITS, 0)
 	STREAM_MEMBER(ENGINE_READABLE_ID_TYPE, engineReadableId, EngineReadableId, ENGINE_READABLE_ID_BITS, 0);
-
-	/*QS_OBJECT(GameConfig, gameConfig)
-	QS_COLLECTION_OBJECTS(QList, CharacterSelect, players)
-	QS_FIELD(bool, locked)
-	QS_FIELD(int, max)
-	QS_FIELD(int, engineReadableId)*/
 };
 
 
+
+
+
+
+
+/// Base entity state
+
+
+class EntityState
+{
+public:
+	EntityState() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+
+	STREAM_DELTA_MASK (
+			quint32, 4,
+
+			PosX,
+			PosY,
+			VelX,
+			VelY,
+			)
+
+
+	STREAM_DELTA_MEMBER_QUANT(posX, PosX, 0, PosX);
+	STREAM_DELTA_MEMBER_QUANT(posY, PosY, 0, PosY);
+	STREAM_DELTA_MEMBER_QUANT_SIGNED(velX, VelX, 0, VelX);
+	STREAM_DELTA_MEMBER_QUANT_SIGNED(velY, VelY, 0, VelY);
+
 };
+
+
+
+
+class PlayerState
+{
+public:
+	PlayerState() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+
+	STREAM_DELTA_MASK (
+			quint32, 2,
+
+			Hp,
+			MaxHp,
+
+			)
+
+	STREAM_FIELD(EntityState, entityState, EntityState)
+
+	STREAM_DELTA_MEMBER(quint32, hp, Hp, 8, 0, Hp);					// Max: 256
+	STREAM_DELTA_MEMBER(quint32, maxHp, MaxHp, 8, 0, MaxHp);		// Max: 256
+
+};
+
+
+
+
+
+
+
+
+}		// end of namespace
 
 #endif // RPGSTREAM_H

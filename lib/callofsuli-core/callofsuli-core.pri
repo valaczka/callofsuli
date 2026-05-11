@@ -20,7 +20,7 @@ HEADERS += \
 	$$PWD/gamemapreaderiface.h \
 	$$PWD/offlineengine.h \
 	$$PWD/rank.h \
-	$$PWD/rpgconfig.h \
+	$$PWD/rpglogic.h \
 	$$PWD/rpgstream.h \
 	$$PWD/selectableobject.h \
 	$$PWD/udpbitstream.hpp \
@@ -34,7 +34,7 @@ SOURCES += \
 	$$PWD/gamemapreaderiface.cpp \
 	$$PWD/offlineengine.cpp \
 	$$PWD/rank.cpp \
-	$$PWD/rpgconfig.cpp \
+	$$PWD/rpglogic.cpp \
 	$$PWD/rpgstream.cpp \
 	$$PWD/selectableobject.cpp \
 	$$PWD/utils_.cpp

@@ -8,7 +8,7 @@ import "JScript.js" as J
 QScrollable {
 	id: root
 
-	property ActionRpgMultiplayerGame game: null
+	property RpgGame game: null
 
 	contentCentered: true
 

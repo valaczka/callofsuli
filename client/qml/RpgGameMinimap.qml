@@ -11,7 +11,7 @@ import "JScript.js" as JS
 Rectangle {
 	id: root
 
-	property RpgGameImpl game: null
+	property RpgGameItemImpl game: null
 	property alias view: _view
 
 	color: Client.Utils.colorSetAlpha(Qaterial.Colors.black, 0.85)

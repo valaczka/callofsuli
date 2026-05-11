@@ -85,6 +85,7 @@ class Server : public SelectableObject
 	Q_PROPERTY(bool temporary READ temporary WRITE setTemporary NOTIFY temporaryChanged)
 	Q_PROPERTY(int maxUploadSize READ maxUploadSize WRITE setMaxUploadSize NOTIFY maxUploadSizeChanged)
 	Q_PROPERTY(bool isStatic READ isStatic WRITE setIsStatic NOTIFY isStaticChanged FINAL)
+	Q_PROPERTY(QList<DynamicContent> availableContent READ availableContent WRITE setAvailableContent NOTIFY availableContentChanged FINAL)
 
 #ifndef QT_NO_SSL
 	Q_PROPERTY(QList<QSslError::SslError> ignoredSslErrors READ ignoredSslErrors WRITE setIgnoredSslErrors NOTIFY ignoredSslErrorsChanged)
@@ -184,6 +185,9 @@ public:
 
 	OfflineClientEngine* offlineEngine() const;
 
+	QList<DynamicContent> availableContent() const;
+	void setAvailableContent(const QList<DynamicContent> &newAvailableContent);
+
 signals:
 	void notificationActivated(const NotificationType &type, const int &id, const QString &text);
 
@@ -199,9 +203,10 @@ signals:
 	void rankListChanged();
 	void temporaryChanged();
 	void maxUploadSizeChanged();
-	void dynamicContentReadyChanged();
 	void isStaticChanged();
 	void sessionIdChanged();
+
+	void availableContentChanged();
 
 private:
 	std::optional<QDir> getContentDir() const;
@@ -232,6 +237,7 @@ private:
 	QRecursiveMutex m_mutex;
 #endif
 
+	QList<DynamicContent> m_availableContent;
 	QStringList m_loadedContentList;
 
 	QHash<QPair<NotificationType, int>, QJsonValue> m_notificationContent;

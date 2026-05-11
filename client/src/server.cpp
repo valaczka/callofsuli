@@ -668,6 +668,32 @@ std::optional<QDir> Server::getContentDir() const
 	return dir;
 }
 
+
+
+/**
+ * @brief Server::availableContent
+ * @return
+ */
+
+QList<Server::DynamicContent> Server::availableContent() const
+{
+	return m_availableContent;
+}
+
+void Server::setAvailableContent(const QList<DynamicContent> &newAvailableContent)
+{
+	if (m_availableContent == newAvailableContent)
+		return;
+	m_availableContent = newAvailableContent;
+	emit availableContentChanged();
+}
+
+
+/**
+ * @brief Server::offlineEngine
+ * @return
+ */
+
 OfflineClientEngine* Server::offlineEngine() const
 {
 	return m_offlineEngine.get();

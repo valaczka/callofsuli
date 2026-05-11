@@ -150,7 +150,9 @@ private:
 	QList<QSslError> m_pendingSslErrors;
 #endif
 	std::unique_ptr<QNetworkAccessManager> m_networkManager;
-	QVector<HttpReply *> m_replies;
+
+
+	QVector<QPointer<HttpReply>> m_replies;
 	bool m_pending = false;
 
 	std::unique_ptr<WebSocket> m_webSocket;
@@ -246,7 +248,6 @@ public slots:
 
 signals:
 	void finished();
-	void failed(HttpReply *reply);
 	void downloadProgress(qreal percent);
 	void uploadProgress(qreal percent);
 

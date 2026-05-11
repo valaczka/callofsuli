@@ -186,7 +186,7 @@
         <file>TiledFlickableScene.qml</file>
         <file>TiledPlayerMarker.qml</file>
         <file>GameSkullImage.qml</file>
-        <file>PageActionRpgGame.qml</file>
+        <file>PageRpgGame.qml</file>
         <file>RpgGameItem.qml</file>
         <file>RpgCharacterSelect.qml</file>
         <file>RpgGameMinimap.qml</file>
@@ -220,7 +220,7 @@
         <file>RpgGameUserDialog.qml</file>
         <file>RpgQuestHeader.qml</file>
         <file>RpgQuestDelegate.qml</file>
-        <file>RpgConnect.qml</file>
+        <file>RpgLobby.qml</file>
         <file>QUpgradeButton.qml</file>
         <file>RpgPlayerMarker.qml</file>
         <file>PageStudentProfile.qml</file>

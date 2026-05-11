@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * isometricentity.h
+ * rpgentity.h
  *
- * Created on: 2024. 03. 01.
+ * Created on: 2026. 05. 11.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * IsometricEntity
+ * RpgEntity
  *
  *  This file is part of Call of Suli.
  *
@@ -24,19 +24,13 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef ISOMETRICENTITY_H
-#define ISOMETRICENTITY_H
+#ifndef RPGENTITY_H
+#define RPGENTITY_H
 
-#include "isometricobject.h"
+#include "rpgobject.h"
 #include <QQmlEngine>
 
-class TiledGame;
-
-/**
- * @brief The IsometricEntity class
- */
-
-class IsometricEntity : public IsometricObject
+class RpgEntity : public RpgObject
 {
 	Q_OBJECT
 	QML_ELEMENT
@@ -45,7 +39,10 @@ class IsometricEntity : public IsometricObject
 	Q_PROPERTY(int maxHp READ maxHp WRITE setMaxHp NOTIFY maxHpChanged FINAL)
 
 public:
-	explicit IsometricEntity(TiledGame *game, const qreal &radius = 10., const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
+	explicit RpgEntity(RpgGameItem *gameItem, const QPointF &center = {}, const qreal &radius = 10.,
+					   const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
+
+	bool isAlive() const { return m_hp > 0; }
 
 	int hp() const;
 	void setHp(int newHp);
@@ -53,27 +50,20 @@ public:
 	int maxHp() const;
 	void setMaxHp(int newMaxHp);
 
-	bool isAlive() const { return m_hp > 0; }
-
-	virtual void updateSprite() = 0;
-
 signals:
 	void hurt();
 	void healed();
+
 	void hpChanged();
 	void maxHpChanged();
 
 protected:
-	virtual void synchronize() override;
-
-	virtual void onAlive() = 0;
-	virtual void onDead() = 0;
+	virtual void onAlive() {};
+	virtual void onDead() {};
 
 protected:
 	int m_hp = 1;
 	int m_maxHp = 1;
 };
 
-
-
-#endif // ISOMETRICENTITY_H
+#endif // RPGENTITY_H

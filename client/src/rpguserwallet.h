@@ -29,7 +29,7 @@
 
 #include "qquickitem.h"
 #include "rank.h"
-#include "rpgconfig.h"
+#include "rpglogic.h"
 #include "rpgworldlanddata.h"
 #include <QObject>
 #include <QMutex>
@@ -52,8 +52,8 @@ class RpgUserWallet : public QObject
 {
 	Q_OBJECT
 
-	Q_PROPERTY(RpgMarket market READ market WRITE setMarket NOTIFY marketChanged FINAL)
-	Q_PROPERTY(RpgMarket::Type marketType READ marketType NOTIFY marketTypeChanged FINAL)
+	//Q_PROPERTY(RpgMarket market READ market WRITE setMarket NOTIFY marketChanged FINAL)
+	//Q_PROPERTY(RpgMarket::Type marketType READ marketType NOTIFY marketTypeChanged FINAL)
 	Q_PROPERTY(int amount READ amount WRITE setAmount NOTIFY amountChanged FINAL)
 	Q_PROPERTY(QDateTime expiry READ expiry WRITE setExpiry NOTIFY expiryChanged FINAL)
 	Q_PROPERTY(bool available READ available NOTIFY availableChanged FINAL)
@@ -64,19 +64,16 @@ class RpgUserWallet : public QObject
 	Q_PROPERTY(QString subImage READ subImage WRITE setSubImage NOTIFY subImageChanged FINAL)
 	Q_PROPERTY(QString sortName READ sortName WRITE setSortName NOTIFY sortNameChanged FINAL)
 	Q_PROPERTY(Rank rank READ rank WRITE setRank NOTIFY rankChanged FINAL)
-	Q_PROPERTY(QList<RpgMarketExtendedInfo> extendedInfo READ extendedInfo WRITE setExtendedInfo NOTIFY extendedInfoChanged FINAL)
+	//Q_PROPERTY(QList<RpgMarketExtendedInfo> extendedInfo READ extendedInfo WRITE setExtendedInfo NOTIFY extendedInfoChanged FINAL)
 
 public:
 	explicit RpgUserWallet(QObject *parent = nullptr);
 	virtual ~RpgUserWallet() {}
 
-	Q_INVOKABLE QJsonObject getJson() const;
-	RpgWallet toWallet() const;
+	//Q_INVOKABLE QJsonObject getJson() const;
+	//RpgWallet toWallet() const;
 
 	Q_INVOKABLE RpgUserWallet *getBelongsTo() const;
-
-	RpgMarket market() const;
-	void setMarket(const RpgMarket &newMarket);
 
 	int amount() const;
 	void setAmount(int newAmount);
@@ -85,8 +82,6 @@ public:
 	void setExpiry(const QDateTime &newExpiry);
 
 	bool available() const;
-
-	RpgMarket::Type marketType() const;
 
 	QString readableName() const;
 	void setReadableName(const QString &newReadableName);
@@ -101,9 +96,6 @@ public:
 	void setRank(const Rank &newRank);
 
 	bool buyable() const;
-
-	QList<RpgMarketExtendedInfo> extendedInfo() const;
-	void setExtendedInfo(const QList<RpgMarketExtendedInfo> &newExtendedInfo);
 
 	QString baseReadableName() const;
 	void setBaseReadableName(const QString &newBaseReadableName);
@@ -128,13 +120,12 @@ signals:
 
 private:
 	//static QList<RpgMarketExtendedInfo> getExtendedInfo(const RpgGameDefinition &def);
-	static QList<RpgMarketExtendedInfo> getExtendedInfo(const RpgMarket &market);
+	//static QList<RpgMarketExtendedInfo> getExtendedInfo(const RpgMarket &market);
 	//static QList<RpgMarketExtendedInfo> getExtendedInfo(const RpgPlayerCharacterConfig &player);
 
 	bool hasCharacter(const QString &character, RpgUserWalletList *list = nullptr) const;
 	bool isBelongsSolved() const;
 
-	RpgMarket m_market;
 	int m_amount = 0;
 	QDateTime m_expiry;
 	QString m_readableName;
@@ -144,7 +135,6 @@ private:
 	QString m_sortName;
 	Rank m_rank;
 	RpgUserWalletList *m_walletList = nullptr;
-	QList<RpgMarketExtendedInfo> m_extendedInfo;
 
 	friend class RpgUserWalletList;
 };
@@ -239,11 +229,7 @@ public:
 	RpgUserWorld *world() const;
 	Q_INVOKABLE RpgUserWallet *worldGetSelectedWallet() const;
 
-	RpgGameData::Armory getArmory(const QString &character) const;
-
-	static QString getWeaponImage(const RpgMarket &market);
 	static QString getWeaponImage(const QString &name, const int &subType);
-	static QString getWeaponImage(const RpgGameData::Weapon::WeaponType &type, const int &subType);
 
 
 signals:
@@ -255,10 +241,7 @@ signals:
 private:
 	void loadMarket(const QJsonObject &json);
 	void loadWallet(const QJsonObject &json);
-	void updateMarket(const RpgMarket &market);
-	void updateMarket(const RpgWallet &wallet);
 	void updateAllWalletBuyable();
-	void removeMissing(const QVector<RpgMarket> &list);
 
 	int m_currency = 0;
 
