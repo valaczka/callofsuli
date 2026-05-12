@@ -30,6 +30,7 @@ Item {
 
 	signal joystickMoved(real x, real y)
 	signal directionChanged(real angle, real distance)
+	signal clicked()
 
 	onWidthChanged: moveThumb(root.width/2, root.height/2)
 	onHeightChanged: moveThumb(root.width/2, root.height/2)
@@ -112,8 +113,27 @@ Item {
 		touchPoints: [
 			TouchPoint {
 				id: point
+
+				property var _start: 0
+
+				onPressedChanged: {
+					if (pressed) {
+						_start = new Date().getTime()
+					} else {
+						let diff = new Date().getTime() - _start
+						let delta = Math.max(Math.abs(startX-x), Math.abs(startY-y))
+
+						_start = 0
+
+						if (delta < 20 && diff < 250) {
+							root.clicked()
+						}
+
+					}
+				}
 			}
 		]
+
 
 		onTouchUpdated: touchPoints => {
 							if (touchPoints.length) {

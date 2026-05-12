@@ -876,7 +876,6 @@ FocusScope {
 
 	function startGame() {
 		if (_item.isContentReady && _delayTimer._finished) {
-			console.info("-------------------------------HIDE")
 			_loadingRect.visible = false
 			game.gameItemPrepared()
 		}

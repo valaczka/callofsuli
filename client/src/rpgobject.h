@@ -28,9 +28,46 @@
 #define RPGOBJECT_H
 
 #include <QQmlEngine>
+#include "abstracttiledmotor.h"
 #include "isometricobject.h"
 #include "rpggame.h"
 #include "rpggameitem.h"
+
+
+class RpgObject;
+
+/**
+ * @brief The AbstractRpgMotor class
+ */
+
+class AbstractRpgMotor : public AbstractTiledMotor
+{
+public:
+	AbstractRpgMotor(RpgObject *rpgObject);
+
+	virtual bool beforeWorldStep(const qint64 &tick, entt::entity &entity) { Q_UNUSED(tick); Q_UNUSED(entity); return false; }
+	virtual bool afterWorldStep(const qint64 &tick, entt::entity &entity) { Q_UNUSED(tick); Q_UNUSED(entity); return false; }
+
+protected:
+	virtual void onShapeContactBegin(cpShape *self, cpShape *other) { Q_UNUSED(self); Q_UNUSED(other); }
+	virtual void onShapeContactEnd(cpShape *self, cpShape *other) { Q_UNUSED(self); Q_UNUSED(other); }
+
+
+protected:
+	RpgObject *const m_object;
+	RpgGameItem *m_gameItem = nullptr;
+	RpgGame *m_game = nullptr;
+
+	friend class RpgObject;
+};
+
+
+
+
+
+/**
+ * @brief The RpgObject class
+ */
 
 class RpgObject : public IsometricObject
 {
@@ -42,8 +79,25 @@ public:
 
 	virtual void updateSprite() {}
 
+	AbstractRpgMotor* defaultMotor() const;
+	void setDefaultMotor(std::unique_ptr<AbstractRpgMotor> newDefaultMotor);
+
+	AbstractRpgMotor* secondaryMotor() const;
+	void setSecondaryMotor(std::unique_ptr<AbstractRpgMotor> newSecondaryMotor);
+
+	AbstractRpgMotor* currentMotor() const { return m_secondaryMotor ? m_secondaryMotor.get() : m_defaultMotor.get(); }
+
+protected:
+	void worldStep() override final;
+	void onShapeContactBegin(cpShape *self, cpShape *other) override final;
+	void onShapeContactEnd(cpShape *self, cpShape *other) override final;
+
 protected:
 	RpgGame *m_rpgGame = nullptr;
+	std::unique_ptr<AbstractRpgMotor> m_defaultMotor;
+	std::unique_ptr<AbstractRpgMotor> m_secondaryMotor;
+
+	friend class AbstractRpgMotor;
 };
 
 #endif // RPGOBJECT_H

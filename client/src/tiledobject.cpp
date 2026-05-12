@@ -285,7 +285,7 @@ bool TiledObject::moveToPoint(const cpVect &point, const int &inFrame, const flo
 float TiledObjectBodyPrivate::normalizeFromRadian(const float &radian)
 {
 	if (radian < -M_PI || radian > M_PI) {
-		LOG_CTRACE("scene") << "Invalid radian:" << radian;
+		///LOG_CTRACE("scene") << "Invalid radian:" << radian;
 		return M_PI;
 	}
 

@@ -137,6 +137,18 @@ RpgLogic::RpgLogic()
 	registerCtx<RpgStream::PlayerPositionList>();
 	registerCtx<RpgStream::GameConfig>();
 	registerCtx<ChunkGrid>();
+	registerCtx<IdTagMapper>();
+}
+
+
+/**
+ * @brief RpgLogic::getScope
+ * @return
+ */
+
+RpgLogicScope RpgLogic::getScope()
+{
+	return RpgLogicScope(this);
 }
 
 
@@ -195,7 +207,23 @@ void RpgLogic::entitySetIdTag(entt::entity &entity, const quint32 &tag)
 	if (entity == entt::null)
 		return;
 
+	QMutexLocker locker(&m_mutex);
+
 	m_registry.emplace_or_replace<IdTag>(entity, tag);
+	m_registry.ctx().get<IdTagMapper>().map.insert(tag, entity);
+}
+
+
+/**
+ * @brief RpgLogic::entityFromIdTag
+ * @param tag
+ * @return
+ */
+
+entt::entity RpgLogic::entityFromIdTag(const quint32 &tag) const
+{
+	QMutexLocker locker(&m_mutex);
+	return m_registry.ctx().get<IdTagMapper>().get(tag);
 }
 
 
@@ -209,6 +237,7 @@ void RpgLogic::entitySetIdTag(entt::entity &entity, const quint32 &tag)
 
 ChunkGrid &RpgLogic::loadChunkGrid(ChunkGrid &&grid)
 {
+	QMutexLocker locker(&m_mutex);
 	return m_registry.ctx().insert_or_assign<ChunkGrid>(std::move(grid));
 }
 
@@ -221,6 +250,7 @@ ChunkGrid &RpgLogic::loadChunkGrid(ChunkGrid &&grid)
 
 ChunkGrid &RpgLogic::loadChunkGrid(const RpgStream::ChunkGrid &grid)
 {
+	QMutexLocker locker(&m_mutex);
 	return m_registry.ctx().insert_or_assign<ChunkGrid>(ChunkGrid::fromRpgStream(grid));
 }
 
@@ -235,7 +265,9 @@ ChunkGrid &RpgLogic::loadChunkGrid(const RpgStream::ChunkGrid &grid)
 
 void RpgLogic::playerPositionAdd(const QPointF &pos, const TeamTag::Team &team)
 {
-	RpgStream::PlayerPositionList *list = getCtx<RpgStream::PlayerPositionList>();
+	RpgLogicScope scope = getScope();
+	RpgStream::PlayerPositionList *list = scope.getCtx<RpgStream::PlayerPositionList>();
+
 	Q_ASSERT(list);
 
 	RpgStream::PlayerPosition p;
@@ -255,6 +287,7 @@ void RpgLogic::playerPositionAdd(const QPointF &pos, const TeamTag::Team &team)
 
 void RpgLogic::playerPositionListSet(RpgStream::PlayerPositionList &&list)
 {
+	QMutexLocker locker(&m_mutex);
 	m_registry.ctx().insert_or_assign<RpgStream::PlayerPositionList>(std::move(list));
 }
 
@@ -269,6 +302,7 @@ void RpgLogic::playerPositionListSet(RpgStream::PlayerPositionList &&list)
 
 entt::entity RpgLogic::playerAdd(const TeamTag::Team &team)
 {
+	QMutexLocker locker(&m_mutex);
 	auto view = m_registry.view<Player>();
 
 	quint8 next = 1;
@@ -303,7 +337,9 @@ entt::entity RpgLogic::playerAdd(const TeamTag::Team &team)
 
 bool RpgLogic::emplacePlayers()
 {
-	RpgStream::PlayerPositionList *list = getCtx<RpgStream::PlayerPositionList>();
+	RpgLogicScope scope = getScope();
+	RpgStream::PlayerPositionList *list = scope.getCtx<RpgStream::PlayerPositionList>();
+
 	Q_ASSERT(list);
 
 	if (list->list().empty()) {
@@ -375,6 +411,8 @@ bool RpgLogic::emplacePlayers()
 
 bool RpgLogic::initializePlayers()
 {
+	QMutexLocker locker(&m_mutex);
+
 	auto view = m_registry.view<Player>();
 
 	for (auto &player : view) {
@@ -390,6 +428,96 @@ bool RpgLogic::initializePlayers()
 	}
 
 	return true;
+}
+
+
+/**
+ * @brief RpgLogic::lastAuthTick
+ * @return
+ */
+
+quint32 RpgLogic::lastAuthTick() const
+{
+	QMutexLocker locker(&m_mutex);
+	return m_lastAuthTick;
+}
+
+
+/**
+ * @brief RpgLogic::setLastAuthTick
+ * @param newLastAuthTick
+ */
+
+void RpgLogic::setLastAuthTick(quint32 newLastAuthTick)
+{
+	QMutexLocker locker(&m_mutex);
+	m_lastAuthTick = newLastAuthTick;
+}
+
+
+
+/**
+ * @brief RpgLogic::render
+ */
+
+void RpgLogic::render()
+{
+	QMutexLocker locker(&m_mutex);
+
+	++m_lastAuthTick;
+
+
+	/*entt::entity p1 = entityFromIdTag(RpgLogic::packId(0, 1, 0));
+
+	auto [player, tick] = m_registry.try_get<Rpg::Player, Rpg::PlayerTickMap>(p1);
+
+	if (!player || !tick) {
+		LOG_CERROR("game") << "ERR";
+		return;
+	}
+
+	const quint32 fromTick = m_lastAuthTick-1;
+
+	auto fromIt = tick->map.lowerBound(fromTick);
+	auto toIt = tick->map.lowerBound(m_lastAuthTick);
+
+	if (fromIt == tick->map.end() || toIt == tick->map.end()) {
+		return;
+	}
+
+	if (fromIt.key() > fromTick || toIt.key() > m_lastAuthTick) {
+		return;
+	}
+
+	qint32 dx = (qint32) toIt->entityState().posX() - (qint32) fromIt->entityState().posX();
+	qint32 dy = (qint32) toIt->entityState().posY() - (qint32) fromIt->entityState().posY();
+
+	LOG_CDEBUG("game") << "FROM" << fromTick << "POS" << dx << dy << "TO" << m_lastAuthTick;
+
+	tick->map.erase(tick->map.begin(), toIt);
+
+
+	RpgStream::PlayerState ps;
+	ps.entityState().setVelX(dx);
+	ps.entityState().setVelY(dy);
+
+	auto view = m_registry.view<Rpg::Player>();
+
+	for (entt::entity e : view) {
+		auto [player, tick] = m_registry.try_get<Rpg::Player, Rpg::PlayerTickMap>(e);
+
+		if (!player || !tick) {
+			LOG_CERROR("game") << "ERR";
+			continue;
+		}
+
+		if (player->playerData.playerId() == 1)
+			continue;
+
+		tick->map.insert(m_lastAuthTick, ps);
+
+		tick->map.erase(tick->map.begin(), tick->map.lowerBound(m_lastAuthTick));
+	}*/
 }
 
 
@@ -467,6 +595,9 @@ QPair<quint32, quint32> ChunkGrid::getChunk(const float &x, const float &y) cons
 
 	return pos;
 }
+
+
+
 
 
 

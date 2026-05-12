@@ -32,7 +32,7 @@
 #include <QIODevice>
 #include <QColor>
 #include <entt/entt.hpp>
-#include "Logger.h"
+#include "qmutex.h"
 #include "qpaintdevice.h"
 #include "qpoint.h"
 #include "rpgstream.h"
@@ -169,6 +169,15 @@ struct IdTag
 };
 
 
+
+struct IdTagMapper
+{
+	QHash<quint32, entt::entity> map;
+
+	entt::entity get(const quint32 &id) const { return map.value(id, entt::null); }
+};
+
+
 // Csapatjelzés
 
 struct TeamTag
@@ -194,6 +203,7 @@ struct Player
 
 	quint32 idTag() const;
 };
+
 
 
 
@@ -227,8 +237,7 @@ struct ChunkGrid
 
 
 
-
-
+class RpgLogicScope;
 
 
 /**
@@ -241,20 +250,16 @@ public:
 	RpgLogic();
 	~RpgLogic() = default;
 
-	const entt::registry &registry() const { return m_registry; }
-	entt::registry &registry() { return m_registry; }
+	// Get scope
 
-	// EnTT Context
+	[[nodiscard]] RpgLogicScope getScope();
 
-	template <typename T>
-	void registerCtx();
+	// Set tick
 
-	template<typename T>
-	[[nodiscard]] const T *getCtx() const;
+	quint32 lastAuthTick() const;
+	void setLastAuthTick(quint32 newLastAuthTick);
 
-	template<typename T>
-	[[nodiscard]] T *getCtx();
-
+	virtual void render();
 
 	// EnTT object id
 
@@ -262,6 +267,7 @@ public:
 	static void unpackId(const quint32 &from, quint32 &scene, quint32 &owner, quint32 &id);
 
 	void entitySetIdTag(entt::entity &entity, const quint32 &tag);
+	entt::entity entityFromIdTag(const quint32 &tag) const;
 
 	// Chunk grid
 
@@ -280,9 +286,82 @@ public:
 	bool initializePlayers();
 
 
+
+protected:
+	quint32 m_lastAuthTick = 0;
+
 private:
+	template <typename T>
+	void registerCtx() {
+		QMutexLocker locker(&m_mutex);
+		if (!m_registry.ctx().contains<T>()) {
+			m_registry.ctx().emplace<T>();
+		}
+	}
+
+	mutable QRecursiveMutex m_mutex;
 	entt::registry m_registry;
+
+	friend class RpgLogicScope;
 };
+
+
+
+
+
+
+
+
+
+/**
+ * @brief The RpgLogicScope class
+ */
+
+class RpgLogicScope
+{
+public:
+	RpgLogicScope(RpgLogic *logic)
+		: m_logic(logic)
+		, m_locker(&logic->m_mutex)
+	{}
+
+	// EnTT Context
+
+	template <typename T>
+	void registerCtx();
+
+	template<typename T>
+	[[nodiscard]] const T *getCtx() const;
+
+	template<typename T>
+	[[nodiscard]] T *getCtx();
+
+
+
+	template<typename... Ts, typename... Args>
+	[[nodiscard]] auto view(Args&&... args) const;
+
+	template<typename... Ts, typename... Args>
+	[[nodiscard]] auto try_get(Args&&... args) const;
+
+	template<typename... Ts, typename... Args>
+	[[nodiscard]] auto get(Args&&... args) const;
+
+
+	RpgLogic *logic() const { return m_logic; }
+
+	entt::entity entityFromIdTag(const quint32 &tag) const { return m_logic->entityFromIdTag(tag); }
+
+private:
+	RpgLogic *const m_logic;
+	const QMutexLocker<QRecursiveMutex> m_locker;
+};
+
+
+
+
+
+
 
 
 
@@ -298,12 +377,9 @@ inline quint32 Player::idTag() const { return RpgLogic::packId(0, playerData.pla
  */
 
 template<typename T>
-inline void RpgLogic::registerCtx()
+inline void RpgLogicScope::registerCtx()
 {
-	if (!m_registry.ctx().contains<T>()) {
-		LOG_CDEBUG("game") << "Register to ctx";
-		m_registry.ctx().emplace<T>();
-	}
+	m_logic->registerCtx<T>();
 }
 
 
@@ -313,9 +389,9 @@ inline void RpgLogic::registerCtx()
  */
 
 template<typename T>
-inline T *RpgLogic::getCtx()
+inline T *RpgLogicScope::getCtx()
 {
-	return m_registry.ctx().find<T>();
+	return m_logic->m_registry.ctx().find<T>();
 }
 
 
@@ -325,12 +401,49 @@ inline T *RpgLogic::getCtx()
  */
 
 template<typename T>
-inline const T *RpgLogic::getCtx() const
+inline const T *RpgLogicScope::getCtx() const
 {
-	return m_registry.ctx().find<T>();
+	return m_logic->m_registry.ctx().find<T>();
 }
 
 
+
+
+/**
+ * @brief RpgLogic::view
+ * @param args
+ */
+
+template<typename... Ts, typename... Args>
+inline auto RpgLogicScope::view(Args&&... args) const
+{
+	return m_logic->m_registry.view<Ts...>(std::forward<Args>(args)...);
+}
+
+
+/**
+ * @brief RpgLogic::try_get
+ * @param args
+ */
+
+template<typename... Ts, typename... Args>
+inline auto RpgLogicScope::try_get(Args&&... args) const
+{
+	return m_logic->m_registry.try_get<Ts...>(std::forward<Args>(args)...);
+}
+
+
+
+/**
+ * @brief RpgLogic::try_get
+ * @param args
+ */
+
+template<typename... Ts, typename... Args>
+inline auto RpgLogicScope::get(Args&&... args) const
+{
+	return m_logic->m_registry.get<Ts...>(std::forward<Args>(args)...);
+}
 
 }			// end namespace
 

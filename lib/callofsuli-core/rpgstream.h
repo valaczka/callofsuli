@@ -49,6 +49,10 @@
 #define QUANTIZED_SIGNED_TYPE		qint32
 #define QUANTIZED_SIGNED_BITS		24
 
+#define STATE_LIST_TYPE				quint8
+#define STATE_LIST_BITS				8						// Max: 256 frame = ~4 sec
+
+
 
 namespace RpgStream
 {
@@ -197,9 +201,9 @@ public:
 
 
 
-#define STREAM_FIELD(type, field, name) \
+#define STREAM_FIELD(type, field, name, error) \
 	private: \
-	mutable type m_##field; \
+	mutable type m_##field = error; \
 	public: \
 	type& field() { return m_##field; } \
 	const type& field() const { return m_##field; } \
@@ -223,7 +227,7 @@ public:
 
 
 #define STREAM_MEMBER(type, field, name, bits, error) \
-	STREAM_FIELD(type, field, name) \
+	STREAM_FIELD(type, field, name, error) \
 	public: \
 	const type& read##name(EngineStream &stream) { \
 	m_##field = readBits<type>(stream, bits, error); \
@@ -233,7 +237,7 @@ public:
 
 
 #define STREAM_MEMBER_CAST(cast, field, name, type, bits, error) \
-	STREAM_FIELD(cast, field, name) \
+	STREAM_FIELD(cast, field, name, error) \
 	public: \
 	const cast& read##name(EngineStream &stream) { \
 	m_##field = readBitsAs<cast, type>(stream, bits, error); \
@@ -243,7 +247,7 @@ public:
 
 
 #define STREAM_MEMBER_BYTEARRAY(field, name) \
-	STREAM_FIELD(QByteArray, field, name) \
+	STREAM_FIELD(QByteArray, field, name, {}) \
 	public: \
 	const QByteArray& read##name(EngineStream &stream) { \
 	m_##field = stream.readByteArray(true).value_or(QByteArray()); \
@@ -256,7 +260,7 @@ public:
 
 
 #define STREAM_MEMBER_VECTOR(type, field, name, sizetype, bits) \
-	STREAM_FIELD(std::vector<type>, field, name) \
+	STREAM_FIELD(std::vector<type>, field, name, {}) \
 	public: \
 	const std::vector<type>& read##name(EngineStream &stream) { \
 	m_##field.clear(); \
@@ -292,7 +296,7 @@ public:
 
 #define STREAM_MEMBER_QUANT(field, name, error) \
 	private: \
-	QUANTIZED_TYPE m_##field; \
+	QUANTIZED_TYPE m_##field = error; \
 	public: \
 	QUANTIZED_TYPE& field() { return m_##field; } \
 	const QUANTIZED_TYPE& field() const { return m_##field; } \
@@ -309,7 +313,7 @@ public:
 
 #define STREAM_MEMBER_QUANT_SIGNED(field, name, error) \
 	private: \
-	QUANTIZED_SIGNED_TYPE m_##field; \
+	QUANTIZED_SIGNED_TYPE m_##field = error; \
 	public: \
 	QUANTIZED_SIGNED_TYPE& field() { return m_##field; } \
 	const QUANTIZED_SIGNED_TYPE& field() const { return m_##field; } \
@@ -325,14 +329,19 @@ public:
 
 
 
-#define STREAM_DELTA_MASK(type, bits, ...) \
-	private:\
-	type m_deltaMask = 0; \
-	enum DeltaMaskBit { __VA_ARGS__ }; \
+#define STREAM_ADD_DELTA_MODE \
+	private: \
 	mutable bool m_isDeltaMode = false; \
 	public:\
 	const bool &isDeltaMode() const { return m_isDeltaMode; } \
 	void setIsDeltaMode(const bool &mode) { m_isDeltaMode = mode; } \
+
+#define STREAM_DELTA_MASK(type, bits, ...) \
+	STREAM_ADD_DELTA_MODE \
+	private:\
+	type m_deltaMask = 0; \
+	enum DeltaMaskBit { __VA_ARGS__ }; \
+	public:\
 	type readDeltaMask(EngineStream &stream) {\
 	if (m_isDeltaMode) \
 	m_deltaMask = readBits<type>(stream, bits, 0); \
@@ -363,10 +372,11 @@ public:
 	if (!m_isDeltaMode || deltaMask(msk)) return read##name(stream); \
 	else return m_##field;} \
 	void write##name##Delta(EngineStream &stream) const { \
-	if (!m_isDeltaMode || deltaMask(msk)) write##name(stream); }
+	if (!m_isDeltaMode || deltaMask(msk)) write##name(stream); } \
+	bool has##name##DeltaMask() const { return deltaMask(msk); }
 
 
-#define STREAM_MEMBER_VECTOR_ADD_READ_DELTA(type, field, name, sizetype, bits) \
+#define STREAM_MEMBER_VECTOR_ADD_DELTA(type, field, name, sizetype, bits) \
 	const std::vector<type>& read##name##VectorDelta(EngineStream &stream, const bool &isDeltaMode = true) { \
 	if (!isDeltaMode) { return read##name(stream); } \
 	m_##field.clear(); \
@@ -378,7 +388,36 @@ public:
 	p << stream; \
 	m_##field.emplace_back(std::move(p)); \
 } \
-	return m_##field; }
+	return m_##field; } \
+	void write##name##VectorDelta(EngineStream &stream, const bool &isDeltaMode = true) const { \
+	if (!isDeltaMode) { return write##name(stream); } \
+	writeBits<sizetype>(stream, m_##field.size(), bits); \
+	for (type &p : m_##field) { \
+	p.setIsDeltaMode(isDeltaMode); \
+	p >> stream; \
+} \
+} \
+	void compress##name##Vector(const std::vector<type> &list, const type &original) { \
+	m_##field.clear(); \
+	m_##field.reserve(list.size()); \
+	for (const type &p : list) { \
+	type tmp = original; \
+	tmp.setIsDeltaMode(true); \
+	tmp.loadFromDelta(p, false); \
+	m_##field.emplace_back(std::move(tmp)); \
+} \
+} \
+	std::vector<type> extract##name##Vector(const type &original) const { \
+	std::vector<type> out; \
+	out.reserve(m_##field.size()); \
+	for (const type &p : m_##field) { \
+	type tmp = original; \
+	tmp.setIsDeltaMode(true); \
+	tmp.loadFromDelta(p, true); \
+	out.emplace_back(std::move(tmp)); \
+} \
+	return out; \
+}
 
 
 #define STREAM_DELTA_MEMBER(type, field, name, bits, error, msk) \
@@ -396,16 +435,9 @@ public:
 	STREAM_MEMBER_ADD_DELTA(QByteArray, field, name, msk)
 
 
-#define STREAM_DELTA_MEMBER_VECTOR(type, field, name, sizetype, bits, msk) \
+#define STREAM_DELTA_MEMBER_VECTOR(type, field, name, sizetype, bits) \
 	STREAM_MEMBER_VECTOR(type, field, name, sizetype, bits) \
-	STREAM_MEMBER_ADD_DELTA(std::vector<type>, field, name, msk) \
-	STREAM_MEMBER_VECTOR_ADD_READ_DELTA(type, field, name, sizetype, bits) \
-	void set##name##Delta(const bool &condition = true) { if (condition) assignDeltaMask(msk); }
-
-
-#define STREAM_MEMBER_VECTOR_READ_DELTA(type, field, name, sizetype, bits) \
-	STREAM_MEMBER_VECTOR(type, field, name, sizetype, bits) \
-	STREAM_MEMBER_VECTOR_ADD_READ_DELTA(type, field, name, sizetype, bits)
+	STREAM_MEMBER_VECTOR_ADD_DELTA(type, field, name, sizetype, bits)
 
 
 #define STREAM_DELTA_MEMBER_RESOLVED(field, name, msk) \
@@ -421,6 +453,26 @@ public:
 #define STREAM_DELTA_MEMBER_QUANT_SIGNED(field, name, error, msk) \
 	STREAM_MEMBER_QUANT_SIGNED(field, name, error) \
 	STREAM_MEMBER_ADD_DELTA(QUANTIZED_SIGNED_TYPE, field, name, msk)
+
+
+
+
+#define LOAD_FROM_DELTA_START(type) \
+	void loadFromDelta(const type &other, const bool fromMask) { \
+	m_deltaMask = 0;
+
+#define LOAD_FROM_DELTA(field, name) \
+	if (fromMask) \
+	set##name##Delta(other.field(), other.has##name##DeltaMask()); \
+	else \
+	set##name##Delta(other.field(), other.field() != field());
+
+#define LOAD_FROM_DELTA_MEMBER(field) \
+	m_##field.loadFromDelta(other.m_##field, fromMask);
+
+#define LOAD_FROM_DELTA_END \
+	setIsDeltaMode(true); \
+}
 
 
 #define TO_DATA_STREAM(dataOp) \
@@ -622,7 +674,7 @@ public:
 	STREAM_MEMBER(ENGINE_ID_TYPE, id, Id, ENGINE_ID_BITS, 0);
 	STREAM_MEMBER(ENGINE_READABLE_ID_TYPE, readableId, ReadableId, ENGINE_READABLE_ID_BITS, 0);
 	STREAM_MEMBER_VECTOR(EnginePlayer, players, Players, PLAYER_ID_TYPE, PLAYER_ID_BITS)
-	STREAM_FIELD(EnginePlayer, owner, Owner)
+	STREAM_FIELD(EnginePlayer, owner, Owner, {})
 	STREAM_MEMBER(PLAYER_ID_TYPE, maxPlayer, MaxPlayer, PLAYER_ID_BITS, 0)
 
 };
@@ -758,12 +810,18 @@ public:
 		FlagNull				= 0,
 		FlagTerrain				= 1 << 0,				// terep elküldve
 		FlagPlayerPosition		= 1 << 1,				// kezdőpozíciók elküldve
-		FlagChunkGrid			= 1 << 2,				// ChunkGrid elküldve
+		FlagRandomizer			= 1 << 2,				// randomizer elküldve
+		FlagRandomizerFinished	= 1 << 3,				// randomizer elkészült
+		FlagChunkGrid			= 1 << 4,				// ChunkGrid elküldve
+		FlagInit				= 1 << 5,				// szükséges kezdő lépések
+		FlagPlaying				= 1 << 6,				// játék
+		FlagFinished			= 1 << 7,				// játék véget ért
 	};
 
 
 	STREAM_MEMBER_RESOLVED(terrain, Terrain)
 	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 16, FlagNull)
+	STREAM_MEMBER(quint32, duration, Duration, 18, 0)	// egy játék hozza, 2^18 frame = max. ~72 perc
 };
 
 
@@ -820,7 +878,7 @@ public:
 	EngineStream& operator>>(EngineStream &stream) const;
 
 
-	STREAM_FIELD(GameConfig, gameConfig, GameConfig)
+	STREAM_FIELD(GameConfig, gameConfig, GameConfig, {})
 	STREAM_MEMBER_VECTOR(PlayerData, players, Players, PLAYER_ID_TYPE, PLAYER_ID_BITS)
 	STREAM_MEMBER(PLAYER_ID_TYPE, maxPlayers, MaxPlayers, PLAYER_ID_BITS, 0)
 	STREAM_MEMBER(ENGINE_READABLE_ID_TYPE, engineReadableId, EngineReadableId, ENGINE_READABLE_ID_BITS, 0);
@@ -845,20 +903,49 @@ public:
 
 
 	STREAM_DELTA_MASK (
-			quint32, 4,
+			quint32, 7,
 
+			Tick,
 			PosX,
 			PosY,
 			VelX,
 			VelY,
+			Angle,
+			Facing
 			)
 
 
-	STREAM_DELTA_MEMBER_QUANT(posX, PosX, 0, PosX);
-	STREAM_DELTA_MEMBER_QUANT(posY, PosY, 0, PosY);
-	STREAM_DELTA_MEMBER_QUANT_SIGNED(velX, VelX, 0, VelX);
-	STREAM_DELTA_MEMBER_QUANT_SIGNED(velY, VelY, 0, VelY);
+	STREAM_DELTA_MEMBER(quint32, tick, Tick, 32, 0, Tick)
 
+	STREAM_DELTA_MEMBER_QUANT(posX, PosX, 0, PosX)
+	STREAM_DELTA_MEMBER_QUANT(posY, PosY, 0, PosY)
+	STREAM_DELTA_MEMBER_QUANT_SIGNED(velX, VelX, 0, VelX)
+	STREAM_DELTA_MEMBER_QUANT_SIGNED(velY, VelY, 0, VelY)
+	STREAM_DELTA_MEMBER_QUANT_SIGNED(angle, Angle, 0, Angle)
+	STREAM_DELTA_MEMBER_QUANT_SIGNED(facing, Facing, 0, Facing)
+
+
+	bool operator==(const EntityState &other) const {
+		return other.m_posX == m_posX &&
+				other.m_posY == m_posY &&
+				other.m_velX == m_velX &&
+				other.m_velY == m_velY &&
+				other.m_angle == m_angle &&
+				other.m_facing == m_facing;
+	}
+
+
+	LOAD_FROM_DELTA_START(EntityState)
+
+	LOAD_FROM_DELTA(tick, Tick)
+	LOAD_FROM_DELTA(posX, PosX)
+	LOAD_FROM_DELTA(posY, PosY)
+	LOAD_FROM_DELTA(velX, VelX)
+	LOAD_FROM_DELTA(velY, VelY)
+	LOAD_FROM_DELTA(angle, Angle)
+	LOAD_FROM_DELTA(facing, Facing)
+
+	LOAD_FROM_DELTA_END
 };
 
 
@@ -881,18 +968,43 @@ public:
 
 			)
 
-	STREAM_FIELD(EntityState, entityState, EntityState)
+	STREAM_FIELD(EntityState, entityState, EntityState, {})
 
-	STREAM_DELTA_MEMBER(quint32, hp, Hp, 8, 0, Hp);					// Max: 256
-	STREAM_DELTA_MEMBER(quint32, maxHp, MaxHp, 8, 0, MaxHp);		// Max: 256
+	STREAM_DELTA_MEMBER(quint32, hp, Hp, 8, 0, Hp)					// Max: 256
+	STREAM_DELTA_MEMBER(quint32, maxHp, MaxHp, 8, 0, MaxHp)		// Max: 256
 
+	bool operator==(const PlayerState &other) const {
+		return other.m_entityState == m_entityState &&
+				other.m_hp == m_hp &&
+				other.m_maxHp == m_maxHp;
+	}
+
+
+	LOAD_FROM_DELTA_START(PlayerState)
+
+	LOAD_FROM_DELTA(hp, Hp)
+	LOAD_FROM_DELTA(maxHp, MaxHp)
+
+	LOAD_FROM_DELTA_MEMBER(entityState)
+
+	LOAD_FROM_DELTA_END
 };
 
 
 
 
+class PlayerStateList
+{
+public:
+	PlayerStateList() = default;
 
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
 
+	STREAM_ADD_DELTA_MODE
+
+	STREAM_DELTA_MEMBER_VECTOR(PlayerState, state, State, STATE_LIST_TYPE, STATE_LIST_BITS)
+};
 
 
 }		// end of namespace

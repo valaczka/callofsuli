@@ -60,7 +60,8 @@ public:
 		FixtureVirtualCircle	= 1 << 5,
 
 
-		FixtureAll = FixtureGround |
+		FixtureAll =
+		FixtureGround |
 		FixtureExcluded	|
 		FixturePlayerBody |
 		FixturePlayerTarget |
@@ -87,6 +88,14 @@ protected:
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const QString &groupClass, Tiled::MapRenderer *renderer) override;
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer) override;
 	virtual void loadImageLayer(TiledScene *scene, Tiled::ImageLayer *image, Tiled::MapRenderer *renderer) override;
+
+	virtual void timeStepPrepareEvent() override final;
+	virtual void timeBeforeWorldStepEvent(const qint64 &tick) override final;
+	virtual void timeAfterWorldStepEvent(const qint64 &tick) override final;
+
+	virtual void keyPressEvent(QKeyEvent *event) override;
+	virtual void keyReleaseEvent(QKeyEvent *event) override;
+	virtual void joystickStateEvent(const Joystick &joystick, const JoystickState &state) override;
 
 signals:
 	void gameChanged();

@@ -30,6 +30,12 @@
 #include "rpgobject.h"
 #include <QQmlEngine>
 
+
+
+/**
+ * @brief The RpgEntity class
+ */
+
 class RpgEntity : public RpgObject
 {
 	Q_OBJECT
@@ -65,5 +71,25 @@ protected:
 	int m_hp = 1;
 	int m_maxHp = 1;
 };
+
+
+
+
+
+/**
+ * @brief The RpgMotorEntity class
+ */
+
+class RpgMotorEntity : public AbstractRpgMotor
+{
+public:
+	RpgMotorEntity(RpgEntity *entity);
+
+protected:
+	RpgEntity *const m_entity;
+};
+
+
+
 
 #endif // RPGENTITY_H

@@ -43,3 +43,94 @@ RpgObject::RpgObject(RpgGameItem *gameItem, const QPointF &center, const qreal &
 
 	m_rpgGame = gameItem->game();
 }
+
+
+/**
+ * @brief RpgObject::worldStep
+ */
+
+void RpgObject::worldStep()
+{
+	if (AbstractRpgMotor *m = currentMotor())
+		m->updateBody(this);
+	else
+		LOG_CERROR("game") << "Missing RpgMotor" << this;
+
+	IsometricObject::worldStep();
+}
+
+
+/**
+ * @brief RpgObject::onShapeContactBegin
+ * @param self
+ * @param other
+ */
+
+void RpgObject::onShapeContactBegin(cpShape *self, cpShape *other)
+{
+	if (AbstractRpgMotor *m = currentMotor())
+		m->onShapeContactBegin(self, other);
+}
+
+
+/**
+ * @brief RpgObject::onShapeContactEnd
+ * @param self
+ * @param other
+ */
+
+void RpgObject::onShapeContactEnd(cpShape *self, cpShape *other)
+{
+	if (AbstractRpgMotor *m = currentMotor())
+		m->onShapeContactEnd(self, other);
+}
+
+
+/**
+ * @brief RpgObject::secondaryMotor
+ * @return
+ */
+
+AbstractRpgMotor*RpgObject::secondaryMotor() const
+{
+	return m_secondaryMotor.get();
+}
+
+void RpgObject::setSecondaryMotor(std::unique_ptr<AbstractRpgMotor> newSecondaryMotor)
+{
+	m_secondaryMotor = std::move(newSecondaryMotor);
+}
+
+
+/**
+ * @brief RpgObject::defaultMotor
+ * @return
+ */
+
+AbstractRpgMotor*RpgObject::defaultMotor() const
+{
+	return m_defaultMotor.get();
+}
+
+void RpgObject::setDefaultMotor(std::unique_ptr<AbstractRpgMotor> newDefaultMotor)
+{
+	m_defaultMotor = std::move(newDefaultMotor);
+}
+
+
+/**
+ * @brief AbstractRpgMotor::AbstractRpgMotor
+ * @param rpgObject
+ */
+
+AbstractRpgMotor::AbstractRpgMotor(RpgObject *rpgObject)
+	: AbstractTiledMotor()
+	, m_object(rpgObject)
+{
+	Q_ASSERT(m_object);
+
+	m_game = m_object->m_rpgGame;
+	m_gameItem = m_game ? m_game->gameItem() : nullptr;
+}
+
+

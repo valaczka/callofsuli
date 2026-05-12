@@ -249,7 +249,9 @@ SOURCES += \
 	rpgentity.cpp \
 	rpggame.cpp \
 	rpggameitem.cpp \
+	rpglogicclient.cpp \
 	rpgobject.cpp \
+	rpgplayer.cpp \
 	rpguserwallet.cpp \
 	rpgworldlanddata.cpp \
 	scorelist.cpp \
@@ -339,7 +341,9 @@ HEADERS += \
 	rpggame.h \
 	rpggame_p.h \
 	rpggameitem.h \
+	rpglogicclient.h \
 	rpgobject.h \
+	rpgplayer.h \
 	rpguserwallet.h \
 	rpgworldlanddata.h \
 	rpgworldlanddata_p.h \

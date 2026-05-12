@@ -30,6 +30,7 @@
 #include <QObject>
 #include "rpggame.h"
 #include "rpglogic.h"
+#include "rpglogicclient.h"
 #include "rpgobject.h"
 
 /**
@@ -60,6 +61,17 @@ private:
 	void prepareGameItem();
 	void onGameItemPrepared();
 	void loadChunkGrid();
+	void connectJoysticks();
+
+	Q_INVOKABLE void joystickClickedA();
+	Q_INVOKABLE void joystickClickedB();
+	Q_INVOKABLE void joystickClickedC();
+	Q_INVOKABLE void joystickClickedD();
+
+
+	// Play
+
+	void startGame();
 
 
 	// Synchronize
@@ -77,7 +89,8 @@ private:
 
 private:
 	RpgGame *const q;
-	Rpg::RpgLogic m_logic;
+	Rpg::RpgLogicClient m_logic;
+	quint32 m_deadlineTick = 0;
 
 	inline static RpgStream::HashFnv1A64 m_terrainHash = {};
 	inline static RpgStream::HashFnv1A64 m_characterHash = {};

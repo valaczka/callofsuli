@@ -28,17 +28,25 @@
 #define RPGGAME_H
 
 #include "abstractlevelgame.h"
+#include "rpglogic.h"
+#include "rpglogicclient.h"
 #include "tiledgame.h"
 
 
 class RpgGamePrivate;
 class RpgGameItem;
+class RpgPlayer;
 
 #ifndef OPAQUE_PTR_RpgGameItem
 #define OPAQUE_PTR_RpgGameItem
 Q_DECLARE_OPAQUE_POINTER(RpgGameItem*)
 #endif
 
+
+#ifndef OPAQUE_PTR_RpgPlayer
+#define OPAQUE_PTR_RpgPlayer
+Q_DECLARE_OPAQUE_POINTER(RpgPlayer*)
+#endif
 
 
 /**
@@ -82,6 +90,7 @@ class RpgGame : public AbstractLevelGame
 	Q_PROPERTY(GameState gameState READ gameState WRITE setGameState NOTIFY gameStateChanged FINAL)
 	Q_PROPERTY(QString errorString READ errorString WRITE setErrorString NOTIFY errorStringChanged FINAL)
 	Q_PROPERTY(RpgGameItem *gameItem READ gameItem WRITE setGameItem NOTIFY gameItemChanged FINAL)
+	Q_PROPERTY(RpgPlayer *controlledPlayer READ controlledPlayer WRITE setControlledPlayer NOTIFY controlledPlayerChanged FINAL)
 
 public:
 	RpgGame(GameMapMissionLevel *missionLevel, Client *client);
@@ -123,7 +132,10 @@ public:
 	static void reloadWorld();
 
 
+	const Rpg::RpgLogicClient &rpgLogicClient() const;
+	Rpg::RpgLogicClient &rpgLogicClient();
 
+	virtual int msecLeft() const override;
 
 	GameState gameState() const;
 	void setGameState(const GameState &newGameState);
@@ -134,12 +146,17 @@ public:
 	RpgGameItem *gameItem() const;
 	void setGameItem(RpgGameItem *newGameItem);
 
+	RpgPlayer *controlledPlayer() const;
+	void setControlledPlayer(RpgPlayer *newControlledPlayer);
+
 signals:
 	void gameStateChanged();
 	void errorStringChanged();
 	void gameItemChanged();
+	void controlledPlayerChanged();
 
 protected:
+	virtual void timerEvent(QTimerEvent *) override;
 	virtual QQuickItem *loadPage() override;
 	virtual void connectGameQuestion() override;
 
@@ -160,6 +177,7 @@ private:
 
 	friend class RpgGamePrivate;
 	friend class RpgGameItem;
+	RpgPlayer *m_controlledPlayer = nullptr;
 };
 
 #endif // RPGGAME_H

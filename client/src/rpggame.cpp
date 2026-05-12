@@ -27,7 +27,7 @@
 #include <libtiledquick/tilelayeritem.h>
 #include <libtiled/imagecache.h>
 #include "application.h"
-#include "rpgentity.h"
+#include "rpgplayer.h"
 #include "rpgstream.h"
 #include "rpguserwallet.h"
 #include "tiledgame.h"
@@ -268,6 +268,37 @@ void RpgGame::reloadWorld()
 
 
 /**
+ * @brief RpgGame::rpgLogic
+ * @return
+ */
+
+const Rpg::RpgLogicClient &RpgGame::rpgLogicClient() const
+{
+	return d->m_logic;
+}
+
+Rpg::RpgLogicClient &RpgGame::rpgLogicClient()
+{
+	return d->m_logic;
+}
+
+
+
+/**
+ * @brief RpgGame::msecLeft
+ * @return
+ */
+
+int RpgGame::msecLeft() const
+{
+	if (!m_gameItem || !m_gameItem->tickTimer())
+		return -1;
+
+	return std::max(0ll, (qint64) d->m_deadlineTick - m_gameItem->tickTimer()->currentTick()) * 1000./60.;
+}
+
+
+/**
  * @brief RpgGame::loadPage
  * @return
  */
@@ -362,7 +393,8 @@ void RpgGamePrivate::prepareGameItem()
 	Q_ASSERT(!RpgGame::terrains().isEmpty());
 
 
-	RpgStream::GameConfig *cfg = m_logic.getCtx<RpgStream::GameConfig>();
+	Rpg::RpgLogicScope scope = m_logic.getScope();
+	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
 
 	Q_ASSERT(cfg);
 
@@ -389,9 +421,14 @@ void RpgGamePrivate::onGameItemPrepared()
 	LOG_CINFO("game") << "********************************************************";
 
 
+	connectJoysticks();
+
 	loadChunkGrid();
 
 	logicAddPlayer(Rpg::TeamTag::TeamNone, 5);
+
+	Rpg::RpgLogicScope scope = m_logic.getScope();
+	m_deadlineTick = scope.getCtx<RpgStream::GameConfig>()->duration();
 
 	m_logic.emplacePlayers();
 	m_logic.initializePlayers();
@@ -399,8 +436,9 @@ void RpgGamePrivate::onGameItemPrepared()
 	syncObjects();
 
 	/// TODO...
-	q->setGameState(RpgGame::GameStateInit);
+	///q->setGameState(RpgGame::GameStateInit);
 
+	startGame();
 }
 
 
@@ -443,6 +481,86 @@ void RpgGamePrivate::loadChunkGrid()
 
 
 
+/**
+ * @brief RpgGamePrivate::connectJoysticks
+ */
+
+void RpgGamePrivate::connectJoysticks()
+{
+	if (!q->m_gameItem)
+		return;
+
+
+	const QList<QPair<QQuickItem*, const char*> > list = {
+		{ q->m_gameItem->joystickA(), "joystickClickedA()" },
+		{ q->m_gameItem->joystickB(), "joystickClickedB()" },
+		{ q->m_gameItem->joystickC(), "joystickClickedC()" },
+		{ q->m_gameItem->joystickD(), "joystickClickedD()" },
+	};
+
+
+	const QMetaObject *moThis = this->metaObject();
+
+
+	for (const auto &p : list) {
+		if (!p.first)
+			continue;
+
+		const QMetaObject *mo = p.first->metaObject();
+
+		const int methodIndex = mo->indexOfMethod("clicked()");
+
+		if (methodIndex < 0)
+			continue;
+
+		connect(p.first, mo->method(methodIndex), this, moThis->method(moThis->indexOfMethod(p.second)));
+	}
+
+}
+
+
+
+/**
+ * @brief RpgGamePrivate::joystickClicked
+ * @param joystick
+ */
+
+void RpgGamePrivate::joystickClickedA()
+{
+	LOG_CINFO("game") << "CLICKED";
+}
+
+void RpgGamePrivate::joystickClickedB()
+{
+
+}
+
+void RpgGamePrivate::joystickClickedC()
+{
+
+}
+
+void RpgGamePrivate::joystickClickedD()
+{
+
+}
+
+
+
+/**
+ * @brief RpgGamePrivate::startGame
+ */
+
+void RpgGamePrivate::startGame()
+{
+	LOG_CINFO("game") << "START GAME";
+
+	q->setGameState(RpgGame::GameStatePlay);
+	q->m_gameItem->tickTimer()->start(q);
+}
+
+
+
 
 /**
  * @brief RpgGamePrivate::syncObjects
@@ -462,12 +580,14 @@ void RpgGamePrivate::syncObjects()
 
 void RpgGamePrivate::syncPlayers()
 {
-	auto view = m_logic.registry().view<Rpg::Player>(entt::exclude<Rpg::IdTag>);
+	Rpg::RpgLogicScope scope = m_logic.getScope();
+
+	auto view = scope.view<Rpg::Player>(entt::exclude<Rpg::IdTag>);
 
 	for (auto entity : view) {
-		RpgStream::PlayerState *state = m_logic.registry().try_get<RpgStream::PlayerState>(entity);
+		const RpgStream::PlayerState *state = scope.try_get<RpgStream::PlayerState>(entity);
 
-		Rpg::Player &p = m_logic.registry().get<Rpg::Player>(entity);
+		const Rpg::Player &p = scope.get<Rpg::Player>(entity);
 
 		TiledScene *scene = q->m_gameItem->currentScene();
 
@@ -483,8 +603,8 @@ void RpgGamePrivate::syncPlayers()
 			pos.setY(state->entityState().posYAsFloat());
 		}
 
-		RpgEntity *obj = q->m_gameItem->createObject<RpgEntity>(RpgLogicObjectMapper::toObjectId(p.idTag()), scene,
-																q->m_gameItem, pos, 25., CP_BODY_TYPE_KINEMATIC );
+		RpgPlayer *obj = q->m_gameItem->createObject<RpgPlayer>(RpgLogicObjectMapper::toObjectId(p.idTag()), scene,
+																q->m_gameItem, pos);
 
 		Q_ASSERT(obj);
 
@@ -502,6 +622,12 @@ void RpgGamePrivate::syncPlayers()
 						  << RpgLogicObjectMapper::toObjectId(pid).id
 						  << "->" << pid << "==" << obj->bodyPositionF() << "|" << obj->hp() << "HP" << "/" << obj->maxHp() << "MaxHp";
 
+
+		if (p.playerData.playerId() == 1) {
+			LOG_CWARNING("game") << "***** CONTROLLED" << obj;
+			obj->setSecondaryMotor(std::make_unique<RpgMotorPlayerControlled>(obj));
+			q->setControlledPlayer(obj);
+		}
 	}
 }
 
@@ -513,7 +639,7 @@ void RpgGamePrivate::syncPlayers()
 
 void RpgGamePrivate::syncChunks()
 {
-	Rpg::ChunkGrid *grid = m_logic.getCtx<Rpg::ChunkGrid>();
+	/*Rpg::ChunkGrid *grid = m_logic.getCtx<Rpg::ChunkGrid>();
 
 	Q_ASSERT(grid);
 
@@ -542,9 +668,9 @@ void RpgGamePrivate::syncChunks()
 
 			++n;
 		}
-	}
+	}*/
 
-	LOG_CINFO("game") << "ADDED CHUNKS" << n;
+	LOG_CERROR("game") << "OBSOLETE";
 }
 
 
@@ -560,7 +686,8 @@ quint32 RpgGamePrivate::logicRegisterObject(RpgObject *object)
 		return 0;
 	}
 
-	RpgLogicObjectMapper *mapper = m_logic.getCtx<RpgLogicObjectMapper>();
+	Rpg::RpgLogicScope scope = m_logic.getScope();
+	RpgLogicObjectMapper *mapper = scope.getCtx<RpgLogicObjectMapper>();
 
 	Q_ASSERT(mapper);
 
@@ -635,7 +762,8 @@ RpgGamePrivate::RpgGamePrivate(RpgGame *game)
 	: QObject()
 	, q(game)
 {
-	m_logic.registerCtx<RpgLogicObjectMapper>();
+	Rpg::RpgLogicScope scope = m_logic.getScope();
+	scope.registerCtx<RpgLogicObjectMapper>();
 }
 
 
@@ -708,7 +836,9 @@ void RpgGamePrivate::connectionCheck()
 		return;
 	}
 
-	m_logic.getCtx<RpgStream::GameConfig>()->setTerrainResolved("map_hu01_Pozsony");
+	Rpg::RpgLogicScope scope = m_logic.getScope();
+	scope.getCtx<RpgStream::GameConfig>()->setTerrainResolved("map_hu01_Pozsony");
+	scope.getCtx<RpgStream::GameConfig>()->setDuration(150*60);
 
 	q->setGameState(RpgGame::GameStatePrepare);
 
@@ -787,3 +917,28 @@ quint32 RpgLogicObjectMapper::set(RpgObject *object)
 
 
 
+
+RpgPlayer *RpgGame::controlledPlayer() const
+{
+	return m_controlledPlayer;
+}
+
+void RpgGame::setControlledPlayer(RpgPlayer *newControlledPlayer)
+{
+	if (m_controlledPlayer == newControlledPlayer)
+		return;
+	m_controlledPlayer = newControlledPlayer;
+	emit controlledPlayerChanged();
+}
+
+
+
+/**
+ * @brief RpgGame::timerEvent
+ */
+
+void RpgGame::timerEvent(QTimerEvent *)
+{
+	//LOG_CDEBUG("game") << "TICK" << m_gameItem->tickTimer()->currentTick();
+	emit msecLeftChanged();
+}

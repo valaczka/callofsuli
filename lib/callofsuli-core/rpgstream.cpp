@@ -229,6 +229,8 @@ EngineStream &Engine::operator>>(EngineStream &stream) const
 EngineStream &GameConfig::operator<<(EngineStream &stream)
 {
 	readTerrain(stream);
+	readFlags(stream);
+	readDuration(stream);
 
 	return stream;
 }
@@ -243,6 +245,8 @@ EngineStream &GameConfig::operator<<(EngineStream &stream)
 EngineStream &GameConfig::operator>>(EngineStream &stream) const
 {
 	writeTerrain(stream);
+	writeFlags(stream);
+	writeDuration(stream);
 
 	return stream;
 }
@@ -332,6 +336,8 @@ EngineStream &EntityState::operator<<(EngineStream &stream)
 	readPosYDelta(stream);
 	readVelXDelta(stream);
 	readVelYDelta(stream);
+	readAngleDelta(stream);
+	readFacingDelta(stream);
 
 	return stream;
 }
@@ -350,6 +356,8 @@ EngineStream &EntityState::operator>>(EngineStream &stream) const
 	writePosYDelta(stream);
 	writeVelXDelta(stream);
 	writeVelYDelta(stream);
+	writeAngleDelta(stream);
+	writeFacingDelta(stream);
 
 	return stream;
 }
@@ -383,7 +391,7 @@ EngineStream &PlayerState::operator>>(EngineStream &stream) const
 {
 	writeDeltaMask(stream);
 	m_entityState.setIsDeltaMode(m_isDeltaMode);
-	m_entityState << stream;
+	m_entityState >> stream;
 
 	writeHpDelta(stream);
 
@@ -522,6 +530,34 @@ EngineStream &PlayerPositionList::operator<<(EngineStream &stream)
 EngineStream &PlayerPositionList::operator>>(EngineStream &stream) const
 {
 	writeList(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief PlayerStateList::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &PlayerStateList::operator<<(EngineStream &stream)
+{
+	readStateVectorDelta(stream, m_isDeltaMode);
+
+	return stream;
+}
+
+
+/**
+ * @brief PlayerStateList::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &PlayerStateList::operator>>(EngineStream &stream) const
+{
+	writeStateVectorDelta(stream, m_isDeltaMode);
 
 	return stream;
 }

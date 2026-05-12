@@ -29,6 +29,7 @@
 #include "rpggame.h"
 #include "rpggame_p.h"
 #include "rpgobject.h"
+#include "rpgplayer.h"
 #include "utils_.h"
 
 
@@ -241,6 +242,133 @@ void RpgGameItem::loadImageLayer(TiledScene *scene, Tiled::ImageLayer *image, Ti
 	Q_UNUSED(scene);
 	Q_UNUSED(image);
 	Q_UNUSED(renderer);
+}
+
+
+
+/**
+ * @brief RpgGameItem::timeStepPrepareEvent
+ */
+
+void RpgGameItem::timeStepPrepareEvent()
+{
+
+}
+
+
+
+
+
+
+/**
+ * @brief RpgGameItem::timeBeforeWorldStepEvent
+ * @param tick
+ */
+
+void RpgGameItem::timeBeforeWorldStepEvent(const qint64 &tick)
+{
+	Rpg::RpgLogicScope scope = m_game->rpgLogicClient().getScope();
+	RpgLogicObjectMapper *mapper = scope.getCtx<RpgLogicObjectMapper>();
+
+	if (!mapper) {
+		LOG_CERROR("game") << "Missing RpgLogicObjectMapper";
+		return;
+	}
+
+	for (auto it=mapper->map.cbegin(); it != mapper->map.cend(); ++it) {
+		if (!it.value())
+			continue;
+
+		AbstractRpgMotor *motor = it->data()->currentMotor();
+
+		if (!motor) {
+			LOG_CERROR("game") << "Missing RpgMotor";
+			continue;
+		}
+
+		entt::entity ent = scope.entityFromIdTag(it.key());
+
+		motor->beforeWorldStep(tick, ent);
+	}
+}
+
+
+
+
+
+/**
+ * @brief RpgGameItem::timeAfterWorldStepEvent
+ * @param tick
+ */
+
+void RpgGameItem::timeAfterWorldStepEvent(const qint64 &tick)
+{
+	Rpg::RpgLogicScope scope = m_game->rpgLogicClient().getScope();
+	RpgLogicObjectMapper *mapper = scope.getCtx<RpgLogicObjectMapper>();
+
+	if (!mapper) {
+		LOG_CERROR("game") << "Missing RpgLogicObjectMapper";
+		return;
+	}
+
+	for (auto it=mapper->map.cbegin(); it != mapper->map.cend(); ++it) {
+		if (!it.value())
+			continue;
+
+		AbstractRpgMotor *motor = it->data()->currentMotor();
+
+		if (!motor) {
+			LOG_CERROR("game") << "Missing RpgMotor";
+			continue;
+		}
+
+		entt::entity ent = scope.entityFromIdTag(it.key());
+
+		motor->afterWorldStep(tick, ent);
+	}
+
+	if (tick > 6)
+		m_game->rpgLogicClient().render();
+}
+
+
+/**
+ * @brief RpgGameItem::keyPressEvent
+ * @param event
+ */
+
+void RpgGameItem::keyPressEvent(QKeyEvent *event)
+{
+	TiledGame::keyPressEvent(event);
+}
+
+
+/**
+ * @brief RpgGameItem::keyReleaseEvent
+ * @param event
+ */
+
+void RpgGameItem::keyReleaseEvent(QKeyEvent *event)
+{
+	TiledGame::keyReleaseEvent(event);
+}
+
+
+/**
+ * @brief RpgGameItem::joystickStateEvent
+ * @param joystick
+ * @param state
+ */
+
+void RpgGameItem::joystickStateEvent(const Joystick &joystick, const JoystickState &state)
+{
+	if (RpgPlayer *p = m_game->controlledPlayer()) {
+		if (RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(p->currentMotor())) {
+			if (joystick == JoystickA)
+				motor->setCurrentJoystickState(state);
+		}
+	}
+	TiledGame::joystickStateEvent(joystick, state);
 }
 
 
