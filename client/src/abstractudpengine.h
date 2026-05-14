@@ -90,15 +90,12 @@ public:
 	const PublicKeySigner &signer() const;
 	const quint32 &peerIndex() const;
 
-	void sendMessage(const std::vector<uint8_t> &data, const bool &reliable = true);
+	void sendMessage(const std::vector<uint8_t> &data, const bool &reliable = false);
 
 	void setUrl(const QUrl &url);
 
 	QByteArray connectionToken() const;
 	void setConnectionToken(const QByteArray &token);
-
-	int currentRtt() const;
-	void setCurrentRtt(const int &rtt);
 
 signals:
 	void serverConnected();

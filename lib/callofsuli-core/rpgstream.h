@@ -40,6 +40,10 @@
 #define PLAYER_ID_TYPE				quint8
 #define PLAYER_ID_BITS				3
 
+
+#define TAG_ID_TYPE					quint32
+#define TAG_ID_BITS					32
+
 #define CHUNK_SIZE_TYPE				quint32
 #define CHUNK_SIZE_BITS				12						// Max: 4096
 
@@ -52,6 +56,8 @@
 #define STATE_LIST_TYPE				quint8
 #define STATE_LIST_BITS				8						// Max: 256 frame = ~4 sec
 
+#define ENTITY_LIST_TYPE			quint32
+#define ENTITY_LIST_BITS			12						// Max: 4096
 
 
 namespace RpgStream
@@ -388,7 +394,8 @@ public:
 	p << stream; \
 	m_##field.emplace_back(std::move(p)); \
 } \
-	return m_##field; } \
+	return m_##field; \
+} \
 	void write##name##VectorDelta(EngineStream &stream, const bool &isDeltaMode = true) const { \
 	if (!isDeltaMode) { return write##name(stream); } \
 	writeBits<sizetype>(stream, m_##field.size(), bits); \
@@ -397,21 +404,29 @@ public:
 	p >> stream; \
 } \
 } \
-	void compress##name##Vector(const std::vector<type> &list, const type &original) { \
+	void compress##name##Vector(const std::vector<type> &list) { \
 	m_##field.clear(); \
 	m_##field.reserve(list.size()); \
-	for (const type &p : list) { \
-	type tmp = original; \
+	if (list.empty()) \
+	return; \
+	const auto first = list.cbegin(); \
+	m_##field.emplace_back(*first); \
+	for (auto it = std::next(list.cbegin()); it != list.cend(); ++it) { \
+	type tmp = *first; \
 	tmp.setIsDeltaMode(true); \
-	tmp.loadFromDelta(p, false); \
+	tmp.loadFromDelta(*it, false); \
 	m_##field.emplace_back(std::move(tmp)); \
 } \
 } \
-	std::vector<type> extract##name##Vector(const type &original) const { \
+	std::vector<type> extract##name##Vector() const { \
 	std::vector<type> out; \
+	if (m_##field.empty()) \
+	return out; \
 	out.reserve(m_##field.size()); \
+	const auto first = m_##field.cbegin(); \
+	out.emplace_back(*first); \
 	for (const type &p : m_##field) { \
-	type tmp = original; \
+	type tmp = *first; \
 	tmp.setIsDeltaMode(true); \
 	tmp.loadFromDelta(p, true); \
 	out.emplace_back(std::move(tmp)); \
@@ -469,6 +484,9 @@ public:
 
 #define LOAD_FROM_DELTA_MEMBER(field) \
 	m_##field.loadFromDelta(other.m_##field, fromMask);
+
+#define LOAD_WITHOUT_DELTA(field, name) \
+	set##name(other.field());
 
 #define LOAD_FROM_DELTA_END \
 	setIsDeltaMode(true); \
@@ -593,8 +611,7 @@ public:
 	enum DataOperation {
 		DataOperationInvalid = 0x0,
 		DataOperationCharacterSelect,
-		DataOperationPlayerPosition,
-		DataOperationChunkGrid,
+		DataOperationMapData,
 	};
 
 	EngineDataStream(const DataOperation &dataOperation)
@@ -737,8 +754,6 @@ public:
 	EngineStream& operator<<(EngineStream &stream);
 	EngineStream& operator>>(EngineStream &stream) const;
 
-	TO_DATA_STREAM(EngineDataStream::DataOperationChunkGrid)
-
 	STREAM_MEMBER_QUANT(viewportX, ViewportX, 0);
 	STREAM_MEMBER_QUANT(viewportY, ViewportY, 0);
 	STREAM_MEMBER_QUANT(viewportWidth, ViewportWidth, 0);
@@ -774,20 +789,41 @@ public:
 
 
 /**
- * @brief The PlayerPositionList class
+ * @brief The MpEmitter class
  */
 
-class PlayerPositionList
+class MpEmitter
 {
 public:
-	PlayerPositionList() = default;
-
-	TO_DATA_STREAM(EngineDataStream::DataOperationPlayerPosition)
+	MpEmitter() = default;
 
 	EngineStream& operator<<(EngineStream &stream);
 	EngineStream& operator>>(EngineStream &stream) const;
 
-	STREAM_MEMBER_VECTOR(PlayerPosition, list, List, quint8, 8);
+	STREAM_MEMBER_QUANT(posX, PosX, 0);
+	STREAM_MEMBER_QUANT(posY, PosY, 0);
+};
+
+
+
+
+/**
+ * @brief The MapData class
+ */
+
+class MapData
+{
+public:
+	MapData() = default;
+
+	TO_DATA_STREAM(EngineDataStream::DataOperationMapData)
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER_VECTOR(PlayerPosition, playerPositionList, PlayerPositionList, quint8, 8);
+	STREAM_FIELD(ChunkGrid, chunkGrid, ChunkGrid, {})
+	STREAM_MEMBER_VECTOR(MpEmitter, mpEmitterList, MpEmitterList, quint8, 8);
 };
 
 
@@ -806,7 +842,7 @@ public:
 	EngineStream& operator<<(EngineStream &stream);
 	EngineStream& operator>>(EngineStream &stream) const;
 
-	enum Flags {
+	enum Flag {
 		FlagNull				= 0,
 		FlagTerrain				= 1 << 0,				// terep elküldve
 		FlagPlayerPosition		= 1 << 1,				// kezdőpozíciók elküldve
@@ -818,12 +854,14 @@ public:
 		FlagFinished			= 1 << 7,				// játék véget ért
 	};
 
+	Q_DECLARE_FLAGS(Flags, Flag)
 
 	STREAM_MEMBER_RESOLVED(terrain, Terrain)
 	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 16, FlagNull)
 	STREAM_MEMBER(quint32, duration, Duration, 18, 0)	// egy játék hozza, 2^18 frame = max. ~72 perc
 };
 
+Q_DECLARE_OPERATORS_FOR_FLAGS(GameConfig::Flags)
 
 
 
@@ -839,7 +877,7 @@ public:
 	EngineStream& operator<<(EngineStream &stream);
 	EngineStream& operator>>(EngineStream &stream) const;
 
-	enum Flags {
+	enum Flag {
 		FlagNull				= 0,
 		FlagCompleted			= 1 << 0,				// a karakterválasztás befejeződött, rányomott a play-re
 		FlagDownloadStarted		= 1 << 1,				// a szükséges letöltés elkezdődött
@@ -852,7 +890,7 @@ public:
 		FlagPlayerOnline		= 1 << 8,				// a játékos elérhető (van udp-kapcsolat)
 	};
 
-
+	Q_DECLARE_FLAGS(Flags, Flag)
 
 	STREAM_MEMBER(PLAYER_ID_TYPE, playerId, PlayerId, PLAYER_ID_BITS, 0)
 	STREAM_MEMBER_BYTEARRAY(userName, UserName)
@@ -861,12 +899,10 @@ public:
 	STREAM_MEMBER_RESOLVED(character, Character)
 
 	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 16, FlagNull)
-
-
 };
 
 
-
+Q_DECLARE_OPERATORS_FOR_FLAGS(PlayerData::Flags)
 
 
 class CharacterSelectServer
@@ -886,6 +922,20 @@ public:
 
 
 
+
+
+
+/**
+ * @brief The BaseTickState class - azok az oszályok, amik tick-enként tartalmaznak valamilyen állapotot
+ */
+
+class BaseTickState
+{
+public:
+	BaseTickState() = default;
+
+	STREAM_MEMBER(quint32, tick, Tick, 32, 0)
+};
 
 
 
@@ -915,8 +965,6 @@ public:
 			)
 
 
-	STREAM_DELTA_MEMBER(quint32, tick, Tick, 32, 0, Tick)
-
 	STREAM_DELTA_MEMBER_QUANT(posX, PosX, 0, PosX)
 	STREAM_DELTA_MEMBER_QUANT(posY, PosY, 0, PosY)
 	STREAM_DELTA_MEMBER_QUANT_SIGNED(velX, VelX, 0, VelX)
@@ -937,7 +985,6 @@ public:
 
 	LOAD_FROM_DELTA_START(EntityState)
 
-	LOAD_FROM_DELTA(tick, Tick)
 	LOAD_FROM_DELTA(posX, PosX)
 	LOAD_FROM_DELTA(posY, PosY)
 	LOAD_FROM_DELTA(velX, VelX)
@@ -951,10 +998,10 @@ public:
 
 
 
-class PlayerState
+class PlayerState : public BaseTickState
 {
 public:
-	PlayerState() = default;
+	PlayerState() : BaseTickState() {}
 
 	EngineStream& operator<<(EngineStream &stream);
 	EngineStream& operator>>(EngineStream &stream) const;
@@ -982,6 +1029,7 @@ public:
 
 	LOAD_FROM_DELTA_START(PlayerState)
 
+	LOAD_WITHOUT_DELTA(tick, Tick)
 	LOAD_FROM_DELTA(hp, Hp)
 	LOAD_FROM_DELTA(maxHp, MaxHp)
 
@@ -993,6 +1041,10 @@ public:
 
 
 
+/**
+ * @brief The PlayerStateList class
+ */
+
 class PlayerStateList
 {
 public:
@@ -1003,9 +1055,133 @@ public:
 
 	STREAM_ADD_DELTA_MODE
 
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
 	STREAM_DELTA_MEMBER_VECTOR(PlayerState, state, State, STATE_LIST_TYPE, STATE_LIST_BITS)
 };
 
+
+
+/**
+ * @brief The PlayerListStateList class
+ */
+
+class PlayerStateEntityList
+{
+public:
+	PlayerStateEntityList() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER_VECTOR(PlayerStateList, list, List, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
+};
+
+
+
+
+
+
+
+
+
+/**
+ * @brief The EventPlayer class
+ */
+
+class EventPlayer : public BaseTickState
+{
+public:
+	enum Type {
+		EventNone = 0,
+		EventTest
+	};
+
+	EventPlayer() : BaseTickState() {}
+	EventPlayer(const Type &type)
+		: BaseTickState()
+		, m_type(type)
+	{}
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+
+	STREAM_MEMBER_CAST(Type, type, Type, quint32, 4, EventNone)
+};
+
+
+
+class EventPlayerList
+{
+public:
+	EventPlayerList() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
+	STREAM_MEMBER_VECTOR(EventPlayer, list, List, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
+};
+
+
+
+/**
+ * @brief The EventList class
+ */
+
+class EventList
+{
+public:
+	EventList() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	enum Flag {
+		Null			= 0,
+		Player			= 1 << 0,
+	};
+
+	Q_DECLARE_FLAGS(Flags, Flag)
+
+	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 4, Null)
+	STREAM_MEMBER_VECTOR(EventPlayerList, playerList, PlayerList, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
+};
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(EventList::Flags)
+
+
+
+
+/**
+ * @brief The FullState class
+ */
+
+class FullState
+{
+public:
+	FullState() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	enum Flag {
+		Null			= 0,
+		Player			= 1 << 0,
+		Events			= 1 << 1,
+	};
+
+	Q_DECLARE_FLAGS(Flags, Flag)
+
+	STREAM_ADD_DELTA_MODE
+
+	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 4, Null)
+
+	STREAM_FIELD(PlayerStateEntityList, players, Players, {})
+	STREAM_FIELD(EventList, events, Events, {})
+};
+
+Q_DECLARE_OPERATORS_FOR_FLAGS(FullState::Flags)
 
 }		// end of namespace
 

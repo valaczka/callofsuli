@@ -39,6 +39,7 @@
 
 
 
+#define DEFAULT_PULL_SIZE		12
 
 
 /**************************************************************
@@ -160,6 +161,267 @@ public:
 
 namespace Rpg {
 
+
+template <class T, typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T>::value>::type>
+class BaseStateMap
+{
+public:
+	BaseStateMap() = default;
+
+	const std::map<quint32, T> &map() const { return m_map; }
+	void setMap(const std::map<quint32, T> &newMap) { m_map = newMap; }
+
+	void insert(const T &state) { m_map[state.tick()] = state; }
+	void insert(T &&state) { m_map[state.tick()] = std::move(state); }
+
+	void clear() { m_map.clear(); }
+	void clear(const quint32 &minTick) { m_map.erase(m_map.cbegin(), m_map.lower_bound(minTick)); }
+
+	T* at(const quint32 &tick) {
+		if (m_map.empty())
+			return nullptr;
+
+		const auto it = m_map.find(tick);
+		if (it == m_map.cend())
+			return nullptr;
+		else
+			return &(it->second);
+	}
+
+	T* last(const quint32 &tick) {
+		if (m_map.empty())
+			return nullptr;
+
+		auto it = m_map.upper_bound(tick);
+
+		if (it != m_map.cbegin())
+			it = std::prev(it);
+		else
+			return nullptr;
+
+		return &(it->second);
+	}
+
+	bool extract(std::vector<T> &listPtr,
+				 const std::map<quint32, T>::const_iterator &from) const {
+
+		if (from == m_map.cend())
+			return false;
+
+		listPtr.clear();
+		listPtr.reserve(m_map.size());
+
+		for (auto it = from; it != m_map.cend(); ++it)
+			listPtr.push_back(it->second);
+
+		return true;
+	}
+
+	bool extract(std::vector<T> &listPtr) const {
+		return extract(listPtr, m_map.cbegin());
+	}
+
+	bool extract(std::vector<T> &listPtr, const quint32 &minTick) const {
+		return extract(listPtr, m_map.lower_bound(minTick));
+	}
+
+
+	int load(const std::vector<T> &list, const quint32 &minTick = 0, const quint32 &maxTick = 0) {
+		int n = 0;
+		for (const T &state : list) {
+			if (state.tick() < minTick || (maxTick > 0 && state.tick() > maxTick)) {
+				LOG_CTRACE("game") << "Tick dropped" << state.tick();
+				continue;
+			}
+
+			insert(state);
+
+			++n;
+		}
+		return n;
+	}
+
+
+
+protected:
+	std::map<quint32, T> m_map;
+};
+
+
+
+
+
+
+/**
+ * @brief The BaseEventMap class
+ */
+
+template <class T, typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T>::value>::type>
+class BaseEventMap
+{
+public:
+	BaseEventMap() = default;
+
+	const std::map<quint32, std::vector<std::pair<quint32, T> > > &map() const { return m_map; }
+	void setMap(const std::map<quint32, std::vector<std::pair<quint32, T> > > &newMap) { m_map = newMap; }
+
+	void insert(const quint32 &id, const T &state) { m_map[state.tick()].push_back({id, state}); }
+	void insert(const quint32 &id, T &&state) { m_map[state.tick()].emplace_back(id, std::move(state)); }
+
+	void clear() { m_map.clear(); }
+	void clear(const quint32 &minTick) { m_map.erase(m_map.cbegin(), m_map.lower_bound(minTick)); }
+
+	std::vector<std::pair<quint32, T> >* at(const quint32 &tick) {
+		if (m_map.empty())
+			return nullptr;
+
+		const auto it = m_map.find(tick);
+		if (it == m_map.cend())
+			return nullptr;
+		else
+			return &(it->second);
+	}
+
+	std::vector<std::pair<quint32, T> >* last(const quint32 &tick) {
+		if (m_map.empty())
+			return nullptr;
+
+		auto it = m_map.upper_bound(tick);
+
+		if (it != m_map.cbegin())
+			it = std::prev(it);
+		else
+			return nullptr;
+
+		return &(it->second);
+	}
+
+
+	int load(const quint32 &id, const std::vector<T> &list, const quint32 &minTick = 0, const quint32 &maxTick = 0) {
+		int n = 0;
+		for (const T &state : list) {
+			if (state.tick() < minTick || (maxTick > 0 && state.tick() > maxTick)) {
+				LOG_CTRACE("game") << "Tick dropped" << state.tick();
+				continue;
+			}
+
+			insert(id, state);
+
+			++n;
+		}
+		return n;
+	}
+
+
+
+
+protected:
+	std::map<quint32, std::vector<std::pair<quint32, T> > > m_map;
+};
+
+
+
+
+
+
+
+/**
+ * @brief The BaseStatePull class
+ */
+
+template <typename T, std::size_t PULL_SIZE = DEFAULT_PULL_SIZE,
+		  typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T>::value>::type>
+class BaseStatePull
+{
+public:
+	BaseStatePull() = default;
+
+	void reset() { m_head = 0; }
+	void append(const T &content) {
+		if (m_head > 1 && m_list[(m_head-1) % PULL_SIZE] == content)
+			return;
+
+		m_list[m_head % PULL_SIZE] = content;
+		++m_head;
+	}
+	void append(T &&content) {
+		if (m_head > 1 && m_list[(m_head-1) % PULL_SIZE] == content)
+			return;
+
+		m_list[m_head % PULL_SIZE] = std::move(content);
+		++m_head;
+	}
+
+	bool extract(T &origPtr, std::vector<T> &listPtr, const quint32 &max = 0) {
+		if (m_head == 0)
+			return false;
+
+		const quint32 from = (m_head > PULL_SIZE ? m_head-PULL_SIZE : 0)
+							 + (max > 0 && max <= PULL_SIZE && max < m_head ? (PULL_SIZE-max) : 0);
+
+
+		origPtr = m_list[from % PULL_SIZE];
+		listPtr.clear();
+		listPtr.reserve(PULL_SIZE);
+
+		for (quint32 i=from+1; i<m_head; ++i) {
+			listPtr.emplace_back(m_list[i % PULL_SIZE]);
+		}
+
+		return true;
+	}
+
+	std::vector<T> extract(const quint32 &max = 0) {
+		std::vector<T> list;
+
+		if (m_head == 0)
+			return list;
+
+		const quint32 from = (m_head > PULL_SIZE ? m_head-PULL_SIZE : 0)
+							 + (max > 0 && max <= PULL_SIZE && max < m_head ? (PULL_SIZE-max) : 0);
+
+		list.reserve(PULL_SIZE);
+
+		for (quint32 i=from; i<m_head; ++i) {
+			list.emplace_back(m_list[i % PULL_SIZE]);
+		}
+
+		return list;
+	}
+
+
+	const T* at(const quint32 &tick) const {
+		if (m_head == 0)
+			return nullptr;
+
+		for (const T &t : m_list) {
+			if (t.tick() == tick) {
+				return &t;
+			}
+		}
+
+		return nullptr;
+	}
+
+
+protected:
+	std::array<T, PULL_SIZE> m_list;
+	quint32 m_head = 0;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 // Minden objektum közös azonosítója (packId, unpackId)
 // Amelyik entity-nek van a kliensen, azt már szinkronizáltuk (létrehoztuk), tehát az exclued-del le tudjuk kérni, amit meg kell csinálni
 
@@ -193,6 +455,7 @@ struct TeamTag
 
 
 
+
 // Játékos
 
 struct Player
@@ -206,25 +469,63 @@ struct Player
 
 
 
+// Mp kibocsátó
+
+struct MpEmitter
+{
+	quint32 id = 0;
+
+	QPointF pos;
+
+	inline static quint32 lastId = 0;
+};
+
+
+
+/**
+ * @brief The Mp class
+ */
+
+struct Mp
+{
+	quint32 idTag = 0;
+	entt::entity emitter = entt::null;
+
+	QPointF pos;
+};
+
+
+
 
 // Chunkgrid data
 
 struct ChunkGrid
 {
 	QRectF viewport;
-	QSet<QPair<quint32, quint32> > excludeSet;
+	QSet<QPair<qint32, qint32> > excludeSet;
 	QSizeF chunkSize;
 
 	static ChunkGrid fromRpgStream(const RpgStream::ChunkGrid &grid);
 	RpgStream::ChunkGrid toRpgStream() const;
 
-	QPair<quint32, quint32> getChunk(const float &x, const float &y) const;
-	QPair<quint32, quint32> getChunk(const QPointF &pos) const {
+	QPair<qint32, qint32> getAccessibleChunk(const float &x, const float &y) const {
+		if (isAccessible(x, y))
+			return getChunk(x, y);
+		else
+			return {-1., -1.};
+	}
+
+	QPair<qint32, qint32> getAccessibleChunk(const QPointF &pos) const {
+		return getAccessibleChunk(pos.x(), pos.y());
+	}
+
+	QPair<qint32, qint32> getChunk(const float &x, const float &y) const;
+	QPair<qint32, qint32> getChunk(const QPointF &pos) const {
 		return getChunk(pos.x(), pos.y());
 	}
 
 	bool isAccessible(const float &x, const float &y) const {
-		return excludeSet.contains(getChunk(x, y));
+		return !excludeSet.contains(getChunk(x, y));
 	}
 	bool isAccessible(const QPointF &pos) const {
 		return isAccessible(pos.x(), pos.y());
@@ -234,9 +535,23 @@ struct ChunkGrid
 
 
 
+typedef std::vector<RpgStream::PlayerPosition> PlayerPositionList;
+
+typedef BaseStateMap<RpgStream::PlayerState> PlayerStateInput;
+typedef BaseStatePull<RpgStream::PlayerState> PlayerStateOuput;
+
+typedef BaseEventMap<RpgStream::EventPlayer> EventPlayerInput;
 
 
 
+
+struct Events
+{
+	EventPlayerInput player;
+};
+
+
+class RpgLogicPrivate;
 class RpgLogicScope;
 
 
@@ -247,8 +562,8 @@ class RpgLogicScope;
 class RpgLogic
 {
 public:
-	RpgLogic();
-	~RpgLogic() = default;
+	RpgLogic(const quint32 &lastAuthDiff = 0, const quint32 &jitterDiff = 0);
+	virtual ~RpgLogic();
 
 	// Get scope
 
@@ -256,10 +571,14 @@ public:
 
 	// Set tick
 
-	quint32 lastAuthTick() const;
-	void setLastAuthTick(quint32 newLastAuthTick);
+	quint32 serverTick() const { return m_serverTick; }
+	quint32 lastAuthTick() const { return m_serverTick > m_lastAuthTickDiff ? m_serverTick-m_lastAuthTickDiff : 0; }
+	quint32 jitterTick() const { return m_serverTick > m_jitterDiff ? m_serverTick-m_jitterDiff : 0; }
+
+	void fullStateLoad(const RpgStream::FullState &full);
 
 	virtual void render();
+	virtual void renderEvents();
 
 	// EnTT object id
 
@@ -269,28 +588,28 @@ public:
 	void entitySetIdTag(entt::entity &entity, const quint32 &tag);
 	entt::entity entityFromIdTag(const quint32 &tag) const;
 
-	// Chunk grid
 
-	ChunkGrid &loadChunkGrid(ChunkGrid &&grid);
-	ChunkGrid &loadChunkGrid(const RpgStream::ChunkGrid &grid);
+	// Map Data
+
+	void loadMapData(const RpgStream::MapData &data);
 
 
 	// Player
 
-	void playerPositionAdd(const QPointF &pos, const TeamTag::Team &team = TeamTag::TeamNone);
-	void playerPositionListSet(RpgStream::PlayerPositionList &&list);
-
 	entt::entity playerAdd(const TeamTag::Team &team = TeamTag::TeamNone);
 
-	bool emplacePlayers();
-	bool initializePlayers();
+	void emplacePlayers();
+
+
 
 
 
 protected:
-	quint32 m_lastAuthTick = 0;
+	RpgLogicPrivate *d = nullptr;
+	quint32 m_serverTick = 0;
+	const quint32 m_lastAuthTickDiff = 0;
+	const quint32 m_jitterDiff = 0;
 
-private:
 	template <typename T>
 	void registerCtx() {
 		QMutexLocker locker(&m_mutex);
@@ -301,7 +620,9 @@ private:
 
 	mutable QRecursiveMutex m_mutex;
 	entt::registry m_registry;
+	quint32 m_lastObjectId = 0;
 
+	friend class RpgLogicPrivate;
 	friend class RpgLogicScope;
 };
 
@@ -370,6 +691,7 @@ private:
 
 
 inline quint32 Player::idTag() const { return RpgLogic::packId(0, playerData.playerId(), 0); }
+
 
 
 /**

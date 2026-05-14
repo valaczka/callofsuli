@@ -28,6 +28,7 @@
 #define RPGENTITY_H
 
 #include "rpgobject.h"
+#include "tiledpathmotor.h"
 #include <QQmlEngine>
 
 
@@ -89,6 +90,29 @@ protected:
 	RpgEntity *const m_entity;
 };
 
+
+
+
+
+/**
+ * @brief The RpgDestinationMotor class
+ */
+
+class RpgDestinationMotor : public RpgMotorEntity
+{
+public:
+	RpgDestinationMotor(RpgEntity *entity);
+
+	void setDestination(const QPolygonF &polygon);
+	void setDestination(const cpVect &point);
+	void clearDestination();
+	std::optional<QPolygonF> destination() const;
+
+protected:
+	std::optional<cpVect> m_destinationPoint = std::nullopt;
+	std::unique_ptr<TiledPathMotor> m_destinationMotor;
+
+};
 
 
 

@@ -40,6 +40,52 @@ RpgPlayer::RpgPlayer(RpgGameItem *gameItem, const QPointF &center)
 
 	filterSet(RpgGameItem::FixturePlayerBody,
 			  RpgGameItem::FixtureGround);
+
+	m_currentChunk.setX(-1);
+	m_currentChunk.setY(-1);
+
+	connect(this, &RpgPlayer::currentChunkChanged, this, [this](){
+		LOG_CWARNING("game") << "Current chunk" << m_currentChunk;
+	});
+}
+
+QPoint RpgPlayer::currentChunk() const
+{
+	return m_currentChunk;
+}
+
+void RpgPlayer::setCurrentChunk(QPoint newCurrentChunk)
+{
+	if (m_currentChunk == newCurrentChunk)
+		return;
+	m_currentChunk = newCurrentChunk;
+	emit currentChunkChanged();
+}
+
+float RpgPlayer::chunkRadius() const
+{
+	return m_chunkRadius;
+}
+
+void RpgPlayer::setChunkRadius(float newChunkRadius)
+{
+	if (qFuzzyCompare(m_chunkRadius, newChunkRadius))
+		return;
+	m_chunkRadius = newChunkRadius;
+	emit chunkRadiusChanged();
+}
+
+QPointF RpgPlayer::currentChunkCenter() const
+{
+	return m_currentChunkCenter;
+}
+
+void RpgPlayer::setCurrentChunkCenter(QPointF newCurrentChunkCenter)
+{
+	if (m_currentChunkCenter == newCurrentChunkCenter)
+		return;
+	m_currentChunkCenter = newCurrentChunkCenter;
+	emit currentChunkCenterChanged();
 }
 
 
@@ -65,36 +111,29 @@ RpgMotorPlayer::RpgMotorPlayer(RpgPlayer *player)
  * @return
  */
 
-bool RpgMotorPlayer::beforeWorldStep(const qint64 &tick, entt::entity &entity)
+bool RpgMotorPlayer::beforeWorldStep(const qint64 &, entt::entity &entity)
 {
-	/*Rpg::RpgLogicScope scope = m_game->rpgLogic().getScope();
+	const qint64 jittered = m_game->rpgLogicClient()->jitterTick();
 
-	auto [player, map] = scope.try_get<Rpg::Player, Rpg::PlayerTickMap>(entity);
-
-	if (map->map.isEmpty())
+	if (jittered == 0)
 		return false;
 
-	const quint32 last = m_game->rpgLogic().lastAuthTick();
+	Rpg::RpgLogicScope scope = m_game->rpgLogicClient()->getScope();
 
-	auto it = map->map.lowerBound(last);
+	auto [player, map] = scope.try_get<Rpg::Player, Rpg::PlayerStateOuput>(entity);
 
-	if (it == map->map.end() || it.key() > last) {
+
+	if (!player || !map)
 		return false;
-	}
 
+	const RpgStream::PlayerState *st = map->at(jittered);
 
-	m_current = it.value();
+	if (!st)
+		return false;
 
-	LOG_CDEBUG("game") << "LOAD" << tick
-					   << (player ? player ->playerData.playerId() : -1)
-					   << "---" << last
-					   << "LAST"
-					   << m_current->entityState().velXAsFloat() << m_current->entityState().velYAsFloat();
+	m_current = *st;
 
-
-	return true;*/
-
-	return false;
+	return true;
 }
 
 
@@ -111,7 +150,8 @@ void RpgMotorPlayer::updateBody(TiledObject *)
 		return;
 	}
 
-	cpVect to = cpvadd(m_player->bodyPosition(), cpv(m_current->entityState().velXAsFloat(), m_current->entityState().velYAsFloat()));
+	cpVect to = cpv(m_current->entityState().posXAsFloat(),
+					m_current->entityState().posYAsFloat());
 
 	m_player->moveToPoint(to);
 
@@ -126,7 +166,7 @@ void RpgMotorPlayer::updateBody(TiledObject *)
  */
 
 RpgMotorPlayerControlled::RpgMotorPlayerControlled(RpgPlayer *player)
-	: AbstractRpgMotor(player)
+	: RpgDestinationMotor(player)
 	, m_player(player)
 {
 	Q_ASSERT(m_player);
@@ -142,7 +182,32 @@ RpgMotorPlayerControlled::RpgMotorPlayerControlled(RpgPlayer *player)
 
 void RpgMotorPlayerControlled::updateBody(TiledObject *)
 {
-	if (m_currentJoystickState.distance >= 1.0) {
+	if (m_destinationPoint) {
+		if (!m_player->moveTowardsLimited(m_destinationPoint.value(), 100, 250*0.5, 250)) {
+			m_player->stop();
+			m_player->emplace(m_destinationPoint.value());
+			m_destinationPoint = std::nullopt;
+		}
+	} else if (m_destinationMotor) {
+		if (m_destinationMotor->atEnd(m_player)) {
+			m_player->stop();
+			m_destinationMotor.reset();
+		} else if (const QPolygonF &polygon = m_destinationMotor->polygon(); !polygon.isEmpty()) {
+			const float distance = m_player->distanceToPointSq(polygon.last());
+
+			if (distance >= POW2(250*0.5)) {				// Hogy a végén szépen lassan gyalogoljon csak
+				m_destinationMotor->setSpeed(250);
+				m_destinationMotor->updateBody(m_player);
+			} else {
+				m_destinationMotor->setSpeed(100);
+				m_destinationMotor->updateBody(m_player);
+			}
+		} else {
+			m_player->stop();
+			m_destinationMotor.reset();
+		}
+
+	} else if (m_currentJoystickState.distance >= 1.0) {
 		m_player->setSpeedFromAngle(m_currentJoystickState.angle, 200);
 		m_player->rotateBody(m_currentJoystickState.angle);
 	} else if (m_currentJoystickState.distance > 0.5) {
@@ -151,6 +216,14 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 	} else {
 		m_player->stop();
 	}
+
+	cpVect ahead = m_player->bodyPosition()+TiledObjectBody::vectorFromAngle(m_player->desiredBodyRotation(), m_player->chunkRadius());
+	cpVect center;
+
+	const QPoint ch = m_game->rpgLogicClient()->getChunkFromVector(ahead, &center);
+	m_player->setCurrentChunk(ch);
+	m_player->setCurrentChunkCenter(TiledObjectBody::toPointF(center));
+
 }
 
 
@@ -160,12 +233,17 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 /**
  * @brief RpgMotorPlayerControlled::afterWorldStep
  * @param tick
- * @param entity
+ * @param state
  * @return
  */
 
-bool RpgMotorPlayerControlled::afterWorldStep(const qint64 &tick, entt::entity &entity)
+bool RpgMotorPlayerControlled::afterWorldStep(const qint64 &tick, RpgStream::FullState *state)
 {
+	if (!state)
+		return false;
+
+	const quint32 tagId = RpgLogicObjectMapper::getId(m_player->objectId());
+
 	if (m_currentJoystickState.distance > 0.1) {
 		/*Rpg::RpgLogicScope scope = m_game->rpgLogicClient().getScope();
 
@@ -179,34 +257,44 @@ bool RpgMotorPlayerControlled::afterWorldStep(const qint64 &tick, entt::entity &
 						  */
 
 		RpgStream::PlayerState st;
-		st.entityState().setTick(tick);
+		st.setTick(tick);
 		st.entityState().setPosXAsFloat(m_player->bodyPosition().x);
 		st.entityState().setPosYAsFloat(m_player->bodyPosition().y);
 
 		m_statePull.append(std::move(st));
 
-		RpgStream::PlayerState out;
-		std::vector<RpgStream::PlayerState> list;
+		std::vector<RpgStream::PlayerState> list = m_statePull.extract(6);
+
+
+		/*LOG_CINFO("game") << "---------------------------";
+
+		for (const RpgStream::PlayerState &s : list) {
+			LOG_CDEBUG("game") << s.tick() << "POS" << s.entityState().posXAsFloat() << s.entityState().posYAsFloat();
+		}*/
+
+		RpgStream::PlayerStateList sl;
+		sl.setTagId(tagId);
+		sl.setIsDeltaMode(state->isDeltaMode());
+		if (state->isDeltaMode())
+			sl.compressStateVector(std::move(list));
+		else
+			sl.setState(std::move(list));
+
+		state->flags().setFlag(RpgStream::FullState::Player);
+		state->players().list().push_back(std::move(sl));
 
 
 
+		/*	for (const RpgStream::PlayerStateList &l : state->players().list()) {
+			LOG_CDEBUG("game") << "####" << l.tagId() << l.isDeltaMode();
 
-		if (!m_statePull.extract(out, list)) {
-			LOG_CERROR("game") << "NO";
-		} else {
-			std::erase_if(list, [t = tick-120](const RpgStream::PlayerState &st) {
-				return st.entityState().tick() < t;
-			});
-
-
-			LOG_CINFO("game") << "---------------------------";
-
-			LOG_CDEBUG("game") << out.entityState().tick() << "POS" << out.entityState().posXAsFloat() << out.entityState().posYAsFloat();
-
-			for (const RpgStream::PlayerState &s : list) {
-				LOG_CDEBUG("game") << s.entityState().tick() << "POS" << s.entityState().posXAsFloat() << s.entityState().posYAsFloat();
+			for (const RpgStream::PlayerState &s : l.state()) {
+				LOG_CDEBUG("game") << "#" << s.tick() << "POS" << s.entityState().posXAsFloat() << s.entityState().posYAsFloat()
+								   << "|" << s.entityState().deltaMask() << s.entityState().hasPosXDeltaMask() << s.entityState().hasPosYDeltaMask();
 			}
-/*
+		}*/
+
+		/*
 			RpgStream::PlayerStateList stream;
 			stream.setIsDeltaMode(true);
 			stream.compressStateVector(list, out);
@@ -230,14 +318,29 @@ bool RpgMotorPlayerControlled::afterWorldStep(const qint64 &tick, entt::entity &
 				LOG_CDEBUG("game") << s.entityState().tick() << "POS" << s.entityState().posXAsFloat() << s.entityState().posYAsFloat();
 			}
 			*/
-		}
 
 		//map->map.insert(tick, std::move(st));
-
-		return true;
 	}
 
-	return false;
+
+	if (!m_eventList.empty()) {
+		RpgStream::EventPlayerList el;
+		el.setTagId(tagId);
+
+		for (RpgStream::EventPlayer &e : m_eventList)
+			e.setTick(tick);
+
+		el.setList(m_eventList);
+
+		m_eventList.clear();
+
+		state->flags().setFlag(RpgStream::FullState::Events);
+		state->events().flags().setFlag(RpgStream::EventList::Player);
+		state->events().playerList().push_back(std::move(el));
+	}
+
+
+	return true;
 }
 
 
@@ -256,5 +359,22 @@ TiledGame::JoystickState RpgMotorPlayerControlled::currentJoystickState() const
 void RpgMotorPlayerControlled::setCurrentJoystickState(const TiledGame::JoystickState &newCurrentJoystickState)
 {
 	m_currentJoystickState = newCurrentJoystickState;
+}
+
+
+
+
+
+/**
+ * @brief RpgMotorPlayerControlled::eventTest
+ */
+
+void RpgMotorPlayerControlled::eventTest()
+{
+	LOG_CINFO("game") << "EVENT TEST";
+
+	RpgStream::EventPlayer e(RpgStream::EventPlayer::EventTest);
+
+	m_eventList.emplace_back(std::move(e));
 }
 

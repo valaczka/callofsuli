@@ -74,3 +74,73 @@ RpgMotorEntity::RpgMotorEntity(RpgEntity *entity)
 {
 
 }
+
+
+/**
+ * @brief RpgDestinationMotor::RpgDestinationMotor
+ * @param entity
+ */
+
+RpgDestinationMotor::RpgDestinationMotor(RpgEntity *entity)
+	: RpgMotorEntity(entity)
+{
+
+}
+
+
+/**
+ * @brief RpgDestinationMotor::setDestination
+ * @param polygon
+ */
+
+void RpgDestinationMotor::setDestination(const QPolygonF &polygon)
+{
+	if (polygon.size() == 1)
+		return setDestination(TiledObjectBody::toVect(polygon.first()));
+
+	m_destinationMotor.reset(new TiledPathMotor(m_gameItem->tickTimer(), polygon));
+	m_destinationPoint = std::nullopt;
+}
+
+
+/**
+ * @brief RpgDestinationMotor::setDestination
+ * @param point
+ */
+
+void RpgDestinationMotor::setDestination(const cpVect &point)
+{
+	m_destinationMotor.reset();
+	m_destinationPoint = point;
+}
+
+
+/**
+ * @brief RpgDestinationMotor::clearDestination
+ */
+
+void RpgDestinationMotor::clearDestination()
+{
+	m_destinationMotor.reset();
+	m_destinationPoint = std::nullopt;
+}
+
+
+/**
+ * @brief RpgDestinationMotor::destination
+ * @return
+ */
+
+std::optional<QPolygonF> RpgDestinationMotor::destination() const
+{
+	if (m_destinationMotor)
+		return m_destinationMotor->polygon();
+	else if (m_destinationPoint) {
+		QPolygonF p;
+		p << m_entity->bodyPositionF();
+		p << TiledObjectBody::toPointF(m_destinationPoint.value());
+		return p;
+	}
+
+	return std::nullopt;
+}

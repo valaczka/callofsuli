@@ -55,11 +55,8 @@ public:
 	void run();
 	void stop();
 
-	void sendMessage(const std::vector<uint8_t> &data, const bool &reliable = true);
+	void sendMessage(const std::vector<uint8_t> &data, const bool &reliable = false);
 	void setUrl(const QUrl &url);
-
-	const int &currentRtt() const { return m_speed.currentRtt; }
-	void setCurrentRtt(const int &rtt) { m_speed.addRtt(rtt); }
 
 	QByteArray connectionToken() const;
 	void setConnectionToken(const QByteArray &newConnectionToken);

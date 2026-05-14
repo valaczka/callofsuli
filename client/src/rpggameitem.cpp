@@ -26,10 +26,12 @@
 
 #include <libtiled/objectgroup.h>
 #include "rpggameitem.h"
+#include "grouplayer.h"
 #include "rpggame.h"
 #include "rpggame_p.h"
 #include "rpgobject.h"
 #include "rpgplayer.h"
+#include "tileddebugdraw.h"
 #include "utils_.h"
 
 
@@ -116,6 +118,82 @@ bool RpgGameItem::load(const RpgGameDefinition &def)
 }
 
 
+/**
+ * @brief RpgGameItem::onMouseClick
+ * @param x
+ * @param y
+ * @param buttons
+ * @param modifiers
+ */
+
+void RpgGameItem::onMouseClick(const qreal &x, const qreal &y, const int &buttons, const int &modifiers)
+{
+	if (m_paused || !m_game)
+		return;
+
+	RpgPlayer *player = m_game->controlledPlayer();
+
+	if (!player)
+		return;
+
+	RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(player->currentMotor());
+
+	/*if (Qt::MouseButtons::fromInt(buttons).testFlag(Qt::RightButton)) {
+		m_controlledPlayer->clearDestinationPoint();
+		return;
+	}
+
+#ifndef QT_NO_DEBUG
+	if (modifiers & Qt::AltModifier) {
+		m_controlledPlayer->clearDestinationPoint();
+		m_controlledPlayer->TiledObject::emplace(x, y);
+		return;
+	}
+#endif
+
+	if (!m_controlledPlayer->isAlive())
+		return;
+
+	if (mouseAttack()) {
+		m_controlledPlayer->attackToPoint(x, y);
+		return;
+	}*/
+
+	if (!mouseNavigation())
+		return;
+
+	/*if (modifiers & Qt::ControlModifier) {
+		m_controlledPlayer->attackToPoint(x, y);
+	} else {
+		if (modifiers & Qt::ShiftModifier)
+			m_controlledPlayer->m_pickAtDestination = true;
+		else
+			m_controlledPlayer->m_pickAtDestination = false;
+
+		if (const auto &ptr = findShortestPath(m_controlledPlayer, cpv(x,y))) {
+			m_controlledPlayer->setDestinationPoint(ptr.value());
+
+			if (!m_controlledPlayer->m_sfxAccept.soundList().isEmpty())
+				m_controlledPlayer->m_sfxAccept.playOne();
+
+		} else {
+			if (!m_controlledPlayer->m_sfxDecline.soundList().isEmpty())
+				m_controlledPlayer->m_sfxDecline.playOne();
+
+			m_controlledPlayer->clearDestinationPoint();
+		}
+	}*/
+
+
+	if (!motor)
+		return;
+
+	if (const auto &ptr = findShortestPath(player, cpv(x,y))) {
+		motor->setDestination(ptr.value());
+	}
+}
+
+
 
 
 /**
@@ -127,9 +205,18 @@ void RpgGameItem::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *sce
 {
 	TiledGame::sceneDebugDrawEvent(debugDraw, scene);
 
-	/*if (!debugDraw || !scene)
+	if (!debugDraw || !scene)
 		return;
 
+	if (RpgPlayer *player = m_game->controlledPlayer()) {
+		QPointF ch = player->currentChunkCenter();
+
+		if (ch.x() >= 0 && ch.y() >= 0) {
+			debugDraw->drawSolidCircle(ch, 6., QColor::fromRgb(230, 0, 0));
+		}
+	}
+
+	/*
 	for (const auto &e : m_enemyDataList) {
 		if (e.scene != scene || e.motor.path.isEmpty())
 			continue;
@@ -162,6 +249,22 @@ void RpgGameItem::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *sce
 								   4.);
 		}
 	} */
+
+	iterateOverBodies([debugDraw, this](TiledObjectBody *body) {
+		RpgPlayer *p = dynamic_cast<RpgPlayer*>(body);
+
+		if (p) {
+			if (RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(p->currentMotor())) {
+
+				if (const auto &ptr = motor->destination()) {
+					debugDraw->drawPolygon(ptr.value(),
+										   p == m_game->controlledPlayer() ? QColor::fromRgb(0, 230, 0) : QColor::fromRgb(230, 150, 0),
+										   4.);
+				}
+			}
+		}
+
+	});
 }
 
 
@@ -177,17 +280,29 @@ void RpgGameItem::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *sce
 
 bool RpgGameItem::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer)
 {
-	Q_ASSERT(scene);
-	Q_ASSERT(group);
 	Q_ASSERT(d);
 
 	for (Tiled::MapObject *object : std::as_const(group->objects())) {
-		if (object->className().startsWith(QStringLiteral("player"))) {
+		/*if (object->className().startsWith(QStringLiteral("player"))) {
 			LOG_CINFO("game") << "REGISTER" << object->className();
 
 			const QPointF pos = renderer->pixelToScreenCoords(object->position() + group->totalOffset());
 
-			d->m_logic.playerPositionAdd(pos, Rpg::TeamTag::TeamNone);
+			d->m_logic->playerPositionAdd(pos, Rpg::TeamTag::TeamNone);
+		}*/
+
+		if (group->className() == QStringLiteral("teamA") || group->name() == QStringLiteral("teamA")) {
+			LOG_CINFO("game") << "REGISTER A" << object->className();
+
+			const QPointF pos = renderer->pixelToScreenCoords(object->position() + group->totalOffset());
+
+			d->playerPositionAdd(pos, Rpg::TeamTag::TeamA);
+		} else if (group->className() == QStringLiteral("teamB") || group->name() == QStringLiteral("teamB")) {
+			LOG_CINFO("game") << "REGISTER B" << object->className();
+
+			const QPointF pos = renderer->pixelToScreenCoords(object->position() + group->totalOffset());
+
+			d->playerPositionAdd(pos, Rpg::TeamTag::TeamB);
 		}
 	}
 
@@ -224,9 +339,64 @@ void RpgGameItem::loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, c
 
 void RpgGameItem::loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer)
 {
-	Q_UNUSED(scene);
-	Q_UNUSED(group);
-	Q_UNUSED(renderer);
+	const QString &cname = group->className();
+
+	if (cname == QStringLiteral("mp")) {
+		LOG_CDEBUG("game") << "LOAD MP" << group->name();
+
+		for (Tiled::Layer *layer : std::as_const(*group)) {
+			if (Tiled::TileLayer *tl = layer->asTileLayer()) {
+				LOG_CDEBUG("game") << "LOAD MP TILE" << group->name() << layer->name();
+				scene->addTileLayer(tl, renderer);
+			} else if (Tiled::ObjectGroup *gr = layer->asObjectGroup()) {
+				LOG_CDEBUG("game") << "LOAD MP OBJECT" << group->name() << gr->name() << gr->className();
+				for (Tiled::MapObject *object : std::as_const(gr->objects())) {
+					if (object->className() == QStringLiteral("exclude")) {
+						LOG_CDEBUG("game") << "LOAD MP EXCLUED" << group->name() << layer->name();
+						TiledObjectBody *mapObject = createObject<TiledObjectBody>(TiledObjectBody::ObjectId{.ownerId = 0,
+																											 .sceneId = scene->sceneId(),
+																											 .id = static_cast<quint32>(object->id())
+																				   }, scene,
+																				   object, this, renderer, CP_BODY_TYPE_STATIC);
+
+						if (mapObject)
+							mapObject->filterSet(FixtureExcluded, FixtureInvalid);
+					} else {
+						const QPointF pos = renderer->pixelToScreenCoords(object->position() + gr->totalOffset());
+						LOG_CWARNING("game") << "LOAD MP POINT" << pos;
+						d->mpEmitterAdd(pos);
+					}
+
+				}
+			}
+
+		}
+	}
+
+	/*if (cname == QStringLiteral("container")) {
+			controlAdd<RpgControlContainer>(this, scene, group, renderer);
+		} else if (cname == QStringLiteral("container2") && q->m_loadForPlayerCount > 1) {
+			controlAdd<RpgControlContainer>(this, scene, group, renderer);
+		} else if (cname == QStringLiteral("container3") && q->m_loadForPlayerCount > 2) {
+			controlAdd<RpgControlContainer>(this, scene, group, renderer);
+		} else if (cname == QStringLiteral("container4") && q->m_loadForPlayerCount > 3) {
+			controlAdd<RpgControlContainer>(this, scene, group, renderer);
+		} else if (cname == QStringLiteral("container5") && q->m_loadForPlayerCount > 4) {
+			controlAdd<RpgControlContainer>(this, scene, group, renderer);
+		} else if (cname == QStringLiteral("gate")) {
+			controlAdd<RpgControlGate>(this, scene, group, renderer);
+		} else if (cname == QStringLiteral("teleport")) {
+			controlAdd<RpgControlTeleport>(this, scene, group, false, renderer);
+		} else if (cname == QStringLiteral("hideout")) {
+			controlAdd<RpgControlTeleport>(this, scene, group, true, renderer);
+		} else if (cname == QStringLiteral("randomizer")) {
+			if (RpgControlRandomizer *r = RpgControlRandomizer::find(m_controls, group, scene->sceneId()))
+				r->addGroupLayer(scene, group, renderer);
+			else
+				controlAdd<RpgControlRandomizer>(this, scene, group, renderer);
+		} else if (cname == QStringLiteral("collection")) {
+			addCollection(scene, group, renderer);
+		}*/
 }
 
 
@@ -267,7 +437,9 @@ void RpgGameItem::timeStepPrepareEvent()
 
 void RpgGameItem::timeBeforeWorldStepEvent(const qint64 &tick)
 {
-	Rpg::RpgLogicScope scope = m_game->rpgLogicClient().getScope();
+	m_game->syncObjects();
+
+	Rpg::RpgLogicScope scope = m_game->rpgLogicClient()->getScope();
 	RpgLogicObjectMapper *mapper = scope.getCtx<RpgLogicObjectMapper>();
 
 	if (!mapper) {
@@ -279,7 +451,7 @@ void RpgGameItem::timeBeforeWorldStepEvent(const qint64 &tick)
 		if (!it.value())
 			continue;
 
-		AbstractRpgMotor *motor = it->data()->currentMotor();
+		AbstractRpgMotor *motor = it.value()->currentMotor();
 
 		if (!motor) {
 			LOG_CERROR("game") << "Missing RpgMotor";
@@ -303,32 +475,92 @@ void RpgGameItem::timeBeforeWorldStepEvent(const qint64 &tick)
 
 void RpgGameItem::timeAfterWorldStepEvent(const qint64 &tick)
 {
-	Rpg::RpgLogicScope scope = m_game->rpgLogicClient().getScope();
-	RpgLogicObjectMapper *mapper = scope.getCtx<RpgLogicObjectMapper>();
+	RpgStream::FullState full;
 
-	if (!mapper) {
-		LOG_CERROR("game") << "Missing RpgLogicObjectMapper";
-		return;
-	}
+	full.setIsDeltaMode(false);
 
-	for (auto it=mapper->map.cbegin(); it != mapper->map.cend(); ++it) {
-		if (!it.value())
-			continue;
+	{
+		Rpg::RpgLogicScope scope = m_game->rpgLogicClient()->getScope();
+		RpgLogicObjectMapper *mapper = scope.getCtx<RpgLogicObjectMapper>();
 
-		AbstractRpgMotor *motor = it->data()->currentMotor();
-
-		if (!motor) {
-			LOG_CERROR("game") << "Missing RpgMotor";
-			continue;
+		if (!mapper) {
+			LOG_CERROR("game") << "Missing RpgLogicObjectMapper";
+			return;
 		}
 
-		entt::entity ent = scope.entityFromIdTag(it.key());
+		for (auto it=mapper->map.cbegin(); it != mapper->map.cend(); ++it) {
+			if (!it.value())
+				continue;
 
-		motor->afterWorldStep(tick, ent);
+			AbstractRpgMotor *motor = it.value()->currentMotor();
+
+			if (!motor) {
+				LOG_CERROR("game") << "Missing RpgMotor";
+				continue;
+			}
+
+			motor->afterWorldStep(tick, &full);
+		}
 	}
 
-	if (tick > 6)
-		m_game->rpgLogicClient().render();
+
+
+	////////////////////////////------
+	m_game->rpgLogicClient()->fullStateLoad(full);
+	m_game->rpgLogicClient()->render();
+}
+
+
+
+
+/**
+ * @brief RpgGameItem::timeSteppedEvent
+ */
+
+void RpgGameItem::timeSteppedEvent()
+{
+	/*	static const qint64 delta = 3;
+
+			const qint64 tick = q->m_timeSync.get();
+			const qint64 curr = m_rpgGame->tickTimer()->currentTick();
+			const qint64 diff = tick-curr;
+
+			if (diff > 2*delta || diff < -3*delta) {
+					LOG_CERROR("game") << "Time reset" << curr << "->" << tick;
+					m_rpgGame->tickTimer()->start(this, tick);
+			} else if (diff > delta) {
+					LOG_CDEBUG("game") << "Time skew +1 frame" << curr << "->" << tick;
+					m_rpgGame->tickTimer()->start(this, curr+1);
+			} else if (diff < -2*delta) {
+					LOG_CWARNING("game") << "Time skew -1 frame" << curr << "->" << tick;
+					m_rpgGame->tickTimer()->start(this, curr-1);
+			}
+
+
+			m_rpgGame->iterateOverBodies([this](TiledObjectBody *b){
+					if (RpgGameData::LifeCycle *iface = dynamic_cast<RpgGameData::LifeCycle*> (b)) {
+							if (iface->stage() == RpgGameData::LifeCycle::StageDestroy) {
+									onLifeCycleDelete(b);
+							}
+					}
+			});
+
+			emit msecLeftChanged();
+	TiledGame::timeSteppedEvent();
+
+	if (ActionRpgGame *a = actionRpgGame())
+		a->onTimeStepped();
+
+	updateScatterEnemies();
+	updateScatterPlayers();
+	updateScatterPoints();
+
+	for (const auto &ptr : m_sfxLocations) {
+		if (ptr->baseObject()->scene() != ptr->connectedScene())
+			ptr->setConnectedScene(ptr->baseObject()->scene());
+		ptr->checkPosition();
+	}
+*/
 }
 
 
@@ -339,7 +571,35 @@ void RpgGameItem::timeAfterWorldStepEvent(const qint64 &tick)
 
 void RpgGameItem::keyPressEvent(QKeyEvent *event)
 {
-	TiledGame::keyPressEvent(event);
+	if (m_paused)
+		return;
+
+	const int &key = event->key();
+
+	RpgPlayer *player = m_game ? m_game->controlledPlayer() : nullptr;
+	RpgMotorPlayerControlled *motor = player ? dynamic_cast<RpgMotorPlayerControlled*>(player->currentMotor()) : nullptr;
+
+	if (!player || !motor)
+		LOG_CERROR("game") << "Missing player or motor";
+
+	switch (key) {
+		/*case Qt::Key_X:
+		case Qt::Key_Clear:
+		case Qt::Key_5:
+			if (m_controlledPlayer)
+				m_controlledPlayer->exitHiding();
+			break;*/
+
+		case Qt::Key_Space:
+		case Qt::Key_Insert:
+		case Qt::Key_0:
+			if (motor)
+				motor->eventTest();
+			break;
+
+		default:
+			TiledGame::keyPressEvent(event);
+	}
 }
 
 
@@ -390,3 +650,6 @@ void RpgGameItem::setIsContentReady(bool newIsContentReady)
 	m_isContentReady = newIsContentReady;
 	emit isContentReadyChanged();
 }
+
+
+

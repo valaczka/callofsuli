@@ -352,7 +352,7 @@ void UdpServerPrivate::run()
 
 	m_enet_server = enet_host_create(&address,
 									 m_lobby->size(),
-									 1,
+									 2,
 									 0, 0);
 
 	if (m_enet_server == NULL) {
@@ -430,6 +430,28 @@ void UdpServerPrivate::stop()
 }
 
 
+/**
+ * @brief UdpServerPrivate::sendPacket
+ * @param peer
+ * @param data
+ * @param isReliable
+ */
+
+void UdpServerPrivate::sendPacket(UdpServerPeer *peer, const std::vector<uint8_t> &data, const bool isReliable)
+{
+	if (!peer)
+		return;
+
+	UdpPacketSnd packet;
+
+	packet.peer = peer->peer();
+	packet.reliable = isReliable;
+	packet.data = data;
+
+	m_cacheSndPeer[peer].push(std::move(packet));
+}
+
+
 
 
 /**
@@ -490,9 +512,11 @@ void UdpServerPrivate::udpPeerRemove(ENetPeer *peer)
 
 	m_cacheSnd.clearPeer(peer);
 	m_cacheRcv.clearPeer(peer);
+	m_cacheSndPeer.remove(p);
 
-	std::erase_if(q->m_peerList, [peer](const std::unique_ptr<UdpServerPeer> &ptr) {
-		return peer == ptr->peer();
+
+	std::erase_if(q->m_peerList, [p](const std::unique_ptr<UdpServerPeer> &ptr) {
+		return ptr.get() == p;
 	});
 
 	peer->data = nullptr;
@@ -877,7 +901,7 @@ std::optional<QJsonObject> UdpServerPrivate::verifyToken(const QByteArray &token
 
 void UdpServerPrivate::deliverPackets()
 {
-	// Send outgoing packets (always on channel 0)
+	// Send outgoing packets (channel 0 = normal, channel 1 = rliable)
 
 	std::vector<UdpPacketSnd> out = m_cacheSnd.take();
 
@@ -885,8 +909,23 @@ void UdpServerPrivate::deliverPackets()
 		ENetPacket *packet = enet_packet_create(p.data.data(), p.data.size(),
 												p.reliable ? ENET_PACKET_FLAG_RELIABLE :
 															 0);
-		enet_peer_send(p.peer, 0, packet);
+		enet_peer_send(p.peer, p.reliable ? 1 : 0, packet);
 
+	}
+
+	for (const auto &[peer, cache] : m_cacheSndPeer.asKeyValueRange()) {
+		if (!peer->readyToSend())
+			continue;
+
+		std::vector<UdpPacketSnd> out = cache.take();
+
+		for (const UdpPacketSnd &p : out) {
+			ENetPacket *packet = enet_packet_create(p.data.data(), p.data.size(),
+													p.reliable ? ENET_PACKET_FLAG_RELIABLE :
+																 0);
+			enet_peer_send(p.peer, p.reliable ? 1 : 0, packet);
+
+		}
 	}
 
 
@@ -983,6 +1022,8 @@ UdpServerPeer::UdpServerPeer(const quint32 &id, UdpServer *server, ENetPeer *pee
 	, m_peer(peer)
 {
 	LOG_CTRACE("engine") << "New peer" << id << this;
+
+	m_speed.maxFps = 30;
 }
 
 

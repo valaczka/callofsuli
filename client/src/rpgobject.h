@@ -46,7 +46,7 @@ public:
 	AbstractRpgMotor(RpgObject *rpgObject);
 
 	virtual bool beforeWorldStep(const qint64 &tick, entt::entity &entity) { Q_UNUSED(tick); Q_UNUSED(entity); return false; }
-	virtual bool afterWorldStep(const qint64 &tick, entt::entity &entity) { Q_UNUSED(tick); Q_UNUSED(entity); return false; }
+	virtual bool afterWorldStep(const qint64 &tick, RpgStream::FullState *state) { Q_UNUSED(tick); Q_UNUSED(state); return false; }
 
 protected:
 	virtual void onShapeContactBegin(cpShape *self, cpShape *other) { Q_UNUSED(self); Q_UNUSED(other); }
@@ -76,6 +76,7 @@ class RpgObject : public IsometricObject
 
 public:
 	RpgObject(RpgGameItem *gameItem, const QPointF &center = {}, const qreal &radius = 10., const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
+	virtual ~RpgObject();
 
 	virtual void updateSprite() {}
 

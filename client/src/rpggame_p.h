@@ -42,7 +42,7 @@ class RpgGamePrivate : public QObject
 	Q_OBJECT
 
 private:
-	RpgGamePrivate(RpgGame *game);
+	RpgGamePrivate(RpgGame *game, const bool &multi);
 
 	void clearSharedTextures();
 
@@ -61,6 +61,10 @@ private:
 	void prepareGameItem();
 	void onGameItemPrepared();
 	void loadChunkGrid();
+	void playerPositionAdd(const QPointF &pos, const Rpg::TeamTag::Team &team);
+	void mpEmitterAdd(const QPointF &pos);
+
+
 	void connectJoysticks();
 
 	Q_INVOKABLE void joystickClickedA();
@@ -78,7 +82,7 @@ private:
 
 	void syncObjects();
 	void syncPlayers();
-	void syncChunks();
+	void syncMp();
 
 
 
@@ -89,8 +93,10 @@ private:
 
 private:
 	RpgGame *const q;
-	Rpg::RpgLogicClient m_logic;
+	std::unique_ptr<Rpg::RpgLogicClient> m_logic;
 	quint32 m_deadlineTick = 0;
+
+	RpgStream::MapData m_mapData;
 
 	inline static RpgStream::HashFnv1A64 m_terrainHash = {};
 	inline static RpgStream::HashFnv1A64 m_characterHash = {};
@@ -102,22 +108,6 @@ private:
 
 
 
-
-/**
- * @brief The RpgLogicObjectMapper class
- */
-
-struct RpgLogicObjectMapper
-{
-	QHash<quint32, QPointer<RpgObject> > map;
-
-	static quint32 getId(const TiledObjectBody::ObjectId &id);
-	static quint32 getId(const RpgObject *object) { return object ? getId(object->objectId()) : 0; }
-	static TiledObjectBody::ObjectId toObjectId(const quint32 &id);
-
-	quint32 set(RpgObject *object);
-	RpgObject *get(const quint32 &id) { return map.value(id); }
-};
 
 
 #endif // RPGGAME_P_H

@@ -79,6 +79,8 @@ public:
 
 	bool load(const RpgGameDefinition &def);
 
+	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const int &buttons, const int &modifiers) override;
+
 	bool isContentReady() const;
 	void setIsContentReady(bool newIsContentReady);
 
@@ -92,6 +94,7 @@ protected:
 	virtual void timeStepPrepareEvent() override final;
 	virtual void timeBeforeWorldStepEvent(const qint64 &tick) override final;
 	virtual void timeAfterWorldStepEvent(const qint64 &tick) override final;
+	virtual void timeSteppedEvent() override final;
 
 	virtual void keyPressEvent(QKeyEvent *event) override;
 	virtual void keyReleaseEvent(QKeyEvent *event) override;

@@ -25,13 +25,58 @@
  */
 
 #include "rpglogicclient.h"
+#include "rpggame.h"
+#include "rpgobject.h"
 
 namespace Rpg {
 
-RpgLogicClient::RpgLogicClient()
-	: RpgLogic()
+RpgLogicClient::RpgLogicClient(const quint32 &lastAuthDiff, const quint32 &jitterDiff)
+	: RpgLogic(lastAuthDiff, jitterDiff)
 {
+	registerCtx<RpgLogicObjectMapper>();
+}
 
+
+/**
+ * @brief RpgLogicClient::removeFromMapper
+ */
+
+void RpgLogicClient::removeFromMapper(RpgObject *object)
+{
+	if (!object)
+		return;
+
+	RpgLogicScope scope = getScope();
+	RpgLogicObjectMapper *mapper = scope.getCtx<RpgLogicObjectMapper>();
+
+	mapper->map.remove(mapper->getId(object->objectId()));
+}
+
+
+
+/**
+ * @brief RpgLogicClient::getChunkFromVector
+ * @param point
+ * @return
+ */
+
+QPoint RpgLogicClient::getChunkFromVector(const cpVect &point, cpVect *centerPtr)
+{
+	RpgLogicScope scope = getScope();
+	ChunkGrid *grid = scope.getCtx<ChunkGrid>();
+
+	QPair<qint32, qint32> ch = grid->getAccessibleChunk(TiledObjectBody::toPointF(point));
+
+	if (centerPtr) {
+		if (ch.first < 0 || ch.second < 0) {
+			*centerPtr = cpv(-1., -1.);
+		} else {
+			*centerPtr = cpv(grid->viewport.left() + grid->chunkSize.width() * (ch.first + 0.5),
+							 grid->viewport.top() + grid->chunkSize.height() * (ch.second + 0.5));
+		}
+	}
+
+	return QPoint(ch.first, ch.second);
 }
 
 

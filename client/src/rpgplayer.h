@@ -28,6 +28,7 @@
 #define RPGPLAYER_H
 
 #include "rpgentity.h"
+#include "tiledpathmotor.h"
 #include <QQmlEngine>
 
 
@@ -40,9 +41,32 @@ class RpgPlayer : public RpgEntity
 	Q_OBJECT
 	QML_ELEMENT
 
+	Q_PROPERTY(float chunkRadius READ chunkRadius WRITE setChunkRadius NOTIFY chunkRadiusChanged FINAL)
+	Q_PROPERTY(QPoint currentChunk READ currentChunk NOTIFY currentChunkChanged FINAL)
+	Q_PROPERTY(QPointF currentChunkCenter READ currentChunkCenter NOTIFY currentChunkCenterChanged FINAL)
+
 public:
 	RpgPlayer(RpgGameItem *gameItem, const QPointF &center = {});
 
+	QPoint currentChunk() const;
+	void setCurrentChunk(QPoint newCurrentChunk);
+
+	float chunkRadius() const;
+	void setChunkRadius(float newChunkRadius);
+
+	QPointF currentChunkCenter() const;
+	void setCurrentChunkCenter(QPointF newCurrentChunkCenter);
+
+signals:
+	void currentChunkChanged();
+	void chunkRadiusChanged();
+
+	void currentChunkCenterChanged();
+
+private:
+	float m_chunkRadius = 0.;
+	QPoint m_currentChunk;
+	QPointF m_currentChunkCenter;
 };
 
 
@@ -74,22 +98,25 @@ protected:
  * @brief The RpgMotorPlayer class
  */
 
-class RpgMotorPlayerControlled : public AbstractRpgMotor
+class RpgMotorPlayerControlled : public RpgDestinationMotor
 {
 public:
 	RpgMotorPlayerControlled(RpgPlayer *player);
 
 	virtual void updateBody(TiledObject *) override;
-	virtual bool afterWorldStep(const qint64 &tick, entt::entity &entity) override;
+	virtual bool afterWorldStep(const qint64 &tick, RpgStream::FullState *state) override;
 
 	TiledGame::JoystickState currentJoystickState() const;
 	void setCurrentJoystickState(const TiledGame::JoystickState &newCurrentJoystickState);
+
+	void eventTest();
 
 protected:
 	RpgPlayer *const m_player;
 	Rpg::RpgPlayerStatePull m_statePull;
 
 	TiledGame::JoystickState m_currentJoystickState;
+	std::vector<RpgStream::EventPlayer> m_eventList;
 
 };
 

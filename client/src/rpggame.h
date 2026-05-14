@@ -77,6 +77,25 @@ public:
 
 
 
+class RpgObject;
+
+/**
+ * @brief The RpgLogicObjectMapper class
+ */
+
+struct RpgLogicObjectMapper
+{
+	QHash<quint32, RpgObject* > map;
+
+	static quint32 getId(const TiledObjectBody::ObjectId &id);
+	static quint32 getId(const RpgObject *object);
+	static TiledObjectBody::ObjectId toObjectId(const quint32 &id);
+
+	quint32 set(RpgObject *object);
+	RpgObject *get(const quint32 &id) { return map.value(id); }
+};
+
+
 
 
 /**
@@ -93,7 +112,7 @@ class RpgGame : public AbstractLevelGame
 	Q_PROPERTY(RpgPlayer *controlledPlayer READ controlledPlayer WRITE setControlledPlayer NOTIFY controlledPlayerChanged FINAL)
 
 public:
-	RpgGame(GameMapMissionLevel *missionLevel, Client *client);
+	RpgGame(GameMapMissionLevel *missionLevel, Client *client, const bool &multiplayer);
 	virtual ~RpgGame();
 
 	enum GameState {
@@ -131,9 +150,9 @@ public:
 
 	static void reloadWorld();
 
+	void syncObjects();
 
-	const Rpg::RpgLogicClient &rpgLogicClient() const;
-	Rpg::RpgLogicClient &rpgLogicClient();
+	Rpg::RpgLogicClient* rpgLogicClient();
 
 	virtual int msecLeft() const override;
 

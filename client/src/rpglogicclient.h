@@ -27,7 +27,10 @@
 #ifndef RPGLOGICCLIENT_H
 #define RPGLOGICCLIENT_H
 
+#include "chipmunk/chipmunk_types.h"
 #include <rpglogic.h>
+
+class RpgObject;
 
 namespace Rpg {
 
@@ -36,59 +39,50 @@ namespace Rpg {
  * @brief The RpgEntityStatePull class
  */
 
-template <typename T, std::size_t PULL_SIZE>
-class RpgEntityStatePull
-{
-public:
-	RpgEntityStatePull() = default;
 
-	void reset() { m_head = 0; }
-	void append(const T &content) {
-		if (m_head > 1 && m_list[(m_head-1) % PULL_SIZE] == content)
-			return;
 
-		m_list[m_head % PULL_SIZE] = content;
-		++m_head;
-	}
-	void append(T &&content) {
-		if (m_head > 1 && m_list[(m_head-1) % PULL_SIZE] == content)
-			return;
-
-		m_list[m_head % PULL_SIZE] = std::move(content);
-		++m_head;
-	}
-
-	bool extract(T &origPtr, std::vector<T> &listPtr) {
-		if (m_head == 0)
-			return false;
-
-		const quint32 from = (m_head > PULL_SIZE ? m_head-PULL_SIZE : 0);
-
-		origPtr = m_list[from % PULL_SIZE];
-		listPtr.clear();
-		listPtr.reserve(PULL_SIZE);
-
-		for (quint32 i=from+1; i<m_head; ++i) {
-			listPtr.push_back(m_list[i % PULL_SIZE]);
-		}
-
-		return true;
-	}
-
-protected:
-	std::array<T, PULL_SIZE> m_list;
-	quint32 m_head = 0;
-};
+typedef BaseStatePull<RpgStream::PlayerState, 10> RpgPlayerStatePull;
 
 
 
-typedef RpgEntityStatePull<RpgStream::PlayerState, 10> RpgPlayerStatePull;
 
+/**
+ * @brief The RpgLogicClient class
+ */
 
 class RpgLogicClient : public RpgLogic
 {
 public:
-	RpgLogicClient();
+	RpgLogicClient(const quint32 &lastAuthDiff, const quint32 &jitterDiff);
+
+	void removeFromMapper(RpgObject *object);
+	QPoint getChunkFromVector(const cpVect &point, cpVect *centerPtr = nullptr);
+
+
+};
+
+
+
+
+/**
+ * @brief The RpgLogicClientSingle class
+ */
+
+class RpgLogicClientSingle : public RpgLogicClient
+{
+public:
+	RpgLogicClientSingle() : RpgLogicClient(0, 0) {}
+};
+
+
+/**
+ * @brief The RpgLogicClientMulti class
+ */
+
+class RpgLogicClientMulti : public RpgLogicClient
+{
+public:
+	RpgLogicClientMulti() : RpgLogicClient(6, 6) {}
 };
 
 }		// end of namespace

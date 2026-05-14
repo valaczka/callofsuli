@@ -528,7 +528,7 @@ void RpgEnginePrivate::sendEngineList(const RpgConfigBase &config, UdpServerPeer
 
 	list.setCanCreate(handler->engines().size() < max);
 
-	peer->send(list.toStream().data(), true);
+	peer->send(list.toStream().data(), false);
 }
 
 

@@ -49,14 +49,14 @@
 struct UdpSpeed {
 	void addRtt(const int &rtt);
 
-	inline static constexpr int maxFps = 30;
+	int maxFps = 60;
 	int fps = maxFps;
 
 	// min rtt -> max fps
 	inline static const std::map<int, int> limit = {
-		{ 30,	30 },
+		{ 50,	30 },
 		{ 75,	24 },
-		{ 150,	20 },
+		{ 100,	20 },
 		{ 200,	15 },
 	};
 

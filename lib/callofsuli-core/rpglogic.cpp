@@ -32,6 +32,8 @@
 #include <random>
 
 
+#define MAX_FUTURE_TICK					10
+
 #define STD_DEV_MAX_ATTEMPTS			10000
 #define TARGET_STD_DEV					1.5
 
@@ -127,17 +129,76 @@ void PlayerBaseData::assign(const QList<PlayerBaseData *> &dst, const int &num)
 namespace Rpg {
 
 
+/**
+ * @brief The RpgLogicPrivate class
+ */
+
+class RpgLogicPrivate
+{
+private:
+	RpgLogicPrivate(RpgLogic *logic) : q(logic) {}
+	~RpgLogicPrivate() = default;
+
+
+	// Players
+
+	bool emplacePlayers();
+	bool initializePlayer(entt::entity ent);
+
+	void playerInputLoad(entt::entity ent, const std::vector<RpgStream::PlayerState> &list);
+	void playerInputLoad(const quint32 &tag, const std::vector<RpgStream::PlayerState> &list) {
+		playerInputLoad(q->entityFromIdTag(tag), list);
+	}
+	void playerInputLoad(const RpgStream::PlayerStateEntityList &list, const bool &delta = true);		// TAGID check!!!
+
+
+
+	// Mp
+
+	void loadMpEmitters(const std::vector<RpgStream::MpEmitter> &list);
+	void generateMp();
+
+	// Events
+
+	void eventInputLoad(const RpgStream::EventList &list);		// TAGID check!!!
+	void eventInputLoad(const std::vector<RpgStream::EventPlayerList> &list);		// TAGID check!!!
+
+
+
+private:
+	RpgLogic *const q;
+
+	friend class RpgLogic;
+};
+
+
+
+
 
 /**
  * @brief RpgLogic::RpgLogic
  */
 
-RpgLogic::RpgLogic()
+RpgLogic::RpgLogic(const quint32 &lastAuthDiff, const quint32 &jitterDiff)
+	: d(new RpgLogicPrivate(this))
+	, m_lastAuthTickDiff(lastAuthDiff)
+	, m_jitterDiff(jitterDiff)
 {
-	registerCtx<RpgStream::PlayerPositionList>();
 	registerCtx<RpgStream::GameConfig>();
 	registerCtx<ChunkGrid>();
+	registerCtx<PlayerPositionList>();
 	registerCtx<IdTagMapper>();
+	registerCtx<Events>();
+}
+
+/**
+ * @brief RpgLogic::~RpgLogic
+ */
+
+RpgLogic::~RpgLogic()
+{
+	delete d;
+	d = nullptr;
 }
 
 
@@ -230,66 +291,27 @@ entt::entity RpgLogic::entityFromIdTag(const quint32 &tag) const
 
 
 /**
- * @brief RpgLogic::loadChunkGrid
- * @param grid
- * @return
+ * @brief RpgLogic::loadMapData
+ * @param data
  */
 
-ChunkGrid &RpgLogic::loadChunkGrid(ChunkGrid &&grid)
+void RpgLogic::loadMapData(const RpgStream::MapData &data)
 {
+	PlayerPositionList l = data.playerPositionList();
+
 	QMutexLocker locker(&m_mutex);
-	return m_registry.ctx().insert_or_assign<ChunkGrid>(std::move(grid));
-}
+	m_registry.ctx().insert_or_assign<ChunkGrid>(ChunkGrid::fromRpgStream(data.chunkGrid()));
+	m_registry.ctx().insert_or_assign<PlayerPositionList>(std::move(l));
 
-
-/**
- * @brief RpgLogic::loadChunkGrid
- * @param grid
- * @return
- */
-
-ChunkGrid &RpgLogic::loadChunkGrid(const RpgStream::ChunkGrid &grid)
-{
-	QMutexLocker locker(&m_mutex);
-	return m_registry.ctx().insert_or_assign<ChunkGrid>(ChunkGrid::fromRpgStream(grid));
+	d->loadMpEmitters(data.mpEmitterList());
 }
 
 
 
 
-/**
- * @brief RpgLogic::playerPositionAdd
- * @param pos
- * @param team
- */
-
-void RpgLogic::playerPositionAdd(const QPointF &pos, const TeamTag::Team &team)
-{
-	RpgLogicScope scope = getScope();
-	RpgStream::PlayerPositionList *list = scope.getCtx<RpgStream::PlayerPositionList>();
-
-	Q_ASSERT(list);
-
-	RpgStream::PlayerPosition p;
-	p.setPosXAsFloat(pos.x());
-	p.setPosYAsFloat(pos.y());
-	p.setTeam(team);
-
-	list->list().emplace_back(std::move(p));
-}
 
 
 
-/**
- * @brief RpgLogic::playerPositionListSet
- * @param list
- */
-
-void RpgLogic::playerPositionListSet(RpgStream::PlayerPositionList &&list)
-{
-	QMutexLocker locker(&m_mutex);
-	m_registry.ctx().insert_or_assign<RpgStream::PlayerPositionList>(std::move(list));
-}
 
 
 
@@ -320,11 +342,169 @@ entt::entity RpgLogic::playerAdd(const TeamTag::Team &team)
 	playerData.setCharacterResolved("testCharacter01");
 
 
-	m_registry.emplace<Player>(entity, std::move(playerData), (quint32) 0);
+	m_registry.emplace<Player>(entity, std::move(playerData), 0u);
 	m_registry.emplace<TeamTag>(entity, team);
+	m_registry.emplace<PlayerStateInput>(entity);
+	m_registry.emplace<PlayerStateOuput>(entity);
 
 	return entity;
 }
+
+
+
+// OBSOLETE!!!!
+
+void RpgLogic::emplacePlayers()
+{
+	d->emplacePlayers();
+}
+
+
+/**
+ * @brief RpgLogic::serverTick
+ * @return
+ */
+
+
+
+
+
+/**
+ * @brief RpgLogic::playerInputLoad
+ * @param list
+ */
+
+void RpgLogicPrivate::playerInputLoad(entt::entity ent, const std::vector<RpgStream::PlayerState> &list)
+{
+	QMutexLocker locker(&q->m_mutex);
+
+	Player *p = q->m_registry.try_get<Player>(ent);
+	PlayerStateInput *input = q->m_registry.try_get<PlayerStateInput>(ent);
+
+	if (!p || !input) {
+		LOG_CERROR("engine") << "Invalid player";
+		return;
+	}
+
+	input->load(list, q->lastAuthTick(), q->m_serverTick + MAX_FUTURE_TICK);
+}
+
+
+
+
+/**
+ * @brief RpgLogic::playerInputLoad
+ * @param list
+ */
+
+void RpgLogicPrivate::playerInputLoad(const RpgStream::PlayerStateEntityList &list, const bool &delta)
+{
+	/// TAG ID CHECK!
+
+	for (const RpgStream::PlayerStateList &ps : list.list()) {
+		playerInputLoad(ps.tagId(), delta ? ps.extractStateVector() : ps.state());
+	}
+}
+
+
+/**
+ * @brief RpgLogicPrivate::loadMpEmitters
+ * @param list
+ */
+
+void RpgLogicPrivate::loadMpEmitters(const std::vector<RpgStream::MpEmitter> &list)
+{
+	LOG_CINFO("game") << "Load emitters";
+
+	QMutexLocker locker(&q->m_mutex);
+
+	for (const RpgStream::MpEmitter &e : list) {
+		auto entity = q->m_registry.create();
+
+		MpEmitter &emitter = q->m_registry.emplace<MpEmitter>(entity);
+
+		emitter.id = ++MpEmitter::lastId;
+		emitter.pos.setX(e.posXAsFloat());
+		emitter.pos.setY(e.posYAsFloat());
+
+		LOG_CDEBUG("game") << "ADD EMITTER" << emitter.id << emitter.pos;
+
+	}
+}
+
+
+
+/**
+ * @brief RpgLogicPrivate::generateMp
+ */
+
+void RpgLogicPrivate::generateMp()
+{
+	LOG_CWARNING("game") << "GENERATE MP";
+
+	QMutexLocker locker(&q->m_mutex);
+
+	auto view = q->m_registry.view<MpEmitter>();
+
+	for (auto e : view) {
+		const MpEmitter &emitter = q->m_registry.get<MpEmitter>(e);
+
+		for (int i=0; i<6; ++i) {
+			auto entity = q->m_registry.create();
+
+			Mp &mp = q->m_registry.emplace<Mp>(entity);
+			mp.idTag = q->packId(1, 0, ++q->m_lastObjectId);
+			mp.emitter = e;
+			mp.pos = emitter.pos + QPointF(30*i, 35*i);
+
+			LOG_CDEBUG("game") << "ADD MP" << emitter.id << "->" << mp.idTag << mp.pos;
+		}
+	}
+}
+
+
+/**
+ * @brief RpgLogic::eventLoad
+ * @param list
+ */
+
+void RpgLogicPrivate::eventInputLoad(const RpgStream::EventList &list)
+{
+	if (list.flags().testFlags(RpgStream::EventList::Player))
+		eventInputLoad(list.playerList());
+
+}
+
+
+/**
+ * @brief RpgLogic::eventPlayerInputLoad
+ * @param list
+ */
+
+void RpgLogicPrivate::eventInputLoad(const std::vector<RpgStream::EventPlayerList> &list)
+{
+	const quint32 &minTick = q->lastAuthTick();
+	const quint32 &maxTick = q->m_serverTick + MAX_FUTURE_TICK;
+
+	/// TAG ID CHECK!
+
+	QMutexLocker locker(&q->m_mutex);
+
+	Events* events = q->m_registry.ctx().find<Events>();
+
+	if (!events) {
+		LOG_CERROR("game") << "Missing events";
+		return;
+	}
+
+	for (const RpgStream::EventPlayerList &l : list) {
+		LOG_CWARNING("game") << "####" << l.tagId() << l.list().size();
+
+		events->player.load(l.tagId(), l.list(), minTick, maxTick);
+	}
+}
+
+
 
 
 
@@ -335,21 +515,21 @@ entt::entity RpgLogic::playerAdd(const TeamTag::Team &team)
  * @return
  */
 
-bool RpgLogic::emplacePlayers()
+bool RpgLogicPrivate::emplacePlayers()
 {
-	RpgLogicScope scope = getScope();
-	RpgStream::PlayerPositionList *list = scope.getCtx<RpgStream::PlayerPositionList>();
+	RpgLogicScope scope = q->getScope();
+	PlayerPositionList *list = scope.getCtx<PlayerPositionList>();
 
 	Q_ASSERT(list);
 
-	if (list->list().empty()) {
+	if (list->empty()) {
 		LOG_CWARNING("game") << "Empty player position list";
 		return false;
 	}
 
 	std::random_device rd;
 	std::mt19937 g(rd());
-	std::shuffle(list->list().begin(), list->list().end(), g);
+	std::shuffle(list->begin(), list->end(), g);
 
 	QHash<TeamTag::Team, std::vector<RpgStream::PlayerPosition> > map;
 
@@ -357,16 +537,16 @@ bool RpgLogic::emplacePlayers()
 	map.insert(TeamTag::TeamA, {});
 	map.insert(TeamTag::TeamB, {});
 
-	for (const RpgStream::PlayerPosition &p : list->list()) {
+	for (const RpgStream::PlayerPosition &p : *list) {
 		map[QVariant(p.team()).value<TeamTag::Team>()].emplace_back(p);
 	}
 
 	bool success = true;
 
-	auto view = m_registry.view<Player, TeamTag>(entt::exclude<RpgStream::PlayerPosition>);
+	auto view = q->m_registry.view<Player, TeamTag>(entt::exclude<RpgStream::PlayerPosition>);
 
 	for (auto &player : view) {
-		const TeamTag &t = m_registry.get<TeamTag>(player);
+		const TeamTag &t = q->m_registry.get<TeamTag>(player);
 
 		std::vector<RpgStream::PlayerPosition> &plist = map[t.team];
 
@@ -376,24 +556,26 @@ bool RpgLogic::emplacePlayers()
 			continue;
 		}
 
-		m_registry.emplace<RpgStream::PlayerPosition>(player, plist.back());
+		q->m_registry.emplace<RpgStream::PlayerPosition>(player, plist.back());
 
 		plist.pop_back();
+
+		initializePlayer(player);
 	}
 
 
-	auto v = m_registry.view<Player>();
+	auto v = q->m_registry.view<Player>();
 
 	for (auto &player : v) {
-		auto p = m_registry.get<Player>(player);
+		auto p = q->m_registry.get<Player>(player);
 
 		LOG_CINFO("game") << "***************PLAYER" << p.playerData.playerId() << p.playerData.character();
 
-		if (TeamTag *t = m_registry.try_get<TeamTag>(player)) {
+		if (TeamTag *t = q->m_registry.try_get<TeamTag>(player)) {
 			LOG_CDEBUG("game") << "   - team:" << t->team;
 		}
 
-		if (RpgStream::PlayerPosition *p = m_registry.try_get<RpgStream::PlayerPosition>(player)) {
+		if (RpgStream::PlayerPosition *p = q->m_registry.try_get<RpgStream::PlayerPosition>(player)) {
 			LOG_CDEBUG("game") << "   - pos:" << p->posXAsFloat() << p->posYAsFloat();
 		}
 	}
@@ -403,55 +585,53 @@ bool RpgLogic::emplacePlayers()
 }
 
 
-
 /**
- * @brief RpgLogic::initializePlayers
+ * @brief RpgLogic::initializePlayer
+ * @param ent
  * @return
  */
 
-bool RpgLogic::initializePlayers()
+bool RpgLogicPrivate::initializePlayer(entt::entity ent)
 {
-	QMutexLocker locker(&m_mutex);
+	if (ent == entt::null)
+		return false;
 
-	auto view = m_registry.view<Player>();
+	QMutexLocker locker(&q->m_mutex);
 
-	for (auto &player : view) {
-		RpgStream::PlayerState &state = m_registry.emplace_or_replace<RpgStream::PlayerState>(player);
-		RpgStream::PlayerPosition *p = m_registry.try_get<RpgStream::PlayerPosition>(player);
-
-		state.setHp(12);
-
-		state.entityState().setPosX(p ? p->posX() : 0.f);
-		state.entityState().setPosY(p ? p->posY() : 0.f);
-		state.entityState().setVelX(0);
-		state.entityState().setVelY(0);
+	if (!q->m_registry.try_get<Player>(ent)) {
+		LOG_CERROR("game") << "Invalid player";
+		return false;
 	}
+
+	RpgStream::PlayerState &state = q->m_registry.emplace_or_replace<RpgStream::PlayerState>(ent);
+	RpgStream::PlayerPosition *p = q->m_registry.try_get<RpgStream::PlayerPosition>(ent);
+
+	state.setHp(12);
+
+	state.entityState().setPosX(p ? p->posX() : 0.f);
+	state.entityState().setPosY(p ? p->posY() : 0.f);
+	state.entityState().setVelX(0);
+	state.entityState().setVelY(0);
 
 	return true;
 }
 
 
-/**
- * @brief RpgLogic::lastAuthTick
- * @return
- */
 
-quint32 RpgLogic::lastAuthTick() const
-{
-	QMutexLocker locker(&m_mutex);
-	return m_lastAuthTick;
-}
 
 
 /**
- * @brief RpgLogic::setLastAuthTick
- * @param newLastAuthTick
+ * @brief RpgLogic::fullStateLoad
+ * @param full
  */
 
-void RpgLogic::setLastAuthTick(quint32 newLastAuthTick)
+void RpgLogic::fullStateLoad(const RpgStream::FullState &full)
 {
-	QMutexLocker locker(&m_mutex);
-	m_lastAuthTick = newLastAuthTick;
+	if (full.flags().testFlag(RpgStream::FullState::Player))
+		d->playerInputLoad(full.players(), full.isDeltaMode());
+
+	if (full.flags().testFlag(RpgStream::FullState::Events))
+		d->eventInputLoad(full.events());
 }
 
 
@@ -464,32 +644,72 @@ void RpgLogic::render()
 {
 	QMutexLocker locker(&m_mutex);
 
-	++m_lastAuthTick;
+	++m_serverTick;
+
+	if (m_serverTick <= m_lastAuthTickDiff)
+		return;
 
 
-	/*entt::entity p1 = entityFromIdTag(RpgLogic::packId(0, 1, 0));
+	renderEvents();
 
-	auto [player, tick] = m_registry.try_get<Rpg::Player, Rpg::PlayerTickMap>(p1);
+	entt::entity p1 = entityFromIdTag(RpgLogic::packId(0, 1, 0));
 
-	if (!player || !tick) {
+	auto [player, input, output] = m_registry.try_get<Player, PlayerStateInput, PlayerStateOuput>(p1);
+
+	if (!player || !input) {
 		LOG_CERROR("game") << "ERR";
 		return;
 	}
 
-	const quint32 fromTick = m_lastAuthTick-1;
 
-	auto fromIt = tick->map.lowerBound(fromTick);
-	auto toIt = tick->map.lowerBound(m_lastAuthTick);
+	if (!input->map().empty()) {
+		const quint32 fromTick = lastAuthTick()-1;
 
-	if (fromIt == tick->map.end() || toIt == tick->map.end()) {
-		return;
+		const RpgStream::PlayerState *last = input->last(fromTick);
+		const RpgStream::PlayerState *current = input->at(lastAuthTick());
+
+
+
+		if (last && current) {
+			const float dx = current->entityState().posXAsFloat() - last->entityState().posXAsFloat();
+			const float dy = current->entityState().posYAsFloat() - last->entityState().posYAsFloat();
+
+			auto view = m_registry.view<Player, PlayerStateOuput>();
+
+			for (auto p : view) {
+				RpgStream::PlayerState *state = m_registry.try_get<RpgStream::PlayerState>(p);
+				if (!state) {
+					LOG_CERROR("game") << "NO POS";
+					continue;
+				}
+
+
+				cpVect v = cpvadd(cpv(state->entityState().posXAsFloat(), state->entityState().posYAsFloat()),
+								  cpv(dx, dy));
+
+				state->setTick(lastAuthTick());
+				state->entityState().setPosXAsFloat(v.x);
+				state->entityState().setPosYAsFloat(v.y);
+
+				PlayerStateOuput &out = m_registry.get<PlayerStateOuput>(p);
+
+				out.append(*state);
+
+			}
+		}
+
+		if (current) {
+			output->append(*current);
+		}
+
+		input->clear(lastAuthTick());
+
 	}
 
-	if (fromIt.key() > fromTick || toIt.key() > m_lastAuthTick) {
-		return;
-	}
+	if (m_serverTick == 600)
+		d->generateMp();
 
-	qint32 dx = (qint32) toIt->entityState().posX() - (qint32) fromIt->entityState().posX();
+	/*qint32 dx = (qint32) toIt->entityState().posX() - (qint32) fromIt->entityState().posX();
 	qint32 dy = (qint32) toIt->entityState().posY() - (qint32) fromIt->entityState().posY();
 
 	LOG_CDEBUG("game") << "FROM" << fromTick << "POS" << dx << dy << "TO" << m_lastAuthTick;
@@ -518,6 +738,45 @@ void RpgLogic::render()
 
 		tick->map.erase(tick->map.begin(), tick->map.lowerBound(m_lastAuthTick));
 	}*/
+}
+
+
+
+/**
+ * @brief RpgLogic::renderEvents
+ */
+
+void RpgLogic::renderEvents()
+{
+	QMutexLocker locker(&m_mutex);
+
+	const quint32 tick = lastAuthTick();
+
+	Events* events = m_registry.ctx().find<Events>();
+
+	if (!events) {
+		LOG_CERROR("game") << "Missing events";
+		return;
+	}
+
+
+	// Player events
+
+	if (std::vector<std::pair<quint32, RpgStream::EventPlayer> > *ePlayer = events->player.at(tick)) {
+		for (const auto &ptr : *ePlayer) {
+			switch (ptr.second.type()) {
+				case RpgStream::EventPlayer::EventTest: {
+					playerAdd(TeamTag::TeamB);
+					emplacePlayers();
+
+					break;
+				}
+
+				case RpgStream::EventPlayer::EventNone:
+					break;
+			}
+		}
+	}
 }
 
 
@@ -569,8 +828,10 @@ RpgStream::ChunkGrid ChunkGrid::toRpgStream() const
 	std::vector<RpgStream::Chunk> list;
 	list.reserve(excludeSet.size());
 
-	for (const QPair<quint32, quint32> &ch : excludeSet)
+	for (const QPair<qint32, qint32> &ch : excludeSet)
 		list.emplace_back(ch.first, ch.second);
+
+	grid.setExcludeList(list);
 
 	return grid;
 }
@@ -583,9 +844,9 @@ RpgStream::ChunkGrid ChunkGrid::toRpgStream() const
  * @return
  */
 
-QPair<quint32, quint32> ChunkGrid::getChunk(const float &x, const float &y) const
+QPair<qint32, qint32> ChunkGrid::getChunk(const float &x, const float &y) const
 {
-	QPair<quint32, quint32> pos(0, 0);
+	QPair<qint32, qint32> pos(-1, -1);
 
 	if (chunkSize.isNull() || !chunkSize.isValid())
 		return pos;
@@ -595,6 +856,10 @@ QPair<quint32, quint32> ChunkGrid::getChunk(const float &x, const float &y) cons
 
 	return pos;
 }
+
+
+
+
 
 
 

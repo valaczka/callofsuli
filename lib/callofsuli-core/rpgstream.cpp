@@ -371,6 +371,7 @@ EngineStream &EntityState::operator>>(EngineStream &stream) const
 
 EngineStream &PlayerState::operator<<(EngineStream &stream)
 {
+	readTick(stream);
 	readDeltaMask(stream);
 	m_entityState.setIsDeltaMode(m_isDeltaMode);
 	m_entityState << stream;
@@ -389,6 +390,7 @@ EngineStream &PlayerState::operator<<(EngineStream &stream)
 
 EngineStream &PlayerState::operator>>(EngineStream &stream) const
 {
+	writeTick(stream);
 	writeDeltaMask(stream);
 	m_entityState.setIsDeltaMode(m_isDeltaMode);
 	m_entityState >> stream;
@@ -513,9 +515,11 @@ EngineStream &PlayerPosition::operator>>(EngineStream &stream) const
  * @return
  */
 
-EngineStream &PlayerPositionList::operator<<(EngineStream &stream)
+EngineStream &MapData::operator<<(EngineStream &stream)
 {
-	readList(stream);
+	m_chunkGrid << stream;
+	readPlayerPositionList(stream);
+	readMpEmitterList(stream);
 
 	return stream;
 }
@@ -527,9 +531,11 @@ EngineStream &PlayerPositionList::operator<<(EngineStream &stream)
  * @return
  */
 
-EngineStream &PlayerPositionList::operator>>(EngineStream &stream) const
+EngineStream &MapData::operator>>(EngineStream &stream) const
 {
-	writeList(stream);
+	m_chunkGrid >> stream;
+	writePlayerPositionList(stream);
+	writeMpEmitterList(stream);
 
 	return stream;
 }
@@ -543,6 +549,7 @@ EngineStream &PlayerPositionList::operator>>(EngineStream &stream) const
 
 EngineStream &PlayerStateList::operator<<(EngineStream &stream)
 {
+	readTagId(stream);
 	readStateVectorDelta(stream, m_isDeltaMode);
 
 	return stream;
@@ -557,7 +564,200 @@ EngineStream &PlayerStateList::operator<<(EngineStream &stream)
 
 EngineStream &PlayerStateList::operator>>(EngineStream &stream) const
 {
+	writeTagId(stream);
 	writeStateVectorDelta(stream, m_isDeltaMode);
+
+	return stream;
+}
+
+
+/**
+ * @brief PlayerStateEntityList::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &PlayerStateEntityList::operator<<(EngineStream &stream)
+{
+	readList(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief PlayerStateEntityList::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &PlayerStateEntityList::operator>>(EngineStream &stream) const
+{
+	writeList(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief FullState::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &FullState::operator<<(EngineStream &stream)
+{
+	readFlags(stream);
+
+	if (m_flags & Player)
+		m_players << stream;
+
+	if (m_flags & Events)
+		m_events << stream;
+
+	return stream;
+}
+
+
+/**
+ * @brief FullState::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &FullState::operator>>(EngineStream &stream) const
+{
+	writeFlags(stream);
+
+	if (m_flags & Player)
+		m_players >> stream;
+
+	if (m_flags & Events)
+		m_events >> stream;
+
+	return stream;
+}
+
+
+/**
+ * @brief EventList::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &EventList::operator<<(EngineStream &stream)
+{
+	readFlags(stream);
+
+	if (m_flags & Player)
+		readPlayerList(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief EventList::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &EventList::operator>>(EngineStream &stream) const
+{
+	writeFlags(stream);
+
+	if (m_flags & Player)
+		writePlayerList(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief EventPlayerList::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &EventPlayerList::operator<<(EngineStream &stream)
+{
+	readTagId(stream);
+	readList(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief EventPlayerList::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &EventPlayerList::operator>>(EngineStream &stream) const
+{
+	writeTagId(stream);
+	writeList(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief EventPlayer::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &EventPlayer::operator<<(EngineStream &stream)
+{
+	readType(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief EventPlayer::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &EventPlayer::operator>>(EngineStream &stream) const
+{
+	writeType(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief MpEmitter::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &MpEmitter::operator<<(EngineStream &stream)
+{
+	readPosX(stream);
+	readPosY(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief MpEmitter::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &MpEmitter::operator>>(EngineStream &stream) const
+{
+	writePosX(stream);
+	writePosY(stream);
 
 	return stream;
 }

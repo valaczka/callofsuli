@@ -185,44 +185,6 @@ void AbstractUdpEngine::setConnectionToken(const QByteArray &token)
 
 
 
-/**
- * @brief AbstractUdpEngine::currentRtt
- * @return
- */
-
-int AbstractUdpEngine::currentRtt() const
-{
-	int rtt = 0;
-
-#ifndef Q_OS_WASM
-	QDefer ret;
-	m_worker->execInThread([this, &rtt](){
-		rtt = d->currentRtt();
-	});
-
-	QDefer::await(ret);
-#endif
-
-	return rtt;
-}
-
-
-
-
-/**
- * @brief AbstractUdpEngine::setCurrentRtt
- * @param rtt
- */
-
-void AbstractUdpEngine::setCurrentRtt(const int &rtt)
-{
-#ifndef Q_OS_WASM
-	m_worker->execInThread([this, rtt](){
-		d->setCurrentRtt(rtt);
-	});
-#endif
-}
-
 
 
 
@@ -266,7 +228,7 @@ void AbstractUdpEnginePrivate::run()
 				continue;
 			}
 
-			ENetHost *client = enet_host_create(NULL, 1, 1, 0, 0);
+			ENetHost *client = enet_host_create(NULL, 1, 2, 0, 0);
 
 			if (!client) {
 				LOG_CERROR("client") << "Connection refused" << qPrintable(m_url.toDisplayString());
@@ -282,7 +244,7 @@ void AbstractUdpEnginePrivate::run()
 			enet_address_set_host(&address, m_url.host().toLatin1());
 			address.port = m_url.port();
 
-			peer = enet_host_connect (client, &address, 1, 0);
+			peer = enet_host_connect (client, &address, 2, 0);
 
 			if (!peer) {
 				LOG_CWARNING("client") << "Connection refused" << qPrintable(m_url.toDisplayString());
@@ -448,36 +410,38 @@ void AbstractUdpEnginePrivate::setUrl(const QUrl &newUrl)
 
 void AbstractUdpEnginePrivate::deliverPackets()
 {
-	// Send outgoing packets (always on channel 0)
+	// Send outgoing packets (channel 0 = normal, channel 1 = reliable)
 
-	std::vector<UdpPacketSnd> out = m_cacheSnd.take();
+	if (m_speed.readyToSend()) {
+		std::vector<UdpPacketSnd> out = m_cacheSnd.take();
 
-	for (const UdpPacketSnd &p : out) {
+		for (const UdpPacketSnd &p : out) {
 
 #ifndef Q_OS_WASM
-		ENetPacket *packet = enet_packet_create(p.data.data(), p.data.size(),
-												p.reliable ? ENET_PACKET_FLAG_RELIABLE :
-															 0);
+			ENetPacket *packet = enet_packet_create(p.data.data(), p.data.size(),
+													p.reliable ? ENET_PACKET_FLAG_RELIABLE :
+																 0);
 
-		if (enet_peer_send(m_enet_peer, 0, packet) < 0) {
-			LOG_CERROR("client") << "ENet peer send error";
-			enet_packet_destroy(packet);
+			if (enet_peer_send(m_enet_peer, p.reliable ? 1 : 0, packet) < 0) {
+				LOG_CERROR("client") << "ENet peer send error";
+				enet_packet_destroy(packet);
 
-			if (m_udpState == UdpBitStream::MessageConnected) {
-				LOG_CDEBUG("engine") << "Udp connection lost";
+				if (m_udpState == UdpBitStream::MessageConnected) {
+					LOG_CDEBUG("engine") << "Udp connection lost";
 
-				emit q->serverConnectionLost();
+					emit q->serverConnectionLost();
 
-			} else {
-				LOG_CDEBUG("engine") << "Udp connection failed";
-				emit q->serverConnectFailed(tr("Connection lost"));
+				} else {
+					LOG_CDEBUG("engine") << "Udp connection failed";
+					emit q->serverConnectFailed(tr("Connection lost"));
+				}
+
+				destroyHostAndPeer();
 			}
-
-			destroyHostAndPeer();
-		}
 
 #endif
 
+		}
 	}
 
 
@@ -550,7 +514,7 @@ bool AbstractUdpEnginePrivate::packetChallengeReceived(const std::unique_ptr<Udp
 
 	UdpBitStream msg(m_connectionToken, content);
 
-	sendMessage(*msg, true);
+	sendMessage(*msg);
 
 	return true;
 }
@@ -688,7 +652,7 @@ void AbstractUdpEnginePrivate::sendConnectionToken()
 
 	UdpBitStream stream(m_connectionToken);
 
-	sendMessage(*stream, true);
+	sendMessage(*stream);
 }
 
 

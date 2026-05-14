@@ -44,6 +44,12 @@ RpgObject::RpgObject(RpgGameItem *gameItem, const QPointF &center, const qreal &
 	m_rpgGame = gameItem->game();
 }
 
+RpgObject::~RpgObject()
+{
+	if (m_rpgGame)
+		m_rpgGame->rpgLogicClient()->removeFromMapper(this);
+}
+
 
 /**
  * @brief RpgObject::worldStep

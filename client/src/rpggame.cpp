@@ -51,9 +51,9 @@ QHash<QString, RpgGameDefinition> RpgGame::m_terrains = {};
  * @param client
  */
 
-RpgGame::RpgGame(GameMapMissionLevel *missionLevel, Client *client)
+RpgGame::RpgGame(GameMapMissionLevel *missionLevel, Client *client, const bool &multiplayer)
 	: AbstractLevelGame(GameMap::Rpg, missionLevel, client)
-	, d(new RpgGamePrivate(this))
+	, d(new RpgGamePrivate(this, multiplayer))
 {
 	Q_ASSERT(client);
 
@@ -209,8 +209,6 @@ void RpgGame::reloadTerrains()
 	}
 
 	LOG_CDEBUG("game") << "...loaded " << m_terrains.size() << " terrains";
-
-	LOG_CINFO("game") << "HASH" << RpgGamePrivate::m_terrainHash;
 }
 
 
@@ -268,18 +266,23 @@ void RpgGame::reloadWorld()
 
 
 /**
+ * @brief RpgGame::syncObjects
+ */
+
+void RpgGame::syncObjects()
+{
+	d->syncObjects();
+}
+
+
+/**
  * @brief RpgGame::rpgLogic
  * @return
  */
 
-const Rpg::RpgLogicClient &RpgGame::rpgLogicClient() const
+Rpg::RpgLogicClient *RpgGame::rpgLogicClient()
 {
-	return d->m_logic;
-}
-
-Rpg::RpgLogicClient &RpgGame::rpgLogicClient()
-{
-	return d->m_logic;
+	return d->m_logic.get();
 }
 
 
@@ -393,7 +396,7 @@ void RpgGamePrivate::prepareGameItem()
 	Q_ASSERT(!RpgGame::terrains().isEmpty());
 
 
-	Rpg::RpgLogicScope scope = m_logic.getScope();
+	Rpg::RpgLogicScope scope = m_logic->getScope();
 	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
 
 	Q_ASSERT(cfg);
@@ -425,13 +428,15 @@ void RpgGamePrivate::onGameItemPrepared()
 
 	loadChunkGrid();
 
-	logicAddPlayer(Rpg::TeamTag::TeamNone, 5);
+	m_logic->loadMapData(m_mapData);
 
-	Rpg::RpgLogicScope scope = m_logic.getScope();
+	logicAddPlayer(Rpg::TeamTag::TeamA, 2);
+
+	Rpg::RpgLogicScope scope = m_logic->getScope();
 	m_deadlineTick = scope.getCtx<RpgStream::GameConfig>()->duration();
 
-	m_logic.emplacePlayers();
-	m_logic.initializePlayers();
+
+	m_logic->emplacePlayers();
 
 	syncObjects();
 
@@ -451,7 +456,9 @@ void RpgGamePrivate::loadChunkGrid()
 {
 	static const float size = 64.;
 
-	TiledGame::TcodMapData *map = q->gameItem()->reloadTcodMap(q->gameItem()->currentScene(), RpgGameItem::FixtureGround, size);
+	TiledGame::TcodMapData *map = q->gameItem()->reloadTcodMap(q->gameItem()->currentScene(),
+															   RpgGameItem::FixtureGround | RpgGameItem::FixtureExcluded,
+															   size);
 
 	Q_ASSERT(map);
 
@@ -476,8 +483,42 @@ void RpgGamePrivate::loadChunkGrid()
 
 	q->gameItem()->reloadTcodMap(q->gameItem()->currentScene());			// Reset!
 
-	m_logic.loadChunkGrid(std::move(grid));
+	m_mapData.setChunkGrid(grid.toRpgStream());
 }
+
+
+
+/**
+ * @brief RpgGamePrivate::playerPositionAdd
+ * @param pos
+ * @param team
+ */
+
+void RpgGamePrivate::playerPositionAdd(const QPointF &pos, const Rpg::TeamTag::Team &team)
+{
+	RpgStream::PlayerPosition p;
+	p.setPosXAsFloat(pos.x());
+	p.setPosYAsFloat(pos.y());
+	p.setTeam(team);
+
+	m_mapData.playerPositionList().emplace_back(std::move(p));
+}
+
+
+/**
+ * @brief RpgGamePrivate::mpEmitterAdd
+ * @param pos
+ */
+
+void RpgGamePrivate::mpEmitterAdd(const QPointF &pos)
+{
+	RpgStream::MpEmitter p;
+	p.setPosXAsFloat(pos.x());
+	p.setPosYAsFloat(pos.y());
+
+	m_mapData.mpEmitterList().emplace_back(std::move(p));
+}
+
 
 
 
@@ -568,8 +609,8 @@ void RpgGamePrivate::startGame()
 
 void RpgGamePrivate::syncObjects()
 {
-	syncChunks();
 	syncPlayers();
+	syncMp();
 }
 
 
@@ -580,7 +621,7 @@ void RpgGamePrivate::syncObjects()
 
 void RpgGamePrivate::syncPlayers()
 {
-	Rpg::RpgLogicScope scope = m_logic.getScope();
+	Rpg::RpgLogicScope scope = m_logic->getScope();
 
 	auto view = scope.view<Rpg::Player>(entt::exclude<Rpg::IdTag>);
 
@@ -615,7 +656,7 @@ void RpgGamePrivate::syncPlayers()
 
 		const quint32 pid = logicRegisterObject(obj);
 
-		m_logic.entitySetIdTag(entity, pid);
+		m_logic->entitySetIdTag(entity, pid);
 
 		LOG_CINFO("game") << "ADDED" << RpgLogicObjectMapper::toObjectId(pid).ownerId
 						  << RpgLogicObjectMapper::toObjectId(pid).sceneId
@@ -624,54 +665,67 @@ void RpgGamePrivate::syncPlayers()
 
 
 		if (p.playerData.playerId() == 1) {
-			LOG_CWARNING("game") << "***** CONTROLLED" << obj;
+			QSizeF s = scope.getCtx<Rpg::ChunkGrid>()->chunkSize;
+			LOG_CWARNING("game") << "***** CONTROLLED" << obj << s;
+
 			obj->setSecondaryMotor(std::make_unique<RpgMotorPlayerControlled>(obj));
 			q->setControlledPlayer(obj);
+
+			obj->setChunkRadius(std::max(s.width(), s.height()) * 0.75);
 		}
 	}
 }
 
 
 
+
 /**
- * @brief RpgGamePrivate::syncChunks
+ * @brief RpgGamePrivate::syncMp
  */
 
-void RpgGamePrivate::syncChunks()
+void RpgGamePrivate::syncMp()
 {
-	/*Rpg::ChunkGrid *grid = m_logic.getCtx<Rpg::ChunkGrid>();
+	Rpg::RpgLogicScope scope = m_logic->getScope();
 
-	Q_ASSERT(grid);
+	auto view = scope.view<Rpg::Mp>(entt::exclude<Rpg::IdTag>);
 
-	int n=0;
+	for (auto entity : view) {
+		const Rpg::Mp &mp = scope.get<Rpg::Mp>(entity);
 
-	TiledScene *scene = q->m_gameItem->currentScene();
+		TiledScene *scene = q->m_gameItem->currentScene();
 
-	Q_ASSERT(scene);
+		Q_ASSERT(scene);
 
-	for (int i=0; i*grid->chunkSize.height() < grid->viewport.height(); ++i) {
-		for (int j=0; j*grid->chunkSize.width() < grid->viewport.width(); ++j) {
+		QPointF fromPos;
 
-			if (grid->excludeSet.contains(QPair<quint32, quint32>(j, i)))
-				continue;
-
-
-			QPointF pos(grid->viewport.left() + (j+0.5)*grid->chunkSize.width(),
-						grid->viewport.top() + (i+0.5)*grid->chunkSize.height());
-
-			RpgObject *obj = q->m_gameItem->createObject<RpgObject>(TiledObjectBody::ObjectId(2,2,2), scene,
-																	q->m_gameItem, pos, 10., CP_BODY_TYPE_STATIC );
-
-			Q_ASSERT(obj);
-
-			obj->filterSet(RpgGameItem::FixtureSensor, RpgGameItem::FixtureVirtualCircle);
-
-			++n;
+		if (Rpg::MpEmitter *emitter = scope.try_get<Rpg::MpEmitter>(mp.emitter)) {
+			fromPos = emitter->pos;
 		}
-	}*/
 
-	LOG_CERROR("game") << "OBSOLETE";
+		LOG_CWARNING("game") << "CREATE MP" << mp.idTag << mp.pos << "FROM" << fromPos;
+
+
+		RpgObject *obj = q->m_gameItem->createObject<RpgObject>(RpgLogicObjectMapper::toObjectId(mp.idTag), scene,
+																q->m_gameItem, mp.pos);
+
+		Q_ASSERT(obj);
+
+		auto m = std::make_unique<RpgMotorPlayer>(q->controlledPlayer());
+		obj->setDefaultMotor(std::move(m));
+
+		const quint32 pid = logicRegisterObject(obj);
+
+		m_logic->entitySetIdTag(entity, pid);
+
+		LOG_CINFO("game") << "ADDED MP" << RpgLogicObjectMapper::toObjectId(pid).ownerId
+						  << RpgLogicObjectMapper::toObjectId(pid).sceneId
+						  << RpgLogicObjectMapper::toObjectId(pid).id
+						  << "->" << pid << "==" << obj->bodyPositionF();
+	}
 }
+
+
+
 
 
 /**
@@ -686,7 +740,7 @@ quint32 RpgGamePrivate::logicRegisterObject(RpgObject *object)
 		return 0;
 	}
 
-	Rpg::RpgLogicScope scope = m_logic.getScope();
+	Rpg::RpgLogicScope scope = m_logic->getScope();
 	RpgLogicObjectMapper *mapper = scope.getCtx<RpgLogicObjectMapper>();
 
 	Q_ASSERT(mapper);
@@ -704,7 +758,7 @@ quint32 RpgGamePrivate::logicRegisterObject(RpgObject *object)
 void RpgGamePrivate::logicAddPlayer(const Rpg::TeamTag::Team &team, const int &count)
 {
 	for (int i=0; i<count; ++i)
-		m_logic.playerAdd(team);
+		m_logic->playerAdd(team);
 }
 
 
@@ -758,12 +812,14 @@ void RpgGame::setErrorString(const QString &newErrorString)
  * @brief RpgGamePrivate::clearSharedTextures
  */
 
-RpgGamePrivate::RpgGamePrivate(RpgGame *game)
+RpgGamePrivate::RpgGamePrivate(RpgGame *game, const bool &multi)
 	: QObject()
 	, q(game)
 {
-	Rpg::RpgLogicScope scope = m_logic.getScope();
-	scope.registerCtx<RpgLogicObjectMapper>();
+	if (!multi)
+		m_logic = std::make_unique<Rpg::RpgLogicClientMulti>();
+	else
+		m_logic = std::make_unique<Rpg::RpgLogicClientSingle>();
 }
 
 
@@ -819,7 +875,7 @@ void RpgGamePrivate::connectionCheck()
 
 	q->setGameState(RpgGame::GameStateDownloadStatic);
 
-	q->m_client->server()->loadDynamicContent("/home/valaczka/Projektek/callofsuli-content/map_hu01_Pozsony.cres");
+	q->m_client->server()->loadDynamicContent("/home/valaczka/Projektek/callofsuli-content/test.cres");
 	q->m_client->server()->loadDynamicContent("/home/valaczka/Projektek/callofsuli-content/character01a.cres");
 
 	QDirIterator it(QStringLiteral("/home/valaczka/Projektek/callofsuli-content"),
@@ -836,8 +892,8 @@ void RpgGamePrivate::connectionCheck()
 		return;
 	}
 
-	Rpg::RpgLogicScope scope = m_logic.getScope();
-	scope.getCtx<RpgStream::GameConfig>()->setTerrainResolved("map_hu01_Pozsony");
+	Rpg::RpgLogicScope scope = m_logic->getScope();
+	scope.getCtx<RpgStream::GameConfig>()->setTerrainResolved("test");
 	scope.getCtx<RpgStream::GameConfig>()->setDuration(150*60);
 
 	q->setGameState(RpgGame::GameStatePrepare);
@@ -880,6 +936,18 @@ void RpgGamePrivate::connectionCheck()
 quint32 RpgLogicObjectMapper::getId(const TiledObjectBody::ObjectId &id)
 {
 	return Rpg::RpgLogic::packId(id.sceneId, id.ownerId, id.id);
+}
+
+
+/**
+ * @brief RpgLogicObjectMapper::getId
+ * @param object
+ * @return
+ */
+
+quint32 RpgLogicObjectMapper::getId(const RpgObject *object)
+{
+	return object ? getId(object->objectId()) : 0;
 }
 
 
@@ -929,6 +997,9 @@ void RpgGame::setControlledPlayer(RpgPlayer *newControlledPlayer)
 		return;
 	m_controlledPlayer = newControlledPlayer;
 	emit controlledPlayerChanged();
+
+	if (m_gameItem)
+		m_gameItem->setFollowedItem(m_controlledPlayer);
 }
 
 

@@ -157,6 +157,7 @@ public:
 	void stop();
 
 	void sendPacket(ENetPeer *peer, const std::vector<std::uint8_t> &data, const bool isReliable);
+	void sendPacket(UdpServerPeer *peer, const std::vector<std::uint8_t> &data, const bool isReliable);
 
 private:
 	void peerConnect(ENetPeer *peer);
@@ -199,6 +200,7 @@ private:
 
 	UdpCacheQueue<UdpPacketRcv> m_cacheRcv;
 	UdpCacheQueue<UdpPacketSnd> m_cacheSnd;
+	QHash<UdpServerPeer*, UdpCacheQueue<UdpPacketSnd>> m_cacheSndPeer;
 
 
 	friend class UdpServer;
