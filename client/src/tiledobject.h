@@ -120,6 +120,8 @@ public:
 	virtual ~TiledObjectBody();
 
 
+	virtual void initialize() {}
+
 	// ObjectId id
 
 	struct ObjectId {
@@ -254,6 +256,15 @@ protected:
 	void drawVirtualCircle(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth = 1., const bool filled = false, const bool outlined = true) const;
 	void drawTargetCircle(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth = 1., const bool filled = false, const bool outlined = true) const;
 	void drawCenter(TiledDebugDraw *draw, const QColor &colorX, const QColor &colorY, const qreal &lineWidth = 2.) const;
+
+	struct DrawBodyStyle {
+		QColor color;
+		qreal lineWidth = 1.;
+		bool filled = true;
+		bool outlined = true;
+	};
+
+	std::optional<DrawBodyStyle> m_drawBodyStyle;
 
 	TiledGame *const m_game;
 	QQuickItem *m_visualItem = nullptr;

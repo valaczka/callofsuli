@@ -46,7 +46,7 @@ class RpgEntity : public RpgObject
 	Q_PROPERTY(int maxHp READ maxHp WRITE setMaxHp NOTIFY maxHpChanged FINAL)
 
 public:
-	explicit RpgEntity(RpgGameItem *gameItem, const QPointF &center = {}, const qreal &radius = 10.,
+	explicit RpgEntity(RpgGameItem *gameItem, const cpVect &center = cpvzero, const qreal &radius = 10.,
 					   const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 
 	bool isAlive() const { return m_hp > 0; }

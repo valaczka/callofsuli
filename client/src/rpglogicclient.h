@@ -82,7 +82,7 @@ public:
 class RpgLogicClientMulti : public RpgLogicClient
 {
 public:
-	RpgLogicClientMulti() : RpgLogicClient(6, 6) {}
+	RpgLogicClientMulti() : RpgLogicClient(12, 6) { qWarning() << "MULTI"; }
 };
 
 }		// end of namespace

@@ -30,6 +30,7 @@
 #include <QQmlEngine>
 #include "abstracttiledmotor.h"
 #include "isometricobject.h"
+#include "qeasingcurve.h"
 #include "rpggame.h"
 #include "rpggameitem.h"
 
@@ -66,6 +67,55 @@ protected:
 
 
 /**
+ * @brief The RpgEasingMotor class
+ */
+
+class RpgEasingMotor : public AbstractRpgMotor
+{
+public:
+	RpgEasingMotor(RpgObject *rpgObject, const cpVect &endPos, const quint64 &endTick,
+				   const cpVect &startPos, const quint64 &startTick, const QEasingCurve::Type &type = QEasingCurve::OutQuad);
+
+	RpgEasingMotor(RpgObject *rpgObject, const cpVect &endPos, const quint64 &endTick,
+				   const quint64 &startTick, const QEasingCurve::Type &type = QEasingCurve::OutQuad);
+
+	RpgEasingMotor(RpgObject *rpgObject, const cpVect &endPos, const quint64 &endTick,
+				   const QEasingCurve::Type &type = QEasingCurve::OutQuad);
+
+	virtual void updateBody(TiledObject *) override;
+
+	qint64 startTick() const;
+	void setStartTick(qint64 newStartTick);
+
+	qint64 endTick() const;
+	void setEndTick(qint64 newEndTick);
+
+	cpVect startPos() const;
+	void setStartPos(const cpVect &newStartPos);
+
+	cpVect endPos() const;
+	void setEndPos(const cpVect &newEndPos);
+
+	bool finished() const;
+
+	const QEasingCurve &curve() const { return m_curve; }
+	QEasingCurve &curve() { return m_curve; }
+	void setCurve(const QEasingCurve &newCurve);
+
+protected:
+	qint64 m_startTick = 0;
+	qint64 m_endTick = 0;
+	cpVect m_startPos = cpvzero;
+	cpVect m_endPos = cpvzero;
+	QEasingCurve m_curve;
+
+	bool m_finished = false;
+};
+
+
+
+
+/**
  * @brief The RpgObject class
  */
 
@@ -75,7 +125,7 @@ class RpgObject : public IsometricObject
 	QML_ELEMENT
 
 public:
-	RpgObject(RpgGameItem *gameItem, const QPointF &center = {}, const qreal &radius = 10., const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
+	RpgObject(RpgGameItem *gameItem, const cpVect &center = cpvzero, const qreal &radius = 10., const cpBodyType &type = CP_BODY_TYPE_DYNAMIC);
 	virtual ~RpgObject();
 
 	virtual void updateSprite() {}
@@ -92,6 +142,7 @@ protected:
 	void worldStep() override final;
 	void onShapeContactBegin(cpShape *self, cpShape *other) override final;
 	void onShapeContactEnd(cpShape *self, cpShape *other) override final;
+	virtual void onMotorStepped() {}
 
 protected:
 	RpgGame *m_rpgGame = nullptr;

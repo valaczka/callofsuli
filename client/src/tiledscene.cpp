@@ -419,6 +419,21 @@ TiledVisualItem *TiledScene::addVisualItem(Tiled::TileLayer *layer, Tiled::MapRe
 
 
 /**
+ * @brief TiledScene::removeVisualItem
+ * @param item
+ */
+
+void TiledScene::removeVisualItem(TiledVisualItem *item)
+{
+	if (!item)
+		return;
+
+	m_visualItems.removeAll(item);
+}
+
+
+
+/**
  * @brief TiledScene::addLightObject
  * @param object
  */

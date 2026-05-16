@@ -377,6 +377,7 @@ EngineStream &PlayerState::operator<<(EngineStream &stream)
 	m_entityState << stream;
 
 	readHpDelta(stream);
+	readMpDelta(stream);
 
 	return stream;
 }
@@ -396,6 +397,7 @@ EngineStream &PlayerState::operator>>(EngineStream &stream) const
 	m_entityState >> stream;
 
 	writeHpDelta(stream);
+	writeMpDelta(stream);
 
 	return stream;
 }
@@ -571,34 +573,6 @@ EngineStream &PlayerStateList::operator>>(EngineStream &stream) const
 }
 
 
-/**
- * @brief PlayerStateEntityList::operator <<
- * @param stream
- * @return
- */
-
-EngineStream &PlayerStateEntityList::operator<<(EngineStream &stream)
-{
-	readList(stream);
-
-	return stream;
-}
-
-
-
-/**
- * @brief PlayerStateEntityList::operator >>
- * @param stream
- * @return
- */
-
-EngineStream &PlayerStateEntityList::operator>>(EngineStream &stream) const
-{
-	writeList(stream);
-
-	return stream;
-}
-
 
 /**
  * @brief FullState::operator <<
@@ -608,13 +582,17 @@ EngineStream &PlayerStateEntityList::operator>>(EngineStream &stream) const
 
 EngineStream &FullState::operator<<(EngineStream &stream)
 {
+	readServerAuthTick(stream);
 	readFlags(stream);
 
 	if (m_flags & Player)
-		m_players << stream;
+		readPlayers(stream);
 
-	if (m_flags & Events)
-		m_events << stream;
+	if (m_flags & Event)
+		readEvents(stream);
+
+	if (m_flags & Mp)
+		readMps(stream);
 
 	return stream;
 }
@@ -628,13 +606,17 @@ EngineStream &FullState::operator<<(EngineStream &stream)
 
 EngineStream &FullState::operator>>(EngineStream &stream) const
 {
+	writeServerAuthTick(stream);
 	writeFlags(stream);
 
 	if (m_flags & Player)
-		m_players >> stream;
+		writePlayers(stream);
 
-	if (m_flags & Events)
-		m_events >> stream;
+	if (m_flags & Event)
+		writeEvents(stream);
+
+	if (m_flags & Mp)
+		writeMps(stream);
 
 	return stream;
 }
@@ -646,12 +628,10 @@ EngineStream &FullState::operator>>(EngineStream &stream) const
  * @return
  */
 
-EngineStream &EventList::operator<<(EngineStream &stream)
+EngineStream &Events::operator<<(EngineStream &stream)
 {
-	readFlags(stream);
-
-	if (m_flags & Player)
-		readPlayerList(stream);
+	readTick(stream);
+	readPlayer(stream);
 
 	return stream;
 }
@@ -663,42 +643,10 @@ EngineStream &EventList::operator<<(EngineStream &stream)
  * @return
  */
 
-EngineStream &EventList::operator>>(EngineStream &stream) const
+EngineStream &Events::operator>>(EngineStream &stream) const
 {
-	writeFlags(stream);
-
-	if (m_flags & Player)
-		writePlayerList(stream);
-
-	return stream;
-}
-
-
-/**
- * @brief EventPlayerList::operator <<
- * @param stream
- * @return
- */
-
-EngineStream &EventPlayerList::operator<<(EngineStream &stream)
-{
-	readTagId(stream);
-	readList(stream);
-
-	return stream;
-}
-
-
-/**
- * @brief EventPlayerList::operator >>
- * @param stream
- * @return
- */
-
-EngineStream &EventPlayerList::operator>>(EngineStream &stream) const
-{
-	writeTagId(stream);
-	writeList(stream);
+	writeTick(stream);
+	writePlayer(stream);
 
 	return stream;
 }
@@ -712,7 +660,13 @@ EngineStream &EventPlayerList::operator>>(EngineStream &stream) const
 
 EngineStream &EventPlayer::operator<<(EngineStream &stream)
 {
+	readTick(stream);
+	readTagId(stream);
 	readType(stream);
+
+	if (m_type == EventMpPick) {
+		readMp(stream);
+	}
 
 	return stream;
 }
@@ -726,7 +680,13 @@ EngineStream &EventPlayer::operator<<(EngineStream &stream)
 
 EngineStream &EventPlayer::operator>>(EngineStream &stream) const
 {
+	writeTick(stream);
+	writeTagId(stream);
 	writeType(stream);
+
+	if (m_type == EventMpPick) {
+		writeMp(stream);
+	}
 
 	return stream;
 }
@@ -741,8 +701,11 @@ EngineStream &EventPlayer::operator>>(EngineStream &stream) const
 
 EngineStream &MpEmitter::operator<<(EngineStream &stream)
 {
+	readTagId(stream);
 	readPosX(stream);
 	readPosY(stream);
+	readRadius(stream);
+	readCapacity(stream);
 
 	return stream;
 }
@@ -756,6 +719,43 @@ EngineStream &MpEmitter::operator<<(EngineStream &stream)
 
 EngineStream &MpEmitter::operator>>(EngineStream &stream) const
 {
+	writeTagId(stream);
+	writePosX(stream);
+	writePosY(stream);
+	writeRadius(stream);
+	writeCapacity(stream);
+
+	return stream;
+}
+
+
+
+
+/**
+ * @brief MpData::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &MpData::operator<<(EngineStream &stream)
+{
+	readTagId(stream);
+	readPosX(stream);
+	readPosY(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief MpData::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &MpData::operator>>(EngineStream &stream) const
+{
+	writeTagId(stream);
 	writePosX(stream);
 	writePosY(stream);
 

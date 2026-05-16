@@ -35,8 +35,8 @@
  * @param type
  */
 
-RpgObject::RpgObject(RpgGameItem *gameItem, const QPointF &center, const qreal &radius, const cpBodyType &type)
-	: IsometricObject(center, radius, gameItem, type)
+RpgObject::RpgObject(RpgGameItem *gameItem, const cpVect &center, const qreal &radius, const cpBodyType &type)
+	: IsometricObject(toPointF(center), radius, gameItem, type)
 {
 	Q_ASSERT(gameItem);
 	Q_ASSERT(gameItem->game());
@@ -57,9 +57,10 @@ RpgObject::~RpgObject()
 
 void RpgObject::worldStep()
 {
-	if (AbstractRpgMotor *m = currentMotor())
+	if (AbstractRpgMotor *m = currentMotor()) {
 		m->updateBody(this);
-	else
+		onMotorStepped();
+	} else
 		LOG_CERROR("game") << "Missing RpgMotor" << this;
 
 	IsometricObject::worldStep();
@@ -139,4 +140,157 @@ AbstractRpgMotor::AbstractRpgMotor(RpgObject *rpgObject)
 	m_gameItem = m_game ? m_game->gameItem() : nullptr;
 }
 
+
+
+
+/**
+ * @brief RpgEasingMotor::updateBody
+ */
+
+RpgEasingMotor::RpgEasingMotor(RpgObject *rpgObject, const cpVect &endPos, const quint64 &endTick,
+							   const cpVect &startPos, const quint64 &startTick,
+							   const QEasingCurve::Type &type)
+	: AbstractRpgMotor(rpgObject)
+	, m_startTick(startTick)
+	, m_endTick(endTick)
+	, m_startPos(startPos)
+	, m_endPos(endPos)
+	, m_curve(type)
+{
+	if (m_gameItem)
+		m_timer = m_gameItem->tickTimer();
+}
+
+/**
+ * @brief RpgEasingMotor::RpgEasingMotor
+ * @param rpgObject
+ * @param endPos
+ * @param endTick
+ * @param startTick
+ * @param type
+ */
+
+RpgEasingMotor::RpgEasingMotor(RpgObject *rpgObject, const cpVect &endPos, const quint64 &endTick,
+							   const quint64 &startTick, const QEasingCurve::Type &type)
+	: AbstractRpgMotor(rpgObject)
+	, m_startTick(startTick)
+	, m_endTick(endTick)
+	, m_endPos(endPos)
+	, m_curve(type)
+{
+	if (rpgObject)
+		m_startPos = rpgObject->bodyPosition();
+
+	if (m_gameItem)
+		m_timer = m_gameItem->tickTimer();
+}
+
+
+/**
+ * @brief RpgEasingMotor::RpgEasingMotor
+ * @param rpgObject
+ * @param endPos
+ * @param endTick
+ * @param type
+ */
+
+RpgEasingMotor::RpgEasingMotor(RpgObject *rpgObject, const cpVect &endPos, const quint64 &endTick, const QEasingCurve::Type &type)
+	: RpgEasingMotor(rpgObject, endPos, endTick, 0, type)
+{
+	if (m_timer)
+		m_startTick = m_timer->currentTick();
+}
+
+
+
+
+
+
+/**
+ * @brief RpgEasingMotor::updateBody
+ */
+
+void RpgEasingMotor::updateBody(TiledObject *)
+{
+	if (!m_timer)
+		return;
+
+	if (m_finished)
+		return;
+
+	const qint64 tick = m_timer->currentTick();
+
+	if (tick >= m_endTick || m_startTick >= m_endTick) {
+		m_object->emplace(m_endPos);
+		m_finished = true;
+		return;
+	}
+
+	if (tick < m_startTick)
+		return;
+
+	const qreal progress = m_curve.valueForProgress((float) (tick-m_startTick) / (float) (m_endTick-m_startTick));
+
+	const cpVect dest = cpvadd(m_startPos, cpvmult(cpvsub(m_endPos, m_startPos), progress));
+
+	m_object->moveToPoint(dest);
+}
+
+
+/**
+ * @brief RpgEasingMotor::startTick
+ * @return
+ */
+
+qint64 RpgEasingMotor::startTick() const
+{
+	return m_startTick;
+}
+
+void RpgEasingMotor::setStartTick(qint64 newStartTick)
+{
+	m_startTick = newStartTick;
+}
+
+qint64 RpgEasingMotor::endTick() const
+{
+	return m_endTick;
+}
+
+void RpgEasingMotor::setEndTick(qint64 newEndTick)
+{
+	m_endTick = newEndTick;
+}
+
+cpVect RpgEasingMotor::startPos() const
+{
+	return m_startPos;
+}
+
+void RpgEasingMotor::setStartPos(const cpVect &newStartPos)
+{
+	m_startPos = newStartPos;
+}
+
+cpVect RpgEasingMotor::endPos() const
+{
+	return m_endPos;
+}
+
+void RpgEasingMotor::setEndPos(const cpVect &newEndPos)
+{
+	m_endPos = newEndPos;
+}
+
+bool RpgEasingMotor::finished() const
+{
+	return m_finished;
+}
+
+
+
+void RpgEasingMotor::setCurve(const QEasingCurve &newCurve)
+{
+	m_curve = newCurve;
+}
 

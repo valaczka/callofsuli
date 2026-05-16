@@ -450,18 +450,19 @@ FocusScope {
 
 	}
 
+*/
 
 	GameHpLabel {
 		id: infoHP
 		anchors.horizontalCenter: parent.horizontalCenter
 		anchors.topMargin: Math.max(5, Client.safeMarginTop)
 		anchors.top: parent.top
-		value: _game.controlledPlayer ? _game.controlledPlayer.hp : 0
-		visible: _game.controlledPlayer && _isPrepared
+		value: game && game.controlledPlayer ? game.controlledPlayer.hp : 0
+		visible: game && game.controlledPlayer && _item.isContentReady
 		//onValueChanged: marked = true
 	}
-	*/
-	/*GameInfo {
+
+	GameInfo {
 		id: _infoMP
 		anchors.horizontalCenter: parent.horizontalCenter
 		anchors.top: infoHP.bottom
@@ -469,13 +470,13 @@ FocusScope {
 		iconLabel.icon.source: Qaterial.Icons.shimmer
 		text: qsTr("%1/%2 MP").arg(Math.floor(progressBar.value)).arg(progressBar.to)
 
-		visible: _game.controlledPlayer && _game.controlledPlayer.armory.mageStaff
+		visible: game && game.controlledPlayer && _item.isContentReady //&& _game.controlledPlayer.armory.mageStaff
 
 		progressBar.from: 0
-		progressBar.to: _game.controlledPlayer ? _game.controlledPlayer.maxMp : 0
-		progressBar.value: _game.controlledPlayer ? _game.controlledPlayer.mp : 0
+		progressBar.to: game && game.controlledPlayer ? game.controlledPlayer.maxMp : 0
+		progressBar.value: game && game.controlledPlayer ? game.controlledPlayer.mp : 0
 		progressBar.width: Math.min(root.width*0.3, 85)
-	}*/
+	}
 
 
 	/*

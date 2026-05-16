@@ -32,6 +32,7 @@
 #include "tiledscene.h"
 #include "tiledspritehandler.h"
 #include "tileddebugdraw.h"
+#include "tiledvisualitem.h"
 #include <libtiled/maprenderer.h>
 #include <libtiled/objectgroup.h>
 #include <chipmunk/chipmunk_structs.h>
@@ -143,8 +144,13 @@ TiledObject::~TiledObject()
 	if (m_spriteHandlerAuxBack)
 		m_spriteHandlerAuxBack->setBaseObject(nullptr);
 
-	if (m_visualItem)
+	if (m_visualItem) {
 		m_visualItem->setProperty("baseObject", QVariant::fromValue(nullptr));
+		if (TiledVisualItem *item = qobject_cast<TiledVisualItem*>(m_visualItem)) {
+			item->scene()->removeVisualItem(item);
+			item->deleteLater();
+		}
+	}
 
 	LOG_CTRACE("scene") << "TiledObject destroyed" << this;
 }
@@ -579,31 +585,26 @@ void TiledObjectBody::setSpace(cpSpace *space)
 
 void TiledObjectBody::drawBody(TiledDebugDraw *draw, const QColor &color, const qreal &lineWidth, const bool filled, const bool outlined) const
 {
-	static const QHash<cpBitmask, QColor> fixtureColors = {
-		{ 0b1, QColorConstants::Svg::saddlebrown },
-		{ 0b10, QColorConstants::Svg::lime },
-		{ 0b100, QColorConstants::Svg::magenta },
-		{ 0b1000, QColorConstants::Svg::orange },
-	};
-
 	for (cpShape *sh : d->m_bodyShapes) {
-		QColor c = color;
-		const cpBitmask &category = cpShapeGetFilter(sh).categories;
-		for (const auto &[fixture, fcolor] : fixtureColors.asKeyValueRange()) {
-			if (category & fixture)
-				c = fcolor;
-		}
+		QColor c = m_drawBodyStyle ? m_drawBodyStyle->color : color;
 
 		if (!m_opaque) {
-			c = QColorConstants::Svg::lightblue;
+			if (!m_drawBodyStyle)
+				c = QColorConstants::Svg::lightblue;
 			c.setAlphaF(0.6);
 		}
 
 		if (cpShapeGetSensor(sh)) {
 			c.setAlphaF(0.3);
-			d->drawShape(draw, sh, c, lineWidth, filled, false);
+			d->drawShape(draw, sh, c,
+						 m_drawBodyStyle ? m_drawBodyStyle->lineWidth : lineWidth,
+						 m_drawBodyStyle ? m_drawBodyStyle->filled : filled,
+						 false);
 		} else
-			d->drawShape(draw, sh, c, lineWidth, filled, outlined);
+			d->drawShape(draw, sh, c,
+						 m_drawBodyStyle ? m_drawBodyStyle->lineWidth : lineWidth,
+						 m_drawBodyStyle ? m_drawBodyStyle->filled : filled,
+						 m_drawBodyStyle ? m_drawBodyStyle->outlined : outlined);
 	}
 }
 

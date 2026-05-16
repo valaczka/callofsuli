@@ -250,6 +250,7 @@ SOURCES += \
 	rpggame.cpp \
 	rpggameitem.cpp \
 	rpglogicclient.cpp \
+	rpgmp.cpp \
 	rpgobject.cpp \
 	rpgplayer.cpp \
 	rpguserwallet.cpp \
@@ -342,6 +343,7 @@ HEADERS += \
 	rpggame_p.h \
 	rpggameitem.h \
 	rpglogicclient.h \
+	rpgmp.h \
 	rpgobject.h \
 	rpgplayer.h \
 	rpguserwallet.h \

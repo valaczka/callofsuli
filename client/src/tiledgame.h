@@ -170,7 +170,9 @@ public:
 		std::unique_ptr<T> dptr(new T(std::forward<Args>(args)...));
 		initSpace(dptr.get(), scene);
 		std::unique_ptr<TiledObjectBody> b(std::move(dptr));
-		return dynamic_cast<T*>(addObject(b, id));
+		T* obj = dynamic_cast<T*>(addObject(b, id));
+		obj->initialize();
+		return obj;
 	}
 
 	bool removeObject(TiledObjectBody *body);

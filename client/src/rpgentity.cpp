@@ -28,7 +28,7 @@
 
 
 
-RpgEntity::RpgEntity(RpgGameItem *gameItem, const QPointF &center, const qreal &radius, const cpBodyType &type)
+RpgEntity::RpgEntity(RpgGameItem *gameItem, const cpVect &center, const qreal &radius, const cpBodyType &type)
 	: RpgObject(gameItem, center, radius, type)
 {
 

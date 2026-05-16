@@ -60,6 +60,15 @@
 #define ENTITY_LIST_BITS			12						// Max: 4096
 
 
+
+#define ENTITY_HP_TYPE				quint32
+#define ENTITY_HP_BITS				8						// Max: 256
+
+#define ENTITY_MP_TYPE				quint32
+#define ENTITY_MP_BITS				16						// Max: 65535
+
+
+
 namespace RpgStream
 {
 
@@ -788,6 +797,33 @@ public:
 
 
 
+
+
+
+
+
+
+/**
+ * @brief The BaseTickState class - azok az oszályok, amik tick-enként tartalmaznak valamilyen állapotot
+ */
+
+class BaseTickState
+{
+public:
+	BaseTickState() = default;
+
+	STREAM_MEMBER(quint32, tick, Tick, 32, 0)
+};
+
+
+
+
+
+
+
+
+
+
 /**
  * @brief The MpEmitter class
  */
@@ -800,9 +836,16 @@ public:
 	EngineStream& operator<<(EngineStream &stream);
 	EngineStream& operator>>(EngineStream &stream) const;
 
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
 	STREAM_MEMBER_QUANT(posX, PosX, 0);
 	STREAM_MEMBER_QUANT(posY, PosY, 0);
+	STREAM_MEMBER_QUANT(radius, Radius, 0);
+	STREAM_MEMBER(quint32, capacity, Capacity, 13, 0);				// Max. 8192
 };
+
+
+
+
 
 
 
@@ -899,11 +942,20 @@ public:
 	STREAM_MEMBER_RESOLVED(character, Character)
 
 	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 16, FlagNull)
+
+	STREAM_MEMBER(ENTITY_HP_TYPE, maxHp, MaxHp, ENTITY_HP_BITS, 0)
+	STREAM_MEMBER(ENTITY_MP_TYPE, maxMp, MaxMp, ENTITY_MP_BITS, 0)
 };
 
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(PlayerData::Flags)
 
+
+
+
+/**
+ * @brief The CharacterSelectServer class
+ */
 
 class CharacterSelectServer
 {
@@ -924,18 +976,6 @@ public:
 
 
 
-
-/**
- * @brief The BaseTickState class - azok az oszályok, amik tick-enként tartalmaznak valamilyen állapotot
- */
-
-class BaseTickState
-{
-public:
-	BaseTickState() = default;
-
-	STREAM_MEMBER(quint32, tick, Tick, 32, 0)
-};
 
 
 
@@ -998,6 +1038,11 @@ public:
 
 
 
+
+/**
+ * @brief The PlayerState class
+ */
+
 class PlayerState : public BaseTickState
 {
 public:
@@ -1011,19 +1056,19 @@ public:
 			quint32, 2,
 
 			Hp,
-			MaxHp,
+			Mp,
 
 			)
 
 	STREAM_FIELD(EntityState, entityState, EntityState, {})
 
-	STREAM_DELTA_MEMBER(quint32, hp, Hp, 8, 0, Hp)					// Max: 256
-	STREAM_DELTA_MEMBER(quint32, maxHp, MaxHp, 8, 0, MaxHp)		// Max: 256
+	STREAM_DELTA_MEMBER(ENTITY_HP_TYPE, hp, Hp, ENTITY_HP_BITS, 0, Hp)
+	STREAM_DELTA_MEMBER(ENTITY_MP_TYPE, mp, Mp, ENTITY_MP_BITS, 0, Mp)
 
 	bool operator==(const PlayerState &other) const {
 		return other.m_entityState == m_entityState &&
 				other.m_hp == m_hp &&
-				other.m_maxHp == m_maxHp;
+				other.m_mp == m_mp;
 	}
 
 
@@ -1031,7 +1076,7 @@ public:
 
 	LOAD_WITHOUT_DELTA(tick, Tick)
 	LOAD_FROM_DELTA(hp, Hp)
-	LOAD_FROM_DELTA(maxHp, MaxHp)
+	LOAD_FROM_DELTA(mp, Mp)
 
 	LOAD_FROM_DELTA_MEMBER(entityState)
 
@@ -1061,25 +1106,14 @@ public:
 
 
 
-/**
- * @brief The PlayerListStateList class
- */
-
-class PlayerStateEntityList
-{
-public:
-	PlayerStateEntityList() = default;
-
-	EngineStream& operator<<(EngineStream &stream);
-	EngineStream& operator>>(EngineStream &stream) const;
-
-	STREAM_MEMBER_VECTOR(PlayerStateList, list, List, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
-};
 
 
 
 
 
+///
+/// EVENTS -------------------------------------------------------------------------
+///
 
 
 
@@ -1093,7 +1127,8 @@ class EventPlayer : public BaseTickState
 public:
 	enum Type {
 		EventNone = 0,
-		EventTest
+		EventTest,
+		EventMpPick
 	};
 
 	EventPlayer() : BaseTickState() {}
@@ -1106,22 +1141,14 @@ public:
 	EngineStream& operator>>(EngineStream &stream) const;
 
 
-	STREAM_MEMBER_CAST(Type, type, Type, quint32, 4, EventNone)
-};
-
-
-
-class EventPlayerList
-{
-public:
-	EventPlayerList() = default;
-
-	EngineStream& operator<<(EngineStream &stream);
-	EngineStream& operator>>(EngineStream &stream) const;
-
 	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
-	STREAM_MEMBER_VECTOR(EventPlayer, list, List, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
+	STREAM_MEMBER_CAST(Type, type, Type, quint32, 4, EventNone)
+
+	// MpPick
+
+	STREAM_MEMBER(TAG_ID_TYPE, mp, Mp, TAG_ID_BITS, 0);
 };
+
 
 
 
@@ -1129,26 +1156,50 @@ public:
  * @brief The EventList class
  */
 
-class EventList
+class Events : public BaseTickState
 {
 public:
-	EventList() = default;
+	Events() : BaseTickState() {}
 
 	EngineStream& operator<<(EngineStream &stream);
 	EngineStream& operator>>(EngineStream &stream) const;
 
-	enum Flag {
-		Null			= 0,
-		Player			= 1 << 0,
-	};
+	bool operator==(const Events &) const { return false; }			// soha nem lehet egyenlő, a Pull miatt kell
 
-	Q_DECLARE_FLAGS(Flags, Flag)
-
-	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 4, Null)
-	STREAM_MEMBER_VECTOR(EventPlayerList, playerList, PlayerList, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
+	STREAM_MEMBER_VECTOR(EventPlayer, player, Player, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 };
 
-Q_DECLARE_OPERATORS_FOR_FLAGS(EventList::Flags)
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @brief The MpData class
+ */
+
+class MpData
+{
+public:
+	MpData() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
+	STREAM_MEMBER_QUANT(posX, PosX, 0);
+	STREAM_MEMBER_QUANT(posY, PosY, 0);
+};
+
 
 
 
@@ -1168,7 +1219,8 @@ public:
 	enum Flag {
 		Null			= 0,
 		Player			= 1 << 0,
-		Events			= 1 << 1,
+		Event			= 1 << 1,
+		Mp				= 1 << 2,
 	};
 
 	Q_DECLARE_FLAGS(Flags, Flag)
@@ -1176,9 +1228,11 @@ public:
 	STREAM_ADD_DELTA_MODE
 
 	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 4, Null)
+	STREAM_MEMBER(quint32, serverAuthTick, ServerAuthTick, 32, 0)
 
-	STREAM_FIELD(PlayerStateEntityList, players, Players, {})
-	STREAM_FIELD(EventList, events, Events, {})
+	STREAM_MEMBER_VECTOR(Events, events, Events, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
+	STREAM_MEMBER_VECTOR(PlayerStateList, players, Players, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
+	STREAM_MEMBER_VECTOR(MpData, mps, Mps, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(FullState::Flags)

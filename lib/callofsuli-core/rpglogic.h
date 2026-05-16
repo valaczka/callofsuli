@@ -27,6 +27,7 @@
 #ifndef RPGLOGIC_H
 #define RPGLOGIC_H
 
+#include "chipmunk/cpVect.h"
 #include "qcborarray.h"
 #include <QSerializer>
 #include <QIODevice>
@@ -352,33 +353,14 @@ public:
 		++m_head;
 	}
 
-	bool extract(T &origPtr, std::vector<T> &listPtr, const quint32 &max = 0) {
-		if (m_head == 0)
-			return false;
-
-		const quint32 from = (m_head > PULL_SIZE ? m_head-PULL_SIZE : 0)
-							 + (max > 0 && max <= PULL_SIZE && max < m_head ? (PULL_SIZE-max) : 0);
-
-
-		origPtr = m_list[from % PULL_SIZE];
-		listPtr.clear();
-		listPtr.reserve(PULL_SIZE);
-
-		for (quint32 i=from+1; i<m_head; ++i) {
-			listPtr.emplace_back(m_list[i % PULL_SIZE]);
-		}
-
-		return true;
-	}
-
-	std::vector<T> extract(const quint32 &max = 0) {
+	std::vector<T> extract(const int &max = 0) {
 		std::vector<T> list;
 
 		if (m_head == 0)
 			return list;
 
-		const quint32 from = (m_head > PULL_SIZE ? m_head-PULL_SIZE : 0)
-							 + (max > 0 && max <= PULL_SIZE && max < m_head ? (PULL_SIZE-max) : 0);
+		const quint32 from = std::max(std::max((int) m_head - (int) PULL_SIZE, 0),
+									  max > 0 && max <= (int) PULL_SIZE ? ((int) m_head - max) : 0);
 
 		list.reserve(PULL_SIZE);
 
@@ -404,10 +386,19 @@ public:
 	}
 
 
+	const T* last() const {
+		if (m_head == 0)
+			return nullptr;
+
+		return &(m_list[(m_head-1) % PULL_SIZE]);
+	}
+
+
 protected:
 	std::array<T, PULL_SIZE> m_list;
 	quint32 m_head = 0;
 };
+
 
 
 
@@ -430,14 +421,29 @@ struct IdTag
 	quint32 id = 0;
 };
 
-
-
 struct IdTagMapper
 {
 	QHash<quint32, entt::entity> map;
 
 	entt::entity get(const quint32 &id) const { return map.value(id, entt::null); }
 };
+
+
+
+// Render után törlendő entity-k
+
+struct DeleteTag { };
+
+
+// Esemény
+
+struct EventTag {
+	quint32 tick = 0;
+};
+
+struct EventProcessingTag { };
+
+
 
 
 // Csapatjelzés
@@ -473,11 +479,16 @@ struct Player
 
 struct MpEmitter
 {
-	quint32 id = 0;
+	quint32 idTag = 0;
+	cpVect pos = cpvzero;
 
-	QPointF pos;
+	float radius = 0.;
+	quint32 capacity = 0;
 
-	inline static quint32 lastId = 0;
+	std::vector<entt::entity> mpList;
+
+	static MpEmitter fromRpgStream(const RpgStream::MpEmitter &stream);
+	RpgStream::MpEmitter toRpgStream() const;
 };
 
 
@@ -491,7 +502,7 @@ struct Mp
 	quint32 idTag = 0;
 	entt::entity emitter = entt::null;
 
-	QPointF pos;
+	cpVect pos = cpvzero;
 };
 
 
@@ -538,17 +549,17 @@ struct ChunkGrid
 typedef std::vector<RpgStream::PlayerPosition> PlayerPositionList;
 
 typedef BaseStateMap<RpgStream::PlayerState> PlayerStateInput;
-typedef BaseStatePull<RpgStream::PlayerState> PlayerStateOuput;
+typedef BaseStatePull<RpgStream::PlayerState> PlayerStateOutput;
 
-typedef BaseEventMap<RpgStream::EventPlayer> EventPlayerInput;
-
-
+typedef BaseStatePull<RpgStream::Events> EventsOutput;
 
 
-struct Events
-{
-	EventPlayerInput player;
-};
+
+
+
+
+
+
 
 
 class RpgLogicPrivate;
@@ -575,10 +586,33 @@ public:
 	quint32 lastAuthTick() const { return m_serverTick > m_lastAuthTickDiff ? m_serverTick-m_lastAuthTickDiff : 0; }
 	quint32 jitterTick() const { return m_serverTick > m_jitterDiff ? m_serverTick-m_jitterDiff : 0; }
 
-	void fullStateLoad(const RpgStream::FullState &full);
 
-	virtual void render();
-	virtual void renderEvents();
+
+	///
+	/// Render logic:
+	///
+	/// MULTIPLAYER
+	///
+	/// Client
+	///		worldStep() -> after() -> OutpuStatePull[] -> FullState -> logic:send
+	///		logic:receive -> InputStatePull[] -> currentFullState(jittered) -> before() -> worldStep()
+	///
+	/// Server
+	///		logic:receive -> InputStatePull[] -> render() -> OutputStatePull[] -> logic:send
+	///
+	///
+	/// SINGLE PLAYER
+	///
+	/// Client
+	///		worldStep() -> after() -> OutputStatePull[0] -> FullState -> InputStatePull[0] -> render() ->
+	///		-> currentFullState(0) -> before() -> worldStep()
+	///
+
+
+	void fullStateLoad(const RpgStream::FullState &full, const QSet<quint32> &acceptedInputList);
+	RpgStream::FullState getFullState(const int &maxTick);
+
+	void render();
 
 	// EnTT object id
 
@@ -618,6 +652,25 @@ protected:
 		}
 	}
 
+
+	template <class T, typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T>::value>::type>
+	const T* getCurrentState(entt::entity ent) const
+	{
+		QMutexLocker locker(&m_mutex);
+
+		auto [pull, state] = m_registry.try_get<BaseStatePull<T>, T>(ent);
+
+		if (state)
+			return state;
+
+		if (!pull)
+			return nullptr;
+
+		return pull->last();
+	}
+
+
+
 	mutable QRecursiveMutex m_mutex;
 	entt::registry m_registry;
 	quint32 m_lastObjectId = 0;
@@ -625,8 +678,6 @@ protected:
 	friend class RpgLogicPrivate;
 	friend class RpgLogicScope;
 };
-
-
 
 
 
@@ -668,6 +719,8 @@ public:
 	template<typename... Ts, typename... Args>
 	[[nodiscard]] auto get(Args&&... args) const;
 
+	template <class T, typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T>::value>::type>
+	const T* getCurrentState(entt::entity ent) const;
 
 	RpgLogic *logic() const { return m_logic; }
 
@@ -677,6 +730,7 @@ private:
 	RpgLogic *const m_logic;
 	const QMutexLocker<QRecursiveMutex> m_locker;
 };
+
 
 
 
@@ -767,6 +821,20 @@ inline auto RpgLogicScope::get(Args&&... args) const
 	return m_logic->m_registry.get<Ts...>(std::forward<Args>(args)...);
 }
 
-}			// end namespace
 
+/**
+ * @brief RpgLogicScope::getCurrentState
+ * @param ent
+ * @return
+ */
+
+template<class T, typename T2>
+inline const T *RpgLogicScope::getCurrentState(entt::entity ent) const
+{
+	return m_logic->getCurrentState<T>(ent);
+}
+
+
+
+}			// end namespace
 #endif // RPGLOGIC_H

@@ -37,6 +37,54 @@
 
 
 /**
+ * @brief The RpgObjectExclude class
+ */
+
+class RpgObjectExclude : public TiledObjectBody
+{
+public:
+	explicit RpgObjectExclude(const QPolygonF &polygon,
+							  TiledGame *game,
+							  Tiled::MapRenderer *renderer = nullptr,
+							  const cpBodyType &type = CP_BODY_TYPE_DYNAMIC,
+							  const QPointF &offset = {})
+		: TiledObjectBody(polygon, game, renderer, type, offset)
+	{
+		m_drawBodyStyle = m_sytle;
+	}
+
+	explicit RpgObjectExclude(const QPointF &center, const qreal &radius,
+							  TiledGame *game,
+							  Tiled::MapRenderer *renderer = nullptr,
+							  const cpBodyType &type = CP_BODY_TYPE_DYNAMIC,
+							  const QPointF &offset = {})
+		: TiledObjectBody(center, radius, game, renderer, type, offset)
+	{
+		m_drawBodyStyle = m_sytle;
+	}
+
+	explicit RpgObjectExclude(const Tiled::MapObject *object,
+							  TiledGame *game,
+							  Tiled::MapRenderer *renderer = nullptr,
+							  const cpBodyType &type = CP_BODY_TYPE_DYNAMIC)
+		: TiledObjectBody(object, game, renderer, type)
+	{
+		m_drawBodyStyle = m_sytle;
+	}
+
+private:
+	inline const static DrawBodyStyle m_sytle = {
+		.color = QColorConstants::Svg::blueviolet,
+		.lineWidth = 1.,
+		.filled = false,
+		.outlined = true
+	};
+};
+
+
+
+
+/**
  * @brief RpgGameItem::RpgGameItem
  * @param parent
  */
@@ -270,6 +318,30 @@ void RpgGameItem::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *sce
 
 
 /**
+ * @brief RpgGameItem::loadTileLayer
+ * @param scene
+ * @param layer
+ * @param renderer
+ */
+
+void RpgGameItem::loadTileLayer(TiledScene *scene, Tiled::TileLayer *layer, Tiled::MapRenderer *renderer)
+{
+	if (layer->className() == QStringLiteral("chunkMarker")) {
+		LOG_CERROR("game") << "LOAD CHUNK LAYER";
+
+		d->m_chunkMarkerLayer = scene->addTileLayer(layer, renderer);
+		d->m_chunkMarkerBaseOffset = -renderer->tileToScreenCoords(0, 0) + layer->totalOffset();
+
+		LOG_CINFO("game") << "BASE OFFSET" << d->m_chunkMarkerBaseOffset;
+
+		return;
+	}
+	TiledGame::loadTileLayer(scene, layer, renderer);
+}
+
+
+
+/**
  * @brief RpgGameItem::loadObjectLayer
  * @param scene
  * @param group
@@ -353,18 +425,18 @@ void RpgGameItem::loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Ti
 				for (Tiled::MapObject *object : std::as_const(gr->objects())) {
 					if (object->className() == QStringLiteral("exclude")) {
 						LOG_CDEBUG("game") << "LOAD MP EXCLUED" << group->name() << layer->name();
-						TiledObjectBody *mapObject = createObject<TiledObjectBody>(TiledObjectBody::ObjectId{.ownerId = 0,
-																											 .sceneId = scene->sceneId(),
-																											 .id = static_cast<quint32>(object->id())
-																				   }, scene,
-																				   object, this, renderer, CP_BODY_TYPE_STATIC);
+						RpgObjectExclude *mapObject = createObject<RpgObjectExclude>(TiledObjectBody::ObjectId{.ownerId = 0,
+																											   .sceneId = scene->sceneId(),
+																											   .id = static_cast<quint32>(object->id())
+																					 }, scene,
+																					 object, this, renderer, CP_BODY_TYPE_STATIC);
 
 						if (mapObject)
-							mapObject->filterSet(FixtureExcluded, FixtureInvalid);
+							mapObject->filterSet(FixtureExcluded, FixtureAll);
 					} else {
 						const QPointF pos = renderer->pixelToScreenCoords(object->position() + gr->totalOffset());
 						LOG_CWARNING("game") << "LOAD MP POINT" << pos;
-						d->mpEmitterAdd(pos);
+						d->mpEmitterAdd(pos, Rpg::RpgLogic::packId(scene->sceneId(), 0, object->id()));
 					}
 
 				}
@@ -437,7 +509,8 @@ void RpgGameItem::timeStepPrepareEvent()
 
 void RpgGameItem::timeBeforeWorldStepEvent(const qint64 &tick)
 {
-	m_game->syncObjects();
+	d->onBeforeWorldStep();
+
 
 	Rpg::RpgLogicScope scope = m_game->rpgLogicClient()->getScope();
 	RpgLogicObjectMapper *mapper = scope.getCtx<RpgLogicObjectMapper>();
@@ -504,10 +577,7 @@ void RpgGameItem::timeAfterWorldStepEvent(const qint64 &tick)
 	}
 
 
-
-	////////////////////////////------
-	m_game->rpgLogicClient()->fullStateLoad(full);
-	m_game->rpgLogicClient()->render();
+	d->onAfterWorldStep(full);
 }
 
 
@@ -519,6 +589,7 @@ void RpgGameItem::timeAfterWorldStepEvent(const qint64 &tick)
 
 void RpgGameItem::timeSteppedEvent()
 {
+	d->onTimeStepped();
 	/*	static const qint64 delta = 3;
 
 			const qint64 tick = q->m_timeSync.get();

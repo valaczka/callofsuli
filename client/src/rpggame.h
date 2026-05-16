@@ -107,6 +107,7 @@ class RpgGame : public AbstractLevelGame
 	Q_OBJECT
 
 	Q_PROPERTY(GameState gameState READ gameState WRITE setGameState NOTIFY gameStateChanged FINAL)
+	Q_PROPERTY(GameMode gameMode READ gameMode WRITE setGameMode NOTIFY gameModeChanged FINAL)
 	Q_PROPERTY(QString errorString READ errorString WRITE setErrorString NOTIFY errorStringChanged FINAL)
 	Q_PROPERTY(RpgGameItem *gameItem READ gameItem WRITE setGameItem NOTIFY gameItemChanged FINAL)
 	Q_PROPERTY(RpgPlayer *controlledPlayer READ controlledPlayer WRITE setControlledPlayer NOTIFY controlledPlayerChanged FINAL)
@@ -131,6 +132,16 @@ public:
 
 	Q_ENUM(GameState)
 
+
+	enum GameMode {
+		SinglePlayer = 0,
+		MultiPlayerGuest,
+		MultiPlayerHost
+	};
+
+	Q_ENUM(GameMode)
+
+
 	Q_INVOKABLE void gameAbort() override;
 	Q_INVOKABLE void loadGameItem();
 	Q_INVOKABLE void gameItemPrepared();
@@ -150,8 +161,6 @@ public:
 
 	static void reloadWorld();
 
-	void syncObjects();
-
 	Rpg::RpgLogicClient* rpgLogicClient();
 
 	virtual int msecLeft() const override;
@@ -168,11 +177,15 @@ public:
 	RpgPlayer *controlledPlayer() const;
 	void setControlledPlayer(RpgPlayer *newControlledPlayer);
 
+	GameMode gameMode() const;
+	void setGameMode(const GameMode &newGameMode);
+
 signals:
 	void gameStateChanged();
 	void errorStringChanged();
 	void gameItemChanged();
 	void controlledPlayerChanged();
+	void gameModeChanged();
 
 protected:
 	virtual void timerEvent(QTimerEvent *) override;
@@ -187,6 +200,9 @@ protected:
 private:
 	RpgGamePrivate *d = nullptr;
 	RpgGameItem *m_gameItem = nullptr;
+	RpgPlayer *m_controlledPlayer = nullptr;
+
+	GameMode m_gameMode;
 	GameState m_gameState = GameStateInvalid;
 	QString m_errorString;
 
@@ -196,7 +212,6 @@ private:
 
 	friend class RpgGamePrivate;
 	friend class RpgGameItem;
-	RpgPlayer *m_controlledPlayer = nullptr;
 };
 
 #endif // RPGGAME_H

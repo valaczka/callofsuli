@@ -25,6 +25,7 @@
  */
 
 #include "rpgplayer.h"
+#include "rpgmp.h"
 
 
 /**
@@ -33,21 +34,31 @@
  * @param center
  */
 
-RpgPlayer::RpgPlayer(RpgGameItem *gameItem, const QPointF &center)
+RpgPlayer::RpgPlayer(RpgGameItem *gameItem, const cpVect &center)
 	: RpgEntity(gameItem, center, 25., CP_BODY_TYPE_DYNAMIC)
 {
 	m_defaultMotor = std::make_unique<RpgMotorPlayer>(this);
 
 	filterSet(RpgGameItem::FixturePlayerBody,
-			  RpgGameItem::FixtureGround);
+			  RpgGameItem::FixtureGround | RpgGameItem::FixtureControl);
 
 	m_currentChunk.setX(-1);
 	m_currentChunk.setY(-1);
 
-	connect(this, &RpgPlayer::currentChunkChanged, this, [this](){
-		LOG_CWARNING("game") << "Current chunk" << m_currentChunk;
-	});
+	addVirtualCircle(RpgGameItem::FixtureVirtualCircle, RpgGameItem::FixtureAll, 300.);
+	setSensorPolygon(300., M_PI * 0.3, RpgGameItem::FixtureSensor, RpgGameItem::FixtureAll);
+
+
+	setMaxHp(19);
+	setMaxMp(19);
 }
+
+
+
+/**
+ * @brief RpgPlayer::currentChunk
+ * @return
+ */
 
 QPoint RpgPlayer::currentChunk() const
 {
@@ -120,7 +131,7 @@ bool RpgMotorPlayer::beforeWorldStep(const qint64 &, entt::entity &entity)
 
 	Rpg::RpgLogicScope scope = m_game->rpgLogicClient()->getScope();
 
-	auto [player, map] = scope.try_get<Rpg::Player, Rpg::PlayerStateOuput>(entity);
+	auto [player, map] = scope.try_get<Rpg::Player, Rpg::PlayerStateOutput>(entity);
 
 
 	if (!player || !map)
@@ -215,6 +226,8 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 		m_player->rotateBody(m_currentJoystickState.angle);
 	} else {
 		m_player->stop();
+		if (m_currentJoystickState.distance > 0.1)
+			m_player->rotateBody(m_currentJoystickState.angle);
 	}
 
 	cpVect ahead = m_player->bodyPosition()+TiledObjectBody::vectorFromAngle(m_player->desiredBodyRotation(), m_player->chunkRadius());
@@ -224,6 +237,49 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 	m_player->setCurrentChunk(ch);
 	m_player->setCurrentChunkCenter(TiledObjectBody::toPointF(center));
 
+}
+
+
+
+/**
+ * @brief RpgMotorPlayerControlled::beforeWorldStep
+ * @param tick
+ * @param entity
+ * @return
+ */
+
+bool RpgMotorPlayerControlled::beforeWorldStep(const qint64 &tick, entt::entity &entity)
+{
+	Rpg::RpgLogicScope scope = m_game->rpgLogicClient()->getScope();
+
+	const RpgStream::PlayerState *state = scope.getCurrentState<RpgStream::PlayerState>(entity);
+
+	const quint32 myId = RpgLogicObjectMapper::getId(m_player->objectId());
+
+	if (Rpg::EventsOutput *events = scope.getCtx<Rpg::EventsOutput>()) {
+		if (const RpgStream::Events *e = events->at(tick)) {
+			for (const RpgStream::EventPlayer &p : e->player()) {
+				if (p.tagId() != myId)
+					continue;
+
+				if (p.type() == RpgStream::EventPlayer::EventMpPick) {
+					LOG_CINFO("game") << "**************************************** MP PICKED *****************";
+				}
+			}
+		}
+	} else {
+		LOG_CERROR("game") << "NO EVENTS CTX";
+	}
+
+	if (!state) {
+		LOG_CERROR("game") << "!!!";
+		return false;
+	}
+
+	m_player->setHp(state->hp());
+	m_player->setMp(state->mp());
+
+	return true;
 }
 
 
@@ -263,7 +319,7 @@ bool RpgMotorPlayerControlled::afterWorldStep(const qint64 &tick, RpgStream::Ful
 
 		m_statePull.append(std::move(st));
 
-		std::vector<RpgStream::PlayerState> list = m_statePull.extract(6);
+		std::vector<RpgStream::PlayerState> list = m_statePull.extract(m_game->gameMode() == RpgGame::MultiPlayerHost ? 6 : 1);			// SINGLE PLAYER: 1
 
 
 		/*LOG_CINFO("game") << "---------------------------";
@@ -281,7 +337,7 @@ bool RpgMotorPlayerControlled::afterWorldStep(const qint64 &tick, RpgStream::Ful
 			sl.setState(std::move(list));
 
 		state->flags().setFlag(RpgStream::FullState::Player);
-		state->players().list().push_back(std::move(sl));
+		state->players().push_back(std::move(sl));
 
 
 
@@ -324,19 +380,20 @@ bool RpgMotorPlayerControlled::afterWorldStep(const qint64 &tick, RpgStream::Ful
 
 
 	if (!m_eventList.empty()) {
-		RpgStream::EventPlayerList el;
-		el.setTagId(tagId);
 
-		for (RpgStream::EventPlayer &e : m_eventList)
+		for (RpgStream::EventPlayer &e : m_eventList) {
+			e.setTagId(tagId);
 			e.setTick(tick);
+		}
 
-		el.setList(m_eventList);
+		RpgStream::Events events;
+		events.setTick(tick);
+		events.setPlayer(m_eventList);
+
+		state->flags().setFlag(RpgStream::FullState::Event);
+		state->events().emplace_back(std::move(events));
 
 		m_eventList.clear();
-
-		state->flags().setFlag(RpgStream::FullState::Events);
-		state->events().flags().setFlag(RpgStream::EventList::Player);
-		state->events().playerList().push_back(std::move(el));
 	}
 
 
@@ -378,3 +435,93 @@ void RpgMotorPlayerControlled::eventTest()
 	m_eventList.emplace_back(std::move(e));
 }
 
+
+/**
+ * @brief RpgMotorPlayerControlled::onShapeContactBegin
+ * @param self
+ * @param other
+ */
+
+void RpgMotorPlayerControlled::onShapeContactBegin(cpShape *self, cpShape *other)
+{
+	TiledObjectBody *otherBody = TiledObjectBody::fromShapeRef(other);
+
+	if (!otherBody) {
+		LOG_CERROR("game") << "****ERR";
+		return;
+	}
+
+	if (m_player->isBodyShape(self)) {
+		if (RpgMp *mp = dynamic_cast<RpgMp*>(otherBody)) {
+			LOG_CINFO("game") << "CONTACT MP" << RpgLogicObjectMapper::getId(mp->objectId());
+			eventMpPick(mp);
+		}
+	}
+}
+
+
+/**
+ * @brief RpgMotorPlayerControlled::onShapeContactEnd
+ * @param self
+ * @param other
+ */
+
+void RpgMotorPlayerControlled::onShapeContactEnd(cpShape *self, cpShape *other)
+{
+	TiledObjectBody *otherBody = TiledObjectBody::fromShapeRef(other);
+
+	if (!otherBody) {
+		LOG_CERROR("game") << "****ERR";
+		return;
+	}
+
+	if (m_player->isBodyShape(self)) {
+		if (RpgMp *mp = dynamic_cast<RpgMp*>(otherBody)) {
+			LOG_CINFO("game") << "CONTACT MP END" << RpgLogicObjectMapper::getId(mp->objectId());
+		}
+	}
+}
+
+
+/**
+ * @brief RpgMotorPlayerControlled::eventMpPick
+ * @param mp
+ */
+
+void RpgMotorPlayerControlled::eventMpPick(RpgMp *mp)
+{
+	if (!mp)
+		return;
+
+	RpgStream::EventPlayer e(RpgStream::EventPlayer::EventMpPick);
+	e.setMp(RpgLogicObjectMapper::getId(mp->objectId()));
+
+	m_eventList.emplace_back(std::move(e));
+}
+
+
+int RpgPlayer::mp() const
+{
+	return m_mp;
+}
+
+void RpgPlayer::setMp(int newMp)
+{
+	if (m_mp == newMp)
+		return;
+	m_mp = newMp;
+	emit mpChanged();
+}
+
+int RpgPlayer::maxMp() const
+{
+	return m_maxMp;
+}
+
+void RpgPlayer::setMaxMp(int newMaxMp)
+{
+	if (m_maxMp == newMaxMp)
+		return;
+	m_maxMp = newMaxMp;
+	emit maxMpChanged();
+}

@@ -112,6 +112,7 @@ public:
 	TiledVisualItem *addVisualItem(const QString &displayName = {});
 	TiledVisualItem *addVisualItem(Tiled::ImageLayer *layer, const QString &displayName = {});
 	TiledVisualItem *addVisualItem(Tiled::TileLayer *layer, Tiled::MapRenderer *renderer);
+	void removeVisualItem(TiledVisualItem *item);
 
 	void addLightObject(Tiled::MapObject *object);
 	QQuickItem *addLight(Tiled::MapObject * object, Tiled::MapRenderer *renderer, const qreal &opacity = 1.);

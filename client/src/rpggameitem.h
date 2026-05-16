@@ -58,6 +58,7 @@ public:
 		FixturePlayerTarget		= 1 << 3,
 		FixtureSensor			= 1 << 4,
 		FixtureVirtualCircle	= 1 << 5,
+		FixtureControl			= 1 << 6,
 
 
 		FixtureAll =
@@ -66,7 +67,8 @@ public:
 		FixturePlayerBody |
 		FixturePlayerTarget |
 		FixtureSensor |
-		FixtureVirtualCircle
+		FixtureVirtualCircle |
+		FixtureControl
 
 	};
 
@@ -86,6 +88,7 @@ public:
 
 protected:
 	virtual void sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene) override;
+	virtual void loadTileLayer(TiledScene *scene, Tiled::TileLayer *layer, Tiled::MapRenderer *renderer) override;
 	virtual bool loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Tiled::MapRenderer *renderer) override;
 	virtual void loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, const QString &groupClass, Tiled::MapRenderer *renderer) override;
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer) override;

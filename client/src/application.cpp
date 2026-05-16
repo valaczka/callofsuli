@@ -49,6 +49,7 @@
 #include "qsjsonlistmodel.h"
 #include "rpggame.h"
 #include "rpggameitem.h"
+#include "rpgplayer.h"
 #include "rpguserwallet.h"
 #include "rpgworldlanddata.h"
 #include "scorelist.h"
@@ -380,6 +381,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<MapPlayOffline>("CallOfSuli", 1, 0, "MapPlayOffline", "MapPlayOffline is uncreatable");
 	qmlRegisterUncreatableType<OfflineClientEngine>("CallOfSuli", 1, 0, "OfflineClientEngine", "OfflineClientEngine is uncreatable");
 	qmlRegisterUncreatableType<RpgGame>("CallOfSuli", 1, 0, "RpgGame", "RpgGame is uncreatable");
+	qmlRegisterUncreatableType<RpgPlayer>("CallOfSuli", 1, 0, "RpgPlayer", "RpgPlayer is uncreatable");
 	qmlRegisterUncreatableType<RpgUserWallet>("CallOfSuli", 1, 0, "RpgUserWallet", "RpgUserWallet is uncreatable");
 	qmlRegisterUncreatableType<Server>("CallOfSuli", 1, 1, "Server", "Server is uncreatable");
 	qmlRegisterUncreatableType<Sound>("CallOfSuli", 1, 1, "Sound", "Server is uncreatable");

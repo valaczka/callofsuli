@@ -28,6 +28,7 @@
 #define RPGGAME_P_H
 
 #include <QObject>
+#include <libtiledquick/tilelayeritem.h>
 #include "rpggame.h"
 #include "rpglogic.h"
 #include "rpglogicclient.h"
@@ -62,7 +63,7 @@ private:
 	void onGameItemPrepared();
 	void loadChunkGrid();
 	void playerPositionAdd(const QPointF &pos, const Rpg::TeamTag::Team &team);
-	void mpEmitterAdd(const QPointF &pos);
+	void mpEmitterAdd(const QPointF &pos, const quint32 &tagId);
 
 
 	void connectJoysticks();
@@ -76,6 +77,8 @@ private:
 	// Play
 
 	void startGame();
+	void onBeforeWorldStep();
+	void onAfterWorldStep(const RpgStream::FullState &full);
 
 
 	// Synchronize
@@ -83,6 +86,11 @@ private:
 	void syncObjects();
 	void syncPlayers();
 	void syncMp();
+	void syncDeleted();
+
+	void onTimeStepped();
+
+	void syncChunkMarker();
 
 
 
@@ -96,6 +104,9 @@ private:
 	std::unique_ptr<Rpg::RpgLogicClient> m_logic;
 	quint32 m_deadlineTick = 0;
 
+	QPointF m_chunkMarkerBaseOffset;										// A 0,0 tile kerüljön a bal felső sarokba
+	QPointer<TiledQuick::TileLayerItem> m_chunkMarkerLayer;
+
 	RpgStream::MapData m_mapData;
 
 	inline static RpgStream::HashFnv1A64 m_terrainHash = {};
@@ -105,6 +116,7 @@ private:
 	friend class RpgGame;
 	friend class RpgGameItem;
 };
+
 
 
 
