@@ -30,6 +30,7 @@
 #include <QQmlEngine>
 #include "tiledgame.h"
 #include "rpggame.h"
+#include "tiledvisualitem.h"
 
 
 
@@ -75,11 +76,14 @@ public:
 	Q_ENUM(Fixture)
 	Q_DECLARE_FLAGS(Fixtures, Fixture)
 
+	static const QHash<RpgStream::Team, QColor> &teamColor() { return m_teamColor; }
 
 	RpgGame *game() const;
 	void setGame(RpgGame *newGame);
 
 	bool load(const RpgGameDefinition &def);
+
+	static QRect loadTextureSprites(TiledSpriteHandler *handler, const QString &path);
 
 	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const int &buttons, const int &modifiers) override;
 
@@ -108,13 +112,117 @@ signals:
 	void isContentReadyChanged();
 
 private:
+	void loadTower(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer);
+
 	RpgGamePrivate *d = nullptr;
 
 	RpgGame *m_game = nullptr;
 	bool m_isContentReady = false;
 
+	static const QHash<RpgStream::Team, QColor> m_teamColor;
+
 	friend class RpgGame;
 	friend class RpgGamePrivate;
+	void loadMp(Tiled::GroupLayer *group, TiledScene *scene, Tiled::MapRenderer *renderer);
 };
+
+
+
+
+
+
+/**
+ * @brief The RpgVisualState class
+ */
+
+template <typename T>
+class RpgVisualState
+{
+public:
+	RpgVisualState(const T &defaultState)
+		: m_state(defaultState)
+	{}
+
+	const T &state() const { return m_state; }
+	void setState(const T &state) {
+		m_state = state;
+		updateState();
+	}
+
+
+	void refresh() { updateState(); }
+
+	void addLayer(const T &state, QQuickItem *layer) {
+		if (!layer)
+			return;
+
+		m_layers[state].append(layer);
+	}
+
+
+	TiledVisualItem *imageItem() const { return m_imageItem; }
+	void setImageItem(TiledVisualItem *newImageItem) { m_imageItem = newImageItem; }
+
+	void addSource(const T &state, const QUrl &source, const QPointF &offset = {}) {
+		m_sources[state].append({.url = source, .offset = offset});
+	}
+
+	const QPointF &basePosition() const { return m_basePosition; }
+	void setBasePosition(QPointF newBasePosition) { m_basePosition = newBasePosition; }
+
+protected:
+	virtual void updateState() {
+		for (auto [state, list] : m_layers.asKeyValueRange()) {
+			for (QQuickItem *item : list) {
+				if (!item)
+					continue;
+
+				item->setVisible(state == m_state);
+			}
+		}
+
+		if (!m_imageItem)
+			return;
+
+		if (const auto it = m_sources.find(m_state); it != m_sources.cend()) {
+			m_imageItem->setSource(it->url);
+			m_imageItem->setPosition(m_basePosition + it->offset);
+			m_imageItem->setVisible(true);
+		} else {
+			m_imageItem->setSource({});
+			m_imageItem->setVisible(false);
+		}
+	}
+
+	struct SourceData {
+		QUrl url;
+		QPointF offset;
+	};
+
+	QHash<T, QList<QPointer<QQuickItem> > > m_layers;
+	QHash<T, SourceData> m_sources;
+
+	TiledVisualItem *m_imageItem = nullptr;;
+	QPointF m_basePosition;
+
+	T m_state;
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 #endif // RPGGAMEITEM_H

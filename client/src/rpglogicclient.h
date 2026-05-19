@@ -31,6 +31,7 @@
 #include <rpglogic.h>
 
 class RpgObject;
+class RpgTower;
 
 namespace Rpg {
 
@@ -58,7 +59,6 @@ public:
 	void removeFromMapper(RpgObject *object);
 	QPoint getChunkFromVector(const cpVect &point, cpVect *centerPtr = nullptr);
 
-
 };
 
 
@@ -71,7 +71,7 @@ public:
 class RpgLogicClientSingle : public RpgLogicClient
 {
 public:
-	RpgLogicClientSingle() : RpgLogicClient(0, 0) {}
+	RpgLogicClientSingle();
 };
 
 
@@ -82,7 +82,7 @@ public:
 class RpgLogicClientMulti : public RpgLogicClient
 {
 public:
-	RpgLogicClientMulti() : RpgLogicClient(12, 6) { qWarning() << "MULTI"; }
+	RpgLogicClientMulti();
 };
 
 }		// end of namespace

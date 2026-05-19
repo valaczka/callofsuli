@@ -33,6 +33,7 @@
 #include "rpglogic.h"
 #include "rpglogicclient.h"
 #include "rpgobject.h"
+#include "rpgtower.h"
 
 /**
  * @brief The RpgGamePrivate class
@@ -62,8 +63,9 @@ private:
 	void prepareGameItem();
 	void onGameItemPrepared();
 	void loadChunkGrid();
-	void playerPositionAdd(const QPointF &pos, const Rpg::TeamTag::Team &team);
+	void playerPositionAdd(const QPointF &pos, const RpgStream::Team &team);
 	void mpEmitterAdd(const QPointF &pos, const quint32 &tagId);
+	void towerAdd(RpgTower *tower);
 
 
 	void connectJoysticks();
@@ -77,45 +79,48 @@ private:
 	// Play
 
 	void startGame();
-	void onBeforeWorldStep();
+	void onBeforeWorldStep(const qint64 &tick);
 	void onAfterWorldStep(const RpgStream::FullState &full);
 
 
 	// Synchronize
+
+	void syncGameState();
 
 	void syncObjects();
 	void syncPlayers();
 	void syncMp();
 	void syncDeleted();
 
+	void processEvents(const qint64 &tick);
+
 	void onTimeStepped();
 
-	void syncChunkMarker();
+	void syncChunkMarker(RpgPlayer *player);
 
 
 
 	/// RPG LOGIC LOCAL
 
 	quint32 logicRegisterObject(RpgObject *object);
-	void logicAddPlayer(const Rpg::TeamTag::Team &team = Rpg::TeamTag::TeamNone, const int &count = 1);
+	void logicAddPlayer(const RpgStream::Team &team = RpgStream::TeamNone, const int &count = 1);		// deprecated
+
+	void changeControlledPlayer();					// deprecated
 
 private:
 	RpgGame *const q;
 	std::unique_ptr<Rpg::RpgLogicClient> m_logic;
 	quint32 m_deadlineTick = 0;
 
-	QPointF m_chunkMarkerBaseOffset;										// A 0,0 tile kerüljön a bal felső sarokba
-	QPointer<TiledQuick::TileLayerItem> m_chunkMarkerLayer;
-
 	RpgStream::MapData m_mapData;
 
 	inline static RpgStream::HashFnv1A64 m_terrainHash = {};
 	inline static RpgStream::HashFnv1A64 m_characterHash = {};
 
-
 	friend class RpgGame;
 	friend class RpgGameItem;
 };
+
 
 
 

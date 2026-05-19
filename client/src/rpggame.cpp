@@ -44,6 +44,7 @@
 
 
 QHash<QString, RpgGameDefinition> RpgGame::m_terrains = {};
+QHash<QString, RpgPlayerDefinition> RpgGame::m_characters = {};
 
 
 /**
@@ -55,7 +56,7 @@ QHash<QString, RpgGameDefinition> RpgGame::m_terrains = {};
 RpgGame::RpgGame(GameMapMissionLevel *missionLevel, Client *client, const bool &multiplayer)
 	: AbstractLevelGame(GameMap::Rpg, missionLevel, client)
 	, d(new RpgGamePrivate(this, multiplayer))
-	, m_gameMode(multiplayer ? MultiPlayerGuest : SinglePlayer)
+	, m_gameMode(multiplayer ? MultiPlayer : SinglePlayer)
 {
 	Q_ASSERT(client);
 
@@ -436,17 +437,17 @@ void RpgGamePrivate::onGameItemPrepared()
 
 	m_logic->loadMapData(m_mapData);
 
-	logicAddPlayer(Rpg::TeamTag::TeamA, 2);
+	logicAddPlayer(RpgStream::TeamA, 1);
+	logicAddPlayer(RpgStream::TeamB, 1);
 
-	{
 	Rpg::RpgLogicScope scope = m_logic->getScope();
 	m_deadlineTick = scope.getCtx<RpgStream::GameConfig>()->duration();
-	}
 
 
 	m_logic->emplacePlayers();
 
 	syncObjects();
+	syncGameState();
 
 	/// TODO...
 	///q->setGameState(RpgGame::GameStateInit);
@@ -503,7 +504,7 @@ void RpgGamePrivate::loadChunkGrid()
  * @param team
  */
 
-void RpgGamePrivate::playerPositionAdd(const QPointF &pos, const Rpg::TeamTag::Team &team)
+void RpgGamePrivate::playerPositionAdd(const QPointF &pos, const RpgStream::Team &team)
 {
 	RpgStream::PlayerPosition p;
 	p.setPosXAsFloat(pos.x());
@@ -528,6 +529,28 @@ void RpgGamePrivate::mpEmitterAdd(const QPointF &pos, const quint32 &tagId)
 
 	m_mapData.mpEmitterList().emplace_back(std::move(p));
 }
+
+
+
+/**
+ * @brief RpgGamePrivate::towerAdd
+ * @param tower
+ */
+
+void RpgGamePrivate::towerAdd(RpgTower *tower)
+{
+	Q_ASSERT(tower);
+
+	const quint32 id = RpgLogicObjectMapper::getId(tower->objectId());
+
+	RpgStream::Tower t;
+	t.setTagId(id);
+
+	m_mapData.towerList().emplace_back(std::move(t));
+}
+
+
+
 
 
 
@@ -617,14 +640,16 @@ void RpgGamePrivate::startGame()
  * @brief RpgGamePrivate::onBeforeWorldStep
  */
 
-void RpgGamePrivate::onBeforeWorldStep()
+void RpgGamePrivate::onBeforeWorldStep(const qint64 &tick)
 {
 	if (q->m_gameMode == RpgGame::SinglePlayer) {
 		m_logic->render();
 		//RpgStream::FullState full = m_logic->getFullState(1);
 	}
 
+	syncGameState();
 	syncObjects();
+	processEvents(tick);
 }
 
 
@@ -640,6 +665,39 @@ void RpgGamePrivate::onAfterWorldStep(const RpgStream::FullState &full)
 	if (q->m_gameMode == RpgGame::SinglePlayer) {
 		m_logic->fullStateLoad(full, {});
 	}
+}
+
+
+
+/**
+ * @brief RpgGamePrivate::syncGameState
+ */
+
+void RpgGamePrivate::syncGameState()
+{
+	Rpg::RpgLogicScope scope = m_logic->getScope();
+	RpgStream::GameState *state = scope.getCtx<RpgStream::GameState>();
+
+	if (!state) {
+		LOG_CERROR("game") << "Missing GameState";
+		return;
+	}
+
+	if (!q->m_controlledPlayer) {
+		LOG_CERROR("game") << "Missing controlled player";
+		return;
+	}
+
+	q->setPtsTeam(q->m_controlledPlayer->team() == RpgStream::TeamA ?
+					  state->ptsA() : state->ptsB());
+
+	q->setPtsOpponent(q->m_controlledPlayer->team() == RpgStream::TeamA ?
+						  state->ptsB() : state->ptsA());
+
+	q->setColorTeam(RpgGameItem::teamColor().value(q->m_controlledPlayer->team()));
+	q->setColorOpponent(RpgGameItem::teamColor().value(q->m_controlledPlayer->team() == RpgStream::TeamA ?
+														   RpgStream::TeamB : RpgStream::TeamA));
+
 }
 
 
@@ -681,6 +739,13 @@ void RpgGamePrivate::syncPlayers()
 		LOG_CWARNING("game") << "CREATE PLAYER" << p.playerData.playerId() << p.playerData.character()
 							 << p.playerData.characterResolved(m_characterHash);
 
+		RpgPlayerDefinition def = RpgGame::characters().value(p.playerData.characterResolved(m_characterHash));
+
+		if (def.name.isEmpty()) {
+			LOG_CERROR("game") << "Invalid player";
+			continue;
+		}
+
 		cpVect pos;
 
 		if (state) {
@@ -693,9 +758,18 @@ void RpgGamePrivate::syncPlayers()
 
 		Q_ASSERT(obj);
 
+		obj->setDisplayName(QString("Player #%1").arg(p.playerData.playerId()));
+		obj->load(def);
+
 		if (state) {
 			obj->setHp(state->hp());
-			//obj->setMaxHp(state->hp());
+			obj->setMp(state->mp());
+		}
+
+		if (Rpg::TeamTag *team = scope.try_get<Rpg::TeamTag>(entity)) {
+			obj->setTeam(team->team);
+		} else {
+			LOG_CERROR("game") << "Missing TeamTag";
 		}
 
 		const quint32 pid = logicRegisterObject(obj);
@@ -769,6 +843,8 @@ void RpgGamePrivate::syncMp()
 
 
 
+
+
 /**
  * @brief RpgGamePrivate::syncDeleted
  */
@@ -813,12 +889,36 @@ void RpgGamePrivate::syncDeleted()
 
 
 /**
+ * @brief RpgGamePrivate::processEvents
+ */
+
+void RpgGamePrivate::processEvents(const qint64 &tick)
+{
+	Rpg::RpgLogicScope scope = m_logic->getScope();
+
+	if (Rpg::EventsOutput *events = scope.getCtx<Rpg::EventsOutput>()) {
+		if (const RpgStream::Events *e = events->at(tick)) {
+			if (!e->emitter().empty()) {
+				q->m_gameItem->playSfx(QStringLiteral(":/sound/sfx/pick.mp3"), q->m_gameItem->currentScene());
+				LOG_CINFO("game") << "EMITTER EVENT";
+			}
+		}
+	} else {
+		LOG_CERROR("game") << "NO EVENTS CTX";
+	}
+}
+
+
+
+
+
+/**
  * @brief RpgGamePrivate::onTimeStepped
  */
 
 void RpgGamePrivate::onTimeStepped()
 {
-	syncChunkMarker();
+	syncChunkMarker(q->controlledPlayer());
 }
 
 
@@ -827,26 +927,43 @@ void RpgGamePrivate::onTimeStepped()
  * @brief RpgGamePrivate::syncChunkMarker
  */
 
-void RpgGamePrivate::syncChunkMarker()
+void RpgGamePrivate::syncChunkMarker(RpgPlayer *player)
 {
-	if (!m_chunkMarkerLayer)
+	if (!player || !player->visualItem())
 		return;
 
-	if (!q->m_controlledPlayer) {
-		m_chunkMarkerLayer->setVisible(false);
-		return;
+
+	QPointF offset(0.,0.);
+	qreal width = 50.;
+	qreal stroke = 1.;
+	QColor color = RpgGameItem::teamColor().value(player->team());
+
+
+	if (player == q->m_controlledPlayer) {
+		if (RpgTower *tower = q->m_controlledPlayer->tower()) {
+			QRectF rect = tower->bodyAABB();
+
+			offset = rect.center() - q->m_controlledPlayer->bodyPositionF();
+			width = std::max(rect.width(), rect.height());			// = *0.5*2
+			color = QColorConstants::Svg::salmon;
+
+		} else {
+			const QPointF p = q->m_controlledPlayer->currentChunkCenter();
+
+			if (p.x() >= 0 && p.y() >= 0) {
+				offset = p - q->m_controlledPlayer->bodyPositionF();
+				width = 25.;
+				stroke = 2.;
+				color = QColor::fromRgb(57,250,65,150);
+			}
+		}
 	}
 
-	const QPointF p = q->m_controlledPlayer->currentChunkCenter();
 
-	if (p.x() < 0 || p.y() < 0) {
-		m_chunkMarkerLayer->setVisible(false);
-		return;
-	}
-
-	m_chunkMarkerLayer->setPosition(m_chunkMarkerBaseOffset + p);
-	m_chunkMarkerLayer->setVisible(true);
-
+	player->visualItem()->setProperty("ellipseOffset", offset);
+	player->visualItem()->setProperty("ellipseWidth", width);
+	player->visualItem()->setProperty("ellipseColor", color);
+	player->visualItem()->setProperty("ellipseSize", stroke);
 }
 
 
@@ -880,10 +997,80 @@ quint32 RpgGamePrivate::logicRegisterObject(RpgObject *object)
  * @return
  */
 
-void RpgGamePrivate::logicAddPlayer(const Rpg::TeamTag::Team &team, const int &count)
+void RpgGamePrivate::logicAddPlayer(const RpgStream::Team &team, const int &count)
 {
 	for (int i=0; i<count; ++i)
 		m_logic->playerAdd(team);
+}
+
+
+
+/**
+ * @brief RpgGamePrivate::changeControlledPlayer
+ */
+
+void RpgGamePrivate::changeControlledPlayer()
+{
+	Rpg::RpgLogicScope scope = m_logic->getScope();
+
+	RpgLogicObjectMapper *mapper = scope.getCtx<RpgLogicObjectMapper>();
+
+	quint32 current = mapper->getId(q->controlledPlayer()->objectId());
+
+	if (!current) {
+		LOG_CERROR("game") << "ERROR";
+		return;
+	}
+
+	auto view = scope.view<Rpg::Player>();
+
+	entt::entity next = entt::null;
+	bool found = false;
+
+	for (auto e : view) {
+		if (scope.get<Rpg::Player>(e).idTag() == current) {
+			found = true;
+			continue;
+		}
+
+		if (found) {
+			next = e;
+			break;
+		}
+	}
+
+	if (next == entt::null && found) {
+		for (auto e : view) {
+			if (scope.get<Rpg::Player>(e).idTag() == current) {
+				continue;
+			}
+
+			next = e;
+		}
+	}
+
+	if (next == entt::null) {
+		LOG_CERROR("game") << "NOT FOUND";
+		return;
+	}
+
+	RpgPlayer *p = qobject_cast<RpgPlayer*>(mapper->get(scope.get<Rpg::Player>(next).idTag()));
+
+	if (!p) {
+		LOG_CERROR("game") << "ERROR!!!";
+		return;
+	}
+
+	LOG_CINFO("game") << "CHANGE" << p;
+
+	RpgPlayer *old = q->controlledPlayer();
+
+	old->setSecondaryMotor(nullptr);
+	p->setSecondaryMotor(std::make_unique<RpgMotorPlayerControlled>(p));
+
+	q->setControlledPlayer(p);
+
+	syncChunkMarker(old);
 }
 
 
@@ -941,7 +1128,7 @@ RpgGamePrivate::RpgGamePrivate(RpgGame *game, const bool &multi)
 	: QObject()
 	, q(game)
 {
-	if (!multi)
+	if (multi)
 		m_logic = std::make_unique<Rpg::RpgLogicClientMulti>();
 	else
 		m_logic = std::make_unique<Rpg::RpgLogicClientSingle>();
@@ -1012,6 +1199,7 @@ void RpgGamePrivate::connectionCheck()
 
 
 	q->reloadTerrains();
+	q->reloadCharacters();
 
 	if (RpgGame::terrains().empty()) {
 		q->setError("NINCS TEREP");
@@ -1111,6 +1299,10 @@ quint32 RpgLogicObjectMapper::set(RpgObject *object)
 
 
 
+/**
+ * @brief RpgGame::controlledPlayer
+ * @return
+ */
 
 RpgPlayer *RpgGame::controlledPlayer() const
 {
@@ -1138,4 +1330,155 @@ void RpgGame::timerEvent(QTimerEvent *)
 {
 	//LOG_CDEBUG("game") << "TICK" << m_gameItem->tickTimer()->currentTick();
 	emit msecLeftChanged();
+}
+
+
+
+/**
+ * @brief RpgGame::reloadCharacters
+ */
+
+void RpgGame::reloadCharacters()
+{
+	LOG_CDEBUG("game") << "Reload available RPG characters...";
+
+	m_characters.clear();
+	RpgGamePrivate::m_characterHash.clear();
+
+	QDirIterator it(QStringLiteral(":/character"), {QStringLiteral("character.json")}, QDir::Files, QDirIterator::Subdirectories);
+
+	static const auto writeOnConfig = [](RpgPlayerDefinition *cfg, const QJsonObject &obj, const QString &path) {
+		Q_ASSERT(cfg);
+		cfg->fromJson(obj);
+
+		if (cfg->name.isEmpty())
+			cfg->name = path;
+
+		cfg->prefixPath = QStringLiteral(":/character/").append(path).append('/');
+
+		if (!cfg->image.isEmpty()) {
+			cfg->image.prepend(QStringLiteral("qrc")+cfg->prefixPath);
+		}
+
+		cfg->updateSfxPath(cfg->prefixPath);
+	};
+
+	while (it.hasNext()) {
+		const QString &f = it.next();
+
+		QString id = f.section('/',-2,-2);
+
+		const auto &ptr = Utils::fileToJsonObject(f);
+
+		if (!ptr) {
+			LOG_CERROR("game") << "Invalid config json:" << f;
+			continue;
+		}
+
+		RpgPlayerDefinition config;
+
+		writeOnConfig(&config, ptr.value(), id);
+
+
+		if (!config.base.isEmpty()) {
+			QString basePath = QStringLiteral(":/character/").append(config.base).append(QStringLiteral("/character.json"));
+
+			const auto &basePtr = Utils::fileToJsonObject(basePath);
+
+			if (!basePtr) {
+				LOG_CERROR("game") << "Invalid config base:" << config.base << "in:" << f;
+			} else {
+				QString base = config.base;
+				config = RpgPlayerDefinition{};
+				writeOnConfig(&config, basePtr.value(), base);
+				writeOnConfig(&config, ptr.value(), id);
+			}
+		}
+
+		m_characters.insert(id, config);
+		RpgGamePrivate::m_characterHash.insert(id);
+	}
+
+	LOG_CDEBUG("game") << "...loaded " << m_characters.size() << " characters";
+}
+
+
+
+
+
+/**
+ * @brief RpgPlayerDefinition::updateSfxPath
+ * @param prefix
+ */
+
+void RpgPlayerDefinition::updateSfxPath(const QString &prefix)
+{
+	for (QList<QString> *ptr : std::vector<QList<QString>*>{
+		 &sfxAccept,
+		 &sfxDecline,
+		 &sfxFootStep,
+		 &sfxPain,
+}) {
+		for (QString &s : *ptr) {
+			if (!s.isEmpty() && !s.startsWith(QStringLiteral(":/")))
+				s.prepend(prefix);
+		}
+	}
+
+	if (!sfxDead.isEmpty() && !sfxDead.startsWith(QStringLiteral(":/")))
+		sfxDead.prepend(prefix);
+}
+
+
+
+int RpgGame::ptsTeam() const
+{
+	return m_ptsTeam;
+}
+
+void RpgGame::setPtsTeam(int newPtsTeam)
+{
+	if (m_ptsTeam == newPtsTeam)
+		return;
+	m_ptsTeam = newPtsTeam;
+	emit ptsTeamChanged();
+}
+
+int RpgGame::ptsOpponent() const
+{
+	return m_ptsOpponent;
+}
+
+void RpgGame::setPtsOpponent(int newPtsOpponent)
+{
+	if (m_ptsOpponent == newPtsOpponent)
+		return;
+	m_ptsOpponent = newPtsOpponent;
+	emit ptsOpponentChanged();
+}
+
+QColor RpgGame::colorTeam() const
+{
+	return m_colorTeam;
+}
+
+void RpgGame::setColorTeam(const QColor &newColorTeam)
+{
+	if (m_colorTeam == newColorTeam)
+		return;
+	m_colorTeam = newColorTeam;
+	emit colorTeamChanged();
+}
+
+QColor RpgGame::colorOpponent() const
+{
+	return m_colorOpponent;
+}
+
+void RpgGame::setColorOpponent(const QColor &newColorOpponent)
+{
+	if (m_colorOpponent == newColorOpponent)
+		return;
+	m_colorOpponent = newColorOpponent;
+	emit colorOpponentChanged();
 }

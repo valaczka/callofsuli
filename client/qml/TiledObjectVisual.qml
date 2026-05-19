@@ -18,10 +18,18 @@ Item {
 	property real ellipseSize: 0
 	property real ellipseWidth: 75
 
+	property point ellipseOffset: Qt.point(0,0)
+
 	parent: baseObject ? baseObject.scene : null
 
 
 	property bool _initShow: false
+
+	Behavior on ellipseColor {
+		ColorAnimation {
+			duration: 125
+		}
+	}
 
 	Timer {
 		running: true
@@ -37,11 +45,42 @@ Item {
 
 		anchors.horizontalCenter: parent.horizontalCenter
 		anchors.verticalCenter: parent.verticalCenter
-		anchors.horizontalCenterOffset: baseObject ? baseObject.bodyOffset.x : 0
-		anchors.verticalCenterOffset: baseObject ? baseObject.bodyOffset.y : 0
+		anchors.horizontalCenterOffset: offsetX + (baseObject ? baseObject.bodyOffset.x : 0)
+		anchors.verticalCenterOffset: offsetY + (baseObject ? baseObject.bodyOffset.y : 0)
 
 		width: ellipseWidth
 		height: ellipseWidth
+
+		property real offsetX: root.ellipseOffset.x
+		property real offsetY: root.ellipseOffset.y
+
+		Behavior on offsetX {
+			NumberAnimation {
+				duration: 125
+				easing.type: root.ellipseOffset.x == 0. ? Easing.OutBack : Easing.OutQuad
+			}
+		}
+
+		Behavior on offsetY {
+			NumberAnimation {
+				duration: 125
+				easing.type: root.ellipseOffset.y == 0. ? Easing.OutBack : Easing.OutQuad
+			}
+		}
+
+		Behavior on width {
+			NumberAnimation {
+				duration: 125
+				easing.type: Easing.OutQuad
+			}
+		}
+
+		Behavior on height {
+			NumberAnimation {
+				duration: 125
+				easing.type: Easing.OutQuad
+			}
+		}
 
 		ShapePath {
 			fillColor: "transparent"

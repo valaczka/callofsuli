@@ -231,6 +231,7 @@ EngineStream &GameConfig::operator<<(EngineStream &stream)
 	readTerrain(stream);
 	readFlags(stream);
 	readDuration(stream);
+	readStage(stream);
 
 	return stream;
 }
@@ -247,6 +248,7 @@ EngineStream &GameConfig::operator>>(EngineStream &stream) const
 	writeTerrain(stream);
 	writeFlags(stream);
 	writeDuration(stream);
+	writeStage(stream);
 
 	return stream;
 }
@@ -585,6 +587,8 @@ EngineStream &FullState::operator<<(EngineStream &stream)
 	readServerAuthTick(stream);
 	readFlags(stream);
 
+	m_state << stream;
+
 	if (m_flags & Player)
 		readPlayers(stream);
 
@@ -593,6 +597,9 @@ EngineStream &FullState::operator<<(EngineStream &stream)
 
 	if (m_flags & Mp)
 		readMps(stream);
+
+	if (m_flags & Tower)
+		readTowers(stream);
 
 	return stream;
 }
@@ -609,6 +616,8 @@ EngineStream &FullState::operator>>(EngineStream &stream) const
 	writeServerAuthTick(stream);
 	writeFlags(stream);
 
+	m_state >> stream;
+
 	if (m_flags & Player)
 		writePlayers(stream);
 
@@ -617,6 +626,9 @@ EngineStream &FullState::operator>>(EngineStream &stream) const
 
 	if (m_flags & Mp)
 		writeMps(stream);
+
+	if (m_flags & Tower)
+		writeTowers(stream);
 
 	return stream;
 }
@@ -632,6 +644,7 @@ EngineStream &Events::operator<<(EngineStream &stream)
 {
 	readTick(stream);
 	readPlayer(stream);
+	readEmitter(stream);
 
 	return stream;
 }
@@ -647,6 +660,7 @@ EngineStream &Events::operator>>(EngineStream &stream) const
 {
 	writeTick(stream);
 	writePlayer(stream);
+	writeEmitter(stream);
 
 	return stream;
 }
@@ -664,8 +678,12 @@ EngineStream &EventPlayer::operator<<(EngineStream &stream)
 	readTagId(stream);
 	readType(stream);
 
-	if (m_type == EventMpPick) {
-		readMp(stream);
+	if (m_type == EventMpPick || m_type == EventTower) {
+		readTarget(stream);
+	}
+
+	if (m_type == EventTower) {
+		readSuccess(stream);
 	}
 
 	return stream;
@@ -684,8 +702,12 @@ EngineStream &EventPlayer::operator>>(EngineStream &stream) const
 	writeTagId(stream);
 	writeType(stream);
 
-	if (m_type == EventMpPick) {
-		writeMp(stream);
+	if (m_type == EventMpPick || m_type == EventTower) {
+		writeTarget(stream);
+	}
+
+	if (m_type == EventTower) {
+		writeSuccess(stream);
 	}
 
 	return stream;
@@ -758,6 +780,171 @@ EngineStream &MpData::operator>>(EngineStream &stream) const
 	writeTagId(stream);
 	writePosX(stream);
 	writePosY(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief Tower::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &Tower::operator<<(EngineStream &stream)
+{
+	readTagId(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief Tower::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &Tower::operator>>(EngineStream &stream) const
+{
+	writeTagId(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief TowerState::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &TowerState::operator<<(EngineStream &stream)
+{
+	readTick(stream);
+	readTeam(stream);
+	readLoad(stream);
+	readLockedUntil(stream);
+	readActive(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief TowerState::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &TowerState::operator>>(EngineStream &stream) const
+{
+	writeTick(stream);
+	writeTeam(stream);
+	writeLoad(stream);
+	writeLockedUntil(stream);
+	writeActive(stream);
+
+	return stream;
+}
+
+
+
+
+
+/**
+ * @brief TowerStateList::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &TowerStateList::operator<<(EngineStream &stream)
+{
+	readTagId(stream);
+	readState(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief TowerStateList::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &TowerStateList::operator>>(EngineStream &stream) const
+{
+	writeTagId(stream);
+	writeState(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief EventMpEmitter::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &EventMpEmitter::operator<<(EngineStream &stream)
+{
+	readTick(stream);
+	readTagId(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief EventMpEmitter::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &EventMpEmitter::operator>>(EngineStream &stream) const
+{
+	writeTick(stream);
+	writeTagId(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief GameState::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &GameState::operator<<(EngineStream &stream)
+{
+	readTick(stream);
+	readPtsA(stream);
+	readPtsB(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief GameState::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &GameState::operator>>(EngineStream &stream) const
+{
+	writeTick(stream);
+	writePtsA(stream);
+	writePtsB(stream);
 
 	return stream;
 }

@@ -450,13 +450,7 @@ struct EventProcessingTag { };
 
 struct TeamTag
 {
-	enum Team {
-		TeamNone = 0,
-		TeamA = 1,
-		TeamB = 2
-	};
-
-	Team team = TeamNone;
+	RpgStream::Team team = RpgStream::TeamNone;
 };
 
 
@@ -493,9 +487,7 @@ struct MpEmitter
 
 
 
-/**
- * @brief The Mp class
- */
+// Mp
 
 struct Mp
 {
@@ -505,6 +497,24 @@ struct Mp
 	cpVect pos = cpvzero;
 };
 
+
+
+
+// Tower
+
+struct Tower
+{
+	quint32 idTag = 0;
+	/*cpVect pos = cpvzero;
+
+	float radius = 0.;
+	quint32 capacity = 0;
+
+	std::vector<entt::entity> mpList;*/
+
+	static Tower fromRpgStream(const RpgStream::Tower &stream);
+	RpgStream::Tower toRpgStream() const;
+};
 
 
 
@@ -550,6 +560,8 @@ typedef std::vector<RpgStream::PlayerPosition> PlayerPositionList;
 
 typedef BaseStateMap<RpgStream::PlayerState> PlayerStateInput;
 typedef BaseStatePull<RpgStream::PlayerState> PlayerStateOutput;
+
+typedef BaseStatePull<RpgStream::TowerState> TowerStateOutput;
 
 typedef BaseStatePull<RpgStream::Events> EventsOutput;
 
@@ -630,7 +642,7 @@ public:
 
 	// Player
 
-	entt::entity playerAdd(const TeamTag::Team &team = TeamTag::TeamNone);
+	entt::entity playerAdd(const RpgStream::Team &team = RpgStream::TeamNone);
 
 	void emplacePlayers();
 

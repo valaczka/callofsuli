@@ -77,6 +77,76 @@ public:
 
 
 
+
+
+
+/**
+ * @brief The RpgPlayerDefinition class
+ */
+
+class RpgPlayerDefinition : public QSerializer
+{
+	Q_GADGET
+
+public:
+	RpgPlayerDefinition() : QSerializer()
+	  , hp(0)
+	  , mp(0)
+	  , walk(0)
+	  , run(0)
+	{}
+
+	void updateSfxPath(const QString &prefix);
+
+	QString prefixPath;
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(QString, name)
+	QS_FIELD(QString, image)
+	QS_FIELD(QString, base)			// Based on character (e.g. sfx, inventory,...)
+
+	// Sfx sounds
+
+	QS_FIELD(QString, sfxDead)
+	QS_COLLECTION(QList, QString, sfxPain)
+	QS_COLLECTION(QList, QString, sfxFootStep)
+	QS_COLLECTION(QList, QString, sfxAccept)
+	QS_COLLECTION(QList, QString, sfxDecline)
+
+
+	// Sprites
+
+	QS_COLLECTION(QList, QString, idleSprites)
+
+	QS_FIELD(int, hp)
+	QS_FIELD(int, mp)
+
+	QS_FIELD(int, walk)				// walk speed
+	QS_FIELD(int, run)				// run speed
+};
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 class RpgObject;
 
 /**
@@ -98,6 +168,11 @@ struct RpgLogicObjectMapper
 
 
 
+
+
+
+
+
 /**
  * @brief The RpgGame class
  */
@@ -111,6 +186,11 @@ class RpgGame : public AbstractLevelGame
 	Q_PROPERTY(QString errorString READ errorString WRITE setErrorString NOTIFY errorStringChanged FINAL)
 	Q_PROPERTY(RpgGameItem *gameItem READ gameItem WRITE setGameItem NOTIFY gameItemChanged FINAL)
 	Q_PROPERTY(RpgPlayer *controlledPlayer READ controlledPlayer WRITE setControlledPlayer NOTIFY controlledPlayerChanged FINAL)
+
+	Q_PROPERTY(int ptsTeam READ ptsTeam WRITE setPtsTeam NOTIFY ptsTeamChanged FINAL)
+	Q_PROPERTY(int ptsOpponent READ ptsOpponent WRITE setPtsOpponent NOTIFY ptsOpponentChanged FINAL)
+	Q_PROPERTY(QColor colorTeam READ colorTeam WRITE setColorTeam NOTIFY colorTeamChanged FINAL)
+	Q_PROPERTY(QColor colorOpponent READ colorOpponent WRITE setColorOpponent NOTIFY colorOpponentChanged FINAL)
 
 public:
 	RpgGame(GameMapMissionLevel *missionLevel, Client *client, const bool &multiplayer);
@@ -135,8 +215,7 @@ public:
 
 	enum GameMode {
 		SinglePlayer = 0,
-		MultiPlayerGuest,
-		MultiPlayerHost
+		MultiPlayer
 	};
 
 	Q_ENUM(GameMode)
@@ -150,14 +229,13 @@ public:
 	Q_INVOKABLE void menuBgMusicStop();
 
 
-
 	static const QHash<QString, RpgGameDefinition> &terrains() { return m_terrains; }
 	static void reloadTerrains();
 
 	static std::optional<RpgGameDefinition> readGameDefinition(const QString &map);
 
-	/*static const QHash<QString, RpgPlayerCharacterConfig> &characters();
-	static void reloadCharacters();*/
+	static const QHash<QString, RpgPlayerDefinition> &characters() { return m_characters; }
+	static void reloadCharacters();
 
 	static void reloadWorld();
 
@@ -180,12 +258,28 @@ public:
 	GameMode gameMode() const;
 	void setGameMode(const GameMode &newGameMode);
 
+	int ptsTeam() const;
+	void setPtsTeam(int newPtsTeam);
+
+	int ptsOpponent() const;
+	void setPtsOpponent(int newPtsOpponent);
+
+	QColor colorTeam() const;
+	void setColorTeam(const QColor &newColorTeam);
+
+	QColor colorOpponent() const;
+	void setColorOpponent(const QColor &newColorOpponent);
+
 signals:
 	void gameStateChanged();
 	void errorStringChanged();
 	void gameItemChanged();
 	void controlledPlayerChanged();
 	void gameModeChanged();
+	void ptsTeamChanged();
+	void ptsOpponentChanged();
+	void colorTeamChanged();
+	void colorOpponentChanged();
 
 protected:
 	virtual void timerEvent(QTimerEvent *) override;
@@ -206,9 +300,13 @@ private:
 	GameState m_gameState = GameStateInvalid;
 	QString m_errorString;
 
+	int m_ptsTeam = 0;
+	int m_ptsOpponent = 0;
+	QColor m_colorTeam;
+	QColor m_colorOpponent;
 
 	static QHash<QString, RpgGameDefinition> m_terrains;
-	///static QHash<QString, RpgPlayerCharacterConfig> m_characters;
+	static QHash<QString, RpgPlayerDefinition> m_characters;
 
 	friend class RpgGamePrivate;
 	friend class RpgGameItem;

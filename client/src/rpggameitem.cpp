@@ -31,8 +31,17 @@
 #include "rpggame_p.h"
 #include "rpgobject.h"
 #include "rpgplayer.h"
+#include "rpgtower.h"
 #include "tileddebugdraw.h"
 #include "utils_.h"
+
+
+
+const QHash<RpgStream::Team, QColor> RpgGameItem::m_teamColor = {
+	{ RpgStream::TeamNone, QColorConstants::Svg::white },
+	{ RpgStream::TeamA, QColorConstants::Svg::cyan },
+	{ RpgStream::TeamB, QColorConstants::Svg::yellow },
+};
 
 
 
@@ -326,7 +335,7 @@ void RpgGameItem::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *sce
 
 void RpgGameItem::loadTileLayer(TiledScene *scene, Tiled::TileLayer *layer, Tiled::MapRenderer *renderer)
 {
-	if (layer->className() == QStringLiteral("chunkMarker")) {
+	/*if (layer->className() == QStringLiteral("chunkMarker")) {
 		LOG_CERROR("game") << "LOAD CHUNK LAYER";
 
 		d->m_chunkMarkerLayer = scene->addTileLayer(layer, renderer);
@@ -335,7 +344,7 @@ void RpgGameItem::loadTileLayer(TiledScene *scene, Tiled::TileLayer *layer, Tile
 		LOG_CINFO("game") << "BASE OFFSET" << d->m_chunkMarkerBaseOffset;
 
 		return;
-	}
+	}*/
 	TiledGame::loadTileLayer(scene, layer, renderer);
 }
 
@@ -368,13 +377,13 @@ bool RpgGameItem::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, 
 
 			const QPointF pos = renderer->pixelToScreenCoords(object->position() + group->totalOffset());
 
-			d->playerPositionAdd(pos, Rpg::TeamTag::TeamA);
+			d->playerPositionAdd(pos, RpgStream::TeamA);
 		} else if (group->className() == QStringLiteral("teamB") || group->name() == QStringLiteral("teamB")) {
 			LOG_CINFO("game") << "REGISTER B" << object->className();
 
 			const QPointF pos = renderer->pixelToScreenCoords(object->position() + group->totalOffset());
 
-			d->playerPositionAdd(pos, Rpg::TeamTag::TeamB);
+			d->playerPositionAdd(pos, RpgStream::TeamB);
 		}
 	}
 
@@ -402,6 +411,144 @@ void RpgGameItem::loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, c
 }
 
 
+
+
+/**
+ * @brief RpgGameItem::loadTower
+ * @param scene
+ * @param group
+ * @param renderer
+ */
+
+void RpgGameItem::loadTower(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer)
+{
+	LOG_CDEBUG("game") << "LOAD TOWER" << group->name();
+
+	QMultiMap<RpgStream::Team, TiledQuick::TileLayerItem *> layers;
+	RpgTower *tower = nullptr;
+
+	TiledVisualItem *visualItem = nullptr;
+
+	for (Tiled::Layer *layer : std::as_const(*group)) {
+		if (Tiled::TileLayer *tl = layer->asTileLayer()) {
+			RpgStream::Team team = RpgStream::TeamNone;
+
+			if (tl->className() == QStringLiteral("teamA"))
+				team = RpgStream::TeamA;
+			else if (tl->className() == QStringLiteral("teamB"))
+				team = RpgStream::TeamB;
+
+			if (team == RpgStream::TeamNone) {
+				visualItem = scene->addVisualItem(tl, renderer);
+				visualItem->setGlowColor(QColorConstants::Svg::gold);
+
+				LOG_CDEBUG("game") << "Load tower TileLayer" << tl->name() << "in" << group->name() << visualItem->position();
+				continue;
+			}
+
+			tl->setName(group->name());							// Name override for dynamicZ
+
+			LOG_CDEBUG("game") << "LOAD TOWER TILE" << group->name() << tl->name() << team;
+			TiledQuick::TileLayerItem *item = scene->addTileLayer(tl, renderer);
+			item->setVisible(false);
+
+			layers.insert(team, item);
+
+		} else if (Tiled::ObjectGroup *gr = layer->asObjectGroup()) {
+			for (Tiled::MapObject *object : std::as_const(gr->objects())) {
+
+				if (object->className() == QStringLiteral("tower")) {
+					if (object->shape() != Tiled::MapObject::Rectangle &&
+							object->shape() != Tiled::MapObject::Polygon) {
+						LOG_CERROR("game") << "Invalid shape" << layer->name() << "in" << group->name();
+						continue;
+
+					}
+					LOG_CDEBUG("game") << "LOAD TOWER OBJECT" << group->name() << gr->name() << gr->className();
+
+					tower = createObject<RpgTower>(TiledObjectBody::ObjectId{.ownerId = 0,
+																			 .sceneId = scene->sceneId(),
+																			 .id = static_cast<quint32>(object->id())
+												   }, scene,
+												   this, object, renderer);
+
+					object->setName(group->name());				// Name override for dynamicZ
+
+					loadDynamicZ(scene, object, renderer);
+
+				} else if (object->className() == QStringLiteral("exclude")) {
+					LOG_CDEBUG("game") << "LOAD TOWER EXCLUED" << group->name() << layer->name();
+					RpgObjectExclude *mapObject = createObject<RpgObjectExclude>(TiledObjectBody::ObjectId{.ownerId = 0,
+																										   .sceneId = scene->sceneId(),
+																										   .id = static_cast<quint32>(object->id())
+																				 }, scene,
+																				 object, this, renderer, CP_BODY_TYPE_STATIC);
+
+					if (mapObject)
+						mapObject->filterSet(FixtureExcluded, FixtureAll);
+				}
+
+			}
+		}
+	}
+
+	if (!tower) {
+		LOG_CERROR("game") << "Load tower error" << group->name();
+		return;
+	}
+
+	LOG_CINFO("game") << "**************" << tower->scene() << "visual" << visualItem;
+
+	if (visualItem)
+		tower->setVisualItem(visualItem);
+
+	tower->addLayers(layers);
+
+	d->towerAdd(tower);
+}
+
+
+
+/**
+ * @brief RpgGameItem::loadMp
+ * @param group
+ * @param scene
+ * @param renderer
+ */
+
+void RpgGameItem::loadMp(Tiled::GroupLayer *group, TiledScene *scene, Tiled::MapRenderer *renderer)
+{
+	LOG_CDEBUG("game") << "LOAD MP" << group->name();
+
+	for (Tiled::Layer *layer : std::as_const(*group)) {
+		if (Tiled::TileLayer *tl = layer->asTileLayer()) {
+			LOG_CDEBUG("game") << "LOAD MP TILE" << group->name() << layer->name();
+			scene->addTileLayer(tl, renderer);
+		} else if (Tiled::ObjectGroup *gr = layer->asObjectGroup()) {
+			LOG_CDEBUG("game") << "LOAD MP OBJECT" << group->name() << gr->name() << gr->className();
+			for (Tiled::MapObject *object : std::as_const(gr->objects())) {
+				if (object->className() == QStringLiteral("exclude")) {
+					LOG_CDEBUG("game") << "LOAD MP EXCLUED" << group->name() << layer->name();
+					RpgObjectExclude *mapObject = createObject<RpgObjectExclude>(TiledObjectBody::ObjectId{.ownerId = 0,
+																										   .sceneId = scene->sceneId(),
+																										   .id = static_cast<quint32>(object->id())
+																				 }, scene,
+																				 object, this, renderer, CP_BODY_TYPE_STATIC);
+
+					if (mapObject)
+						mapObject->filterSet(FixtureExcluded, FixtureAll);
+				} else {
+					const QPointF pos = renderer->pixelToScreenCoords(object->position() + gr->totalOffset());
+					LOG_CWARNING("game") << "LOAD MP POINT" << pos;
+					d->mpEmitterAdd(pos, Rpg::RpgLogic::packId(scene->sceneId(), 0, object->id()));
+				}
+
+			}
+		}
+
+	}
+}
+
 /**
  * @brief RpgGameItem::loadGroupLayer
  * @param scene
@@ -414,35 +561,9 @@ void RpgGameItem::loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Ti
 	const QString &cname = group->className();
 
 	if (cname == QStringLiteral("mp")) {
-		LOG_CDEBUG("game") << "LOAD MP" << group->name();
-
-		for (Tiled::Layer *layer : std::as_const(*group)) {
-			if (Tiled::TileLayer *tl = layer->asTileLayer()) {
-				LOG_CDEBUG("game") << "LOAD MP TILE" << group->name() << layer->name();
-				scene->addTileLayer(tl, renderer);
-			} else if (Tiled::ObjectGroup *gr = layer->asObjectGroup()) {
-				LOG_CDEBUG("game") << "LOAD MP OBJECT" << group->name() << gr->name() << gr->className();
-				for (Tiled::MapObject *object : std::as_const(gr->objects())) {
-					if (object->className() == QStringLiteral("exclude")) {
-						LOG_CDEBUG("game") << "LOAD MP EXCLUED" << group->name() << layer->name();
-						RpgObjectExclude *mapObject = createObject<RpgObjectExclude>(TiledObjectBody::ObjectId{.ownerId = 0,
-																											   .sceneId = scene->sceneId(),
-																											   .id = static_cast<quint32>(object->id())
-																					 }, scene,
-																					 object, this, renderer, CP_BODY_TYPE_STATIC);
-
-						if (mapObject)
-							mapObject->filterSet(FixtureExcluded, FixtureAll);
-					} else {
-						const QPointF pos = renderer->pixelToScreenCoords(object->position() + gr->totalOffset());
-						LOG_CWARNING("game") << "LOAD MP POINT" << pos;
-						d->mpEmitterAdd(pos, Rpg::RpgLogic::packId(scene->sceneId(), 0, object->id()));
-					}
-
-				}
-			}
-
-		}
+		loadMp(group, scene, renderer);
+	} else if (cname == QStringLiteral("tower")) {
+		loadTower(scene, group, renderer);
 	}
 
 	/*if (cname == QStringLiteral("container")) {
@@ -509,7 +630,7 @@ void RpgGameItem::timeStepPrepareEvent()
 
 void RpgGameItem::timeBeforeWorldStepEvent(const qint64 &tick)
 {
-	d->onBeforeWorldStep();
+	d->onBeforeWorldStep(tick);
 
 
 	Rpg::RpgLogicScope scope = m_game->rpgLogicClient()->getScope();
@@ -654,12 +775,52 @@ void RpgGameItem::keyPressEvent(QKeyEvent *event)
 		LOG_CERROR("game") << "Missing player or motor";
 
 	switch (key) {
-		/*case Qt::Key_X:
+		/*		case Qt::Key_X:
 		case Qt::Key_Clear:
 		case Qt::Key_5:
 			if (m_controlledPlayer)
 				m_controlledPlayer->exitHiding();
+			break;
+
+		case Qt::Key_Space:
+		case Qt::Key_Insert:
+		case Qt::Key_0:
+			if (m_controlledPlayer)
+				m_controlledPlayer->attackCurrentWeapon();
+			break;
+
+		case Qt::Key_Q:
+		case Qt::Key_Delete:
+		case Qt::Key_Comma:
+			if (m_controlledPlayer)
+				m_controlledPlayer->armory()->changeToNextWeapon();
+			break;
+
+
+
+		case Qt::Key_C:
+			if (m_controlledPlayer)
+				m_controlledPlayer->cast();
+			break;
+
+		case Qt::Key_Tab:
+			emit minimapToggleRequest();
+			break;
+
+		case Qt::Key_F10:
+			emit questsRequest();
 			break;*/
+
+		case Qt::Key_Tab:
+			d->changeControlledPlayer();
+			break;
+
+		case Qt::Key_Return:
+		case Qt::Key_Enter:
+		case Qt::Key_E:
+			if (motor)
+				motor->useCurrentControl();
+			break;
 
 		case Qt::Key_Space:
 		case Qt::Key_Insert:
@@ -704,6 +865,212 @@ void RpgGameItem::joystickStateEvent(const Joystick &joystick, const JoystickSta
 
 
 
+
+
+
+
+
+
+/**
+ * @brief RpgGameItem::loadTextureSprites
+ * @param handler
+ * @param path
+ * @return
+ */
+
+QRect RpgGameItem::loadTextureSprites(TiledSpriteHandler *handler, const QString &path)
+{
+	// 								  QHash<QString, RpgArmory::LayerData> *layerPtr
+
+	static const QVector<TiledObject::Direction> directions = {
+		TiledObject::SouthWest,
+		TiledObject::South,
+		TiledObject::SouthEast,
+		TiledObject::East,
+		TiledObject::NorthEast,
+		TiledObject::North,
+		TiledObject::NorthWest,
+		TiledObject::West,
+	};
+
+
+	QByteArray input = Utils::fileContentRead(path+QStringLiteral("input.txt"));
+
+	if (input.isEmpty())
+		return QRect();
+
+	QTextStream buffer(&input, QIODevice::ReadOnly);
+	int n = 0;
+
+	QRect measure;
+
+	/// input.txt format
+	///
+	/// line 1: <width> \t <height> \t [<bodyOffsetX>] \t [<bodyOffsetY>]
+	/// line ...: <sprite> \t <frames> \t <duration> \t [<loops>] \ [<baked>]
+
+	QVector<RpgGameItem::TextureSpriteMapper> mapper;
+
+	QString line;
+
+	while (buffer.readLineInto(&line)) {
+		const QStringList field = line.split('\t');
+
+		if (n == 0) {
+			if (field.size() > 3)
+				measure.setY(field.at(3).toInt());
+
+			if (field.size() > 2)
+				measure.setX(field.at(2).toInt());
+
+			if (field.size() > 1)
+				measure.setHeight(field.at(1).toInt());
+
+			if (field.size() > 0)
+				measure.setWidth(field.at(0).toInt());
+		} else {
+			if (field.size() < 3) {
+				LOG_CERROR("game") << "Invalid line" << line;
+				continue;
+			}
+
+			const QString sprite = field.at(0);
+			const int frames = field.at(1).toInt();
+			const int duration = field.at(2).toInt();
+
+			const int loops = field.size() > 3 ? field.at(3).toInt() : 0;
+			const bool baked = field.size() > 4 ? field.at(4).toInt() : false;
+
+			for (const auto &d : directions) {
+				TextureSpriteMapper dst;
+				dst.name = sprite;
+				dst.direction = d;
+				dst.width = measure.width();
+				dst.height = measure.height();
+				dst.duration = duration;
+				dst.loops = loops;
+				dst.baked = baked;
+
+				for (int i=0; i<frames; ++i)
+					mapper.append(dst);
+			}
+		}
+
+		++n;
+	}
+
+	/*
+
+	QHash<QString, RpgArmory::LayerData> RpgGamePrivate::readLayerData(const QString &file)
+	{
+		QHash<QString, RpgArmory::LayerData> hash;
+
+		hash.insert(QStringLiteral("default"), RpgArmory::LayerData(RpgGameData::Weapon::WeaponInvalid, 0, RpgArmory::ShieldNeutral));
+
+		/// layer.txt format
+		///
+		/// <sprite-prefix> \t [<weapon-str>] \t [<shield-layer-str>] \t [<baked>]
+
+		QByteArray layerData = Utils::fileContentRead(file);
+		QTextStream layerBuffer(&layerData, QIODevice::ReadOnly);
+
+		QString line;
+
+		while (layerBuffer.readLineInto(&line)) {
+			const QStringList field = line.split('\t');
+
+			if (field.isEmpty())
+				continue;
+
+
+			RpgArmory::LayerData data;
+
+			if (field.size() > 4)
+				data.baked = field.at(4).toInt();
+
+			if (field.size() > 3)
+				data.shield = QVariant::fromValue(field.at(3)).value<RpgArmory::ShieldLayer>();
+
+			if (field.size() > 2)
+				data.subType = field.at(2).toInt();
+
+			if (field.size() > 1)
+				data.weapon = RpgArmory::weaponHash().key(field.at(1), RpgGameData::Weapon::WeaponInvalid);
+
+			hash.insert(field.at(0), data);
+		}
+
+		return hash;
+	}
+
+
+
+	QHash<QString, RpgArmory::LayerData> layerData = RpgGamePrivate::readLayerData(path+QStringLiteral("layers.txt"));
+*/
+	//for (const auto &[layer, data] : layerData.asKeyValueRange()) {
+
+
+	static const QString layer = "default";
+
+	QString basePath = path;
+	if (layer == QStringLiteral("default"))
+		basePath += QStringLiteral("texture");
+	else
+		basePath += layer + QStringLiteral("-texture");
+
+	/*if (data.baked)
+			LOG_CDEBUG("scene") << "Load texture from" << qPrintable(basePath) << "to baked layer" << qPrintable(layer);
+		else*/
+	LOG_CDEBUG("scene") << "Load texture from" << qPrintable(basePath) << "to layer" << qPrintable(layer);
+
+	const auto &ptr = Utils::fileToJsonObject(basePath+QStringLiteral(".json"));
+
+	if (!ptr) {
+		LOG_CERROR("scene") << "Missing" << qPrintable(basePath) << "JSON";
+		//continue;
+		return QRect();
+	}
+
+	TextureSpriteDef def;
+	def.fromJson(*ptr);
+
+	QVector<RpgGameItem::TextureSpriteMapper> filteredMapper;
+
+	filteredMapper.reserve(mapper.size());
+
+	const QString bakedName = layer+QStringLiteral("-");
+
+	for (const RpgGameItem::TextureSpriteMapper &m : mapper) {
+		/*if (data.baked) {
+				if (m.baked && m.name.startsWith(bakedName)) {
+					m.name.remove(0, bakedName.size());
+					filteredMapper.append(m);
+				}
+			} else {
+				if (!m.baked)*/
+		filteredMapper.append(m);
+		//}
+	}
+
+	const QVector<TiledGame::TextureSpriteDirection> &sprites = spritesFromMapper(filteredMapper, def);
+
+	if (!appendToSpriteHandler(handler, sprites, basePath+QStringLiteral(".png"), layer))
+		return QRect();
+	/*}
+
+	if (layerPtr)
+		layerPtr->swap(layerData);
+		 */
+
+	return measure;
+}
+
+
+
+
+
+
+
 /**
  * @brief RpgGameItem::isContentReady
  * @return
@@ -721,6 +1088,14 @@ void RpgGameItem::setIsContentReady(bool newIsContentReady)
 	m_isContentReady = newIsContentReady;
 	emit isContentReadyChanged();
 }
+
+
+
+
+
+
+
+
 
 
 

@@ -13,6 +13,7 @@ Column {
 	readonly property bool _isEntity: target && target.hp !== undefined
 	property alias progressBar: _progress
 	property alias progressBarColor: _progress.color
+	property alias labelColor: _label.color
 	property real entityHeight: 120
 
 
@@ -36,7 +37,7 @@ Column {
 		Qaterial.Label {
 			id: _label
 			font.family: Qaterial.Style.textTheme.body1.family
-			font.pixelSize: 10
+			font.pixelSize: 11
 			font.weight: Font.Bold
 			color: "white"
 			//elide: implicitWidth > width ? Text.ElideRight : Text.ElideNone

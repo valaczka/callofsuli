@@ -120,12 +120,12 @@ FocusScope {
 										Client.Utils.formatMSecs(game.msecLeft, 1, false)
 		}
 
-		/*GameLabel {
+		GameLabel {
 			id: _playerZ
-			visible: Qt.platform.os === "linux" && Client.debug && game && game.rpgGame.controlledPlayer && game.rpgGame.controlledPlayer.visualItem
-			iconLabel.text: visible ? game.rpgGame.controlledPlayer.visualItem.z : ""
+			visible: Qt.platform.os === "linux" && Client.debug && game && game.controlledPlayer && game.controlledPlayer.visualItem
+			iconLabel.text: visible ? game.controlledPlayer.visualItem.z : ""
 			color: Qaterial.Colors.white
-		}*/
+		}
 	}
 
 	/*
@@ -305,7 +305,7 @@ FocusScope {
 		}
 	}
 
-
+*/
 
 
 	Column {
@@ -315,22 +315,37 @@ FocusScope {
 		anchors.rightMargin: Math.max(Client.safeMarginRight, 7)
 		spacing: 5 * Qaterial.Style.pixelSizeRatio
 
-		visible: _isPrepared
+		visible: _item.isContentReady
 
 		GameLabel {
-			id: _infoCurrency
+			id: _infoCurrencyTeam
 
 			anchors.right: parent.right
 
 			pixelSize: 16 * Qaterial.Style.pixelSizeRatio
 
-			color: Qaterial.Colors.yellow500
+			color: game ? game.colorTeam : Qaterial.Colors.white
 			iconLabel.icon.source: "qrc:/rpg/coin/coins.png"
 			iconLabel.icon.color: "transparent"
 
-			value: game && game.rpgGame ? game.rpgGame.currency : 0
+			value: game ? game.ptsTeam : 0
 		}
 
+		GameLabel {
+			id: _infoCurrencyOpp
+
+			anchors.right: parent.right
+
+			pixelSize: 16 * Qaterial.Style.pixelSizeRatio
+
+			color: game ? game.colorOpponent : Qaterial.Colors.white
+			iconLabel.icon.source: "qrc:/rpg/coin/coins.png"
+			iconLabel.icon.color: "transparent"
+
+			value: game ? game.ptsOpponent : 0
+		}
+
+		/*
 		GameLabel {
 			id: _labelXP
 			anchors.right: parent.right
@@ -447,10 +462,10 @@ FocusScope {
 			}
 
 		}
+*/
 
 	}
 
-*/
 
 	GameHpLabel {
 		id: infoHP

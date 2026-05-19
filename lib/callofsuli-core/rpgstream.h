@@ -149,6 +149,18 @@ void writeBitsAs(UdpBitStream &stream, const C &value, const size_t &bits) {
 
 
 
+/**
+ * @brief The Team enum
+ */
+
+enum Team {
+	TeamNone = 0,
+	TeamA = 1,
+	TeamB = 2
+};
+
+
+
 
 /**
  * @brief The RpgConnectionToken class
@@ -451,7 +463,7 @@ public:
 
 #define STREAM_DELTA_MEMBER_CAST(cast, field, name, type, bits, error, msk) \
 	STREAM_MEMBER_CAST(cast, field, name, type, bits, error) \
-	STREAM_MEMBER_ADD_DELTA(type, field, name, msk)
+	STREAM_MEMBER_ADD_DELTA(cast, field, name, msk)
 
 
 #define STREAM_DELTA_MEMBER_BYTEARRAY(field, name, msk) \
@@ -820,6 +832,29 @@ public:
 
 
 
+/**
+ * @brief The GameState class
+ */
+
+
+class GameState : public BaseTickState
+{
+public:
+	GameState() : BaseTickState() {}
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER(quint32, ptsA, PtsA, 32, 0)
+	STREAM_MEMBER(quint32, ptsB, PtsB, 32, 0)
+
+	bool operator==(const GameState &other) const {
+		return other.m_ptsA == m_ptsA &&
+				other.m_ptsB == m_ptsB
+				;
+	}
+};
+
 
 
 
@@ -848,6 +883,24 @@ public:
 
 
 
+/**
+ * @brief The Tower class
+ */
+
+class Tower
+{
+public:
+	Tower() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
+};
+
+
+
+
 
 
 /**
@@ -867,6 +920,7 @@ public:
 	STREAM_MEMBER_VECTOR(PlayerPosition, playerPositionList, PlayerPositionList, quint8, 8);
 	STREAM_FIELD(ChunkGrid, chunkGrid, ChunkGrid, {})
 	STREAM_MEMBER_VECTOR(MpEmitter, mpEmitterList, MpEmitterList, quint8, 8);
+	STREAM_MEMBER_VECTOR(Tower, towerList, towerList, quint8, 8);
 };
 
 
@@ -887,20 +941,29 @@ public:
 
 	enum Flag {
 		FlagNull				= 0,
-		FlagTerrain				= 1 << 0,				// terep elküldve
-		FlagPlayerPosition		= 1 << 1,				// kezdőpozíciók elküldve
-		FlagRandomizer			= 1 << 2,				// randomizer elküldve
-		FlagRandomizerFinished	= 1 << 3,				// randomizer elkészült
-		FlagChunkGrid			= 1 << 4,				// ChunkGrid elküldve
-		FlagInit				= 1 << 5,				// szükséges kezdő lépések
-		FlagPlaying				= 1 << 6,				// játék
-		FlagFinished			= 1 << 7,				// játék véget ért
+		FlagSelected			= 1 << 0,				// terep és karakterek kiválasztva
+		FlagWaitingData			= 1 << 1,				// várjuk a host-tól a terepadatokat
+		FlagDataCompleted		= 1 << 2,				// megkaptuk az adatokat (player position, chunk grid, randomizer,...)
+		FlagDataPrepared		= 1 << 3,				// feldolgoztuk és elküldtük az adatokat mindenkinek
+		FlagPlaying				= 1 << 4,				// játék elindult
+		FlagFinished			= 1 << 5,				// játék véget ért
 	};
 
 	Q_DECLARE_FLAGS(Flags, Flag)
 
+
+	enum Stage {
+		StageInit,										// a játék előkészítése
+		StageSelect,									// a "felszerelés" kiválasztása (max. 30 mp)
+		StageWarmingUp,									// az 1. perc
+		StageMain,										// fő játék 3.5 perc
+		StageLast,										// az utolsó 30 mp
+		StageFinished									// befejeződött
+	};
+
 	STREAM_MEMBER_RESOLVED(terrain, Terrain)
 	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 16, FlagNull)
+	STREAM_MEMBER_CAST(Stage, stage, Stage, quint32, 4, StageInit)
 	STREAM_MEMBER(quint32, duration, Duration, 18, 0)	// egy játék hozza, 2^18 frame = max. ~72 perc
 };
 
@@ -926,8 +989,8 @@ public:
 		FlagDownloadStarted		= 1 << 1,				// a szükséges letöltés elkezdődött
 		FlagDownloadCompleted	= 1 << 2,				// a szükséges letöltés sikerült
 		FlagLoadStarted			= 1 << 3,				// a játék betöltése helyben elkezdődőtt
-		FlagGamePrepared		= 1 << 4,				// a játék teljesen betöltődött (qml)
-		FlagInitCompleted		= 1 << 5,				// az elején szükséges lépések befejeződtek
+		FlagLoadCompleted		= 1 << 4,				// a játék betöltése helyben befejeződött
+		FlagGamePrepared		= 1 << 5,				// a játék teljesen elkészült (a szervertől kapottak alapján)
 		FlagGameStarted			= 1 << 6,				// a játék elkezdődött
 		FlagGameFinished		= 1 << 7,				// a játék befejeződött
 		FlagPlayerOnline		= 1 << 8,				// a játékos elérhető (van udp-kapcsolat)
@@ -1111,6 +1174,56 @@ public:
 
 
 
+/**
+ * @brief The TowerState class
+ */
+
+class TowerState : public BaseTickState
+{
+public:
+	TowerState() : BaseTickState() {}
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+
+	STREAM_MEMBER_CAST(Team, team, Team, quint8, 2, TeamNone)
+	STREAM_MEMBER(quint8, load, Load, 8, 0)
+	STREAM_MEMBER(quint32, lockedUntil, LockedUntil, 32, 0)
+	STREAM_MEMBER_CAST(bool, active, Active, quint8, 1, false)
+
+	bool operator==(const TowerState &other) const {
+		return other.m_team == m_team &&
+				other.m_load == m_load &&
+				other.m_lockedUntil == m_lockedUntil &&
+				other.m_active == m_active;
+	}
+};
+
+
+
+
+
+/**
+ * @brief The TowerStateList class
+ */
+
+class TowerStateList
+{
+public:
+	TowerStateList() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_ADD_DELTA_MODE
+
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
+	STREAM_MEMBER_VECTOR(TowerState, state, State, STATE_LIST_TYPE, STATE_LIST_BITS)
+};
+
+
+
 ///
 /// EVENTS -------------------------------------------------------------------------
 ///
@@ -1128,7 +1241,8 @@ public:
 	enum Type {
 		EventNone = 0,
 		EventTest,
-		EventMpPick
+		EventMpPick,
+		EventTower
 	};
 
 	EventPlayer() : BaseTickState() {}
@@ -1144,9 +1258,28 @@ public:
 	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
 	STREAM_MEMBER_CAST(Type, type, Type, quint32, 4, EventNone)
 
-	// MpPick
 
-	STREAM_MEMBER(TAG_ID_TYPE, mp, Mp, TAG_ID_BITS, 0);
+	STREAM_MEMBER(TAG_ID_TYPE, target, Target, TAG_ID_BITS, 0);
+	STREAM_MEMBER_CAST(bool, success, Success, quint8, 1, false);
+};
+
+
+
+
+
+/**
+ * @brief The EventPlayer class
+ */
+
+class EventMpEmitter : public BaseTickState
+{
+public:
+	EventMpEmitter() : BaseTickState() {}
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
 };
 
 
@@ -1167,6 +1300,7 @@ public:
 	bool operator==(const Events &) const { return false; }			// soha nem lehet egyenlő, a Pull miatt kell
 
 	STREAM_MEMBER_VECTOR(EventPlayer, player, Player, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
+	STREAM_MEMBER_VECTOR(EventMpEmitter, emitter, Emitter, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 };
 
 
@@ -1221,6 +1355,7 @@ public:
 		Player			= 1 << 0,
 		Event			= 1 << 1,
 		Mp				= 1 << 2,
+		Tower			= 1 << 3,
 	};
 
 	Q_DECLARE_FLAGS(Flags, Flag)
@@ -1230,9 +1365,12 @@ public:
 	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 4, Null)
 	STREAM_MEMBER(quint32, serverAuthTick, ServerAuthTick, 32, 0)
 
+	STREAM_FIELD(GameState, state, State, {})
+
 	STREAM_MEMBER_VECTOR(Events, events, Events, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 	STREAM_MEMBER_VECTOR(PlayerStateList, players, Players, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 	STREAM_MEMBER_VECTOR(MpData, mps, Mps, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
+	STREAM_MEMBER_VECTOR(TowerStateList, towers, Towers, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(FullState::Flags)

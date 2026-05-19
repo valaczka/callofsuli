@@ -27,6 +27,7 @@
 #include "rpglogicclient.h"
 #include "rpggame.h"
 #include "rpgobject.h"
+#include "rpgtower.h"
 
 namespace Rpg {
 
@@ -78,6 +79,23 @@ QPoint RpgLogicClient::getChunkFromVector(const cpVect &point, cpVect *centerPtr
 
 	return QPoint(ch.first, ch.second);
 }
+
+
+
+
+
+/**
+ * @brief RpgLogicClientSingle::RpgLogicClientSingle
+ */
+
+RpgLogicClientSingle::RpgLogicClientSingle() : RpgLogicClient(1, 0) {}
+
+
+/**
+ * @brief RpgLogicClientMulti::RpgLogicClientMulti
+ */
+
+RpgLogicClientMulti::RpgLogicClientMulti() : RpgLogicClient(6, 6) { }
 
 
 

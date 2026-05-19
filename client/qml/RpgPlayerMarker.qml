@@ -9,7 +9,7 @@ TiledPlayerMarker {
 
 	property RpgPlayer player: target
 
-	visible: player && player.hp > 0 && (!player.isHiding || player.game.controlledPlayer === player)
+	//visible: player && player.hp > 0 //&& (!player.isHiding || player.game.controlledPlayer === player)
 }
 
 

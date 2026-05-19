@@ -66,6 +66,9 @@ protected:
 
 
 
+
+
+
 /**
  * @brief The RpgEasingMotor class
  */
@@ -139,6 +142,7 @@ public:
 	AbstractRpgMotor* currentMotor() const { return m_secondaryMotor ? m_secondaryMotor.get() : m_defaultMotor.get(); }
 
 protected:
+	void synchronize() override;
 	void worldStep() override final;
 	void onShapeContactBegin(cpShape *self, cpShape *other) override final;
 	void onShapeContactEnd(cpShape *self, cpShape *other) override final;

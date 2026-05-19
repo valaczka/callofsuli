@@ -345,7 +345,7 @@ signals:
 	void joystickBChanged();
 	void joystickCChanged();
 	void joystickDChanged();
-	void joystickStateChanged(Joystick joystick);
+	void joystickStateChanged(TiledGame::Joystick joystick);
 
 protected:
 	TiledObjectBody *addObject(std::unique_ptr<TiledObjectBody> &body, const TiledObjectBody::ObjectId &id);

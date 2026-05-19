@@ -110,6 +110,17 @@ void RpgObject::setSecondaryMotor(std::unique_ptr<AbstractRpgMotor> newSecondary
 
 
 /**
+ * @brief RpgObject::synchronize
+ */
+
+void RpgObject::synchronize()
+{
+	updateSprite();
+	IsometricObject::synchronize();
+}
+
+
+/**
  * @brief RpgObject::defaultMotor
  * @return
  */

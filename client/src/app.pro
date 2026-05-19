@@ -253,6 +253,7 @@ SOURCES += \
 	rpgmp.cpp \
 	rpgobject.cpp \
 	rpgplayer.cpp \
+	rpgtower.cpp \
 	rpguserwallet.cpp \
 	rpgworldlanddata.cpp \
 	scorelist.cpp \
@@ -346,6 +347,7 @@ HEADERS += \
 	rpgmp.h \
 	rpgobject.h \
 	rpgplayer.h \
+	rpgtower.h \
 	rpguserwallet.h \
 	rpgworldlanddata.h \
 	rpgworldlanddata_p.h \

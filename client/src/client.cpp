@@ -84,7 +84,7 @@ Client::Client(Application *app)
 	connect(&m_oauthData.timer, &QTimer::timeout, this, &Client::onOAuthPendingTimer);
 
 	connect(m_downloader.get(), &Downloader::contentDownloaded, this, &RpgGame::reloadTerrains);
-	///connect(m_downloader.get(), &Downloader::contentDownloaded, this, &RpgGame::reloadCharacters);
+	connect(m_downloader.get(), &Downloader::contentDownloaded, this, &RpgGame::reloadCharacters);
 	connect(m_downloader.get(), &Downloader::contentDownloaded, this, &RpgGame::reloadWorld);
 
 	startCache();
@@ -625,8 +625,7 @@ void Client::onServerDisconnected()
 	m_downloader->setServer(nullptr);
 
 	RpgGame::reloadTerrains();
-
-	/*RpgGame::reloadCharacters();*/
+	RpgGame::reloadCharacters();
 }
 
 

@@ -29,6 +29,9 @@
 
 #include "rpgentity.h"
 #include "rpgmp.h"
+#include "rpgtower.h"
+#include "tiledeffect.h"
+#include "tiledgamesfx.h"
 #include <QQmlEngine>
 
 
@@ -46,10 +49,23 @@ class RpgPlayer : public RpgEntity
 	Q_PROPERTY(QPointF currentChunkCenter READ currentChunkCenter NOTIFY currentChunkCenterChanged FINAL)
 
 	Q_PROPERTY(int mp READ mp WRITE setMp NOTIFY mpChanged FINAL)
-	Q_PROPERTY(int maxMp READ maxMp WRITE setMaxMp NOTIFY maxMpChanged FINAL)
+	Q_PROPERTY(int maxMp READ maxMp NOTIFY maxMpChanged FINAL)
+
+	Q_PROPERTY(RpgTower* tower READ tower WRITE setTower NOTIFY towerChanged FINAL)
 
 public:
 	RpgPlayer(RpgGameItem *gameItem, const cpVect &center = cpvzero);
+
+	virtual void initialize() override;
+	virtual void updateSprite() override;
+
+	void load(const RpgPlayerDefinition &config);
+
+	void setConfig(const RpgPlayerDefinition &config);
+
+	Q_INVOKABLE bool isRunning() const;
+	Q_INVOKABLE bool isWalking() const;
+
 
 	QPoint currentChunk() const;
 	void setCurrentChunk(QPoint newCurrentChunk);
@@ -64,7 +80,12 @@ public:
 	void setMp(int newMp);
 
 	int maxMp() const;
-	void setMaxMp(int newMaxMp);
+
+	RpgStream::Team team() const;
+	void setTeam(RpgStream::Team newTeam);
+
+	RpgTower *tower() const;
+	void setTower(RpgTower *newTower);
 
 signals:
 	void currentChunkChanged();
@@ -72,13 +93,40 @@ signals:
 	void currentChunkCenterChanged();
 	void mpChanged();
 	void maxMpChanged();
+	void towerChanged();
+
+protected:
+	void onAlive() override;
+	void onDead() override;
+
+private:
+	void loadSfx();
+	void onCurrentSpriteChanged();
+	void updateColor();
 
 private:
 	float m_chunkRadius = 0.;
 	QPoint m_currentChunk;
 	QPointF m_currentChunkCenter;
 	int m_mp = 0;
-	int m_maxMp = 0;
+	RpgStream::Team m_team = RpgStream::TeamNone;
+
+	TiledGameSfx m_sfxPain;
+	TiledGameSfx m_sfxFootStep;
+	TiledGameSfx m_sfxAccept;
+	TiledGameSfx m_sfxDecline;
+
+	TiledEffectHealed m_effectHealed;
+	TiledEffectShield m_effectShield;
+	TiledEffectRing m_effectRing;
+
+	RpgPlayerDefinition m_config;
+
+	QQuickItem *m_markerItem = nullptr;
+	RpgTower *m_tower = nullptr;
+
+	friend class RpgMotorPlayer;
+	friend class RpgMotorPlayerControlled;
 };
 
 
@@ -123,6 +171,7 @@ public:
 	void setCurrentJoystickState(const TiledGame::JoystickState &newCurrentJoystickState);
 
 	void eventTest();
+	void useCurrentControl();
 
 protected:
 	virtual void onShapeContactBegin(cpShape *self, cpShape *other) override;
