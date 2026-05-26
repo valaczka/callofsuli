@@ -32,6 +32,45 @@
 #include "rpgstream.h"
 
 
+
+
+
+class RpgDefender;
+class RpgTower;
+
+
+
+/**
+ * @brief The RpgDefenderPoint class
+ */
+
+class RpgDefenderPoint : public TiledObjectBody
+{
+public:
+	explicit RpgDefenderPoint(const QPointF &center,
+							  TiledGame *game,
+							  Tiled::MapRenderer *renderer = nullptr,
+							  const QPointF &offset = {});
+
+	RpgDefender *defender() const;
+	void setDefender(RpgDefender *newDefender);
+
+	RpgTower *tower() const;
+	void setTower(RpgTower *newTower);
+
+private:
+	const static DrawBodyStyle m_style;
+
+	RpgDefender *m_defender = nullptr;
+	RpgTower *m_tower = nullptr;
+};
+
+
+
+
+
+
+
 /**
  * @brief The RpgTower class
  */
@@ -43,6 +82,7 @@ class RpgTower : public TiledObject
 	Q_PROPERTY(int load READ load WRITE setLoad NOTIFY loadChanged FINAL)
 	Q_PROPERTY(QColor color READ color WRITE setColor NOTIFY colorChanged FINAL)
 	Q_PROPERTY(RpgGameItem *gameItem READ gameItem CONSTANT FINAL)
+	Q_PROPERTY(bool canAttack READ canAttack WRITE setCanAttack NOTIFY canAttackChanged FINAL)
 
 public:
 	RpgTower(RpgGameItem *gameItem, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
@@ -52,6 +92,12 @@ public:
 
 	void addLayers(const QMultiMap<RpgStream::Team, TiledQuick::TileLayerItem *> &layers);
 	void setVisualItem(TiledVisualItem *item);
+	void addDefenderPoints(const QList<RpgDefenderPoint*> &list);
+
+	void setDefenderLayersVisible(const bool visible = true);
+	void reloadDefenderLayersVisibility();
+
+	QQuickItem *markerItem() const;
 
 	int load() const;
 	void setLoad(int newLoad);
@@ -64,9 +110,16 @@ public:
 
 	RpgGameItem *gameItem() const;
 
+	const QList<RpgDefenderPoint *> &defenderPoints() const;
+
+	bool canAttack() const;
+	void setCanAttack(bool newCanAttack);
+
+
 signals:
 	void loadChanged();
 	void colorChanged();
+	void canAttackChanged();
 
 protected:
 	void synchronize() override;
@@ -79,8 +132,12 @@ private:
 	RpgVisualState<RpgStream::Team> m_visual;
 	QQuickItem *m_markerItem = nullptr;
 
+	QList<RpgDefenderPoint *> m_defenderPoints;
+
 	int m_load = 0;
 	QColor m_color = QColorConstants::Svg::white;
+	bool m_canAttack = false;
+	bool m_defenderLayers = false;
 };
 
 #endif // RPGTOWER_H

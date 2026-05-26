@@ -33,7 +33,15 @@
 #include "rpglogic.h"
 #include "rpglogicclient.h"
 #include "rpgobject.h"
+#include "rpgplayer.h"
 #include "rpgtower.h"
+
+
+
+#ifdef WITH_GAMEPAD
+#include <QtGamepadLegacy/QGamepad>
+#endif
+
 
 /**
  * @brief The RpgGamePrivate class
@@ -69,11 +77,13 @@ private:
 
 
 	void connectJoysticks();
+	void setJoystickState(RpgMotorPlayerControlled *motor, const TiledGame::Joystick &joystick, const TiledGame::JoystickState &state);
+	bool setFromGamepad(RpgMotorPlayerControlled *motor);
 
-	Q_INVOKABLE void joystickClickedA();
-	Q_INVOKABLE void joystickClickedB();
-	Q_INVOKABLE void joystickClickedC();
-	Q_INVOKABLE void joystickClickedD();
+	Q_INVOKABLE void joystickClickedA(const bool &clicked);
+	Q_INVOKABLE void joystickClickedB(const bool &clicked);
+	Q_INVOKABLE void joystickClickedC(const bool &clicked);
+	Q_INVOKABLE void joystickClickedD(const bool &clicked);
 
 
 	// Play
@@ -90,13 +100,22 @@ private:
 	void syncObjects();
 	void syncPlayers();
 	void syncMp();
-	void syncDeleted();
+	void syncDefenders();
+
+	struct ObjectSet
+	{
+		QSet<quint32> player;
+		QSet<quint32> mp;
+		QSet<quint32> defender;
+	};
+
+	ObjectSet extractObjects(const RpgStream::FullState &full) const;
+
+	void deleteMissingObjects(const ObjectSet &objects);
 
 	void processEvents(const qint64 &tick);
 
 	void onTimeStepped();
-
-	void syncChunkMarker(RpgPlayer *player);
 
 
 
@@ -113,9 +132,21 @@ private:
 	quint32 m_deadlineTick = 0;
 
 	RpgStream::MapData m_mapData;
+	QList<QPointer<RpgTower> > m_towerList;
 
 	inline static RpgStream::HashFnv1A64 m_terrainHash = {};
 	inline static RpgStream::HashFnv1A64 m_characterHash = {};
+
+
+#ifdef WITH_GAMEPAD
+	void onGamePadChanged(const double &);
+	void onGamePadButtonL3Changed(const bool &pressed);
+	void onGamePadButtonR3Changed(const bool &pressed);
+	void onGamePadButtonL1Changed(const bool &pressed);
+	void onGamePadButtonR1Changed(const bool &pressed);
+	std::unique_ptr<QGamepad> m_gamePad;
+#endif
+
 
 	friend class RpgGame;
 	friend class RpgGameItem;

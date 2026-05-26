@@ -12,6 +12,8 @@ SUBDIRS += \
 	libChipmunk2D \
 	libCppBinaryStream
 
+if ($$WithGamepad): SUBDIRS += libQGamepad
+
 !wasm: SUBDIRS += libENet
 !wasm:!android:!ios: SUBDIRS += CuteLogger
 

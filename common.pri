@@ -37,6 +37,7 @@ BackwardCpp = false
 # Build creation enabled (linux, win32, mac, wasm)
 
 CreateBundle = false
+WithGamepad = false
 
 # CQtDeployer path
 

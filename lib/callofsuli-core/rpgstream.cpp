@@ -678,8 +678,17 @@ EngineStream &EventPlayer::operator<<(EngineStream &stream)
 	readTagId(stream);
 	readType(stream);
 
-	if (m_type == EventMpPick || m_type == EventTower) {
+	if (m_type == EventMpPick ||
+			m_type == EventTower ||
+			m_type == EventDefender ||
+			m_type == EventAttackPlayer ||
+			m_type == EventAttackDefender
+			) {
 		readTarget(stream);
+	}
+
+	if (m_type == EventDefender && m_tagId == 0) {
+		m_chunk << stream;
 	}
 
 	if (m_type == EventTower) {
@@ -702,8 +711,17 @@ EngineStream &EventPlayer::operator>>(EngineStream &stream) const
 	writeTagId(stream);
 	writeType(stream);
 
-	if (m_type == EventMpPick || m_type == EventTower) {
+	if (m_type == EventMpPick ||
+			m_type == EventTower ||
+			m_type == EventDefender ||
+			m_type == EventAttackPlayer ||
+			m_type == EventAttackDefender
+			) {
 		writeTarget(stream);
+	}
+
+	if (m_type == EventDefender && m_tagId == 0) {
+		m_chunk >> stream;
 	}
 
 	if (m_type == EventTower) {
@@ -795,6 +813,7 @@ EngineStream &MpData::operator>>(EngineStream &stream) const
 EngineStream &Tower::operator<<(EngineStream &stream)
 {
 	readTagId(stream);
+	readDefenders(stream);
 
 	return stream;
 }
@@ -809,6 +828,7 @@ EngineStream &Tower::operator<<(EngineStream &stream)
 EngineStream &Tower::operator>>(EngineStream &stream) const
 {
 	writeTagId(stream);
+	writeDefenders(stream);
 
 	return stream;
 }
@@ -824,10 +844,12 @@ EngineStream &Tower::operator>>(EngineStream &stream) const
 EngineStream &TowerState::operator<<(EngineStream &stream)
 {
 	readTick(stream);
+	readTagId(stream);
 	readTeam(stream);
 	readLoad(stream);
 	readLockedUntil(stream);
 	readActive(stream);
+	readHasDefender(stream);
 
 	return stream;
 }
@@ -843,46 +865,18 @@ EngineStream &TowerState::operator<<(EngineStream &stream)
 EngineStream &TowerState::operator>>(EngineStream &stream) const
 {
 	writeTick(stream);
+	writeTagId(stream);
 	writeTeam(stream);
 	writeLoad(stream);
 	writeLockedUntil(stream);
 	writeActive(stream);
+	writeHasDefender(stream);
 
 	return stream;
 }
 
 
 
-
-
-/**
- * @brief TowerStateList::operator <<
- * @param stream
- * @return
- */
-
-EngineStream &TowerStateList::operator<<(EngineStream &stream)
-{
-	readTagId(stream);
-	readState(stream);
-
-	return stream;
-}
-
-
-/**
- * @brief TowerStateList::operator >>
- * @param stream
- * @return
- */
-
-EngineStream &TowerStateList::operator>>(EngineStream &stream) const
-{
-	writeTagId(stream);
-	writeState(stream);
-
-	return stream;
-}
 
 
 
@@ -945,6 +939,152 @@ EngineStream &GameState::operator>>(EngineStream &stream) const
 	writeTick(stream);
 	writePtsA(stream);
 	writePtsB(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief Defender::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &Defender::operator<<(EngineStream &stream)
+{
+	readTagId(stream);
+	readPosX(stream);
+	readPosY(stream);
+
+	return stream;
+}
+
+
+
+
+/**
+ * @brief Defender::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &Defender::operator>>(EngineStream &stream) const
+{
+	writeTagId(stream);
+	writePosX(stream);
+	writePosY(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief BaseDefenderObject::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &BaseDefenderObject::operator<<(EngineStream &stream)
+{
+	readTagId(stream);
+	readType(stream);
+
+	readTeam(stream);
+	readMaxHp(stream);
+	readDefenderId(stream);
+
+	if (m_defenderId == 0u)
+		m_chunk << stream;
+
+
+	switch (m_type) {
+		case BaseDefenderObject::Dummy:
+			readDummy(stream);
+			break;
+	}
+
+	return stream;
+}
+
+
+
+/**
+ * @brief BaseDefenderObject::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &BaseDefenderObject::operator>>(EngineStream &stream) const
+{
+	writeTagId(stream);
+	writeType(stream);
+
+	writeTeam(stream);
+	writeMaxHp(stream);
+	writeDefenderId(stream);
+
+	if (m_defenderId == 0u)
+		m_chunk >> stream;
+
+	switch (m_type) {
+		case BaseDefenderObject::Dummy:
+			writeDummy(stream);
+			break;
+	}
+
+
+	return stream;
+}
+
+
+
+
+
+
+
+/**
+ * @brief DefenderState::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &DefenderState::operator<<(EngineStream &stream)
+{
+	readTick(stream);
+	readTagId(stream);
+	readType(stream);
+	readHp(stream);
+
+
+	switch (m_type) {
+		case BaseDefenderObject::Dummy:
+			readDummy(stream);
+			break;
+	}
+
+
+	return stream;
+}
+
+
+/**
+ * @brief DefenderObjectState::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &DefenderState::operator>>(EngineStream &stream) const
+{
+	writeTick(stream);
+	writeTagId(stream);
+	writeType(stream);
+	writeHp(stream);
+
+	switch (m_type) {
+		case BaseDefenderObject::Dummy:
+			writeDummy(stream);
+			break;
+	}
 
 	return stream;
 }

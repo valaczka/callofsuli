@@ -34,7 +34,10 @@ FocusScope {
 		id: _item
 		anchors.fill: parent
 
-		joystickA: _gameJoystick
+		joystickA: _gameJoystickMove
+		joystickB: _gameJoystickControl
+		joystickC: _gameJoystickShot
+
 		messageList: _messageList
 		defaultMessageColor: Qaterial.Style.iconColor()
 
@@ -245,19 +248,64 @@ FocusScope {
 
 
 	GameJoystick {
-		id: _gameJoystick
-		anchors.bottom: parent.bottom
-		anchors.left: parent.left
-		/*visible: _game.controlledPlayer && _game.controlledPlayer.hp > 0 && _isPrepared &&
-				 !_game.controlledPlayer.isHiding && !_game.controlledPlayer.isGameCompleted
+		id: _gameJoystickMove
 
-		extendedSize: !_game.mouseAttack && !_game.mouseNavigation*/
+		anchors.left: parent.left
+		anchors.bottom: parent.bottom
+
+		visible: game && game.controlledPlayer && game.controlledPlayer.hp > 0 && _item.isContentReady
+
+		///extendedSize: !game.mouseAttac&& !_game.mouseNavigation
 
 		size: 120 * Qaterial.Style.pixelSizeRatio * gameControlRatio
 		thumbSize: 40 * Qaterial.Style.pixelSizeRatio * gameControlRatio
 
-		maxWidth: parent.width*0.4
-		maxHeight: parent.height*0.4
+		bounding: Qt.rect(0, parent.height*0.5, parent.width*0.5, parent.height*0.5)
+
+		moveToTap: true
+	}
+
+
+
+	GameJoystick {
+		id: _gameJoystickShot
+
+		anchors.right: parent.right
+		anchors.bottom: _gameJoystickControl.top
+
+		visible: game && game.controlledPlayer && game.controlledPlayer.hp > 0 && _item.isContentReady
+
+		size: 90 * Qaterial.Style.pixelSizeRatio * gameControlRatio
+		thumbSize: 40 * Qaterial.Style.pixelSizeRatio * gameControlRatio
+
+		fontImage.icon: "qrc:/internal/game/target1.svg"
+		fontImage.color: Qaterial.Colors.white
+
+		thumb.color: Qaterial.Colors.red700
+		thumb.border.color: Qaterial.Colors.black
+
+		bounding: Qt.rect(parent.width*0.6, parent.height*0.5, parent.width*0.4, parent.height*0.5)
+	}
+
+
+	GameJoystick {
+		id: _gameJoystickControl
+
+		anchors.right: parent.right
+		anchors.bottom: parent.bottom
+
+		visible: game && game.controlledPlayer && game.controlledPlayer.hp > 0 && _item.isContentReady
+
+		size: 90 * Qaterial.Style.pixelSizeRatio * gameControlRatio
+		thumbSize: 40 * Qaterial.Style.pixelSizeRatio * gameControlRatio
+
+		//fontImage.icon: "qrc:/internal/game/target1.svg"
+		//fontImage.color: Qaterial.Colors.white
+
+		thumb.color: Qaterial.Colors.green700
+		thumb.border.color: Qaterial.Colors.black
+
+		bounding: Qt.rect(parent.width*0.6, parent.height*0.5, parent.width*0.4, parent.height*0.5)
 	}
 
 
@@ -615,9 +663,11 @@ FocusScope {
 
 
 
-	RpgShotButton {
+	/*RpgShotButton {
 		id: _shotButton
-		size: 60 * gameControlRatio
+		size: 60 * gameControlRatio*/
+
+
 
 		/*anchors.right: parent.right
 		anchors.bottom: parent.bottom
@@ -652,7 +702,7 @@ FocusScope {
 				_shotButton.tapAnim.start()
 			}
 		}*/
-	}
+	///}
 
 
 	/*

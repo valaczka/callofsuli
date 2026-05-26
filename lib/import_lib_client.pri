@@ -206,3 +206,11 @@ INCLUDEPATH += $$PWD/entt/src
 # QtKeychain
 
 !wasm: include($$PWD/qtkeychain/qtkeychain.pri)
+
+
+
+# QtGamepad
+
+if ($$WithGamepad): {
+	DEFINES += WITH_GAMEPAD
+}

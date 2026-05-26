@@ -87,3 +87,6 @@
 [submodule "lib/qtkeychain"]
 	path = lib/qtkeychain
 	url = https://github.com/frankosterfeld/qtkeychain.git
+[submodule "lib/qtgamepadlegacy"]
+	path = lib/qtgamepadlegacy
+	url = https://github.com/pumphaus/qtgamepadlegacy.git

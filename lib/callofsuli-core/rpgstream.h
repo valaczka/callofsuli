@@ -229,7 +229,7 @@ public:
 
 
 #define STREAM_FIELD(type, field, name, error) \
-	private: \
+	protected: \
 	mutable type m_##field = error; \
 	public: \
 	type& field() { return m_##field; } \
@@ -881,6 +881,72 @@ public:
 
 
 
+/**
+ * @brief The Tower class
+ */
+
+class Defender
+{
+public:
+	Defender() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
+	STREAM_MEMBER_QUANT(posX, PosX, 0);
+	STREAM_MEMBER_QUANT(posY, PosY, 0);
+};
+
+
+
+
+
+
+/**
+ * @brief The BaseDefenderObject class
+ */
+
+class BaseDefenderObject
+{
+public:
+	BaseDefenderObject() = default;
+
+	enum Type {
+		Dummy
+	};
+
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
+	STREAM_MEMBER_CAST(Type, type, Type, quint32, 12, Dummy)						// max. 4096 types
+
+	STREAM_MEMBER_CAST(Team, team, Team, quint8, 2, TeamNone)
+	STREAM_MEMBER(ENTITY_HP_TYPE, maxHp, MaxHp, ENTITY_HP_BITS, 0)
+
+	// Tower része
+	STREAM_MEMBER(TAG_ID_TYPE, defenderId, DefenderId, TAG_ID_BITS, 0);
+
+	// Map része
+	STREAM_FIELD(Chunk, chunk, Chunk, {})
+
+
+	// Dummy
+
+	STREAM_MEMBER(quint32, dummy, Dummy, 8, 0);
+};
+
+
+
+
+
+
+
+
+
+
 
 
 /**
@@ -896,6 +962,7 @@ public:
 	EngineStream& operator>>(EngineStream &stream) const;
 
 	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
+	STREAM_MEMBER_VECTOR(Defender, defenders, Defenders, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 };
 
 
@@ -1187,16 +1254,20 @@ public:
 	EngineStream& operator>>(EngineStream &stream) const;
 
 
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
 	STREAM_MEMBER_CAST(Team, team, Team, quint8, 2, TeamNone)
 	STREAM_MEMBER(quint8, load, Load, 8, 0)
 	STREAM_MEMBER(quint32, lockedUntil, LockedUntil, 32, 0)
 	STREAM_MEMBER_CAST(bool, active, Active, quint8, 1, false)
+	STREAM_MEMBER_CAST(bool, hasDefender, HasDefender, quint8, 1, false)
 
 	bool operator==(const TowerState &other) const {
-		return other.m_team == m_team &&
+		return  other.m_team == m_team &&
+				/*other.m_tagId == m_tagId &&*/
 				other.m_load == m_load &&
 				other.m_lockedUntil == m_lockedUntil &&
-				other.m_active == m_active;
+				other.m_active == m_active &&
+				other.m_hasDefender == m_hasDefender;
 	}
 };
 
@@ -1204,23 +1275,42 @@ public:
 
 
 
+
+
 /**
- * @brief The TowerStateList class
+ * @brief The DefenderObjectState class
  */
 
-class TowerStateList
+class DefenderState : public BaseTickState
 {
 public:
-	TowerStateList() = default;
+	DefenderState() : BaseTickState() {}
 
 	EngineStream& operator<<(EngineStream &stream);
 	EngineStream& operator>>(EngineStream &stream) const;
 
-	STREAM_ADD_DELTA_MODE
-
 	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
-	STREAM_MEMBER_VECTOR(TowerState, state, State, STATE_LIST_TYPE, STATE_LIST_BITS)
+	STREAM_MEMBER_CAST(BaseDefenderObject::Type, type, Type, quint32, 12, BaseDefenderObject::Dummy)						// max. 4096 types
+
+	STREAM_MEMBER(ENTITY_HP_TYPE, hp, Hp, ENTITY_HP_BITS, 0)
+
+	// Dummy
+
+	STREAM_MEMBER(quint32, dummy, Dummy, 8, 0);
+
+	bool operator==(const DefenderState &other) const {
+		return other.m_tagId == m_tagId &&
+				other.m_type == m_type &&
+				other.m_hp == m_hp &&
+				other.m_dummy == m_dummy
+				;
+	}
+
+
 };
+
+
+
 
 
 
@@ -1240,9 +1330,11 @@ class EventPlayer : public BaseTickState
 public:
 	enum Type {
 		EventNone = 0,
-		EventTest,
-		EventMpPick,
-		EventTower
+		EventMpPick,											// mp felvétele
+		EventTower,												// torony megtámadása
+		EventDefender,											// védő lehelyezése a toronyhoz
+		EventAttackPlayer,										// másik játékos megtámadása
+		EventAttackDefender										// védő megtámadása
 	};
 
 	EventPlayer() : BaseTickState() {}
@@ -1260,6 +1352,7 @@ public:
 
 
 	STREAM_MEMBER(TAG_ID_TYPE, target, Target, TAG_ID_BITS, 0);
+	STREAM_FIELD(Chunk, chunk, Chunk, {});
 	STREAM_MEMBER_CAST(bool, success, Success, quint8, 1, false);
 };
 
@@ -1336,6 +1429,8 @@ public:
 
 
 
+/// TODO: FullEntityList
+
 
 
 /**
@@ -1356,6 +1451,7 @@ public:
 		Event			= 1 << 1,
 		Mp				= 1 << 2,
 		Tower			= 1 << 3,
+		Defender		= 1 << 4,
 	};
 
 	Q_DECLARE_FLAGS(Flags, Flag)
@@ -1370,7 +1466,8 @@ public:
 	STREAM_MEMBER_VECTOR(Events, events, Events, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 	STREAM_MEMBER_VECTOR(PlayerStateList, players, Players, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 	STREAM_MEMBER_VECTOR(MpData, mps, Mps, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
-	STREAM_MEMBER_VECTOR(TowerStateList, towers, Towers, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
+	STREAM_MEMBER_VECTOR(TowerState, towers, Towers, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
+	STREAM_MEMBER_VECTOR(DefenderState, defenders, Defenders, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(FullState::Flags)

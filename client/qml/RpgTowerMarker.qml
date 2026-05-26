@@ -19,10 +19,10 @@ TiledPlayerMarker {
 	progressBarColor: tower ? tower.color : Qaterial.Colors.white
 	labelColor: tower ? tower.color : Qaterial.Colors.white
 
-	visible: tower && tower.gameItem && tower.gameItem.game &&
+	/*visible: tower && tower.gameItem && tower.gameItem.game &&
 			 tower.gameItem.game.controlledPlayer &&
 			 tower.gameItem.game.controlledPlayer.tower == tower &&
-			 tower.gameItem.game.controlledPlayer.hp > 0
+			 tower.gameItem.game.controlledPlayer.hp > 0*/
 }
 
 

@@ -446,14 +446,6 @@ struct EventProcessingTag { };
 
 
 
-// Csapatjelzés
-
-struct TeamTag
-{
-	RpgStream::Team team = RpgStream::TeamNone;
-};
-
-
 
 
 // Játékos
@@ -462,10 +454,13 @@ struct Player
 {
 	RpgStream::PlayerData playerData;
 
+	RpgStream::Team team = RpgStream::TeamNone;
+
 	quint32 lastObjectId = 0;
 
 	quint32 idTag() const;
 };
+
 
 
 
@@ -487,6 +482,7 @@ struct MpEmitter
 
 
 
+
 // Mp
 
 struct Mp
@@ -499,22 +495,80 @@ struct Mp
 
 
 
+// Tower defender
+
+struct Defender
+{
+	quint32 idTag = 0;
+
+	cpVect pos = cpvzero;
+
+	entt::entity tower = entt::null;
+	entt::entity object = entt::null;				// A ráhelyezett DefenderObject
+
+	static Defender fromRpgStream(const RpgStream::Defender &stream);
+	RpgStream::Defender toRpgStream() const;
+};
+
+
 
 // Tower
 
 struct Tower
 {
 	quint32 idTag = 0;
-	/*cpVect pos = cpvzero;
 
-	float radius = 0.;
-	quint32 capacity = 0;
-
-	std::vector<entt::entity> mpList;*/
+	std::vector<entt::entity> defenderList;
 
 	static Tower fromRpgStream(const RpgStream::Tower &stream);
 	RpgStream::Tower toRpgStream() const;
 };
+
+
+
+struct Chunk
+{
+	quint32 x = 0;
+	quint32 y = 0;
+
+	bool operator== (const Chunk &other) const {
+		return other.x == x && other.y == y;
+	}
+
+	static Chunk fromRpgStream(const RpgStream::Chunk &stream);
+	RpgStream::Chunk toRpgStream() const;
+};
+
+
+
+/**
+ * @brief The DefenderObject class
+ */
+
+struct DefenderObject
+{
+	quint32 idTag = 0;
+
+	cpVect pos = cpvzero;
+
+	entt::entity defender = entt::null;
+
+	RpgStream::BaseDefenderObject::Type type = RpgStream::BaseDefenderObject::Dummy;
+	RpgStream::Team team = RpgStream::TeamNone;
+	quint32 maxHp = 0;
+};
+
+
+
+/**
+ * @brief The DefenderDummyObject class
+ */
+
+struct DefenderDummyObject
+{
+	quint32 dummy = 0;
+};
+
 
 
 
@@ -551,6 +605,31 @@ struct ChunkGrid
 	bool isAccessible(const QPointF &pos) const {
 		return isAccessible(pos.x(), pos.y());
 	}
+	bool isAccessible(const Chunk &chunk) const {
+		return isAccessible(chunk.x, chunk.y);
+	}
+
+	cpVect chunkCenter(const int &x, const int &y) const;
+	cpVect chunkCenter(const QPoint &pos) const {
+		return chunkCenter(pos.x(), pos.y());
+	}
+	cpVect chunkCenter(const Chunk &chunk) const {
+		return chunkCenter(chunk.x, chunk.y);
+	}
+
+	std::optional<cpVect> accessibleChunkCenter(const int &x, const int &y) const {
+		if (isAccessible(x, y))
+			return chunkCenter(x, y);
+		else
+			return std::nullopt;
+	}
+	std::optional<cpVect> accessibleChunkCenter(const QPoint &pos) const {
+		return accessibleChunkCenter(pos.x(), pos.y());
+	}
+	std::optional<cpVect> accessibleChunkCenter(const Chunk &chunk) const {
+		return accessibleChunkCenter(chunk.x, chunk.y);
+	}
+
 };
 
 
@@ -562,8 +641,10 @@ typedef BaseStateMap<RpgStream::PlayerState> PlayerStateInput;
 typedef BaseStatePull<RpgStream::PlayerState> PlayerStateOutput;
 
 typedef BaseStatePull<RpgStream::TowerState> TowerStateOutput;
+typedef BaseStatePull<RpgStream::DefenderState> DefenderStateOutput;
 
 typedef BaseStatePull<RpgStream::Events> EventsOutput;
+
 
 
 
@@ -638,6 +719,7 @@ public:
 	// Map Data
 
 	void loadMapData(const RpgStream::MapData &data);
+	bool isChunkEmpty(const Chunk &chunk) const;
 
 
 	// Player
@@ -737,6 +819,11 @@ public:
 	RpgLogic *logic() const { return m_logic; }
 
 	entt::entity entityFromIdTag(const quint32 &tag) const { return m_logic->entityFromIdTag(tag); }
+
+	bool valid(const entt::entity ent) const { return m_logic->m_registry.valid(ent); }
+
+	void setDeleteTag(const entt::entity ent);
+	void destroyDeleteTags();
 
 private:
 	RpgLogic *const m_logic;

@@ -27,6 +27,10 @@
 #include "tiledspritehandler.h"
 #include "rpgplayer.h"
 #include "rpgmp.h"
+#include "rpgdefender.h"
+
+
+#define SENSOR_LENGTH	400.
 
 
 /**
@@ -53,11 +57,11 @@ RpgPlayer::RpgPlayer(RpgGameItem *gameItem, const cpVect &center)
 	m_currentChunk.setX(-1);
 	m_currentChunk.setY(-1);
 
-	setSensorPolygon(300., M_PI * 2./3., RpgGameItem::FixtureSensor,
+	/*setSensorPolygon(SENSOR_LENGTH, M_PI * 0.5, RpgGameItem::FixtureSensor,
 					 RpgGameItem::FixtureAll);
 
 	addVirtualCircle(RpgGameItem::FixtureVirtualCircle,
-					 RpgGameItem::FixtureAll, 300.);
+					 RpgGameItem::FixtureAll, 220.);*/
 
 	addTargetCircle(50, TiledObjectBody::getFilter(RpgGameItem::FixturePlayerTarget,
 												   RpgGameItem::FixtureAll));
@@ -248,18 +252,6 @@ void RpgPlayer::setCurrentChunk(QPoint newCurrentChunk)
 	emit currentChunkChanged();
 }
 
-float RpgPlayer::chunkRadius() const
-{
-	return m_chunkRadius;
-}
-
-void RpgPlayer::setChunkRadius(float newChunkRadius)
-{
-	if (qFuzzyCompare(m_chunkRadius, newChunkRadius))
-		return;
-	m_chunkRadius = newChunkRadius;
-	emit chunkRadiusChanged();
-}
 
 QPointF RpgPlayer::currentChunkCenter() const
 {
@@ -304,6 +296,7 @@ bool RpgMotorPlayer::beforeWorldStep(const qint64 &, entt::entity &entity)
 	if (jittered == 0)
 		return false;
 
+
 	Rpg::RpgLogicScope scope = m_game->rpgLogicClient()->getScope();
 
 	auto [player, map] = scope.try_get<Rpg::Player, Rpg::PlayerStateOutput>(entity);
@@ -312,12 +305,25 @@ bool RpgMotorPlayer::beforeWorldStep(const qint64 &, entt::entity &entity)
 	if (!player || !map)
 		return false;
 
+	const RpgStream::PlayerState *last = map->last();
+
+	if (!last) {
+		LOG_CERROR("game") << "!!!";
+		return false;
+	}
+
+	m_player->setHp(last->hp());
+	m_player->setMp(last->mp());
+
+
 	const RpgStream::PlayerState *st = map->at(jittered);
 
 	if (!st)
 		return false;
 
+
 	m_current = *st;
+
 
 	return true;
 }
@@ -356,8 +362,152 @@ RpgMotorPlayerControlled::RpgMotorPlayerControlled(RpgPlayer *player)
 	, m_player(player)
 {
 	Q_ASSERT(m_player);
+
+	m_player->setSensorPolygon(SENSOR_LENGTH, M_PI * 0.5, RpgGameItem::FixtureSensor,
+							   RpgGameItem::FixtureAll);
+
+	m_player->addVirtualCircle(RpgGameItem::FixtureVirtualCircle,
+							   RpgGameItem::FixtureAll, 220.);
 }
 
+
+
+
+
+
+/**
+ * @brief RpgMotorPlayerControlled::findNearestTarget
+ * @return
+ */
+
+RpgEntity * RpgMotorPlayerControlled::findNearestTarget(const cpBitmask &category)
+{
+	QSet<TiledObjectBody*> list;
+
+	RpgMotorEntity::queryContactedVisibleBodies(m_player, &list, category, RpgGameItem::FixtureGround);
+
+	QMultiMap<float, TiledObjectBody *> bds = RpgMotorEntity::sort(m_player, list);
+
+	for (TiledObjectBody *b : std::as_const(bds)) {
+		RpgEntity *e = dynamic_cast<RpgEntity*>(b);
+
+		if (!e || !e->isAlive())
+			continue;
+
+		if (e->team() == m_player->team())
+			continue;
+
+		return e;
+	}
+
+	return nullptr;
+}
+
+
+
+
+
+/**
+ * @brief RpgMotorPlayerControlled::findNearestTarget
+ * @param rayDest
+ * @param category
+ * @return
+ */
+
+RpgEntity *RpgMotorPlayerControlled::findNearestTarget(const cpVect &rayDest, const cpBitmask &category)
+{
+	RayCastInfo ray = m_player->rayCast(rayDest, RpgGameItem::FixtureGround, category, 2.);
+
+	for (const RayCastInfoItem &i : ray) {
+		if (!i.visible)
+			continue;
+
+		RpgEntity *e = dynamic_cast<RpgEntity*>(TiledObjectBody::fromShapeRef(i.shape));
+
+		if (!e || !e->isAlive())
+			continue;
+
+		if (e->team() == m_player->team())
+			continue;
+
+		return e;
+	}
+
+	return nullptr;
+}
+
+
+
+
+/**
+ * @brief RpgMotorPlayerControlled::findNearestControl
+ * @param category
+ * @return
+ */
+
+TiledObjectBody *RpgMotorPlayerControlled::findNearestControl(const float &maxDist, const cpBitmask &category)
+{
+	QSet<TiledObjectBody*> list;
+
+	RpgMotorEntity::queryContactedVisibleBodies(m_player, &list, category, RpgGameItem::FixtureGround,
+												maxDist, QueryTarget);
+
+	QMultiMap<float, TiledObjectBody *> bds = RpgMotorEntity::sort(m_player, list);
+
+	for (TiledObjectBody *b : std::as_const(bds)) {
+		if (checkControl(b))
+			return b;
+	}
+
+	return nullptr;
+}
+
+
+
+/**
+ * @brief RpgMotorPlayerControlled::findNearestControl
+ * @param rayDest
+ * @param category
+ * @return
+ */
+
+TiledObjectBody *RpgMotorPlayerControlled::findNearestControl(const cpVect &rayDest, const cpBitmask &category)
+{
+	RayCastInfo ray = m_player->rayCast(rayDest, RpgGameItem::FixtureGround, category, 2.);
+
+	for (const RayCastInfoItem &i : ray) {
+		if (!i.visible)
+			continue;
+
+		TiledObjectBody *b = TiledObjectBody::fromShapeRef(i.shape);
+
+		if (checkControl(b))
+			return b;
+	}
+
+	return nullptr;
+}
+
+
+/**
+ * @brief RpgMotorPlayerControlled::checkControl
+ * @param control
+ * @return
+ */
+
+bool RpgMotorPlayerControlled::checkControl(TiledObjectBody *control) const
+{
+	if (RpgTower *p = dynamic_cast<RpgTower*>(control)) {
+		return p->canAttack() && (p->state().team() != m_player->team() || p->load() < 100);
+	} else if (RpgDefenderPoint *p = dynamic_cast<RpgDefenderPoint*>(control)) {
+		return p->tower() && p->tower()->state().active() &&
+				p->tower()->state().team() == m_player->team() && !p->defender();
+	} else if (RpgDefender *p = dynamic_cast<RpgDefender*>(control)) {
+		return p->team() != m_player->team() && p->hp() > 0;
+	}
+
+	return true;
+}
 
 
 
@@ -368,19 +518,28 @@ RpgMotorPlayerControlled::RpgMotorPlayerControlled(RpgPlayer *player)
 
 void RpgMotorPlayerControlled::updateBody(TiledObject *)
 {
+	// Moving (JoystickA)
+
+
 	if (m_currentJoystickState.distance >= 1.0) {
+		m_targetAngle = std::nullopt;
+
 		m_destinationMotor.reset();
 		m_destinationPoint = std::nullopt;
 
 		m_player->setSpeedFromAngle(m_currentJoystickState.angle, m_player->m_config.run);
 		m_player->rotateBody(m_currentJoystickState.angle);
 	} else if (m_currentJoystickState.distance > 0.5) {
+		m_targetAngle = std::nullopt;
+
 		m_destinationMotor.reset();
 		m_destinationPoint = std::nullopt;
 
 		m_player->setSpeedFromAngle(m_currentJoystickState.angle, m_player->m_config.walk);
 		m_player->rotateBody(m_currentJoystickState.angle);
 	} else if (m_destinationPoint) {
+		m_targetAngle = std::nullopt;
+
 		if (!m_player->moveTowardsLimited(m_destinationPoint.value(),
 										  m_player->m_config.walk,
 										  m_player->m_config.run*0.5,
@@ -390,6 +549,8 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 			m_destinationPoint = std::nullopt;
 		}
 	} else if (m_destinationMotor) {
+		m_targetAngle = std::nullopt;
+
 		if (m_destinationMotor->atEnd(m_player)) {
 			m_player->stop();
 			m_destinationMotor.reset();
@@ -414,12 +575,93 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 			m_player->rotateBody(m_currentJoystickState.angle);
 	}
 
-	cpVect ahead = m_player->bodyPosition()+TiledObjectBody::vectorFromAngle(m_player->desiredBodyRotation(), m_player->chunkRadius());
-	cpVect center;
 
-	const QPoint ch = m_game->rpgLogicClient()->getChunkFromVector(ahead, &center);
-	m_player->setCurrentChunk(ch);
-	m_player->setCurrentChunkCenter(TiledObjectBody::toPointF(center));
+
+
+	// Using control (JoystickB)
+
+	float targetDist = 250;			// TODO:
+
+	if (m_controlJoystickState.hasTouch) {
+		if (m_controlJoystickState.distance > 0.1)
+			m_targetAngle = m_controlJoystickState.angle;
+		else if (!m_player->targetControl() && !m_targetAngle.has_value())
+			m_targetAngle = m_player->desiredBodyRotation();
+
+		targetDist *= std::clamp(m_controlJoystickState.distance, 0.3, 1.0);
+	}
+
+	if (!m_targetJoystickState.hasTouch) {
+		if (m_targetAngle.has_value()) {
+			cpVect ahead = m_player->bodyPosition()+TiledObjectBody::vectorFromAngle(m_targetAngle.value(), targetDist);
+
+			m_player->setTargetControl(findNearestControl(ahead));
+		} else {
+			m_player->setTargetControl(findNearestControl(targetDist));
+		}
+	}
+
+
+
+	if (m_player->targetControl() || !m_controlJoystickState.hasTouch
+			|| m_controlJoystickState.distance <= 0.1
+			|| !m_targetAngle.has_value()) {
+		m_player->setCurrentChunk({-1,-1});
+		m_player->setCurrentChunkCenter({-1,-1});
+	} else {
+		cpVect center;
+
+		const QPoint ch = m_game->rpgLogicClient()->getChunkFromVector(m_player->bodyPosition(),
+																	   m_targetAngle.value(),
+																	   &center);
+
+		m_player->setCurrentChunk(ch);
+		m_player->setCurrentChunkCenter(TiledObjectBody::toPointF(center));
+
+	}
+
+
+
+
+
+	// Attack enemy (JoystickC)
+
+	if (m_controlJoystickState.hasTouch) {
+		m_player->setTargetEntity(nullptr);
+		return;
+	}
+
+
+	const float dist = std::max(SENSOR_LENGTH, 450.);			// TODO: weapon length
+
+	if (m_targetJoystickState.hasTouch) {
+		if (m_targetJoystickState.distance > 0.1)
+			m_targetAngle = m_targetJoystickState.angle;
+		else if (!m_player->targetEntity() && !m_targetAngle.has_value())
+			m_targetAngle = m_player->desiredBodyRotation();
+
+
+		if (m_targetAngle.has_value()) {
+			cpVect ahead = m_player->bodyPosition()+TiledObjectBody::vectorFromAngle(m_targetAngle.value(), dist);
+
+			m_player->setTargetEntity(findNearestTarget(ahead, RpgGameItem::FixturePlayerBody | RpgGameItem::FixturePlayerTarget));
+		}
+
+	} else if (m_player->targetEntity()) {
+		if (!m_player->targetEntity()->isAlive()) {
+			m_player->setTargetEntity(nullptr);
+		} else {
+			RayCastInfo ray = m_player->rayCast(m_player->targetEntity()->bodyPosition(),
+												RpgGameItem::FixtureGround,
+												RpgGameItem::FixturePlayerBody | RpgGameItem::FixturePlayerTarget,
+												2.);
+
+
+			if (!ray.isVisible(m_player->targetEntity()) ||
+					m_player->distanceToPointSq(m_player->targetEntity()->bodyPosition()) > POW2(dist))
+				m_player->setTargetEntity(nullptr);
+		}
+	}
 
 }
 
@@ -609,17 +851,26 @@ void RpgMotorPlayerControlled::setCurrentJoystickState(const TiledGame::Joystick
 
 
 /**
- * @brief RpgMotorPlayerControlled::eventTest
+ * @brief RpgMotorPlayerControlled::attackCurrentTarget
  */
 
-void RpgMotorPlayerControlled::eventTest()
+void RpgMotorPlayerControlled::attackCurrentTarget()
 {
-	LOG_CINFO("game") << "EVENT TEST";
+	if (RpgPlayer *player = qobject_cast<RpgPlayer*>(m_player->targetEntity())) {
+		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventAttackPlayer);
+		e.setTarget(RpgLogicObjectMapper::getId(player->objectId()));
 
-	RpgStream::EventPlayer e(RpgStream::EventPlayer::EventTest);
+		LOG_CWARNING("game") << "ATTACK PLAYER" << e.target();
 
-	m_eventList.emplace_back(std::move(e));
+		m_eventList.emplace_back(std::move(e));
+
+		return;
+	}
+
+	LOG_CWARNING("game") << "Invalid target";
 }
+
+
 
 
 
@@ -629,19 +880,71 @@ void RpgMotorPlayerControlled::eventTest()
 
 void RpgMotorPlayerControlled::useCurrentControl()
 {
-	if (RpgTower *tower = m_player->tower()) {
+	if (RpgTower *tower = dynamic_cast<RpgTower*>(m_player->targetControl())) {
 		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventTower);
 		e.setTarget(RpgLogicObjectMapper::getId(tower->objectId()));
 		e.setSuccess(true);
 
-		LOG_CWARNING("game") << "ADD TOWER" << e.target();
+		LOG_CWARNING("game") << "ATTACK TOWER" << e.target();
 
 		m_eventList.emplace_back(std::move(e));
 
 		return;
 	}
 
-	LOG_CWARNING("game") << "Missing control";
+
+	if (RpgDefender *p = dynamic_cast<RpgDefender*>(m_player->targetControl())) {
+		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventAttackDefender);
+		e.setTarget(RpgLogicObjectMapper::getId(p->objectId()));
+		e.setSuccess(true);
+
+		LOG_CWARNING("game") << "ATTACK DEFENDER" << e.target();
+
+		m_eventList.emplace_back(std::move(e));
+
+		return;
+	}
+
+}
+
+
+
+/**
+ * @brief RpgMotorPlayerControlled::putDefender
+ */
+
+void RpgMotorPlayerControlled::putDefender(const bool &click)
+{
+	if (RpgDefenderPoint *p = dynamic_cast<RpgDefenderPoint*>(m_player->targetControl())) {
+		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventDefender);
+		e.setTarget(RpgLogicObjectMapper::getId(p->objectId()));
+		e.setSuccess(true);
+
+		LOG_CWARNING("game") << "PUT DEFENDER" << e.target();
+
+		m_eventList.emplace_back(std::move(e));
+
+		return;
+	}
+
+	if (click) {
+		LOG_CWARNING("game") << "Just click";
+		useCurrentControl();
+		return;
+	}
+
+	if (const QPoint &ch = m_player->currentChunk(); ch.x() >= 0 && ch.y() >= 0) {
+		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventDefender);
+		e.chunk().setX(ch.x());
+		e.chunk().setY(ch.y());
+		e.setSuccess(true);
+
+		LOG_CWARNING("game") << "PUT DEFENDER ON CHUNK" << ch;
+
+		m_eventList.emplace_back(std::move(e));
+	}
+
+	LOG_CWARNING("game") << "Missing point";
 }
 
 
@@ -661,24 +964,27 @@ void RpgMotorPlayerControlled::onShapeContactBegin(cpShape *self, cpShape *other
 	}
 
 	if (self == m_player->virtualCircle()) {
-		if (RpgTower *tower = dynamic_cast<RpgTower*>(otherBody)) {
-			if (TiledVisualItem *item = qobject_cast<TiledVisualItem*>(tower->visualItem()))
-				item->setGlowEnabled(true);
-		}
+		TiledVisualItem *item = nullptr;
+
+		if (RpgTower *o = dynamic_cast<RpgTower*>(otherBody)) {
+			item = qobject_cast<TiledVisualItem*>(o->visualItem());
+			o->markerItem()->setVisible(true);
+			if (o->state().team() == m_player->team() || o->state().team() == RpgStream::TeamNone)
+				o->setDefenderLayersVisible(true);
+		} else if (RpgMp *o = dynamic_cast<RpgMp*>(otherBody))
+			item = qobject_cast<TiledVisualItem*>(o->visualItem());
+		else if (RpgDefender *o = dynamic_cast<RpgDefender*>(otherBody))
+			item = qobject_cast<TiledVisualItem*>(o->visualItem());
+
+
+		if (item)
+			item->setGlowEnabled(true);
 	}
 
 	if (m_player->isBodyShape(self)) {
 		if (RpgMp *mp = dynamic_cast<RpgMp*>(otherBody)) {
 			LOG_CINFO("game") << "CONTACT MP" << RpgLogicObjectMapper::getId(mp->objectId());
 			eventMpPick(mp);
-			return;
-		}
-	}
-
-	if (m_player->isBodyShape(self) || self == m_player->targetCircle()) {
-		if (RpgTower *tower = dynamic_cast<RpgTower*>(otherBody)) {
-			LOG_CINFO("game") << "CONTACT TOWER" << RpgLogicObjectMapper::getId(tower->objectId());
-			m_player->setTower(tower);
 			return;
 		}
 	}
@@ -704,26 +1010,30 @@ void RpgMotorPlayerControlled::onShapeContactEnd(cpShape *self, cpShape *other)
 	}
 
 	if (self == m_player->virtualCircle()) {
-		if (RpgTower *tower = dynamic_cast<RpgTower*>(otherBody)) {
-			if (TiledVisualItem *item = qobject_cast<TiledVisualItem*>(tower->visualItem()))
-				item->setGlowEnabled(false);
-		}
+		TiledVisualItem *item = nullptr;
+
+		if (RpgTower *o = dynamic_cast<RpgTower*>(otherBody)) {
+			item = qobject_cast<TiledVisualItem*>(o->visualItem());
+			o->markerItem()->setVisible(false);
+			o->setDefenderLayersVisible(false);
+		} else if (RpgMp *o = dynamic_cast<RpgMp*>(otherBody))
+			item = qobject_cast<TiledVisualItem*>(o->visualItem());
+		else if (RpgDefender *o = dynamic_cast<RpgDefender*>(otherBody))
+			item = qobject_cast<TiledVisualItem*>(o->visualItem());
+
+
+		if (item)
+			item->setGlowEnabled(false);
 	}
 
-	if (m_player->isBodyShape(self)) {
+	/*if (m_player->isBodyShape(self)) {
 		if (RpgMp *mp = dynamic_cast<RpgMp*>(otherBody)) {
 			LOG_CINFO("game") << "CONTACT MP END" << RpgLogicObjectMapper::getId(mp->objectId());
 			return;
 		}
-	}
+	}*/
 
-	if (m_player->isBodyShape(self) || self == m_player->targetCircle()) {
-		if (RpgTower *tower = dynamic_cast<RpgTower*>(otherBody)) {
-			LOG_CINFO("game") << "CONTACT TOWER END" << RpgLogicObjectMapper::getId(tower->objectId());
-			m_player->setTower(nullptr);
-			return;
-		}
-	}
+
 }
 
 
@@ -742,6 +1052,39 @@ void RpgMotorPlayerControlled::eventMpPick(RpgMp *mp)
 	e.setTarget(RpgLogicObjectMapper::getId(mp->objectId()));
 
 	m_eventList.emplace_back(std::move(e));
+}
+
+
+
+/**
+ * @brief RpgMotorPlayerControlled::targetJoystickState
+ * @return
+ */
+
+TiledGame::JoystickState RpgMotorPlayerControlled::targetJoystickState() const
+{
+	return m_targetJoystickState;
+}
+
+void RpgMotorPlayerControlled::setTargetJoystickState(const TiledGame::JoystickState &newTargetJoystickState)
+{
+	m_targetJoystickState = newTargetJoystickState;
+}
+
+
+/**
+ * @brief RpgMotorPlayerControlled::controlJoystickState
+ * @return
+ */
+
+TiledGame::JoystickState RpgMotorPlayerControlled::controlJoystickState() const
+{
+	return m_controlJoystickState;
+}
+
+void RpgMotorPlayerControlled::setControlJoystickState(const TiledGame::JoystickState &newControlJoystickState)
+{
+	m_controlJoystickState = newControlJoystickState;
 }
 
 
@@ -785,8 +1128,8 @@ void RpgPlayer::onAlive()
 	setSubZ(0.5);
 
 
-	if (m_visualItem)
-		m_visualItem->setProperty("ellipseSize", 1);
+	/*if (m_visualItem)
+		m_visualItem->setProperty("ellipseSize", 1);*/
 
 	/*filterSet(TiledObjectBody::FixturePlayerBody,
 					  TiledObjectBody::FixtureCategories(TiledObjectBody::FixtureAll)
@@ -805,8 +1148,8 @@ void RpgPlayer::onDead()
 {
 	setSubZ(0.0);
 
-	if (m_visualItem)
-		m_visualItem->setProperty("ellipseSize", 0);
+	/*if (m_visualItem)
+		m_visualItem->setProperty("ellipseSize", 0);*/
 
 	//filterSet(TiledObjectBody::FixtureInvalid, TiledObjectBody::FixtureInvalid);
 }
@@ -841,16 +1184,28 @@ void RpgPlayer::onCurrentSpriteChanged()
 
 
 /**
+ * @brief RpgPlayer::targetControl
+ * @return
+ */
+
+TiledObjectBody *RpgPlayer::targetControl() const
+{
+	return m_targetControl;
+}
+
+void RpgPlayer::setTargetControl(TiledObjectBody *newTargetControl)
+{
+	m_targetControl = newTargetControl;
+}
+
+
+/**
  * @brief RpgPlayer::updateColor
  */
 
 void RpgPlayer::updateColor()
 {
 	LOG_CDEBUG("game") << "Update colors" << this << m_team;
-
-	if (m_visualItem) {
-		m_visualItem->setProperty("ellipseColor", RpgGameItem::teamColor().value(m_team));
-	}
 
 	if (m_markerItem) {
 		m_markerItem->setProperty("progressBarColor", RpgGameItem::teamColor().value(m_team));
@@ -860,22 +1215,22 @@ void RpgPlayer::updateColor()
 
 
 
-/**
- * @brief RpgPlayer::team
- * @return
- */
 
-RpgStream::Team RpgPlayer::team() const
+RpgEntity *RpgPlayer::targetEntity() const
 {
-	return m_team;
+	return m_targetEntity;
 }
 
-void RpgPlayer::setTeam(RpgStream::Team newTeam)
+void RpgPlayer::setTargetEntity(RpgEntity *newTargetEntity)
 {
-	m_team = newTeam;
+	if (m_targetEntity == newTargetEntity)
+		return;
+	m_targetEntity = newTargetEntity;
+	emit targetEntityChanged();
 
-	updateColor();
+	LOG_CINFO("game") << "TARGET" << m_targetEntity;
 }
+
 
 
 
@@ -954,19 +1309,72 @@ void RpgPlayer::updateSprite()
 
 
 /**
- * @brief RpgPlayer::tower
- * @return
+ * @brief RpgPlayer::synchronize
  */
 
-RpgTower *RpgPlayer::tower() const
+void RpgPlayer::synchronize()
 {
-	return m_tower;
+	RpgEntity::synchronize();
+
+	QPointF offset(0.,0.);
+	qreal width = 50.;
+	qreal stroke = 0.;
+	QColor color = RpgGameItem::teamColor().value(m_team);
+
+
+	if (RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(currentMotor())) {
+		stroke = 1.;
+
+		if (m_targetControl) {
+			QRectF rect = m_targetControl->bodyAABB();
+
+			offset = rect.center() - bodyPositionF();
+			width = std::max(rect.width(), rect.height());			// = *0.5*2
+
+			if (RpgDefenderPoint *p = dynamic_cast<RpgDefenderPoint*>(m_targetControl))
+				color = QColorConstants::Svg::orange;
+			else if (RpgDefender *p = dynamic_cast<RpgDefender*>(m_targetControl))
+				color = QColorConstants::Svg::red;
+			else
+				color = QColorConstants::Svg::lightgreen;
+
+		} else if (m_targetEntity) {
+			QRectF rect = m_targetEntity->bodyAABB();
+
+			offset = rect.center() - bodyPositionF();
+			width = std::max(rect.width(), rect.height()) * 1.5;
+			color = QColorConstants::Svg::red;
+
+		} else if (motor->controlJoystickState().distance > 0.1) {
+			const QPointF p = currentChunkCenter();
+
+			if (p.x() >= 0 && p.y() >= 0) {
+				offset = p - bodyPositionF();
+				width = 25.;
+				stroke = 2.;
+				color = QColor::fromRgb(57,250,65,150);
+			}
+
+		}
+
+
+		/*else {
+			const QPointF p = currentChunkCenter();
+
+			if (p.x() >= 0 && p.y() >= 0) {
+				offset = p - bodyPositionF();
+				width = 25.;
+				stroke = 2.;
+				color = QColor::fromRgb(57,250,65,150);
+			}
+		}*/
+	}
+
+
+	m_visualItem->setProperty("ellipseOffset", offset);
+	m_visualItem->setProperty("ellipseWidth", width);
+	m_visualItem->setProperty("ellipseColor", color);
+	m_visualItem->setProperty("ellipseSize", stroke);
 }
 
-void RpgPlayer::setTower(RpgTower *newTower)
-{
-	if (m_tower == newTower)
-		return;
-	m_tower = newTower;
-	emit towerChanged();
-}
+

@@ -58,6 +58,7 @@ public:
 
 	void removeFromMapper(RpgObject *object);
 	QPoint getChunkFromVector(const cpVect &point, cpVect *centerPtr = nullptr);
+	QPoint getChunkFromVector(const cpVect &point, const float &angle, cpVect *centerPtr = nullptr);
 
 };
 

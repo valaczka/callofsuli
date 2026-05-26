@@ -66,7 +66,7 @@ QPoint RpgLogicClient::getChunkFromVector(const cpVect &point, cpVect *centerPtr
 	RpgLogicScope scope = getScope();
 	ChunkGrid *grid = scope.getCtx<ChunkGrid>();
 
-	QPair<qint32, qint32> ch = grid->getAccessibleChunk(TiledObjectBody::toPointF(point));
+	QPair<qint32, qint32> ch = grid->getAccessibleChunk(point.x, point.y);
 
 	if (centerPtr) {
 		if (ch.first < 0 || ch.second < 0) {
@@ -78,6 +78,27 @@ QPoint RpgLogicClient::getChunkFromVector(const cpVect &point, cpVect *centerPtr
 	}
 
 	return QPoint(ch.first, ch.second);
+}
+
+
+/**
+ * @brief RpgLogicClient::getChunkFromVector
+ * @param point
+ * @param angle
+ * @param centerPtr
+ * @return
+ */
+
+QPoint RpgLogicClient::getChunkFromVector(const cpVect &point, const float &angle, cpVect *centerPtr)
+{
+	RpgLogicScope scope = getScope();
+	ChunkGrid *grid = scope.getCtx<ChunkGrid>();
+
+	return getChunkFromVector(cpvadd(point,
+									 TiledObjectBody::vectorFromAngle(angle,
+																	  std::max(grid->chunkSize.width(),
+																			   grid->chunkSize.height())*1.1)),
+							  centerPtr);
 }
 
 

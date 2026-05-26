@@ -76,6 +76,183 @@ RpgMotorEntity::RpgMotorEntity(RpgEntity *entity)
 }
 
 
+
+/**
+ * @brief RpgMotorEntity::queryContactedBodies
+ * @param shape
+ */
+
+void RpgMotorEntity::queryContactedBodies(cpSpace *space, cpShape *shape, QSet<TiledObjectBody *> *dst, const cpBitmask &categories)
+{
+	Q_ASSERT(space);
+	Q_ASSERT(shape);
+	Q_ASSERT(dst);
+
+	if (cpSpaceIsLocked(space)) {
+		LOG_CERROR("game") << "Locked space";
+		return;
+	}
+
+	struct _d {
+		cpBitmask mask;
+		QSet<TiledObjectBody *> *bodies = nullptr;
+	};
+
+	_d d;
+	d.mask = categories;
+	d.bodies = dst;
+
+	static const auto fn = [](cpShape *shape, cpContactPointSet *, void *data) {
+		TiledObjectBody *body = TiledObjectBody::fromShapeRef(shape);
+
+		if (!body) {
+			LOG_CERROR("game") << "Invalid body";
+			return;
+		}
+
+		_d *d = (_d*)(data);
+
+		if (cpShapeGetFilter(shape).categories & d->mask) {
+			d->bodies->insert(body);
+		}
+	};
+
+	cpSpaceShapeQuery(space, shape, fn, &d);
+}
+
+
+/**
+ * @brief RpgMotorEntity::queryContactedBodies
+ * @param body
+ * @param dst
+ * @param categories
+ * @param flags
+ */
+
+void RpgMotorEntity::queryContactedBodies(TiledObjectBody *body, QSet<TiledObjectBody *> *dst, const cpBitmask &categories, const QueryFlags &flags)
+{
+	Q_ASSERT(body);
+	Q_ASSERT(dst);
+
+	if (flags == QueryNone)
+		return;
+
+	if (flags.testFlag(QueryBody)) {
+		for (cpShape *sh : body->bodyShapes())
+			queryContactedBodies(body->space(), sh, dst, categories);
+	}
+
+	if (flags.testFlag(QuerySensorPolygon) && body->sensorPolygon())
+		queryContactedBodies(body->space(), body->sensorPolygon(), dst, categories);
+
+	if (flags.testFlag(QueryTarget) && body->targetCircle())
+		queryContactedBodies(body->space(), body->targetCircle(), dst, categories);
+
+	if (flags.testFlag(QueryVirtualCircle) && body->virtualCircle())
+		queryContactedBodies(body->space(), body->virtualCircle(), dst, categories);
+}
+
+
+
+/**
+ * @brief RpgMotorEntity::queryContactedVisibleBodies
+ * @param body
+ * @param dst
+ * @param categories
+ * @param ground
+ * @param flags
+ */
+
+void RpgMotorEntity::queryContactedVisibleBodies(TiledObjectBody *body, QSet<TiledObjectBody *> *dst, const cpBitmask &categories,
+												 const cpBitmask &ground, const float &maxDist, const QueryFlags &flags)
+{
+	Q_ASSERT(body);
+	Q_ASSERT(dst);
+
+	if (flags == QueryNone)
+		return;
+
+	queryContactedBodies(body, dst, categories, flags);
+
+	const QRectF r = body->bodyAABB();
+
+	for (auto it = dst->cbegin(); it != dst->cend(); ) {
+		TiledObjectBody *b = *it;
+		RayCastInfo info = body->rayCast(b->bodyPosition(), ground);
+
+		// Ha fedik egymást, akkor a raycast nem fogja látni
+
+		if (r.contains(TiledObjectBody::toPointF(b->bodyPosition()))) {
+			++it;
+			continue;
+		}
+
+		if (b == body || !info.isVisible(b) ||
+				(maxDist > 0 && body->distanceToPointSq(b->bodyPosition()) > maxDist*maxDist)) {
+			it = dst->erase(it);
+			continue;
+		}
+
+		++it;
+	}
+}
+
+
+
+/**
+ * @brief RpgMotorEntity::getNearest
+ * @param body
+ * @param dst
+ * @return
+ */
+
+TiledObjectBody *RpgMotorEntity::getNearest(TiledObjectBody *body, const QSet<TiledObjectBody *> &dst)
+{
+	Q_ASSERT(body);
+
+	TiledObjectBody *ret = nullptr;
+	float dist = 0;
+
+	for (TiledObjectBody *b : dst) {
+		Q_ASSERT(b);
+
+		if (!ret) {
+			ret = b;
+			dist = body->distanceToPointSq(b->bodyPosition());
+			continue;
+		} else if (float d = body->distanceToPointSq(b->bodyPosition()); d < dist) {
+			ret = b;
+			dist = d;
+		}
+	}
+
+	return ret;
+}
+
+
+
+/**
+ * @brief RpgMotorEntity::sort
+ * @param body
+ * @param dst
+ * @return
+ */
+
+QMultiMap<float, TiledObjectBody *> RpgMotorEntity::sort(TiledObjectBody *body, const QSet<TiledObjectBody *> &dst)
+{
+	QMultiMap<float, TiledObjectBody *> ret;
+
+	for (TiledObjectBody *b : dst) {
+		Q_ASSERT(b);
+		float dist = body->distanceToPointSq(b->bodyPosition());
+		ret.insert(dist, b);
+	}
+
+	return ret;
+}
+
+
+
 /**
  * @brief RpgDestinationMotor::RpgDestinationMotor
  * @param entity
@@ -144,3 +321,23 @@ std::optional<QPolygonF> RpgDestinationMotor::destination() const
 
 	return std::nullopt;
 }
+
+
+
+/**
+ * @brief RpgEntity::team
+ * @return
+ */
+
+RpgStream::Team RpgEntity::team() const
+{
+	return m_team;
+}
+
+void RpgEntity::setTeam(RpgStream::Team newTeam)
+{
+	m_team = newTeam;
+
+	updateColor();
+}
+

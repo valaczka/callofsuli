@@ -51,6 +51,9 @@ public:
 
 	bool isAlive() const { return m_hp > 0; }
 
+	RpgStream::Team team() const;
+	void setTeam(RpgStream::Team newTeam);
+
 	int hp() const;
 	void setHp(int newHp);
 
@@ -67,10 +70,13 @@ signals:
 protected:
 	virtual void onAlive() {};
 	virtual void onDead() {};
+	virtual void updateColor() {};
 
 protected:
 	int m_hp = 1;
 	int m_maxHp = 1;
+
+	RpgStream::Team m_team = RpgStream::TeamNone;
 };
 
 
@@ -85,6 +91,33 @@ class RpgMotorEntity : public AbstractRpgMotor
 {
 public:
 	RpgMotorEntity(RpgEntity *entity);
+
+	enum QueryFlag {
+		QueryNone =				0,
+		QueryBody =				1,
+		QuerySensorPolygon =	1 << 1,
+		QueryTarget =			1 << 2,
+		QueryVirtualCircle =	1 << 3,
+
+		QueryAll = QueryBody | QuerySensorPolygon | QueryTarget | QueryVirtualCircle
+	};
+
+	Q_DECLARE_FLAGS(QueryFlags, QueryFlag);
+
+	static void queryContactedBodies(cpSpace *space, cpShape *shape, QSet<TiledObjectBody *> *dst,
+									 const cpBitmask &categories);
+
+	static void queryContactedBodies(TiledObjectBody *body, QSet<TiledObjectBody *> *dst,
+									 const cpBitmask &categories, const QueryFlags &flags = QueryAll);
+
+	static void queryContactedVisibleBodies(TiledObjectBody *body, QSet<TiledObjectBody *> *dst,
+											const cpBitmask &categories, const cpBitmask &ground,
+											const float &maxDist = 0.,
+											const QueryFlags &flags = QueryAll);
+
+	static TiledObjectBody *getNearest(TiledObjectBody *body, const QSet<TiledObjectBody *> &dst);
+
+	static QMultiMap<float, TiledObjectBody *> sort(TiledObjectBody *body, const QSet<TiledObjectBody *> &dst);
 
 protected:
 	RpgEntity *const m_entity;

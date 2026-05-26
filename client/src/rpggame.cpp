@@ -31,6 +31,7 @@
 #include "rpgstream.h"
 #include "rpguserwallet.h"
 #include "tiledgame.h"
+#include "rpgdefender.h"
 #include "rpggame.h"
 #include "rpggame_p.h"
 #include "rpggameitem.h"
@@ -546,7 +547,22 @@ void RpgGamePrivate::towerAdd(RpgTower *tower)
 	RpgStream::Tower t;
 	t.setTagId(id);
 
+	for (RpgDefenderPoint *p : tower->defenderPoints()) {
+		Q_ASSERT(p);
+
+		const QPointF pos = p->bodyPositionF();
+
+		RpgStream::Defender d;
+		d.setTagId(RpgLogicObjectMapper::getId(p->objectId()));
+		d.setPosXAsFloat(pos.x());
+		d.setPosYAsFloat(pos.y());
+
+		t.defenders().emplace_back(std::move(d));
+	}
+
 	m_mapData.towerList().emplace_back(std::move(t));
+
+	m_towerList.append(tower);
 }
 
 
@@ -566,10 +582,10 @@ void RpgGamePrivate::connectJoysticks()
 
 
 	const QList<QPair<QQuickItem*, const char*> > list = {
-		{ q->m_gameItem->joystickA(), "joystickClickedA()" },
-		{ q->m_gameItem->joystickB(), "joystickClickedB()" },
-		{ q->m_gameItem->joystickC(), "joystickClickedC()" },
-		{ q->m_gameItem->joystickD(), "joystickClickedD()" },
+		{ q->m_gameItem->joystickA(), "joystickClickedA(bool)" },
+		{ q->m_gameItem->joystickB(), "joystickClickedB(bool)" },
+		{ q->m_gameItem->joystickC(), "joystickClickedC(bool)" },
+		{ q->m_gameItem->joystickD(), "joystickClickedD(bool)" },
 	};
 
 
@@ -582,7 +598,7 @@ void RpgGamePrivate::connectJoysticks()
 
 		const QMetaObject *mo = p.first->metaObject();
 
-		const int methodIndex = mo->indexOfMethod("clicked()");
+		const int methodIndex = mo->indexOfMethod("released(bool)");
 
 		if (methodIndex < 0)
 			continue;
@@ -595,28 +611,149 @@ void RpgGamePrivate::connectJoysticks()
 
 
 /**
+ * @brief RpgGamePrivate::setJoystickState
+ * @param motor
+ * @param joystick
+ * @param state
+ */
+
+void RpgGamePrivate::setJoystickState(RpgMotorPlayerControlled *motor, const TiledGame::Joystick &joystick, const TiledGame::JoystickState &state)
+{
+	if (!motor)
+		return;
+
+	if (setFromGamepad(motor))
+		return;
+
+	if (joystick == TiledGame::JoystickA)
+		motor->setCurrentJoystickState(state);
+	else if (joystick == TiledGame::JoystickB)
+		motor->setControlJoystickState(state);
+	else if (joystick == TiledGame::JoystickC)
+		motor->setTargetJoystickState(state);
+
+}
+
+
+
+/**
+ * @brief RpgGamePrivate::setFromGamepad
+ * @param motor
+ * @return
+ */
+
+bool RpgGamePrivate::setFromGamepad(RpgMotorPlayerControlled *motor)
+{
+#ifdef WITH_GAMEPAD
+	if (m_gamePad) {
+		TiledGame::JoystickState stateA;
+		TiledGame::JoystickState stateB;
+		TiledGame::JoystickState stateC;
+
+
+		if (m_gamePad->buttonL3() || m_gamePad->buttonL1()) {
+			stateB.hasTouch = true;
+			stateB.dx = m_gamePad->axisLeftX();
+			stateB.dy = m_gamePad->axisLeftY();
+			stateB.angle = atan2(stateB.dy, stateB.dx);
+			stateB.distance = (stateB.dx*stateB.dx + stateB.dy*stateB.dy)*1.1;
+		} else {
+			stateA.dx = m_gamePad->axisLeftX();
+			stateA.dy = m_gamePad->axisLeftY();
+			stateA.angle = atan2(stateA.dy, stateA.dx);
+			stateA.distance = (stateA.dx*stateA.dx + stateA.dy*stateA.dy)*1.1;
+		}
+
+		motor->setCurrentJoystickState(stateA);
+		motor->setControlJoystickState(stateB);
+
+
+
+		if (m_gamePad->axisRightX() > 0.1 || m_gamePad->axisRightY() > 0.1) {
+			stateC.hasTouch = true;
+			stateC.dx = m_gamePad->axisRightX();
+			stateC.dy = m_gamePad->axisRightY();
+			stateC.angle = atan2(stateC.dy, stateC.dx);
+			stateC.distance = (stateC.dx*stateC.dx + stateC.dy*stateC.dy)*1.1;
+		}
+
+		motor->setTargetJoystickState(stateC);
+
+		return true;
+	}
+#endif
+
+	return false;
+}
+
+
+
+/**
  * @brief RpgGamePrivate::joystickClicked
  * @param joystick
  */
 
-void RpgGamePrivate::joystickClickedA()
+void RpgGamePrivate::joystickClickedA(const bool &clicked)
 {
-	LOG_CINFO("game") << "CLICKED";
+	if (!q->m_controlledPlayer || !clicked)
+		return;
+
+	RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(q->m_controlledPlayer->currentMotor());
+
+	if (!motor)
+		return;
+
+	motor->useCurrentControl();
 }
 
-void RpgGamePrivate::joystickClickedB()
-{
 
+
+/**
+ * @brief RpgGamePrivate::joystickClickedB
+ * @param clicked
+ */
+
+void RpgGamePrivate::joystickClickedB(const bool &clicked)
+{
+	if (!q->m_controlledPlayer)
+		return;
+
+	RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(q->m_controlledPlayer->currentMotor());
+
+	if (!motor)
+		return;
+
+	motor->putDefender(clicked);
 }
 
-void RpgGamePrivate::joystickClickedC()
-{
 
+/**
+ * @brief RpgGamePrivate::joystickClickedC
+ * @param clicked
+ */
+
+void RpgGamePrivate::joystickClickedC(const bool &/*clicked*/)
+{
+	if (!q->m_controlledPlayer)
+		return;
+
+	RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(q->m_controlledPlayer->currentMotor());
+
+	if (!motor)
+		return;
+
+	motor->attackCurrentTarget();
 }
 
-void RpgGamePrivate::joystickClickedD()
-{
 
+/**
+ * @brief RpgGamePrivate::joystickClickedD
+ * @param clicked
+ */
+
+void RpgGamePrivate::joystickClickedD(const bool &clicked)
+{
+	LOG_CINFO("game") << "CLICKED D" << clicked;
 }
 
 
@@ -644,12 +781,16 @@ void RpgGamePrivate::onBeforeWorldStep(const qint64 &tick)
 {
 	if (q->m_gameMode == RpgGame::SinglePlayer) {
 		m_logic->render();
-		//RpgStream::FullState full = m_logic->getFullState(1);
 	}
+
+	RpgStream::FullState full = m_logic->getFullState(1);
+
 
 	syncGameState();
 	syncObjects();
 	processEvents(tick);
+
+	deleteMissingObjects(extractObjects(full));
 }
 
 
@@ -711,8 +852,7 @@ void RpgGamePrivate::syncObjects()
 {
 	syncPlayers();
 	syncMp();
-
-	syncDeleted();
+	syncDefenders();
 }
 
 
@@ -764,12 +904,7 @@ void RpgGamePrivate::syncPlayers()
 		if (state) {
 			obj->setHp(state->hp());
 			obj->setMp(state->mp());
-		}
-
-		if (Rpg::TeamTag *team = scope.try_get<Rpg::TeamTag>(entity)) {
-			obj->setTeam(team->team);
-		} else {
-			LOG_CERROR("game") << "Missing TeamTag";
+			obj->setTeam(p.team);
 		}
 
 		const quint32 pid = logicRegisterObject(obj);
@@ -788,8 +923,6 @@ void RpgGamePrivate::syncPlayers()
 
 			obj->setSecondaryMotor(std::make_unique<RpgMotorPlayerControlled>(obj));
 			q->setControlledPlayer(obj);
-
-			obj->setChunkRadius(std::max(s.width(), s.height()) * 0.75);
 		}
 	}
 }
@@ -843,35 +976,184 @@ void RpgGamePrivate::syncMp()
 
 
 
+/**
+ * @brief RpgGamePrivate::syncDefenders
+ */
+
+void RpgGamePrivate::syncDefenders()
+{
+	Rpg::RpgLogicScope scope = m_logic->getScope();
+
+	auto view = scope.view<Rpg::DefenderObject>(entt::exclude<Rpg::IdTag>);
+
+	for (auto entity : view) {
+		const Rpg::DefenderObject &def = scope.get<Rpg::DefenderObject>(entity);
+
+		TiledScene *scene = q->m_gameItem->currentScene();
+
+		Q_ASSERT(scene);
+
+
+		LOG_CWARNING("game") << "CREATE DEFENDER" << def.idTag << def.pos.x << def.pos.y;
+
+
+		RpgDefender *obj = q->m_gameItem->createObject<RpgDefender>(RpgLogicObjectMapper::toObjectId(def.idTag),
+																	scene, q->m_gameItem,
+																	def.pos);
+
+		Q_ASSERT(obj);
+
+		obj->setTeam(def.team);
+		obj->setMaxHp(def.maxHp);
+
+		if (const Rpg::Defender *base = scope.try_get<Rpg::Defender>(def.defender)) {
+			const Rpg::Tower *tower = scope.try_get<Rpg::Tower>(base->tower);
+
+			for (RpgTower *t : m_towerList) {
+				if (RpgLogicObjectMapper::getId(t->objectId()) == tower->idTag) {
+					LOG_CERROR("game") << "FOUND TOWER" << t;
+					obj->setTower(t);
+
+					for (RpgDefenderPoint *p : t->defenderPoints()) {
+						if (RpgLogicObjectMapper::getId(p->objectId()) == base->idTag) {
+							LOG_CERROR("game") << "FOUND BASE" << p;
+							obj->setDefenderPoint(p);
+							p->setDefender(obj);
+							break;
+						}
+					}
+
+					t->reloadDefenderLayersVisibility();
+
+					break;
+				}
+			}
+		}
+
+		const quint32 pid = logicRegisterObject(obj);
+
+		m_logic->entitySetIdTag(entity, pid);
+
+		LOG_CINFO("game") << "ADDED DEFENDER" << RpgLogicObjectMapper::toObjectId(pid).ownerId
+						  << RpgLogicObjectMapper::toObjectId(pid).sceneId
+						  << RpgLogicObjectMapper::toObjectId(pid).id
+						  << "->" << pid << "==" << obj->bodyPositionF();
+
+
+		if (obj->defenderPoint())
+			obj->defenderPoint()->visualItem()->setVisible(false);
+	}
+}
+
+
+
+
+
+
+
 
 
 /**
- * @brief RpgGamePrivate::syncDeleted
+ * @brief RpgGamePrivate::extractObjects
+ * @param full
+ * @return
  */
 
-void RpgGamePrivate::syncDeleted()
+RpgGamePrivate::ObjectSet RpgGamePrivate::extractObjects(const RpgStream::FullState &full) const
 {
-	// Delete tag lenne jó vagy ilyesmi már a fullstate betöltése után
+	ObjectSet ret;
 
+	for (const auto &p : full.players())
+		ret.player.insert(p.tagId());
+
+	for (const auto &p : full.mps())
+		ret.mp.insert(p.tagId());
+
+	for (const auto &p : full.defenders())
+		ret.defender.insert(p.tagId());
+
+
+	return ret;
+}
+
+
+
+
+/**
+ * @brief RpgGamePrivate::deleteMissingObjects
+ * @param objects
+ */
+
+void RpgGamePrivate::deleteMissingObjects(const ObjectSet &objects)
+{
 	Rpg::RpgLogicScope scope = m_logic->getScope();
 
 	RpgLogicObjectMapper *mapper = scope.getCtx<RpgLogicObjectMapper>();
 
-	auto view = scope.view<Rpg::IdTag>();
+	/*
+	if (objects.flag.testFlag(RpgStream::FullState::Player)) {
+		auto view = scope.view<Rpg::Player>();
 
-	for (auto it = mapper->map.cbegin(); it != mapper->map.cend(); ) {
-		if (qobject_cast<RpgPlayer*>(it.value())) {
-			++it;
-			continue;
-		}
-
-		bool found = false;
-		for (const auto &e : view) {
-			if (scope.get<Rpg::IdTag>(e).id == it.key()) {
-				found = true;
-				break;
+		for (auto e : view) {
+			const Rpg::Player &p = scope.get<Rpg::Player>(e);
+			if (!objects.player.contains(p.idTag())) {
+				LOG_CINFO("game") << "SET DELETE TAG PLAYER" << p.idTag();
+				scope.setDeleteTag(e);
 			}
 		}
+	}
+
+	if (objects.flag.testFlag(RpgStream::FullState::Mp)) {
+		auto view = scope.view<Rpg::Mp>();
+
+		for (auto e : view) {
+			const Rpg::Mp &p = scope.get<Rpg::Mp>(e);
+			if (!objects.mp.contains(p.idTag)) {
+				LOG_CINFO("game") << "SET DELETE TAG MP" << p.idTag;
+				scope.setDeleteTag(e);
+			}
+		}
+	}
+
+	if (objects.flag.testFlag(RpgStream::FullState::Defender)) {
+		auto view = scope.view<Rpg::Mp>();
+
+		for (auto e : view) {
+			const Rpg::DefenderObject &p = scope.get<Rpg::DefenderObject>(e);
+			if (!objects.defender.contains(p.idTag)) {
+				LOG_CINFO("game") << "SET DELETE TAG DEFENDER" << p.idTag;
+				scope.setDeleteTag(e);
+			}
+		}
+	}
+
+
+	scope.destroyDeleteTags();
+
+*/
+
+	for (auto it = mapper->map.cbegin(); it != mapper->map.cend(); ) {
+		bool found = true;
+
+		if (qobject_cast<RpgPlayer*>(it.value()))
+			found = objects.player.contains(it.key());
+		else if (qobject_cast<RpgMp*>(it.value()))
+			found = objects.mp.contains(it.key());
+		else if (RpgDefender *d = qobject_cast<RpgDefender*>(it.value())) {
+			found = objects.defender.contains(it.key());
+
+			if (!found) {
+				LOG_CINFO("game") << "______________DEL" << d << d->defenderPoint() << d->tower();
+				if (RpgDefenderPoint *p = d->defenderPoint())
+					p->setDefender(nullptr);
+
+				if (RpgTower *t = d->tower())
+					t->reloadDefenderLayersVisibility();
+
+				d->setDefenderPoint(nullptr);
+			}
+		}
+
 
 		if (found) {
 			++it;
@@ -883,8 +1165,9 @@ void RpgGamePrivate::syncDeleted()
 
 		it = mapper->map.erase(it);
 	}
-
 }
+
+
 
 
 
@@ -918,53 +1201,10 @@ void RpgGamePrivate::processEvents(const qint64 &tick)
 
 void RpgGamePrivate::onTimeStepped()
 {
-	syncChunkMarker(q->controlledPlayer());
+
 }
 
 
-
-/**
- * @brief RpgGamePrivate::syncChunkMarker
- */
-
-void RpgGamePrivate::syncChunkMarker(RpgPlayer *player)
-{
-	if (!player || !player->visualItem())
-		return;
-
-
-	QPointF offset(0.,0.);
-	qreal width = 50.;
-	qreal stroke = 1.;
-	QColor color = RpgGameItem::teamColor().value(player->team());
-
-
-	if (player == q->m_controlledPlayer) {
-		if (RpgTower *tower = q->m_controlledPlayer->tower()) {
-			QRectF rect = tower->bodyAABB();
-
-			offset = rect.center() - q->m_controlledPlayer->bodyPositionF();
-			width = std::max(rect.width(), rect.height());			// = *0.5*2
-			color = QColorConstants::Svg::salmon;
-
-		} else {
-			const QPointF p = q->m_controlledPlayer->currentChunkCenter();
-
-			if (p.x() >= 0 && p.y() >= 0) {
-				offset = p - q->m_controlledPlayer->bodyPositionF();
-				width = 25.;
-				stroke = 2.;
-				color = QColor::fromRgb(57,250,65,150);
-			}
-		}
-	}
-
-
-	player->visualItem()->setProperty("ellipseOffset", offset);
-	player->visualItem()->setProperty("ellipseWidth", width);
-	player->visualItem()->setProperty("ellipseColor", color);
-	player->visualItem()->setProperty("ellipseSize", stroke);
-}
 
 
 
@@ -1033,6 +1273,9 @@ void RpgGamePrivate::changeControlledPlayer()
 			continue;
 		}
 
+		if (next == e)
+			continue;
+
 		if (found) {
 			next = e;
 			break;
@@ -1044,6 +1287,9 @@ void RpgGamePrivate::changeControlledPlayer()
 			if (scope.get<Rpg::Player>(e).idTag() == current) {
 				continue;
 			}
+
+			if (next == e)
+				continue;
 
 			next = e;
 		}
@@ -1063,15 +1309,75 @@ void RpgGamePrivate::changeControlledPlayer()
 
 	LOG_CINFO("game") << "CHANGE" << p;
 
-	RpgPlayer *old = q->controlledPlayer();
-
-	old->setSecondaryMotor(nullptr);
+	q->controlledPlayer()->setSecondaryMotor(nullptr);
 	p->setSecondaryMotor(std::make_unique<RpgMotorPlayerControlled>(p));
 
 	q->setControlledPlayer(p);
-
-	syncChunkMarker(old);
 }
+
+
+/**
+ * @brief RpgGamePrivate::onGamePadChanged
+ */
+
+void RpgGamePrivate::onGamePadChanged(const double &)
+{
+	if (RpgPlayer *p = q->controlledPlayer()) {
+		if (RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(p->currentMotor())) {
+			setFromGamepad(motor);
+		}
+	}
+}
+
+
+/**
+ * @brief RpgGamePrivate::onGamePadButtonL3Changed
+ * @param pressed
+ */
+
+void RpgGamePrivate::onGamePadButtonL3Changed(const bool &pressed)
+{
+	if (!pressed)
+		joystickClickedB(true);
+}
+
+
+/**
+ * @brief RpgGamePrivate::onGamePadButtonR3Changed
+ * @param pressed
+ */
+
+void RpgGamePrivate::onGamePadButtonR3Changed(const bool &pressed)
+{
+	if (!pressed)
+		joystickClickedC(true);
+}
+
+
+/**
+ * @brief RpgGamePrivate::onGamePadButtonL1Changed
+ * @param pressed
+ */
+
+void RpgGamePrivate::onGamePadButtonL1Changed(const bool &pressed)
+{
+	if (!pressed)
+		joystickClickedB(true);
+}
+
+
+/**
+ * @brief RpgGamePrivate::onGamePadButtonR1Changed
+ * @param pressed
+ */
+
+void RpgGamePrivate::onGamePadButtonR1Changed(const bool &pressed)
+{
+	if (!pressed)
+		joystickClickedC(true);
+}
+
+
 
 
 
@@ -1132,6 +1438,37 @@ RpgGamePrivate::RpgGamePrivate(RpgGame *game, const bool &multi)
 		m_logic = std::make_unique<Rpg::RpgLogicClientMulti>();
 	else
 		m_logic = std::make_unique<Rpg::RpgLogicClientSingle>();
+
+
+#ifdef WITH_GAMEPAD
+
+	//QLoggingCategory::setFilterRules(QStringLiteral("qt.gamepad.debug=true"));
+
+	bool gpEnabled = Utils::settingsGet(QStringLiteral("game/gamepad"), true).toBool();
+
+	if (auto l = QGamepadManager::instance()->connectedGamepads(); !l.isEmpty()) {
+		LOG_CDEBUG("app") << "Found gamepads:" << l.size();
+
+		if (!gpEnabled) {
+			LOG_CINFO("app") << "Gamepad disabled";
+		} else {
+			m_gamePad.reset(new QGamepad(l.first(), nullptr));
+
+			LOG_CINFO("app") << "Connected gamepad:" << m_gamePad->name();
+
+			connect(m_gamePad.get(), &QGamepad::axisLeftXChanged, this, &RpgGamePrivate::onGamePadChanged);
+			connect(m_gamePad.get(), &QGamepad::axisLeftYChanged, this, &RpgGamePrivate::onGamePadChanged);
+			connect(m_gamePad.get(), &QGamepad::axisRightXChanged, this, &RpgGamePrivate::onGamePadChanged);
+			connect(m_gamePad.get(), &QGamepad::axisRightYChanged, this, &RpgGamePrivate::onGamePadChanged);
+
+			connect(m_gamePad.get(), &QGamepad::buttonL3Changed, this, &RpgGamePrivate::onGamePadButtonL3Changed);
+			connect(m_gamePad.get(), &QGamepad::buttonR3Changed, this, &RpgGamePrivate::onGamePadButtonR3Changed);
+			connect(m_gamePad.get(), &QGamepad::buttonL1Changed, this, &RpgGamePrivate::onGamePadButtonL1Changed);
+			connect(m_gamePad.get(), &QGamepad::buttonR1Changed, this, &RpgGamePrivate::onGamePadButtonR1Changed);
+		}
+	}
+#endif
+
 }
 
 

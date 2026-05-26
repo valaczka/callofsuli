@@ -426,6 +426,7 @@ void RpgGameItem::loadTower(TiledScene *scene, Tiled::GroupLayer *group, Tiled::
 
 	QMultiMap<RpgStream::Team, TiledQuick::TileLayerItem *> layers;
 	RpgTower *tower = nullptr;
+	QList<RpgDefenderPoint*> defenders;
 
 	TiledVisualItem *visualItem = nullptr;
 
@@ -489,6 +490,13 @@ void RpgGameItem::loadTower(TiledScene *scene, Tiled::GroupLayer *group, Tiled::
 				}
 
 			}
+		} else if (Tiled::GroupLayer *gr = layer->asGroupLayer()) {
+			if (gr->className() == QStringLiteral("defender")) {
+				if (RpgDefenderPoint *d = loadDefender(scene, gr, renderer))
+					defenders.append(d);
+			} else {
+				LOG_CWARNING("game") << "Invalid group layer" << gr->className() << gr->name();
+			}
 		}
 	}
 
@@ -503,8 +511,55 @@ void RpgGameItem::loadTower(TiledScene *scene, Tiled::GroupLayer *group, Tiled::
 		tower->setVisualItem(visualItem);
 
 	tower->addLayers(layers);
+	tower->addDefenderPoints(defenders);
 
 	d->towerAdd(tower);
+}
+
+
+
+
+
+/**
+ * @brief RpgGameItem::loadDefender
+ * @param scene
+ * @param group
+ * @param renderer
+ */
+
+RpgDefenderPoint *RpgGameItem::loadDefender(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer)
+{
+	LOG_CDEBUG("game") << "LOAD DEFENDER" << group->name();
+
+	TiledQuick::TileLayerItem *item = nullptr;
+	RpgDefenderPoint *defender = nullptr;
+
+	for (Tiled::Layer *layer : std::as_const(*group)) {
+		if (Tiled::TileLayer *tl = layer->asTileLayer()) {
+			LOG_CDEBUG("game") << "LOAD DEFENDER TILE" << group->name() << layer->name();
+			item = scene->addTileLayer(tl, renderer);
+			item->setVisible(false);
+		} else if (Tiled::ObjectGroup *gr = layer->asObjectGroup()) {
+			LOG_CDEBUG("game") << "LOAD DEFENDER OBJECT" << group->name() << gr->name() << gr->className();
+			for (Tiled::MapObject *object : std::as_const(gr->objects())) {
+				if (object->className() == QStringLiteral("defender")) {
+					defender = createObject<RpgDefenderPoint>(TiledObjectBody::ObjectId{.ownerId = 0,
+																										   .sceneId = scene->sceneId(),
+																										   .id = static_cast<quint32>(object->id())
+																				 }, scene,
+																				 object->position(), this, renderer, gr->totalOffset());
+
+				} else {
+					LOG_CWARNING("game") << "Invalid object" << gr->className() << gr->name();
+				}
+			}
+		}
+	}
+
+	if (defender)
+		defender->setVisualItem(item);
+
+	return defender;
 }
 
 
@@ -782,12 +837,6 @@ void RpgGameItem::keyPressEvent(QKeyEvent *event)
 				m_controlledPlayer->exitHiding();
 			break;
 
-		case Qt::Key_Space:
-		case Qt::Key_Insert:
-		case Qt::Key_0:
-			if (m_controlledPlayer)
-				m_controlledPlayer->attackCurrentWeapon();
-			break;
 
 		case Qt::Key_Q:
 		case Qt::Key_Delete:
@@ -811,6 +860,13 @@ void RpgGameItem::keyPressEvent(QKeyEvent *event)
 			emit questsRequest();
 			break;*/
 
+		case Qt::Key_Space:
+		case Qt::Key_Insert:
+		case Qt::Key_0:
+			if (motor)
+				motor->attackCurrentTarget();
+			break;
+
 		case Qt::Key_Tab:
 			d->changeControlledPlayer();
 			break;
@@ -820,13 +876,6 @@ void RpgGameItem::keyPressEvent(QKeyEvent *event)
 		case Qt::Key_E:
 			if (motor)
 				motor->useCurrentControl();
-			break;
-
-		case Qt::Key_Space:
-		case Qt::Key_Insert:
-		case Qt::Key_0:
-			if (motor)
-				motor->eventTest();
 			break;
 
 		default:
@@ -856,8 +905,7 @@ void RpgGameItem::joystickStateEvent(const Joystick &joystick, const JoystickSta
 {
 	if (RpgPlayer *p = m_game->controlledPlayer()) {
 		if (RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(p->currentMotor())) {
-			if (joystick == JoystickA)
-				motor->setCurrentJoystickState(state);
+			d->setJoystickState(motor, joystick, state);
 		}
 	}
 	TiledGame::joystickStateEvent(joystick, state);

@@ -33,6 +33,8 @@
 #include "tiledvisualitem.h"
 
 
+class RpgDefenderPoint;
+
 
 /**
  * @brief The RpgGameItem class
@@ -60,6 +62,7 @@ public:
 		FixtureSensor			= 1 << 4,
 		FixtureVirtualCircle	= 1 << 5,
 		FixtureControl			= 1 << 6,
+		FixtureDefender			= 1 << 7,
 
 
 		FixtureAll =
@@ -69,7 +72,8 @@ public:
 		FixturePlayerTarget |
 		FixtureSensor |
 		FixtureVirtualCircle |
-		FixtureControl
+		FixtureControl |
+		FixtureDefender
 
 	};
 
@@ -112,7 +116,9 @@ signals:
 	void isContentReadyChanged();
 
 private:
+	void loadMp(Tiled::GroupLayer *group, TiledScene *scene, Tiled::MapRenderer *renderer);
 	void loadTower(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer);
+	RpgDefenderPoint* loadDefender(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer);
 
 	RpgGamePrivate *d = nullptr;
 
@@ -123,7 +129,6 @@ private:
 
 	friend class RpgGame;
 	friend class RpgGamePrivate;
-	void loadMp(Tiled::GroupLayer *group, TiledScene *scene, Tiled::MapRenderer *renderer);
 };
 
 

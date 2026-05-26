@@ -44,14 +44,13 @@ class RpgPlayer : public RpgEntity
 	Q_OBJECT
 	QML_ELEMENT
 
-	Q_PROPERTY(float chunkRadius READ chunkRadius WRITE setChunkRadius NOTIFY chunkRadiusChanged FINAL)
 	Q_PROPERTY(QPoint currentChunk READ currentChunk NOTIFY currentChunkChanged FINAL)
 	Q_PROPERTY(QPointF currentChunkCenter READ currentChunkCenter NOTIFY currentChunkCenterChanged FINAL)
 
 	Q_PROPERTY(int mp READ mp WRITE setMp NOTIFY mpChanged FINAL)
 	Q_PROPERTY(int maxMp READ maxMp NOTIFY maxMpChanged FINAL)
 
-	Q_PROPERTY(RpgTower* tower READ tower WRITE setTower NOTIFY towerChanged FINAL)
+	Q_PROPERTY(RpgEntity *targetEntity READ targetEntity WRITE setTargetEntity NOTIFY targetEntityChanged FINAL)
 
 public:
 	RpgPlayer(RpgGameItem *gameItem, const cpVect &center = cpvzero);
@@ -70,9 +69,6 @@ public:
 	QPoint currentChunk() const;
 	void setCurrentChunk(QPoint newCurrentChunk);
 
-	float chunkRadius() const;
-	void setChunkRadius(float newChunkRadius);
-
 	QPointF currentChunkCenter() const;
 	void setCurrentChunkCenter(QPointF newCurrentChunkCenter);
 
@@ -81,35 +77,33 @@ public:
 
 	int maxMp() const;
 
-	RpgStream::Team team() const;
-	void setTeam(RpgStream::Team newTeam);
+	RpgEntity *targetEntity() const;
+	void setTargetEntity(RpgEntity *newTargetEntity);
 
-	RpgTower *tower() const;
-	void setTower(RpgTower *newTower);
+	TiledObjectBody *targetControl() const;
+	void setTargetControl(TiledObjectBody *newTargetControl);
 
 signals:
 	void currentChunkChanged();
-	void chunkRadiusChanged();
 	void currentChunkCenterChanged();
 	void mpChanged();
 	void maxMpChanged();
-	void towerChanged();
+	void targetEntityChanged();
 
 protected:
+	void synchronize() override;
 	void onAlive() override;
 	void onDead() override;
+	void updateColor() override;
 
 private:
 	void loadSfx();
 	void onCurrentSpriteChanged();
-	void updateColor();
 
 private:
-	float m_chunkRadius = 0.;
 	QPoint m_currentChunk;
 	QPointF m_currentChunkCenter;
 	int m_mp = 0;
-	RpgStream::Team m_team = RpgStream::TeamNone;
 
 	TiledGameSfx m_sfxPain;
 	TiledGameSfx m_sfxFootStep;
@@ -123,7 +117,9 @@ private:
 	RpgPlayerDefinition m_config;
 
 	QQuickItem *m_markerItem = nullptr;
-	RpgTower *m_tower = nullptr;
+	RpgEntity *m_targetEntity = nullptr;
+	TiledObjectBody *m_targetControl = nullptr;
+
 
 	friend class RpgMotorPlayer;
 	friend class RpgMotorPlayerControlled;
@@ -170,8 +166,16 @@ public:
 	TiledGame::JoystickState currentJoystickState() const;
 	void setCurrentJoystickState(const TiledGame::JoystickState &newCurrentJoystickState);
 
-	void eventTest();
+	TiledGame::JoystickState controlJoystickState() const;
+	void setControlJoystickState(const TiledGame::JoystickState &newControlJoystickState);
+
+	TiledGame::JoystickState targetJoystickState() const;
+	void setTargetJoystickState(const TiledGame::JoystickState &newTargetJoystickState);
+
+	void attackCurrentTarget();
 	void useCurrentControl();
+	void putDefender(const bool &click);
+
 
 protected:
 	virtual void onShapeContactBegin(cpShape *self, cpShape *other) override;
@@ -184,8 +188,22 @@ protected:
 	Rpg::RpgPlayerStatePull m_statePull;
 
 	TiledGame::JoystickState m_currentJoystickState;
+	TiledGame::JoystickState m_controlJoystickState;
+	TiledGame::JoystickState m_targetJoystickState;
+
 	std::vector<RpgStream::EventPlayer> m_eventList;
 
+private:
+	RpgEntity* findNearestTarget(const cpBitmask &category);
+	RpgEntity* findNearestTarget(const cpVect &rayDest, const cpBitmask &category);
+
+	TiledObjectBody* findNearestControl(const float &maxDist,
+										const cpBitmask &category = RpgGameItem::FixtureControl | RpgGameItem::FixtureDefender);
+	TiledObjectBody* findNearestControl(const cpVect &rayDest,
+										const cpBitmask &category = RpgGameItem::FixtureControl | RpgGameItem::FixtureDefender);
+	bool checkControl(TiledObjectBody *control) const;
+
+	std::optional<float> m_targetAngle;
 };
 
 

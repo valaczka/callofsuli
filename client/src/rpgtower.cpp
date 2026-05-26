@@ -28,6 +28,13 @@
 
 
 
+const TiledObjectBody::DrawBodyStyle RpgDefenderPoint::m_style = {
+	.color = QColorConstants::Svg::cyan,
+	.lineWidth = 1.,
+	.filled = true,
+	.outlined = true
+};
+
 
 /**
  * @brief RpgTower::RpgTower
@@ -54,6 +61,7 @@ RpgTower::RpgTower(RpgGameItem *gameItem, Tiled::MapObject *object, Tiled::MapRe
 void RpgTower::initialize()
 {
 	m_markerItem = createMarkerItem(QStringLiteral("qrc:/RpgTowerMarker.qml"));
+	m_markerItem->setVisible(false);
 	setDisplayName("TOWER 200");
 }
 
@@ -71,7 +79,7 @@ void RpgTower::worldStep()
 	Rpg::RpgLogicScope scope = m_gameItem->game()->rpgLogicClient()->getScope();
 	auto entity = scope.entityFromIdTag(RpgLogicObjectMapper::getId(objectId()));
 
-	if (entity == entt::null) {
+	if (!scope.valid(entity)) {
 		LOG_CERROR("game") << "Invalid entity" << this;
 		return;
 	}
@@ -83,7 +91,15 @@ void RpgTower::worldStep()
 		return;
 	}
 
+	const bool oldActive = m_state.active();
 	setState(*state);
+
+	if (state->active() != oldActive) {
+		LOG_CERROR("game") << "ACTIVE CHANGED" << state->active() << m_state.active() << m_defenderLayers;
+		reloadDefenderLayersVisibility();
+	}
+
+	setCanAttack(!state->hasDefender() && state->lockedUntil() < m_gameItem->tickTimer()->currentTick());
 }
 
 
@@ -115,6 +131,45 @@ void RpgTower::setVisualItem(TiledVisualItem *item)
 }
 
 
+/**
+ * @brief RpgTower::addDefenderPoints
+ * @param list
+ */
+
+void RpgTower::addDefenderPoints(const QList<RpgDefenderPoint *> &list)
+{
+	m_defenderPoints.append(list);
+
+	for (RpgDefenderPoint *p : list)
+		if (p) p->setTower(this);
+}
+
+
+/**
+ * @brief RpgTower::setDefenderLayersVisible
+ * @param visible
+ */
+
+void RpgTower::setDefenderLayersVisible(const bool visible)
+{
+	m_defenderLayers = visible;
+	reloadDefenderLayersVisibility();
+}
+
+
+/**
+ * @brief RpgTower::reloadDefenderLayersVisibility
+ */
+
+void RpgTower::reloadDefenderLayersVisibility()
+{
+	for (RpgDefenderPoint *p : std::as_const(m_defenderPoints)) {
+		if (QQuickItem *item = p->visualItem())
+			item->setVisible(m_defenderLayers && m_state.active() && !p->defender());
+	}
+}
+
+
 
 
 /**
@@ -132,6 +187,16 @@ void RpgTower::synchronize()
 	setLoad(m_state.load());
 
 	TiledObjectBody::synchronize();
+}
+
+QQuickItem *RpgTower::markerItem() const
+{
+	return m_markerItem;
+}
+
+const QList<RpgDefenderPoint *> &RpgTower::defenderPoints() const
+{
+	return m_defenderPoints;
 }
 
 RpgGameItem *RpgTower::gameItem() const
@@ -191,4 +256,65 @@ void RpgTower::setColor(const QColor &newColor)
 		return;
 	m_color = newColor;
 	emit colorChanged();
+}
+
+
+/**
+ * @brief RpgTower::canAttack
+ * @return
+ */
+
+bool RpgTower::canAttack() const
+{
+	return m_canAttack;
+}
+
+void RpgTower::setCanAttack(bool newCanAttack)
+{
+	if (m_canAttack == newCanAttack)
+		return;
+	m_canAttack = newCanAttack;
+	emit canAttackChanged();
+}
+
+
+
+
+
+/**
+ * @brief RpgDefenderPoint::RpgDefenderPoint
+ * @param center
+ * @param game
+ * @param renderer
+ * @param offset
+ */
+
+RpgDefenderPoint::RpgDefenderPoint(const QPointF &center, TiledGame *game,
+								   Tiled::MapRenderer *renderer, const QPointF &offset)
+	: TiledObjectBody(center, 25., game, renderer, CP_BODY_TYPE_STATIC, offset)
+{
+	m_drawBodyStyle = m_style;
+
+	setSensor(true);
+	filterSet(RpgGameItem::FixtureControl, RpgGameItem::FixtureAll);
+}
+
+RpgDefender *RpgDefenderPoint::defender() const
+{
+	return m_defender;
+}
+
+void RpgDefenderPoint::setDefender(RpgDefender *newDefender)
+{
+	m_defender = newDefender;
+}
+
+RpgTower *RpgDefenderPoint::tower() const
+{
+	return m_tower;
+}
+
+void RpgDefenderPoint::setTower(RpgTower *newTower)
+{
+	m_tower = newTower;
 }

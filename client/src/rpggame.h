@@ -163,6 +163,9 @@ struct RpgLogicObjectMapper
 
 	quint32 set(RpgObject *object);
 	RpgObject *get(const quint32 &id) { return map.value(id); }
+
+	template <class T, typename = std::enable_if<std::is_base_of<RpgObject, T>::value>::type>
+	T* get(const quint32 &id) { return qobject_cast<T*>(map.value(id)); }
 };
 
 

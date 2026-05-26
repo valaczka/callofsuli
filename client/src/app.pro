@@ -5,6 +5,7 @@ QT += gui quick svg xml network gui-private quickcontrols2 charts websockets cor
 
 !wasm: QT += pdf
 
+
 CONFIG += c++2a
 CONFIG += separate_debug_info
 CONFIG += permissions
@@ -13,6 +14,9 @@ include(../../common.pri)
 include(../../version/version.pri)
 include(../../lib/callofsuli-core/callofsuli-core.pri)
 include(../../translations/translations.pri)
+
+
+if ($$WithGamepad): QT += gamepadlegacy
 
 
 DESTDIR = ../..
@@ -246,6 +250,7 @@ SOURCES += \
 	offsetmodel.cpp \
 	pass.cpp \
 	question.cpp \
+	rpgdefender.cpp \
 	rpgentity.cpp \
 	rpggame.cpp \
 	rpggameitem.cpp \
@@ -339,6 +344,7 @@ HEADERS += \
 	offsetmodel.h \
 	pass.h \
 	question.h \
+	rpgdefender.h \
 	rpgentity.h \
 	rpggame.h \
 	rpggame_p.h \
