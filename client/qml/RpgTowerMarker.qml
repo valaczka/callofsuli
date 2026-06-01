@@ -14,7 +14,7 @@ TiledPlayerMarker {
 	progressBar.to: 100
 	progressBar.value: tower ? tower.load : 0
 
-	entityHeight: 200
+	entityHeight: 150
 
 	progressBarColor: tower ? tower.color : Qaterial.Colors.white
 	labelColor: tower ? tower.color : Qaterial.Colors.white

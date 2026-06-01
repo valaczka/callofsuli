@@ -212,6 +212,8 @@ public:
 
 	Server *server() const;
 
+	virtual QUrl rpgServerUrl(const QString &path) const { return QUrl(path); }
+
 	Q_INVOKABLE virtual Server *serverAddWithUrl(const QUrl &url);
 	Q_INVOKABLE void connectToServer(Server *server);
 
@@ -319,7 +321,6 @@ private:
 	void onSoundEffectTimeout();
 	void onGameDestroyRequest();
 	void onDemoMapDestroyed();
-	Server *getStaticServer();
 
 
 protected:
@@ -350,9 +351,6 @@ protected:
 	std::unique_ptr<Updater> m_updater;
 	std::unique_ptr<QTranslator> m_translator;
 	std::unique_ptr<Downloader> m_downloader;
-
-	std::unique_ptr<Server> m_staticServer;
-
 
 private:
 	std::unique_ptr<Sound> m_sound;

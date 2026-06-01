@@ -367,17 +367,12 @@ void StandaloneClient::authorizedServersGet()
 			QNetworkInformation::instance()->reachability() != QNetworkInformation::Reachability::Online)
 		return;
 
-	HttpConnection *HttpConnection = m_httpConnection.get();
+	HttpConnection *http = m_httpConnection.get();
 
-	if (!HttpConnection)
+	if (!http)
 		return;
 
-	QNetworkRequest r(QUrl(_URL_SERVERS));
-
-	QNetworkReply *reply = HttpConnection->networkManager()->get(r);
-
-	HttpReply *wr = new HttpReply(reply, HttpConnection);
-	connect(wr, &HttpReply::finished, HttpConnection, &HttpConnection::checkPending);
+	HttpReply *wr = http->getUrl(QUrl(_URL_SERVERS));
 
 	LOG_CDEBUG("client") << "Download authorized servers";
 
@@ -468,6 +463,18 @@ void StandaloneClient::setVibrate(bool newVibrate)
 ServerList *StandaloneClient::serverList() const
 {
 	return m_serverList.get();
+}
+
+
+/**
+ * @brief StandaloneClient::rpgServerUrl
+ * @return
+ */
+
+QUrl StandaloneClient::rpgServerUrl(const QString &path) const
+{
+	return QUrl(QStringLiteral("http://localhost:8080/content/").append(path));
+	//return QUrl(QStringLiteral("https://valaczka.github.io/callofsuli/demo/").append(path));
 }
 
 

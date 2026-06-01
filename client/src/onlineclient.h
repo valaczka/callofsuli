@@ -50,6 +50,8 @@ public:
 	virtual bool fullScreenHelper() const override;
 	virtual void setFullScreenHelper(bool newFullScreenHelper) override;
 
+	virtual QUrl rpgServerUrl(const QString &path) const override;
+
 protected:
 	virtual void fullScreenHelperConnect(QQuickWindow *window) override;
 	virtual void fullScreenHelperDisconnect(QQuickWindow *window) override;

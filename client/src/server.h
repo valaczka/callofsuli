@@ -42,10 +42,6 @@
 #include <selectableobject.h>
 #include "user.h"
 
-#ifndef Q_OS_WASM
-#include "qlambdathreadworker.h"
-#endif
-
 class Client;
 class Server;
 
@@ -84,8 +80,6 @@ class Server : public SelectableObject
 	Q_PROPERTY(QList<Rank> rankList READ rankList NOTIFY rankListChanged)
 	Q_PROPERTY(bool temporary READ temporary WRITE setTemporary NOTIFY temporaryChanged)
 	Q_PROPERTY(int maxUploadSize READ maxUploadSize WRITE setMaxUploadSize NOTIFY maxUploadSizeChanged)
-	Q_PROPERTY(bool isStatic READ isStatic WRITE setIsStatic NOTIFY isStaticChanged FINAL)
-	Q_PROPERTY(QList<DynamicContent> availableContent READ availableContent WRITE setAvailableContent NOTIFY availableContentChanged FINAL)
 
 #ifndef QT_NO_SSL
 	Q_PROPERTY(QList<QSslError::SslError> ignoredSslErrors READ ignoredSslErrors WRITE setIgnoredSslErrors NOTIFY ignoredSslErrorsChanged)
@@ -94,16 +88,6 @@ class Server : public SelectableObject
 public:
 	explicit Server(QObject *parent = nullptr);
 	virtual ~Server();
-
-	struct DynamicContent {
-		QString name;
-		QString md5;
-		qint64 size = 0;
-
-		friend bool operator==(const DynamicContent &c1, const DynamicContent &c2) {
-			return c1.name == c2.name && c1.md5 == c2.md5 && c1.size == c2.size;
-		}
-	};
 
 	enum NotificationType {
 		NotificationInvalid,
@@ -167,16 +151,6 @@ public:
 	int maxUploadSize() const;
 	void setMaxUploadSize(int newMaxUploadSize);
 
-	bool dynamicContentCheck(QVector<DynamicContent> *listPtr);
-	bool dynamicContentRemove(QVector<DynamicContent> *listPtr, const QString &name, const QByteArray &data);
-	bool dynamicContentSaveAndLoad(const QString &name, const QByteArray &data);
-	bool dynamicContentUnload(const QString &name);
-	void unloadDynamicContents();
-	void loadDynamicContent(const QString &filename);
-
-	bool isStatic() const;
-	void setIsStatic(bool newIsStatic);
-
 	Q_INVOKABLE void checkNotification();
 	Q_INVOKABLE void closeNotification(const NotificationType &type, const int &id);
 
@@ -185,11 +159,8 @@ public:
 
 	OfflineClientEngine* offlineEngine() const;
 
-	QList<DynamicContent> availableContent() const;
-	void setAvailableContent(const QList<DynamicContent> &newAvailableContent);
-
 signals:
-	void notificationActivated(const NotificationType &type, const int &id, const QString &text);
+	void notificationActivated(const Server::NotificationType &type, const int &id, const QString &text);
 
 	void urlChanged();
 	void directoryChanged();
@@ -203,10 +174,7 @@ signals:
 	void rankListChanged();
 	void temporaryChanged();
 	void maxUploadSizeChanged();
-	void isStaticChanged();
 	void sessionIdChanged();
-
-	void availableContentChanged();
 
 private:
 	std::optional<QDir> getContentDir() const;
@@ -230,15 +198,6 @@ private:
 	QByteArray m_certificate;
 	QJsonObject m_config;
 
-	// Dynamic content
-
-#ifndef Q_OS_WASM
-	QLambdaThreadWorker m_worker;
-	QRecursiveMutex m_mutex;
-#endif
-
-	QList<DynamicContent> m_availableContent;
-	QStringList m_loadedContentList;
 
 	QHash<QPair<NotificationType, int>, QJsonValue> m_notificationContent;
 	QByteArray m_sessionId;

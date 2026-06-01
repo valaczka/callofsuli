@@ -103,13 +103,36 @@ QPoint RpgLogicClient::getChunkFromVector(const cpVect &point, const float &angl
 
 
 
+/**
+ * @brief RpgLogicClient::eventRealized
+ * @param entity
+ */
+
+void RpgLogicClient::eventRealized(entt::entity entity)
+{
+	RpgLogicScope scope = getScope();
+
+	if (!scope.valid(entity))
+		return;
+
+	if (EventTowerActiveChanged *e = scope.try_get<EventTowerActiveChanged>(entity)) {
+		LOG_CINFO("game") << "CHANGED" << e->team << e->active;
+	}
+}
+
+
+
+
+
+
+
 
 
 /**
  * @brief RpgLogicClientSingle::RpgLogicClientSingle
  */
 
-RpgLogicClientSingle::RpgLogicClientSingle() : RpgLogicClient(1, 0) {}
+RpgLogicClientSingle::RpgLogicClientSingle() : RpgLogicClient(1, 0) {}						// nem lehet 0, mert akkor nem engedne feldolgozni semmit
 
 
 /**

@@ -371,6 +371,26 @@ public:
 		return list;
 	}
 
+	std::vector<T> extractAtLeast(const quint32 &minTick, const int &max = 0) {
+		std::vector<T> list;
+
+		if (m_head == 0)
+			return list;
+
+		const quint32 from = std::max(std::max((int) m_head - (int) PULL_SIZE, 0),
+									  max > 0 && max <= (int) PULL_SIZE ? ((int) m_head - max) : 0);
+
+		list.reserve(PULL_SIZE);
+
+		for (quint32 i=from; i<m_head; ++i) {
+			const T &d = m_list[i % PULL_SIZE];
+			if (d.tick() >= minTick)
+				list.emplace_back(d);
+		}
+
+		return list;
+	}
+
 
 	const T* at(const quint32 &tick) const {
 		if (m_head == 0)
@@ -437,11 +457,12 @@ struct DeleteTag { };
 
 // Esemény
 
-struct EventTag {
+struct EventTag {									// Előre rögzítjük (majd meg fog történni)
 	quint32 tick = 0;
 };
 
-struct EventProcessingTag { };
+struct EventProcessingTag { };						// Az aktuális renderben dolgozzuk fel (ellenőrzések után az ütközések feloldása)
+struct EventRealTag { };							// Az aktuális renderben ténylegesen megtörtént események
 
 
 
@@ -462,6 +483,21 @@ struct Player
 };
 
 
+
+// A játékos kérdésre válaszol
+
+struct LockTag {
+	quint32 id = 0;
+	quint32 expire = 0;								// Amikor lejár, töröljük automatikusan (pl. ha kilépett közben)
+	quint32 penalty = 1;							// Hp csökkentés hibás válasz esetén
+};
+
+
+// Ameddig a játékos nem kérhet újabb zárolást
+
+struct PenaltyTag {
+	quint32 expire = 0;
+};
 
 
 // Mp kibocsátó
@@ -491,6 +527,7 @@ struct Mp
 	entt::entity emitter = entt::null;
 
 	cpVect pos = cpvzero;
+	cpVect origin = cpvzero;
 };
 
 
@@ -650,6 +687,77 @@ typedef BaseStatePull<RpgStream::Events> EventsOutput;
 
 
 
+///
+/// Game events
+///
+
+
+
+// Player pick mp
+
+struct EventMpPick {
+	entt::entity mp;
+	entt::entity player;
+	int origMp = 0;				// Akinek kevesebb mp-je van, az kapja
+};
+
+
+
+// Player target tower
+
+struct EventTower {
+	entt::entity tower;
+	entt::entity player;
+	bool lock = true;
+};
+
+
+
+// Player put tower defender
+
+struct EventDefenderPut {
+	entt::entity defender;
+	entt::entity player;
+};
+
+
+
+// Add defender to chunk
+
+struct EventDefenderAdd {
+	Chunk chunk;
+	entt::entity player;
+};
+
+
+
+
+// Player target player
+
+struct EventAttackPlayer {
+	entt::entity player;
+	entt::entity target;
+};
+
+
+
+// Player target defender
+
+struct EventAttackDefender {
+	entt::entity player;
+	entt::entity target;
+	bool lock = true;
+};
+
+
+
+// Tower activated
+
+struct EventTowerActiveChanged {
+	entt::entity tower;
+	bool active = false;
+	RpgStream::Team team = RpgStream::TeamNone;
+};
 
 
 
@@ -729,6 +837,8 @@ public:
 	void emplacePlayers();
 
 
+protected:
+	virtual void eventRealized(entt::entity entity) { Q_UNUSED(entity); }
 
 
 
@@ -756,6 +866,20 @@ protected:
 
 		if (state)
 			return state;
+
+		if (!pull)
+			return nullptr;
+
+		return pull->last();
+	}
+
+
+	template <class T, typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T>::value>::type>
+	const T* getLastState(entt::entity ent) const
+	{
+		QMutexLocker locker(&m_mutex);
+
+		auto pull = m_registry.try_get<BaseStatePull<T> >(ent);
 
 		if (!pull)
 			return nullptr;

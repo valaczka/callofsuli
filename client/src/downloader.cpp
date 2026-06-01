@@ -26,6 +26,7 @@
 
 #include "downloader.h"
 #include "application.h"
+#include "utils_.h"
 
 Downloader::Downloader(QObject *parent)
 	: QObject{parent}
@@ -33,11 +34,16 @@ Downloader::Downloader(QObject *parent)
 
 }
 
-Downloader::Downloader(Server *server, QObject *parent)
-	: QObject(parent)
-	, m_server(server)
-{
 
+
+
+/**
+ * @brief Downloader::~Downloader
+ */
+
+Downloader::~Downloader()
+{
+	unloadDynamicContents();
 }
 
 
@@ -49,13 +55,28 @@ Downloader::Downloader(Server *server, QObject *parent)
 
 void Downloader::download()
 {
-	check();
-
-	if (m_contentList.isEmpty()) {
-		LOG_CDEBUG("client") << "Downloader content empty";
-		emit contentDownloaded();
+	if (m_state == StateError) {
+		emit downloadError();
 		return;
 	}
+
+
+	if (m_contentList.isEmpty()) {
+		LOG_CERROR("client") << "Downloader content empty";
+		emit downloadError();
+		setState(StateError);
+		return;
+	}
+
+
+	if (m_contentDict.isEmpty()) {
+		LOG_CERROR("client") << "Downloader content dictionary empty";
+		emit downloadError();
+		setState(StateError);
+		return;
+	}
+
+	check();
 
 	Client *client = Application::instance()->client();
 
@@ -65,34 +86,30 @@ void Downloader::download()
 		if (data.progress < 1.0 && !data.reply) {
 			hasDownloadable = true;
 
-			QString fname = data.content.name;
+			QString fname = data.content.file;
 
-			HttpReply *r = client->httpConnection()->get(QStringLiteral("/content/")+fname)
+			HttpReply *r = client->httpConnection()->getUrl(client->rpgServerUrl(fname))
 						   ->fail(this, [](const QString &err){
 				Application::instance()->messageWarning(err, tr("Letöltési hiba"));
 			})
 						   ->done(this, [this, fname](const QByteArray &data){
-				if (!m_server) {
-					LOG_CERROR("client") << "Missing server";
+
+
+				if (!dynamicContentSave(fname, data)) {
 					Application::instance()->messageError(tr("Fájl mentése sikertelen: %1").arg(fname));
 					contentUpdate(fname, 0.);
 					emit downloadError();
-					return;
-				}
-
-
-				if (!m_server->dynamicContentSaveAndLoad(fname, data)) {
-					Application::instance()->messageError(tr("Fájl mentése sikertelen: %1").arg(fname));
-					contentUpdate(fname, 0.);
-					emit downloadError();
+					setState(StateError);
 					return;
 				}
 
 				contentUpdate(fname, 1.);
 				recalculate();
 
-				if (m_downloadedCount >= m_count)
+				if (m_downloadedCount >= m_count) {
 					emit contentDownloaded();
+					setState(StateContentReady);
+				}
 			});
 
 			connect(r, &HttpReply::downloadProgress, this, [this, fname](const qreal &percent) {
@@ -104,28 +121,79 @@ void Downloader::download()
 	if (!hasDownloadable) {
 		LOG_CDEBUG("client") << "All downloader content ready";
 		emit contentDownloaded();
+		setState(StateContentReady);
 		return;
 	}
 
 }
 
 
+
 /**
- * @brief Downloader::server
+ * @brief Downloader::sharedContentDir
  * @return
  */
 
-Server *Downloader::server() const
+std::optional<QDir> Downloader::sharedContentDir()
 {
-	return m_server;
+	static const QString subdir = "shared";
+
+#ifdef Q_OS_WASM
+	QDir dir = QStringLiteral("/");
+#else
+	QDir dir = Utils::standardPath();
+
+	if ((!dir.exists(subdir) && !dir.mkdir(subdir)) || !dir.cd(subdir)) {
+		Application::instance()->messageError(tr("Belső hiba"));
+		return std::nullopt;
+	}
+#endif
+
+	return dir;
 }
 
-void Downloader::setServer(Server *newServer)
+
+
+/**
+ * @brief Downloader::fileChecksum
+ * @param fileName
+ * @param alg
+ * @return
+ */
+
+std::optional<QByteArray> Downloader::fileChecksum(const QString &fileName, const QCryptographicHash::Algorithm &alg, qint64 *sizePtr)
 {
-	if (m_server == newServer)
-		return;
-	m_server = newServer;
-	emit serverChanged();
+	QCryptographicHash hash(alg);
+
+	QFile f(fileName);
+
+	if (f.open(QFile::ReadOnly)) {
+		if (sizePtr)
+			*sizePtr = f.size();
+
+		QCryptographicHash hash(alg);
+		if (hash.addData(&f)) {
+			return hash.result();
+		}
+	}
+
+	if (sizePtr)
+		*sizePtr = 0;
+
+	return std::nullopt;
+}
+
+
+
+/**
+ * @brief Downloader::clear
+ */
+
+void Downloader::clear()
+{
+	contentClear();
+	contentDictClear();
+	setState(StateInvalid);
 }
 
 
@@ -136,6 +204,7 @@ void Downloader::setServer(Server *newServer)
 void Downloader::contentClear()
 {
 	m_contentList.clear();
+	setState(StateInvalid);
 	recalculate();
 }
 
@@ -145,12 +214,30 @@ void Downloader::contentClear()
  * @param content
  */
 
-void Downloader::contentAdd(const Server::DynamicContent &content)
+void Downloader::contentAdd(const DynamicContent &content)
 {
+	if (content.file.isEmpty())
+		return;
+
 	if (!contains(content))
 		m_contentList.append(ReplyData{content, nullptr, 0.});
+
 	recalculate();
 }
+
+
+
+/**
+ * @brief Downloader::contentAdd
+ * @param contentList
+ */
+
+void Downloader::contentAdd(const QList<DynamicContent> &contentList)
+{
+	for (const DynamicContent &c : contentList)
+		contentAdd(c);
+}
+
 
 
 /**
@@ -158,7 +245,7 @@ void Downloader::contentAdd(const Server::DynamicContent &content)
  * @param content
  */
 
-void Downloader::contentRemove(const Server::DynamicContent &content)
+void Downloader::contentRemove(const DynamicContent &content)
 {
 	auto it = find(content);
 
@@ -192,7 +279,7 @@ void Downloader::contentRemove(const QString &name)
  * @param progress
  */
 
-void Downloader::contentUpdate(const Server::DynamicContent &content, const qreal &progress)
+void Downloader::contentUpdate(const DynamicContent &content, const qreal &progress)
 {
 	auto it = find(content);
 
@@ -231,7 +318,7 @@ void Downloader::contentUpdate(const QString &name, const qreal &progress)
  * @return
  */
 
-bool Downloader::contains(const Server::DynamicContent &content) const
+bool Downloader::contains(const DynamicContent &content) const
 {
 	return find(content) != m_contentList.constEnd();
 }
@@ -276,6 +363,80 @@ void Downloader::recalculate()
 }
 
 
+
+/**
+ * @brief Downloader::state
+ * @return
+ */
+
+Downloader::State Downloader::state() const
+{
+	return m_state;
+}
+
+void Downloader::setState(const State &newState)
+{
+	if (m_state == newState)
+		return;
+	m_state = newState;
+	emit stateChanged();
+}
+
+
+
+/**
+ * @brief Downloader::contentDict
+ * @return
+ */
+
+const QHash<QString, QString> &Downloader::contentDict() const
+{
+	return m_contentDict;
+}
+
+void Downloader::setContentDict(const QHash<QString, QString> &newContentDict)
+{
+	m_contentDict = newContentDict;
+}
+
+
+/**
+ * @brief Downloader::contentDictAdd
+ * @param tsx
+ * @param res
+ */
+
+void Downloader::contentDictAdd(const QString &tsx, const QString &res)
+{
+	if (!tsx.isEmpty() && !res.isEmpty())
+		m_contentDict[QStringLiteral(":/").append(tsx)] = res;
+}
+
+
+/**
+ * @brief Downloader::contentDictAdd
+ * @param json
+ */
+
+void Downloader::contentDictAdd(const QJsonObject &json)
+{
+	for (const auto &[key, value] : json.asKeyValueRange()) {
+		contentDictAdd(key.toString(), value.toString());
+	}
+}
+
+
+/**
+ * @brief Downloader::contentDictClear
+ */
+
+void Downloader::contentDictClear()
+{
+	m_contentDict.clear();
+	setState(StateInvalid);
+}
+
+
 int Downloader::downloadedCount() const
 {
 	return m_downloadedCount;
@@ -294,21 +455,33 @@ void Downloader::setDownloadedCount(int newDownloadedCount)
  * @brief Downloader::check
  */
 
-void Downloader::check()
+bool Downloader::check()
 {
-	if (!m_server) {
-		LOG_CERROR("client") << "Missing server";
-		emit downloadError();
-		return;
+	QVector<DynamicContent> list;
+	list.reserve(m_contentList.size());
+
+	const auto &dir = sharedContentDir();
+
+	if (!dir) {
+		LOG_CERROR("client") << "Invalid shared content directory";
+		setState(StateError);
+		return false;
 	}
 
-	QVector<Server::DynamicContent> list;
+	if (m_contentDict.isEmpty() || m_contentList.isEmpty())
+		return false;
+
+
+	bool hasAny = false;
 
 	for (const ReplyData &d : m_contentList) {
 		list.append(d.content);
+
+		if (!hasAny && dir->exists(d.content.file))
+			hasAny = true;
 	}
 
-	m_server->dynamicContentCheck(&list);
+	dynamicContentCheck(&list);
 
 	for (ReplyData &data : m_contentList) {
 		if (list.contains(data.content))
@@ -318,7 +491,14 @@ void Downloader::check()
 	}
 
 	recalculate();
+
+	if (!list.isEmpty())
+		setState(hasAny ? StateUpdateRequired : StateDownloadRequired);
+
+	return list.isEmpty();
 }
+
+
 
 
 /**
@@ -364,3 +544,249 @@ void Downloader::setFullSize(qint64 newFullSize)
 	m_fullSize = newFullSize;
 	emit fullSizeChanged();
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @brief Downloader::dynamicContentCheck
+ * @param listPtr
+ * @return
+ */
+
+bool Downloader::dynamicContentCheck(QVector<DynamicContent> *listPtr)
+{
+	Q_ASSERT(listPtr);
+
+	const auto &dir = sharedContentDir();
+
+	if (!dir) {
+		LOG_CERROR("client") << "Invalid shared content directory";
+		setState(StateError);
+		return false;
+	}
+
+#ifndef Q_OS_WASM
+	QDefer ret;
+	m_worker.execInThread([this, dir, ret, listPtr]() mutable {
+		QMutexLocker locker(&m_mutex);
+#endif
+		for (auto it = listPtr->begin(); it != listPtr->end(); ) {
+			if (it->file.isEmpty()) {
+				++it;
+				continue;
+			}
+
+			const QString &filename = dir->absoluteFilePath(it->file);
+
+			LOG_CTRACE("client") << "Check:" << filename;
+
+			if (!QFile::exists(filename)) {
+				++it;
+				continue;
+			}
+
+			qint64 size = 0;
+			const auto &hash = fileChecksum(filename, QCryptographicHash::Md5, &size);
+
+			if (!hash) {
+				++it;
+				continue;
+			}
+
+			if (it->md5AsByteArray() == hash.value() && it->size == size) {
+				LOG_CTRACE("client") << "Check success:" << qPrintable(filename);
+
+				if (m_loadedContent.contains(filename)) {
+					LOG_CTRACE("client") << "Content already loaded:" << filename;
+					//emit loadableContentOneDownloaded(filename);
+					it = listPtr->erase(it);
+					continue;
+				}
+
+				//loadDynamicContent(filename);
+				it = listPtr->erase(it);
+			} else {
+				++it;
+			}
+		}
+
+#ifndef Q_OS_WASM
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+#endif
+
+	return true;
+}
+
+
+
+
+
+
+
+/**
+ * @brief Downloader::dynamicContentSaveAndLoad
+ * @param name
+ * @param data
+ * @return
+ */
+
+bool Downloader::dynamicContentSave(const QString &name, const QByteArray &data)
+{
+	const auto &dir = sharedContentDir();
+
+	if (!dir) {
+		LOG_CERROR("client") << "Invalid shared content directory";
+		setState(StateError);
+		return false;
+	}
+
+#ifndef Q_OS_WASM
+	QDefer ret;
+	m_worker.execInThread([this, dir, ret, name, data]() mutable {
+		QMutexLocker locker(&m_mutex);
+#endif
+		const QString &filename = dir->absoluteFilePath(name);
+
+		LOG_CINFO("client") << "Save dynamic content:" << qPrintable(filename);
+
+		{
+			QFile f(filename);
+			if (!f.open(QIODevice::WriteOnly)) {
+				LOG_CERROR("client") << "Save failed:" << qPrintable(filename);
+#ifndef Q_OS_WASM
+				ret.reject();
+				return;
+#else
+				return false;
+#endif
+			}
+			f.write(data);
+			f.close();
+		}
+
+		///loadDynamicContent(filename);
+
+#ifdef Q_OS_WASM
+		return true;
+#else
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+	return ret.state() == QDeferredState::RESOLVED;
+#endif
+
+}
+
+
+
+
+
+
+
+/**
+ * @brief Downloader::unloadDynamicContents
+ */
+
+void Downloader::unloadDynamicContents()
+{
+	LOG_CTRACE("client") << "Unload dynamic contents";
+
+	for (const QString &s : m_loadedContent) {
+		if (!QResource::unregisterResource(s)) {
+			LOG_CERROR("client") << "Unregister resource failed:" << qPrintable(s);
+		} else {
+			LOG_CTRACE("client") << "Unload dynamic content:" << qPrintable(s);
+		}
+	}
+
+	m_loadedContent.clear();
+
+
+}
+
+
+
+
+
+/**
+ * @brief Downloader::loadDynamicContent
+ */
+
+void Downloader::loadDynamicContent()
+{
+	for (const ReplyData &d : m_contentList) {
+		if (d.content.file.endsWith(QStringLiteral(".cres")))
+			loadDynamicContent(d.content.file);
+	}
+}
+
+
+
+
+
+
+
+
+/**
+ * @brief Downloader::loadDynamicContent
+ * @param filename
+ */
+
+void Downloader::loadDynamicContent(const QString &filename)
+{
+	const auto dir = sharedContentDir();
+
+	if (!dir) {
+		LOG_CERROR("client") << "Invalid shared content directory";
+		setState(StateError);
+		return;
+	}
+
+	const QString full = dir->absoluteFilePath(filename);
+
+	LOG_CDEBUG("client") << "Load dynamic content:" << qPrintable(full);
+
+	if (m_loadedContent.contains(full)) {
+		LOG_CTRACE("client") << "Content already loaded" << qPrintable(full);
+		return;
+	}
+
+#ifndef Q_OS_WASM
+	QDefer ret;
+	m_worker.execInThread([this, full, ret]() mutable {
+		QMutexLocker locker(&m_mutex);
+#endif
+		if (!QResource::registerResource(full)) {
+			LOG_CERROR("client") << "Register resource failed:" << qPrintable(full);
+		} else {
+			m_loadedContent.insert(full);
+		}
+
+#ifndef Q_OS_WASM
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+#endif
+}
+
+
+
+
+

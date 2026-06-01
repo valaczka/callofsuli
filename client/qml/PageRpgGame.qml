@@ -4,7 +4,7 @@ import QtQuick.Layouts
 import CallOfSuli
 import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
-import "JScript.js" as J
+import "JScript.js" as JS
 
 Page {
 	id: root
@@ -19,12 +19,12 @@ Page {
 	}
 
 	property var stackPopFunction: function() {
-		/*if (_stack.activeComponent == _cmpRpg) {
+		if (_stack.activeComponent == _cmpRpg) {
 			if (_stack.currentItem.minimapVisible === true) {
 				_stack.currentItem.minimapVisible = false
 				return false
 			}
-		}*/
+		}
 
 		/*if (game && game.config.gameState == RpgConfig.StateError)
 			return true
@@ -36,10 +36,12 @@ Page {
 		if (_multiplayer)
 			return true
 
-		if (_rpgVisible && !game.rpgGame.paused && !_forceExit) {
-			game.rpgGame.paused = true
+		*/
+
+		if (_rpgVisible && !game.gameItem.paused && !_forceExit) {
+			game.gameItem.paused = true
 			return false
-		}*/
+		}
 
 		return true
 	}
@@ -51,7 +53,7 @@ Page {
 
 
 	property bool _oldWindowState: Client.fullScreenHelper
-	property bool _forceExit: true ///false
+	property bool _forceExit: false
 
 
 
@@ -59,9 +61,9 @@ Page {
 		id: _cmpPause
 
 		RpgPauseDialog {
-			//game: root.game ? root.game.rpgGame : null
+			game: root.game ? root.game.gameItem : null
 
-			//onClosed: root.game.rpgGame.paused = false
+			onClosed: root.game.gameItem.paused = false
 
 			onExitRequest: {
 				_forceExit = true
@@ -140,13 +142,6 @@ Page {
 		}
 	}
 
-	Component {
-		id: _cmpDownload
-
-		DownloaderItem {
-			downloader: game ? game.downloader : null
-		}
-	}
 
 	Component {
 		id: _cmpStaticDownload
@@ -195,6 +190,24 @@ Page {
 				Client.snack(qsTr("You are the host now"))
 		}*/
 
+
+		function onDownloadRequest(size) {
+			JS.questionDialog({
+								  onAccepted: function()
+								  {
+									  game.downloadAccepted()
+								  },
+								  onRejected: function()
+								  {
+									  Client.stackPop()
+								  },
+								  text: qsTr("Az akciójátékhoz %1 adatot le kell tölteni. Biztosan letöltöd?").arg(size),
+								  iconSource: Qaterial.Icons.downloadNetwork,
+								  title: qsTr("Adatok letöltése")
+							  })
+		}
+
+
 		function onGameStateChanged() {
 			/*if (game.isReconnecting && game.config.gameState != RpgConfig.StateError)
 				return*/
@@ -224,12 +237,8 @@ Page {
 				Client.stackPop(root)
 				return
 
-			case RpgGame.GameStateDownloadStatic:
-				_stack.activeComponent = _cmpStaticDownload
-				return
-
 			case RpgGame.GameStateDownloadContent:
-				_stack.activeComponent = _cmpDownload
+				_stack.activeComponent = _cmpStaticDownload
 				return
 
 			case RpgGame.GameStateLobby:
@@ -245,14 +254,15 @@ Page {
 
 
 
-	/*Connections {
-		target: game && !_multiplayer ? game.rpgGame : null
+	Connections {
+		target: game && game.gameMode == RpgGame.SinglePlayer ? game.gameItem : null
 
 		function onPausedChanged() {
-			if (game.rpgGame.paused)
+			if (game.gameItem.paused)
 				Qaterial.DialogManager.openFromComponent(_cmpPause)
 		}
-	}*/
+	}
+
 
 
 	StackView.onDeactivating: {

@@ -193,21 +193,30 @@ void RpgGameItem::onMouseClick(const qreal &x, const qreal &y, const int &button
 	if (!player)
 		return;
 
+	if (!mouseNavigation())
+		return;
+
 	RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(player->currentMotor());
 
-	/*if (Qt::MouseButtons::fromInt(buttons).testFlag(Qt::RightButton)) {
-		m_controlledPlayer->clearDestinationPoint();
+	if (!motor)
+		return;
+
+	if (Qt::MouseButtons::fromInt(buttons).testFlag(Qt::RightButton)) {
+		motor->clearDestination();
 		return;
 	}
 
+
 #ifndef QT_NO_DEBUG
 	if (modifiers & Qt::AltModifier) {
-		m_controlledPlayer->clearDestinationPoint();
-		m_controlledPlayer->TiledObject::emplace(x, y);
+		motor->clearDestination();
+		player->emplace(x, y);
 		return;
 	}
 #endif
 
+
+	/*
 	if (!m_controlledPlayer->isAlive())
 		return;
 
@@ -216,8 +225,6 @@ void RpgGameItem::onMouseClick(const qreal &x, const qreal &y, const int &button
 		return;
 	}*/
 
-	if (!mouseNavigation())
-		return;
 
 	/*if (modifiers & Qt::ControlModifier) {
 		m_controlledPlayer->attackToPoint(x, y);
@@ -242,12 +249,45 @@ void RpgGameItem::onMouseClick(const qreal &x, const qreal &y, const int &button
 	}*/
 
 
-	if (!motor)
-		return;
 
 	if (const auto &ptr = findShortestPath(player, cpv(x,y))) {
 		motor->setDestination(ptr.value());
 	}
+}
+
+
+
+
+/**
+ * @brief RpgGameItem::setScatterSeries
+ * @param list
+ */
+
+void RpgGameItem::setScatterSeries(const QList<QScatterSeries *> &list)
+{
+	if (!d->m_scatters.empty()) {
+		LOG_CERROR("game") << "Scatter list already loaded";
+		return;
+	}
+
+	d->m_scatters = list;
+
+	if (d->m_scatters.size() < 2) {
+		LOG_CERROR("game") << "Scatter list size error";
+		return;
+	}
+
+	// Players
+
+	d->m_scatters.at(0)->setBorderColor(QColorConstants::Svg::black);
+
+
+	// Towers
+
+	d->m_scatters.at(1)->setBorderColor(QColorConstants::Svg::black);
+	d->m_scatters.at(1)->setColor(QColorConstants::Svg::gray);
+	d->m_scatters.at(1)->setMarkerShape(QScatterSeries::MarkerShapeStar);
+	d->m_scatters.at(1)->setMarkerSize(18);
 }
 
 
@@ -514,6 +554,9 @@ void RpgGameItem::loadTower(TiledScene *scene, Tiled::GroupLayer *group, Tiled::
 	tower->addDefenderPoints(defenders);
 
 	d->towerAdd(tower);
+
+	if (auto ptr = d->addToScatter(1))
+		tower->setScatterPoint(ptr.value());
 }
 
 
@@ -544,10 +587,10 @@ RpgDefenderPoint *RpgGameItem::loadDefender(TiledScene *scene, Tiled::GroupLayer
 			for (Tiled::MapObject *object : std::as_const(gr->objects())) {
 				if (object->className() == QStringLiteral("defender")) {
 					defender = createObject<RpgDefenderPoint>(TiledObjectBody::ObjectId{.ownerId = 0,
-																										   .sceneId = scene->sceneId(),
-																										   .id = static_cast<quint32>(object->id())
-																				 }, scene,
-																				 object->position(), this, renderer, gr->totalOffset());
+																						.sceneId = scene->sceneId(),
+																						.id = static_cast<quint32>(object->id())
+															  }, scene,
+															  object->position(), this, renderer, gr->totalOffset());
 
 				} else {
 					LOG_CWARNING("game") << "Invalid object" << gr->className() << gr->name();
@@ -763,14 +806,38 @@ void RpgGameItem::timeAfterWorldStepEvent(const qint64 &tick)
  * @brief RpgGameItem::timeSteppedEvent
  */
 
-void RpgGameItem::timeSteppedEvent()
+void RpgGameItem::timeSteppedEvent(const std::vector<TiledObjectBody *> &aboutDestruction)
 {
-	d->onTimeStepped();
-	/*	static const qint64 delta = 3;
+	TiledGame::timeSteppedEvent(aboutDestruction);
 
-			const qint64 tick = q->m_timeSync.get();
-			const qint64 curr = m_rpgGame->tickTimer()->currentTick();
-			const qint64 diff = tick-curr;
+
+	d->onTimeStepped(aboutDestruction);
+
+
+
+	/*
+	const quint32 serverTick = d->m_logic->estimatedServerTick(d->m_logic->lastAuthTick());			// ???
+
+
+
+	if (serverTick == 0)
+		return;
+
+
+
+	const qint64 tick = d->m_logic->lastAuthTick();
+	const qint64 curr = m_tickTimer->currentTick();
+	const qint64 diff = tick-curr;
+
+
+	if (diff < 0) {
+		LOG_CERROR("game") << "Time reset to server time" << curr << "->" << tick;
+		m_tickTimer->start(m_game, tick);
+		overrideCurrentFrame(tick);
+	}
+*/
+/*
+	static const qint64 delta = 3;
 
 			if (diff > 2*delta || diff < -3*delta) {
 					LOG_CERROR("game") << "Time reset" << curr << "->" << tick;
@@ -784,30 +851,11 @@ void RpgGameItem::timeSteppedEvent()
 			}
 
 
-			m_rpgGame->iterateOverBodies([this](TiledObjectBody *b){
-					if (RpgGameData::LifeCycle *iface = dynamic_cast<RpgGameData::LifeCycle*> (b)) {
-							if (iface->stage() == RpgGameData::LifeCycle::StageDestroy) {
-									onLifeCycleDelete(b);
-							}
-					}
-			});
 
-			emit msecLeftChanged();
-	TiledGame::timeSteppedEvent();
 
-	if (ActionRpgGame *a = actionRpgGame())
-		a->onTimeStepped();
 
-	updateScatterEnemies();
-	updateScatterPlayers();
-	updateScatterPoints();
-
-	for (const auto &ptr : m_sfxLocations) {
-		if (ptr->baseObject()->scene() != ptr->connectedScene())
-			ptr->setConnectedScene(ptr->baseObject()->scene());
-		ptr->checkPosition();
-	}
 */
+
 }
 
 
@@ -828,6 +876,17 @@ void RpgGameItem::keyPressEvent(QKeyEvent *event)
 
 	if (!player || !motor)
 		LOG_CERROR("game") << "Missing player or motor";
+
+	/*
+	WASD + Shift: Sprint or run faster.
+	WASD + Spacebar: Jump.
+	WASD + Ctrl: Crouch or go prone.
+	WASD + E: Interact with objects or perform actions.
+	WASD + Q: Switch weapons or equipment.
+	WASD + R: Reload your weapon.
+	WASD + F: Activate a flashlight or use a special ability.
+	WASD + Numbers (1-9): Switch between different inventory items or abilities.
+	*/
 
 	switch (key) {
 		/*		case Qt::Key_X:
@@ -852,9 +911,6 @@ void RpgGameItem::keyPressEvent(QKeyEvent *event)
 				m_controlledPlayer->cast();
 			break;
 
-		case Qt::Key_Tab:
-			emit minimapToggleRequest();
-			break;
 
 		case Qt::Key_F10:
 			emit questsRequest();
@@ -868,6 +924,10 @@ void RpgGameItem::keyPressEvent(QKeyEvent *event)
 			break;
 
 		case Qt::Key_Tab:
+			emit minimapToggleRequest();
+			break;
+
+		case Qt::Key_P:
 			d->changeControlledPlayer();
 			break;
 
@@ -904,9 +964,7 @@ void RpgGameItem::keyReleaseEvent(QKeyEvent *event)
 void RpgGameItem::joystickStateEvent(const Joystick &joystick, const JoystickState &state)
 {
 	if (RpgPlayer *p = m_game->controlledPlayer()) {
-		if (RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(p->currentMotor())) {
-			d->setJoystickState(motor, joystick, state);
-		}
+		d->setJoystickState(p, joystick, state);
 	}
 	TiledGame::joystickStateEvent(joystick, state);
 }
@@ -1111,6 +1169,28 @@ QRect RpgGameItem::loadTextureSprites(TiledSpriteHandler *handler, const QString
 		 */
 
 	return measure;
+}
+
+
+
+
+/**
+ * @brief RpgGameItem::loadGround
+ * @param scene
+ * @param object
+ * @param renderer
+ * @return
+ */
+
+TiledObjectBody *RpgGameItem::loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer)
+{
+	TiledObjectBody *p = TiledGame::loadGround(scene, object, renderer);
+
+	if (object->hasProperty(QStringLiteral("sound")) && p) {
+		d->addLocationSound(p, object->propertyAsString(QStringLiteral("sound")));
+	}
+
+	return p;
 }
 
 

@@ -52,6 +52,8 @@ public:
 
 	ServerList *serverList() const;
 
+	virtual QUrl rpgServerUrl(const QString &path) const override;
+
 	Q_INVOKABLE void serverSetAutoConnect(Server *server) const;
 	Q_INVOKABLE Server *serverAdd();
 	Q_INVOKABLE bool serverDelete(Server *server);
@@ -97,6 +99,8 @@ private:
 	std::unique_ptr<ServerList> m_serverList = nullptr;
 	bool m_vibrate = true;
 	QVariantList m_authorizedServers;
+
+	mutable std::unique_ptr<Server> m_rpgServer;
 
 };
 

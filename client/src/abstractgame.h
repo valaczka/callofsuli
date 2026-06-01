@@ -120,9 +120,6 @@ public:
 		bool isPaused() const { return m_pausedTick > 0 && !m_reference.isValid(); }
 		bool isValid() const { return m_reference.isValid(); }
 
-		const qint64 &latency() const { return m_latency; }
-		void setLatency(const qint64 &latency) { m_latency = latency; }
-
 		qint64 tickAddMsec(const qint64 &msec) const {
 			const qint64 &ct = currentTick();
 			if (ct < 0)
@@ -132,16 +129,23 @@ public:
 		}
 
 		static qint64 msecToTick(const qint64 &msec) { return (msec*60./1000.); }
+		static qint64 tickToMsec(const qint64 &tick) { return (tick*1000./60.); }
 
 		qint64 currentTick() const {
 			if (!m_reference.isValid())
 				return -1;
 
-			const qint64 &elapsed = msecToTick(m_reference.elapsed()+m_latency);
-			return m_startTick+elapsed;
+			return m_startTick+msecToTick(m_reference.elapsed());
 		}
 
 		const qint64 &startTick() const { return m_startTick; }
+
+		quint64 tickTo(const qint64 &tick) {
+			if (!m_reference.isValid())
+				return 0;
+
+			return tick - currentTick();
+		}
 
 		static int interval() { return m_interval; }
 
@@ -149,13 +153,14 @@ public:
 		QBasicTimer m_timer;
 		QElapsedTimer m_reference;
 		qint64 m_startTick = 0;
-		qint64 m_latency = 0;
 		qint64 m_pausedTick = 0;
 		static const int m_interval;
 	};
 
 	explicit AbstractGame(const GameMap::GameMode &mode, Client *client);
 	virtual ~AbstractGame();
+
+	Client *client() const;
 
 	QQuickItem *pageItem() const;
 	void setPageItem(QQuickItem *newPageItem);

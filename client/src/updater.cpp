@@ -247,7 +247,7 @@ void Updater::updateGitHub(const QString &installer, const QString &sha1)
 
 			LOG_CDEBUG("updater") << "Update installer downloaded, size:" << data.size() << "SHA1:" << result.toHex();
 
-			if (sha1.toLatin1() != result.toHex()) {
+			if (QByteArray::fromHex(sha1.toLatin1()) != result) {
 				LOG_CERROR("updater") << "Update installer SHA1 checksum mismatch";
 				emit updateDownloadFailed();
 				return;

@@ -9,7 +9,7 @@ Qaterial.ListDialog
 {
 	id: _dialog
 
-	property RpgGame game: null
+	property RpgGameItemImpl game: null
 
 	title: qsTr("Paused")
 

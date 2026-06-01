@@ -83,10 +83,6 @@ Client::Client(Application *app)
 
 	connect(&m_oauthData.timer, &QTimer::timeout, this, &Client::onOAuthPendingTimer);
 
-	connect(m_downloader.get(), &Downloader::contentDownloaded, this, &RpgGame::reloadTerrains);
-	connect(m_downloader.get(), &Downloader::contentDownloaded, this, &RpgGame::reloadCharacters);
-	connect(m_downloader.get(), &Downloader::contentDownloaded, this, &RpgGame::reloadWorld);
-
 	startCache();
 
 	retranslate(Utils::settingsGet(QStringLiteral("window/language"), QStringLiteral("hu")).toString());
@@ -422,6 +418,8 @@ void Client::onApplicationStarted()
 			break;
 	}
 
+	initializeDynamicResources();
+
 	if (!loadDefault)
 		return;
 
@@ -547,10 +545,7 @@ void Client::onServerConnected()
 
 	LOG_CINFO("client") << "Server connected:" << m_httpConnection->server()->url();
 
-	if (server()->isStatic()) {
-		initializeDynamicResources();
-		return;
-	}
+	initializeDynamicResources();
 
 	server()->user()->setLoginState(User::LoggedOut);
 
@@ -590,8 +585,6 @@ void Client::onServerConnected()
 		});
 
 		reloadCache(QStringLiteral("gradeList"));
-
-		initializeDynamicResources();
 	})
 			->fail(this, [this](const QString &err){
 		LOG_CWARNING("client") << "Server hello failed:" << qPrintable(err);
@@ -620,12 +613,6 @@ void Client::onServerDisconnected()
 
 	if (server())
 		server()->user()->wallet()->unloadWorld();
-
-	m_downloader->contentClear();
-	m_downloader->setServer(nullptr);
-
-	RpgGame::reloadTerrains();
-	RpgGame::reloadCharacters();
 }
 
 
@@ -912,16 +899,56 @@ void Client::fullScreenHelperDisconnect(QQuickWindow *window)
 
 void Client::initializeDynamicResources()
 {
-	LOG_CDEBUG("client") << "Initialize dynamic resources";
+	HttpConnection *http = m_httpConnection.get();
 
-	if (!server())
+	if (!http)
 		return;
 
-	server()->setAvailableContent({});
+	if (QNetworkInformation::instance() &&
+			QNetworkInformation::instance()->reachability() != QNetworkInformation::Reachability::Online)
+		return;
+
+	LOG_CDEBUG("client") << "Initialize dynamic resources";
+
+	m_downloader->contentClear();
+	m_downloader->contentDictClear();
+
+
+	http->getUrl(rpgServerUrl(QStringLiteral("content.json")))
+			->done(this, [this](const QJsonObject &data){
+		DynamicContentList list;
+		list.fromJson(data);
+
+		m_downloader->contentAdd(list.list);
+
+		m_downloader->check();
+	})
+			->error(this, [](const QNetworkReply::NetworkError &err){
+		LOG_CERROR("client") << "Rpg content download error:" << err;
+	});
+
+
+	http->getUrl(rpgServerUrl(QStringLiteral("tileset.json")))
+			->done(this, [this](const QJsonObject &data){
+		m_downloader->contentDictAdd(data);
+		m_downloader->check();
+	})
+			->error(this, [](const QNetworkReply::NetworkError &err){
+		LOG_CERROR("client") << "Rpg content download error:" << err;
+	});
+
+
+	connect(m_downloader.get(), &Downloader::stateChanged, this, [this]() {
+		LOG_CINFO("client") << "**************************************" << m_downloader->state();
+	});
+
 
 	//m_downloader->contentClear();
 	//m_downloader->setServer(server());
 
+
+	/*
+	server()->setAvailableContent({});
 	send(HttpConnection::ApiGeneral, QStringLiteral("content"))
 			->done(this, [this](const QJsonObject &json)
 	{
@@ -951,7 +978,8 @@ void Client::initializeDynamicResources()
 	})
 			->fail(this, [this](const QString &err){
 		messageError(tr("Dynamic content download failed:\n").append(err));
-	});
+	});*/
+
 }
 
 
@@ -1913,11 +1941,6 @@ QQuickItem* Client::loadDemoMap(const QUrl &url)
 		return nullptr;
 
 
-	if (!server()) {
-		LOG_CINFO("client") << "Connect to static server";
-		connectToServer(getStaticServer());
-	}
-
 	QQuickItem *page = stackPushPage(QStringLiteral("PageMapPlay.qml"),
 									 QVariantMap({
 													 { QStringLiteral("title"), tr("Demó pálya") },
@@ -1980,31 +2003,12 @@ void Client::onDemoMapDestroyed()
 {
 	LOG_CTRACE("client") << "Demo map destroyed";
 
-	if (server() == getStaticServer() && m_httpConnection) {
+	/*if (server() == getStaticServer() && m_httpConnection) {
 		LOG_CINFO("client") << "Disconnect from static server";
 		m_httpConnection->close();
-	}
+	}*/
 }
 
-
-/**
- * @brief Client::getStaticServer
- * @return
- */
-
-Server *Client::getStaticServer()
-{
-	if (m_staticServer)
-		return m_staticServer.get();
-
-	m_staticServer.reset(new Server);
-
-	m_staticServer->setUrl(QStringLiteral("https://valaczka.github.io/callofsuli/demo"));
-	m_staticServer->setIsStatic(true);
-	m_staticServer->setTemporary(true);
-
-	return m_staticServer.get();
-}
 
 
 /**

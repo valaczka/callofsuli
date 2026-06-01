@@ -68,6 +68,9 @@
 #define ENTITY_MP_BITS				16						// Max: 65535
 
 
+#define DEFENDER_TYPE				quint32
+#define DEFENDER_BITS				8						// Max: 256
+
 
 namespace RpgStream
 {
@@ -913,6 +916,7 @@ public:
 	BaseDefenderObject() = default;
 
 	enum Type {
+		None = 0,
 		Dummy
 	};
 
@@ -921,7 +925,7 @@ public:
 	EngineStream& operator>>(EngineStream &stream) const;
 
 	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
-	STREAM_MEMBER_CAST(Type, type, Type, quint32, 12, Dummy)						// max. 4096 types
+	STREAM_MEMBER_CAST(Type, type, Type, quint32, 12, None)						// max. 4096 types
 
 	STREAM_MEMBER_CAST(Team, team, Team, quint8, 2, TeamNone)
 	STREAM_MEMBER(ENTITY_HP_TYPE, maxHp, MaxHp, ENTITY_HP_BITS, 0)
@@ -1075,6 +1079,7 @@ public:
 
 	STREAM_MEMBER(ENTITY_HP_TYPE, maxHp, MaxHp, ENTITY_HP_BITS, 0)
 	STREAM_MEMBER(ENTITY_MP_TYPE, maxMp, MaxMp, ENTITY_MP_BITS, 0)
+	STREAM_MEMBER(ENTITY_MP_TYPE, maxBullet, MaxBullet, ENTITY_HP_BITS, 0)
 };
 
 
@@ -1183,10 +1188,14 @@ public:
 
 
 	STREAM_DELTA_MASK (
-			quint32, 2,
+			quint32, 6,
 
 			Hp,
 			Mp,
+			Bullet,
+			Lock,
+			Penalty,
+			Defender
 
 			)
 
@@ -1194,11 +1203,21 @@ public:
 
 	STREAM_DELTA_MEMBER(ENTITY_HP_TYPE, hp, Hp, ENTITY_HP_BITS, 0, Hp)
 	STREAM_DELTA_MEMBER(ENTITY_MP_TYPE, mp, Mp, ENTITY_MP_BITS, 0, Mp)
+	STREAM_DELTA_MEMBER(ENTITY_HP_TYPE, bullet, Bullet, ENTITY_HP_BITS, 0, Bullet)
+	STREAM_DELTA_MEMBER(quint32, lock, Lock, 32, 0, Lock);
+	STREAM_DELTA_MEMBER(quint32, penalty, Penalty, 32, 0, Penalty);
+
+	STREAM_DELTA_MEMBER_CAST(BaseDefenderObject::Type, defender, Defender, DEFENDER_TYPE, DEFENDER_BITS, BaseDefenderObject::None, Defender)
 
 	bool operator==(const PlayerState &other) const {
 		return other.m_entityState == m_entityState &&
 				other.m_hp == m_hp &&
-				other.m_mp == m_mp;
+				other.m_mp == m_mp &&
+				other.m_bullet == m_bullet &&
+				other.m_lock == m_lock &&
+				other.m_penalty == m_penalty &&
+				other.m_defender == m_defender
+				;
 	}
 
 
@@ -1207,6 +1226,11 @@ public:
 	LOAD_WITHOUT_DELTA(tick, Tick)
 	LOAD_FROM_DELTA(hp, Hp)
 	LOAD_FROM_DELTA(mp, Mp)
+	LOAD_FROM_DELTA(bullet, Bullet)
+	LOAD_FROM_DELTA(lock, Lock)
+	LOAD_FROM_DELTA(penalty, Penalty)
+
+	LOAD_FROM_DELTA(defender, Defender)
 
 	LOAD_FROM_DELTA_MEMBER(entityState)
 
@@ -1267,7 +1291,8 @@ public:
 				other.m_load == m_load &&
 				other.m_lockedUntil == m_lockedUntil &&
 				other.m_active == m_active &&
-				other.m_hasDefender == m_hasDefender;
+				other.m_hasDefender == m_hasDefender
+				;
 	}
 };
 
@@ -1332,9 +1357,11 @@ public:
 		EventNone = 0,
 		EventMpPick,											// mp felvétele
 		EventTower,												// torony megtámadása
-		EventDefender,											// védő lehelyezése a toronyhoz
+		EventDefender,											// védő lehelyezése a toronyhoz vagy a pályára
 		EventAttackPlayer,										// másik játékos megtámadása
-		EventAttackDefender										// védő megtámadása
+		EventAttackDefender,									// védő megtámadása
+		EventFailed,											// sikertelen kérdés
+		EventRespawn											// meghalt a játékos, respawn jön x tick múlva
 	};
 
 	EventPlayer() : BaseTickState() {}
@@ -1349,11 +1376,15 @@ public:
 
 	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
 	STREAM_MEMBER_CAST(Type, type, Type, quint32, 4, EventNone)
+	STREAM_MEMBER(quint32, lockId, LockId, 32, 0);
 
 
 	STREAM_MEMBER(TAG_ID_TYPE, target, Target, TAG_ID_BITS, 0);
 	STREAM_FIELD(Chunk, chunk, Chunk, {});
-	STREAM_MEMBER_CAST(bool, success, Success, quint8, 1, false);
+
+	STREAM_MEMBER(quint32, at, At, 32, 0);
+
+
 };
 
 
@@ -1392,6 +1423,15 @@ public:
 
 	bool operator==(const Events &) const { return false; }			// soha nem lehet egyenlő, a Pull miatt kell
 
+	enum Flag {
+		Null			= 0,
+		Player			= 1 << 0,
+		Emitter			= 1 << 1,
+	};
+
+	Q_DECLARE_FLAGS(Flags, Flag)
+
+	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 32, Null)
 	STREAM_MEMBER_VECTOR(EventPlayer, player, Player, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 	STREAM_MEMBER_VECTOR(EventMpEmitter, emitter, Emitter, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 };

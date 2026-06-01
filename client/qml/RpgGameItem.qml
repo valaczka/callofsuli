@@ -12,7 +12,7 @@ FocusScope {
 
 	property alias game: _item.game
 
-	////property alias minimapVisible: _mapRect.visible
+	property alias minimapVisible: _mapRect.visible
 	property real gameControlRatio: 1.0
 	readonly property real _controlRatioMin: 1.0
 	readonly property real _controlRatioMax: 2.5
@@ -21,11 +21,9 @@ FocusScope {
 
 	onWidthChanged: {
 		_item.resetBaseScale()
-		///_shotButton.reset()
 	}
 
 	onHeightChanged: {
-		///_shotButton.reset()
 	}
 
 
@@ -49,9 +47,9 @@ FocusScope {
 		onGameLoadFailed: errorString => Client.messageError(errorString, qsTr("Pálya betöltése sikertelen"))
 		onIsContentReadyChanged: if (isContentReady) startGame()
 
-		/*	onGameLoaded: _prGameLoaded = true
+		onMinimapToggleRequest: _mapRect.visible = !_mapRect.visible
 
-			onMinimapToggleRequest: _mapRect.visible = !_mapRect.visible
+		/*	onGameLoaded: _prGameLoaded = true
 
 			onQuestsRequest: showQuests()*/
 
@@ -273,7 +271,8 @@ FocusScope {
 		anchors.right: parent.right
 		anchors.bottom: _gameJoystickControl.top
 
-		visible: game && game.controlledPlayer && game.controlledPlayer.hp > 0 && _item.isContentReady
+		visible: game && game.controlledPlayer && game.controlledPlayer.hp > 0 && _item.isContentReady &&
+				 game.controlledPlayer.bullet > 0
 
 		size: 90 * Qaterial.Style.pixelSizeRatio * gameControlRatio
 		thumbSize: 40 * Qaterial.Style.pixelSizeRatio * gameControlRatio
@@ -294,7 +293,8 @@ FocusScope {
 		anchors.right: parent.right
 		anchors.bottom: parent.bottom
 
-		visible: game && game.controlledPlayer && game.controlledPlayer.hp > 0 && _item.isContentReady
+		visible: game && game.controlledPlayer && game.controlledPlayer.hp > 0 && _item.isContentReady &&
+				 game.controlledPlayer.hasDefender
 
 		size: 90 * Qaterial.Style.pixelSizeRatio * gameControlRatio
 		thumbSize: 40 * Qaterial.Style.pixelSizeRatio * gameControlRatio
@@ -311,49 +311,8 @@ FocusScope {
 
 
 
-	/*
 
-	GameSkullImage {
-		id: _skullImage
-		anchors.centerIn: parent
-		z: 9
 
-		Connections {
-			target: _game.controlledPlayer
-
-			function onBecameDead() {
-				_skullImage.play()
-			}
-		}
-	}
-
-	GamePainHud {
-		id: _painhudImage
-		anchors.fill: parent
-		z: 10
-
-		property int _oldHP: -1
-		readonly property int hp: _game.controlledPlayer ? _game.controlledPlayer.hp : -1
-
-		onHpChanged: {
-			if (hp < _oldHP && _oldHP != -1)
-				play()
-			else if (hp > _oldHP && _oldHP != -1)
-				_messageList.message("+%1 HP".arg(hp-_oldHP), Qaterial.Colors.red400)
-
-			_oldHP = hp
-		}
-
-		Connections {
-			target: _game.controlledPlayer
-
-			function onHurt() {
-				_painhudImage.play()
-			}
-		}
-	}
-
-*/
 
 
 	Column {
@@ -392,6 +351,41 @@ FocusScope {
 
 			value: game ? game.ptsOpponent : 0
 		}
+
+
+		GameInfo {
+			id: _infoBullet
+			anchors.right: parent.right
+			color: Qaterial.Colors.red500
+			text: Math.floor(progressBar.value)
+
+			progressBar.from: 0
+			progressBar.to: game && game.controlledPlayer ? game.controlledPlayer.maxBullet : 0
+			progressBar.value: bullet
+			iconLabel.icon.source: Qaterial.Icons.bullet
+			progressBar.width: Math.min(root.width*0.125, 50)
+
+			//opacity: canShot ? 1.0 : 0.0
+
+			visible: bullet > 0
+
+			readonly property int bullet: game && game.controlledPlayer ?
+											  game.controlledPlayer.bullet :
+											  0
+
+			property int _oldBullet: -1
+
+
+			onBulletChanged: {
+				_infoBullet.marked = true
+
+				if (bullet == 0 && _oldBullet > 0)
+					_messageList.message(qsTr("Magazine empty"), Qaterial.Colors.red400)
+
+				_oldBullet = bullet
+			}
+		}
+
 
 		/*
 		GameLabel {
@@ -450,66 +444,7 @@ FocusScope {
 			}
 		}
 
-		GameInfo {
-			id: _infoBullet
-			anchors.right: parent.right
-			color: Qaterial.Colors.blue500
-			text: Math.floor(progressBar.value)
-			progressBar.from: 0
-			progressBar.to: maxBullet
-			progressBar.value: bullet
-			iconLabel.icon.source: Qaterial.Icons.bullet
-			progressBar.width: Math.min(root.width*0.125, 50)
 
-			opacity: canShot ? 1.0 : 0.0
-
-			readonly property bool canShot:  _game.controlledPlayer && _game.controlledPlayer.armory.currentWeapon &&
-											 _game.controlledPlayer.armory.currentWeapon.bulletCount != -1
-
-			readonly property int bullet: canShot ?
-											  _game.controlledPlayer.armory.currentWeapon.bulletCount :
-											  0
-
-			readonly property int maxBullet: canShot ?
-												 _game.controlledPlayer.armory.currentWeapon.maxBulletCount :
-												 0
-
-			onBulletChanged: {
-				_infoBullet.marked = true
-			}
-		}
-
-
-		Grid {
-			id: _inventoryGrid
-			anchors.right: parent.right
-			width: _infoShield.width
-			layoutDirection: Qt.RightToLeft
-			horizontalItemAlignment: Grid.AlignHCenter
-			verticalItemAlignment: Grid.AlignVCenter
-
-			bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
-
-			property real size: Qaterial.Style.pixelSize*1.3
-
-			spacing: 5 * Qaterial.Style.pixelSizeRatio
-
-			columns: Math.floor(width/size)
-
-			Repeater {
-				model: _game.controlledPlayer ? _game.controlledPlayer.inventory : null
-
-				Qaterial.Icon {
-					size: _inventoryGrid.size
-					icon: model.icon
-					color: model.iconColor
-					visible: true
-					width: size
-					height: size
-				}
-			}
-
-		}
 */
 
 	}
@@ -533,7 +468,7 @@ FocusScope {
 		iconLabel.icon.source: Qaterial.Icons.shimmer
 		text: qsTr("%1/%2 MP").arg(Math.floor(progressBar.value)).arg(progressBar.to)
 
-		visible: game && game.controlledPlayer && _item.isContentReady //&& _game.controlledPlayer.armory.mageStaff
+		visible: game && game.controlledPlayer && _item.isContentReady
 
 		progressBar.from: 0
 		progressBar.to: game && game.controlledPlayer ? game.controlledPlayer.maxMp : 0
@@ -542,198 +477,8 @@ FocusScope {
 	}
 
 
-	/*
 
-	GameButton {
-		id: _nextWeaponButton
-		size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 50 : 40
 
-		anchors.left: _rowTime.left
-		//y: Math.min((parent.height-height)/2, _gameJoystick.y-10-height)
-		anchors.verticalCenter: parent.verticalCenter
-
-		readonly property RpgWeapon weapon: _game.controlledPlayer ? _game.controlledPlayer.armory.nextWeapon : null
-
-		visible: weapon && _game.controlledPlayer && _game.controlledPlayer.armory.currentWeapon != weapon && _isPrepared
-
-		color: "transparent" //Qaterial.Colors.blue600
-		border.color: Qaterial.Colors.white
-		border.width: 1
-
-		opacity: 1.0
-
-		fontImage.icon: weapon ? weapon.icon : ""
-		fontImage.color: "transparent"
-		fontImageScale: 0.7
-
-		onClicked: {
-			_game.controlledPlayer.armory.changeToNextWeapon()
-		}
-	}
-
-
-
-
-	Column {
-		id: _columnButtons
-
-		anchors.bottom: _shotButton.bottom
-		anchors.bottomMargin: (_shotButton.height-50)/2
-		anchors.right: _shotButton.left
-		anchors.rightMargin: 10
-
-		visible: _isPrepared && _game.controlledPlayer && !_game.controlledPlayer.isGameCompleted
-
-		spacing: 30
-
-
-		GameButton {
-			id: _controlButton
-			size: 50
-
-			anchors.horizontalCenter: parent.horizontalCenter
-
-			visible: _game.controlledPlayer && _game.controlledPlayer.currentControl &&
-					 _game.controlledPlayer.currentControl.isActive && _game.controlledPlayer.hp > 0 &&
-					 !_game.controlledPlayer.isHiding
-
-			readonly property bool isOpen: _game.controlledPlayer && _game.controlledPlayer.currentControl &&
-										   !_game.controlledPlayer.currentControl.isLocked
-
-			color: {
-				if (!_game.controlledPlayer || !_game.controlledPlayer.currentControl || !isOpen)
-					return "transparent"
-
-				switch (_game.controlledPlayer.currentControl.type) {
-				case RpgConfig.ControlContainer:
-				case RpgConfig.ControlCollection:
-					return Qaterial.Colors.amber500
-
-				case RpgConfig.ControlGate:
-				case RpgConfig.ControlTeleport:
-				case RpgConfig.ControlPickable:
-					return Qaterial.Colors.green600
-
-				default:
-					return Qaterial.Colors.yellow500
-
-				}
-			}
-
-			border.color: isOpen ? fontImage.color : "white"
-			border.width: 1
-
-			opacity: isOpen ? 1.0 : 0.6
-
-			fontImage.icon: {
-				if (!_game.controlledPlayer || !_game.controlledPlayer.currentControl)
-					return Qaterial.Icons.alertOutline
-
-				switch (_game.controlledPlayer.currentControl.type) {
-				case RpgConfig.ControlContainer:
-					return Qaterial.Icons.eye
-
-				case RpgConfig.ControlGate:
-				case RpgConfig.ControlTeleport:
-					return isOpen ? Qaterial.Icons.doorOpen : Qaterial.Icons.doorClosedLock
-
-				case RpgConfig.ControlCollection:
-				case RpgConfig.ControlPickable:
-					return Qaterial.Icons.hand
-
-				default:
-					return Qaterial.Icons.hand
-
-				}
-			}
-			fontImage.color: "white"
-			fontImageScale: 0.6
-			//fontImage.anchors.horizontalCenterOffset: -2
-
-			onClicked: {
-				_game.controlledPlayer.useCurrentControl()
-			}
-		}
-
-
-	}
-
-	*/
-
-
-
-
-	/*RpgShotButton {
-		id: _shotButton
-		size: 60 * gameControlRatio*/
-
-
-
-		/*anchors.right: parent.right
-		anchors.bottom: parent.bottom
-		anchors.margins: Math.max(10, Client.safeMarginRight, Client.safeMarginBottom,
-								  (Qt.platform.os == "android" || Qt.platform.os == "ios") ? 30 : 0)*/
-
-		/*readonly property RpgWeapon weapon: _game.controlledPlayer ? _game.controlledPlayer.armory.currentWeapon : null
-		readonly property bool _canAttack: weapon && (weapon.canHit || weapon.canShot)
-
-		visible: weapon && _isPrepared && _game.controlledPlayer && _game.controlledPlayer.hp > 0 &&
-				 !_game.controlledPlayer.isHiding && !_game.controlledPlayer.isGameCompleted
-
-		color: _canAttack ? Qaterial.Colors.red800 : "transparent"
-
-		border.color: _canAttack ? Qaterial.Colors.white : Qaterial.Colors.red800
-		border.width: 1
-
-		fontImage.icon: weapon ? weapon.icon : ""
-		fontImage.opacity: _canAttack ? 1.0 : 0.6
-		fontImage.color: "transparent"
-		fontImageScale: 0.7
-
-		onClicked: {
-			if (_game.controlledPlayer)
-				_game.controlledPlayer.attackCurrentWeapon()
-		}
-
-		Connections {
-			target: _game.controlledPlayer
-
-			function onAttackDone() {
-				_shotButton.tapAnim.start()
-			}
-		}*/
-	///}
-
-
-	/*
-
-	GameButton {
-		id: _exitButton
-		size: 50
-
-		anchors.centerIn: _shotButton
-
-		visible: _game.controlledPlayer && _game.controlledPlayer.hp > 0 &&
-				 _game.controlledPlayer.isHiding && !_game.controlledPlayer.isGameCompleted
-
-
-		color: Qaterial.Colors.amber700
-
-		border.color: fontImage.color
-		border.width: 1
-
-		fontImage.icon: Qaterial.Icons.exitRun
-		fontImage.color: "white"
-		fontImageScale: 0.6
-		//fontImage.anchors.horizontalCenterOffset: -2
-
-		onClicked: {
-			_game.controlledPlayer.exitHiding()
-		}
-	}
-
-
-	*/
 
 	GameQuestionAction {
 		id: _gameQuestion
@@ -749,12 +494,60 @@ FocusScope {
 		z: 5
 	}
 
+
+
+
+
+	GameSkullImage {
+		id: _skullImage
+		anchors.centerIn: parent
+		z: 9
+
+		Connections {
+			target: game ? game.controlledPlayer : nullptr
+
+			function onBecameDead() {
+				_skullImage.play()
+			}
+		}
+	}
+
+
+
+	GamePainHud {
+		id: _painhudImage
+		anchors.fill: parent
+		z: 10
+
+		property int _oldHP: -1
+		readonly property int hp: game && game.controlledPlayer ? game.controlledPlayer.hp : -1
+
+		onHpChanged: {
+			if (hp < _oldHP && _oldHP != -1)
+				play()
+			else if (hp > _oldHP && _oldHP != -1)
+				_messageList.message("+%1 HP".arg(hp-_oldHP), Qaterial.Colors.red400)
+
+			_oldHP = hp
+		}
+
+		Connections {
+			target: game ? game.controlledPlayer : nullptr
+
+			function onHurt() {
+				_painhudImage.play()
+			}
+		}
+	}
+
+
+
 	GameMessageList {
 		id: _messageList
 
 		anchors.horizontalCenter: parent.horizontalCenter
 
-		///y: Math.max(infoHP.y+infoHP.height, parent.height*0.1)
+		y: Math.max(infoHP.y+infoHP.height, parent.height*0.1)
 		z: 6
 
 		width: Math.min(450*Qaterial.Style.pixelSizeRatio, parent.width-Client.safeMarginLeft-Client.safeMarginRight)
@@ -860,6 +653,8 @@ FocusScope {
 	}
 
 
+	*/
+
 	RpgGameMinimap {
 		id: _mapRect
 
@@ -869,12 +664,10 @@ FocusScope {
 		view.anchors.topMargin: Math.max(20, Client.safeMarginTop, _rowTime.y+_backButton.y+_backButton.height)
 		view.anchors.bottomMargin: Math.max(20, Client.safeMarginBottom)
 
-		game: root
+		game: _item
 		visible: false
 	}
 
-
-	*/
 
 	Rectangle {
 		id: _loadingRect

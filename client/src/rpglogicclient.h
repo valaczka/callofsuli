@@ -29,6 +29,7 @@
 
 #include "chipmunk/chipmunk_types.h"
 #include <rpglogic.h>
+#include "abstractgame.h"
 
 class RpgObject;
 class RpgTower;
@@ -60,6 +61,23 @@ public:
 	QPoint getChunkFromVector(const cpVect &point, cpVect *centerPtr = nullptr);
 	QPoint getChunkFromVector(const cpVect &point, const float &angle, cpVect *centerPtr = nullptr);
 
+	const quint32 &lastAuthDiff() const { return m_lastAuthTickDiff; }
+
+	quint32 estimatedServerTick(const quint32 &lastAuthTick) {
+		if (m_serverRtt <= 0)
+			return lastAuthTick + m_lastAuthTickDiff;
+
+		return lastAuthTick + m_lastAuthTickDiff + AbstractGame::TickTimer::msecToTick(m_serverRtt/2.);
+	}
+
+	qint64 serverRtt() const { return m_serverRtt; }
+	void setServerRtt(qint64 newServerRtt) { m_serverRtt = newServerRtt; }
+
+protected:
+	virtual void eventRealized(entt::entity entity) override;
+
+protected:
+	qint64 m_serverRtt = 0;
 };
 
 

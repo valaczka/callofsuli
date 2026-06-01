@@ -235,8 +235,6 @@ void HttpConnection::close()
 {
 	if (m_state != Disconnected) {
 		LOG_CTRACE("http") << "Close connection";
-		if (m_server)
-			m_server->unloadDynamicContents();
 		setState(Disconnected);
 		abortAllReplies();
 		setServer(nullptr);
@@ -254,8 +252,6 @@ void HttpConnection::abort()
 	if (m_state != Disconnected) {
 		LOG_CTRACE("http") << "Abort connection";
 		m_client->stackPopToStartPage();
-		if (m_server)
-			m_server->unloadDynamicContents();
 		setState(Disconnected);
 		abortAllReplies();
 		setServer(nullptr);
@@ -380,10 +376,6 @@ HttpReply *HttpConnection::send(const API &api, const QString &path, const QJson
 		return new HttpReply(QNetworkReply::InternalServerError);
 	}
 
-	if (m_server->isStatic()) {
-		return get(getUrl(api, path).path());
-	}
-
 	const QByteArray &content = QJsonDocument(data).toJson();
 
 	if (m_server->maxUploadSize() > 0 && content.size() >= m_server->maxUploadSize()) {
@@ -493,10 +485,7 @@ HttpReply *HttpConnection::get(const QString &path)
 
 	QUrl url = m_server->url();
 
-	if (m_server->isStatic())
-		url.setPath(url.path()+QStringLiteral("/")+path);
-	else
-		url.setPath(path);
+	url.setPath(path);
 
 	QNetworkRequest r(url);
 
@@ -520,6 +509,27 @@ HttpReply *HttpConnection::get(const QString &path)
 	QNetworkReply *reply = m_networkManager->get(r);
 
 	LOG_CTRACE("http") << "SEND:" << qPrintable(path) << this;
+
+	HttpReply *wr = new HttpReply(reply, this);
+	connect(wr, &HttpReply::finished, this, &HttpConnection::checkPending);
+	return wr;
+}
+
+
+
+/**
+ * @brief HttpConnection::get
+ * @param url
+ * @return
+ */
+
+HttpReply *HttpConnection::getUrl(const QUrl &url)
+{
+	QNetworkRequest r(url);
+
+	QNetworkReply *reply = m_networkManager->get(r);
+
+	LOG_CTRACE("http") << "GET URL:" << qPrintable(url.path()) << this;
 
 	HttpReply *wr = new HttpReply(reply, this);
 	connect(wr, &HttpReply::finished, this, &HttpConnection::checkPending);

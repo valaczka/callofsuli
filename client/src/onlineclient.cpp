@@ -324,6 +324,19 @@ void OnlineClient::setFullScreenHelper(bool newFullScreenHelper)
 
 
 /**
+ * @brief OnlineClient::rpgServerUrl
+ * @param path
+ * @return
+ */
+
+QUrl OnlineClient::rpgServerUrl(const QString &path) const
+{
+	return QUrl(path);
+}
+
+
+
+/**
  * @brief OnlineClient::fullScreenHelperConnect
  * @param window
  */

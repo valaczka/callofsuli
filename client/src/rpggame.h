@@ -28,9 +28,9 @@
 #define RPGGAME_H
 
 #include "abstractlevelgame.h"
-#include "rpglogic.h"
 #include "rpglogicclient.h"
 #include "tiledgame.h"
+#include "rpgstream.h"
 
 
 class RpgGamePrivate;
@@ -94,7 +94,10 @@ public:
 	  , mp(0)
 	  , walk(0)
 	  , run(0)
+	  , defender(RpgStream::BaseDefenderObject::Dummy)
+	  , bullet(0)
 	{}
+
 
 	void updateSfxPath(const QString &prefix);
 
@@ -124,6 +127,14 @@ public:
 
 	QS_FIELD(int, walk)				// walk speed
 	QS_FIELD(int, run)				// run speed
+
+	QS_COLLECTION(QList, RpgStream::BaseDefenderObject::Type, defender)				// available defenders
+	// todo: utility
+
+
+	// Weapon
+
+	QS_FIELD(int, bullet)
 };
 
 
@@ -201,11 +212,10 @@ public:
 
 	enum GameState {
 		GameStateInvalid = 0,
+		GameStateDownloadContent,
 		GameStateConnect,
-		GameStateDownloadStatic,
 		GameStateLobby,
 		GameStateCharacterSelect,
-		GameStateDownloadContent,
 		GameStatePrepare,
 		GameStateInit,
 		GameStatePlay,
@@ -227,6 +237,7 @@ public:
 	Q_INVOKABLE void gameAbort() override;
 	Q_INVOKABLE void loadGameItem();
 	Q_INVOKABLE void gameItemPrepared();
+	Q_INVOKABLE void downloadAccepted();
 
 	Q_INVOKABLE void menuBgMusicPlay();
 	Q_INVOKABLE void menuBgMusicStop();
@@ -243,6 +254,8 @@ public:
 	static void reloadWorld();
 
 	Rpg::RpgLogicClient* rpgLogicClient();
+
+	bool loadNextQuestion();
 
 	virtual int msecLeft() const override;
 
@@ -274,6 +287,7 @@ public:
 	void setColorOpponent(const QColor &newColorOpponent);
 
 signals:
+	void downloadRequest(QString size);
 	void gameStateChanged();
 	void errorStringChanged();
 	void gameItemChanged();

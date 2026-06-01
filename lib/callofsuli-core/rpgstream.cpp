@@ -303,6 +303,10 @@ EngineStream &PlayerData::operator<<(EngineStream &stream)
 	readCharacter(stream);
 	readFlags(stream);
 
+	readMaxHp(stream);
+	readMaxMp(stream);
+	readMaxBullet(stream);
+
 	return stream;
 }
 
@@ -320,6 +324,10 @@ EngineStream &PlayerData::operator>>(EngineStream &stream) const
 	writeNickName(stream);
 	writeCharacter(stream);
 	writeFlags(stream);
+
+	writeMaxHp(stream);
+	writeMaxMp(stream);
+	writeMaxBullet(stream);
 
 	return stream;
 }
@@ -380,6 +388,11 @@ EngineStream &PlayerState::operator<<(EngineStream &stream)
 
 	readHpDelta(stream);
 	readMpDelta(stream);
+	readBulletDelta(stream);
+	readLockDelta(stream);
+	readPenaltyDelta(stream);
+
+	readDefender(stream);
 
 	return stream;
 }
@@ -400,6 +413,11 @@ EngineStream &PlayerState::operator>>(EngineStream &stream) const
 
 	writeHpDelta(stream);
 	writeMpDelta(stream);
+	writeBulletDelta(stream);
+	writeLockDelta(stream);
+	writePenaltyDelta(stream);
+
+	writeDefender(stream);
 
 	return stream;
 }
@@ -643,8 +661,13 @@ EngineStream &FullState::operator>>(EngineStream &stream) const
 EngineStream &Events::operator<<(EngineStream &stream)
 {
 	readTick(stream);
-	readPlayer(stream);
-	readEmitter(stream);
+	readFlags(stream);
+
+	if (m_flags & Player)
+		readPlayer(stream);
+
+	if (m_flags & Emitter)
+		readEmitter(stream);
 
 	return stream;
 }
@@ -659,8 +682,13 @@ EngineStream &Events::operator<<(EngineStream &stream)
 EngineStream &Events::operator>>(EngineStream &stream) const
 {
 	writeTick(stream);
-	writePlayer(stream);
-	writeEmitter(stream);
+	writeFlags(stream);
+
+	if (m_flags & Player)
+		writePlayer(stream);
+
+	if (m_flags & Emitter)
+		writeEmitter(stream);
 
 	return stream;
 }
@@ -677,12 +705,14 @@ EngineStream &EventPlayer::operator<<(EngineStream &stream)
 	readTick(stream);
 	readTagId(stream);
 	readType(stream);
+	readLockId(stream);
 
 	if (m_type == EventMpPick ||
 			m_type == EventTower ||
 			m_type == EventDefender ||
 			m_type == EventAttackPlayer ||
-			m_type == EventAttackDefender
+			m_type == EventAttackDefender ||
+			m_type == EventRespawn
 			) {
 		readTarget(stream);
 	}
@@ -691,9 +721,8 @@ EngineStream &EventPlayer::operator<<(EngineStream &stream)
 		m_chunk << stream;
 	}
 
-	if (m_type == EventTower) {
-		readSuccess(stream);
-	}
+	if (m_type == EventRespawn)
+		readAt(stream);
 
 	return stream;
 }
@@ -710,12 +739,14 @@ EngineStream &EventPlayer::operator>>(EngineStream &stream) const
 	writeTick(stream);
 	writeTagId(stream);
 	writeType(stream);
+	writeLockId(stream);
 
 	if (m_type == EventMpPick ||
 			m_type == EventTower ||
 			m_type == EventDefender ||
 			m_type == EventAttackPlayer ||
-			m_type == EventAttackDefender
+			m_type == EventAttackDefender ||
+			m_type == EventRespawn
 			) {
 		writeTarget(stream);
 	}
@@ -724,9 +755,8 @@ EngineStream &EventPlayer::operator>>(EngineStream &stream) const
 		m_chunk >> stream;
 	}
 
-	if (m_type == EventTower) {
-		writeSuccess(stream);
-	}
+	if (m_type == EventRespawn)
+		writeAt(stream);
 
 	return stream;
 }
@@ -1060,6 +1090,9 @@ EngineStream &DefenderState::operator<<(EngineStream &stream)
 		case BaseDefenderObject::Dummy:
 			readDummy(stream);
 			break;
+
+		case BaseDefenderObject::None:
+			break;
 	}
 
 
@@ -1083,6 +1116,9 @@ EngineStream &DefenderState::operator>>(EngineStream &stream) const
 	switch (m_type) {
 		case BaseDefenderObject::Dummy:
 			writeDummy(stream);
+			break;
+
+		case BaseDefenderObject::None:
 			break;
 	}
 

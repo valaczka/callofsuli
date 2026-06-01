@@ -28,12 +28,34 @@
 #define RPGGAMEITEM_H
 
 #include <QQmlEngine>
+#include <QScatterSeries>
 #include "tiledgame.h"
 #include "rpggame.h"
 #include "tiledvisualitem.h"
 
 
 class RpgDefenderPoint;
+
+
+struct ScatterPoint {
+	QPointer<QScatterSeries> scatter;
+	int index = -1;
+
+	bool isValid() const { return scatter && index != -1; }
+};
+
+
+#define ADD_SCATTER_POINT		\
+	public: \
+	const ScatterPoint &scatterPoint() const { return m_scatterPoint; } \
+	ScatterPoint &scatterPoint() { return m_scatterPoint; } \
+	void setScatterPoint(const ScatterPoint &scatter) { m_scatterPoint = scatter; } \
+	void setScatterPoint(ScatterPoint &&scatter) { m_scatterPoint = std::move(scatter); } \
+	private: \
+	ScatterPoint m_scatterPoint;
+
+
+
 
 
 /**
@@ -89,7 +111,12 @@ public:
 
 	static QRect loadTextureSprites(TiledSpriteHandler *handler, const QString &path);
 
+	virtual TiledObjectBody *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer) override;
 	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const int &buttons, const int &modifiers) override;
+
+
+	Q_INVOKABLE void setScatterSeries(const QList<QScatterSeries*> &list);
+
 
 	bool isContentReady() const;
 	void setIsContentReady(bool newIsContentReady);
@@ -105,13 +132,14 @@ protected:
 	virtual void timeStepPrepareEvent() override final;
 	virtual void timeBeforeWorldStepEvent(const qint64 &tick) override final;
 	virtual void timeAfterWorldStepEvent(const qint64 &tick) override final;
-	virtual void timeSteppedEvent() override final;
+	virtual void timeSteppedEvent(const std::vector<TiledObjectBody *> &aboutDestruction) override final;
 
 	virtual void keyPressEvent(QKeyEvent *event) override;
 	virtual void keyReleaseEvent(QKeyEvent *event) override;
 	virtual void joystickStateEvent(const Joystick &joystick, const JoystickState &state) override;
 
 signals:
+	void minimapToggleRequest();
 	void gameChanged();
 	void isContentReadyChanged();
 

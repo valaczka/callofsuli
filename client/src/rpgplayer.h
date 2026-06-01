@@ -27,13 +27,15 @@
 #ifndef RPGPLAYER_H
 #define RPGPLAYER_H
 
+#include "rpggameitem.h"
 #include "rpgentity.h"
 #include "rpgmp.h"
-#include "rpgtower.h"
 #include "tiledeffect.h"
 #include "tiledgamesfx.h"
 #include <QQmlEngine>
 
+
+class RpgPlayerPrivate;
 
 /**
  * @brief The RpgPlayer class
@@ -44,16 +46,24 @@ class RpgPlayer : public RpgEntity
 	Q_OBJECT
 	QML_ELEMENT
 
+	ADD_SCATTER_POINT
+
 	Q_PROPERTY(QPoint currentChunk READ currentChunk NOTIFY currentChunkChanged FINAL)
 	Q_PROPERTY(QPointF currentChunkCenter READ currentChunkCenter NOTIFY currentChunkCenterChanged FINAL)
 
 	Q_PROPERTY(int mp READ mp WRITE setMp NOTIFY mpChanged FINAL)
 	Q_PROPERTY(int maxMp READ maxMp NOTIFY maxMpChanged FINAL)
 
+	Q_PROPERTY(int bullet READ bullet WRITE setBullet NOTIFY bulletChanged FINAL)
+	Q_PROPERTY(int maxBullet READ maxBullet NOTIFY maxBulletChanged FINAL)
+
+	Q_PROPERTY(bool hasDefender READ hasDefender NOTIFY hasDefenderChanged FINAL)
+
 	Q_PROPERTY(RpgEntity *targetEntity READ targetEntity WRITE setTargetEntity NOTIFY targetEntityChanged FINAL)
 
 public:
 	RpgPlayer(RpgGameItem *gameItem, const cpVect &center = cpvzero);
+	virtual ~RpgPlayer();
 
 	virtual void initialize() override;
 	virtual void updateSprite() override;
@@ -76,6 +86,10 @@ public:
 	void setMp(int newMp);
 
 	int maxMp() const;
+	int maxBullet() const;
+
+	bool hasDefender() const;
+	void setDefender(const RpgStream::BaseDefenderObject::Type &type);
 
 	RpgEntity *targetEntity() const;
 	void setTargetEntity(RpgEntity *newTargetEntity);
@@ -83,12 +97,20 @@ public:
 	TiledObjectBody *targetControl() const;
 	void setTargetControl(TiledObjectBody *newTargetControl);
 
+	int bullet() const;
+	void setBullet(int newBullet);
+
+
+
 signals:
 	void currentChunkChanged();
 	void currentChunkCenterChanged();
 	void mpChanged();
 	void maxMpChanged();
 	void targetEntityChanged();
+	void bulletChanged();
+	void maxBulletChanged();
+	void hasDefenderChanged();
 
 protected:
 	void synchronize() override;
@@ -101,9 +123,15 @@ private:
 	void onCurrentSpriteChanged();
 
 private:
+	RpgPlayerPrivate *d = nullptr;
 	QPoint m_currentChunk;
 	QPointF m_currentChunkCenter;
 	int m_mp = 0;
+
+	int m_bullet = 0;
+
+	RpgStream::BaseDefenderObject::Type m_defender = RpgStream::BaseDefenderObject::None;
+
 
 	TiledGameSfx m_sfxPain;
 	TiledGameSfx m_sfxFootStep;
@@ -121,8 +149,10 @@ private:
 	TiledObjectBody *m_targetControl = nullptr;
 
 
+	friend class RpgPlayerPrivate;
 	friend class RpgMotorPlayer;
 	friend class RpgMotorPlayerControlled;
+
 };
 
 
@@ -172,6 +202,8 @@ public:
 	TiledGame::JoystickState targetJoystickState() const;
 	void setTargetJoystickState(const TiledGame::JoystickState &newTargetJoystickState);
 
+	void questionFinished(const bool &success);
+
 	void attackCurrentTarget();
 	void useCurrentControl();
 	void putDefender(const bool &click);
@@ -185,13 +217,13 @@ protected:
 
 protected:
 	RpgPlayer *const m_player;
+	RpgPlayerPrivate *const d;
 	Rpg::RpgPlayerStatePull m_statePull;
 
 	TiledGame::JoystickState m_currentJoystickState;
 	TiledGame::JoystickState m_controlJoystickState;
 	TiledGame::JoystickState m_targetJoystickState;
 
-	std::vector<RpgStream::EventPlayer> m_eventList;
 
 private:
 	RpgEntity* findNearestTarget(const cpBitmask &category);
@@ -204,6 +236,8 @@ private:
 	bool checkControl(TiledObjectBody *control) const;
 
 	std::optional<float> m_targetAngle;
+
+	friend class RpgPlayerPrivate;
 };
 
 

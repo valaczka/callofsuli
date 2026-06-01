@@ -367,13 +367,12 @@ protected:
 	virtual void loadImageLayer(TiledScene *scene, Tiled::ImageLayer *image, Tiled::MapRenderer *renderer);
 
 	virtual void timerEvent(QTimerEvent *event) override final;
-
-	virtual void timeStepPrepareEvent();
+	virtual void timeStepPrepareEvent() {  }
 	virtual void timeBeforeWorldStepEvent(const qint64 &tick);
 	virtual void worldStep(TiledObjectBody *body);
 	virtual void worldStep() { }
-	virtual void timeAfterWorldStepEvent(const qint64 &tick);
-	virtual void timeSteppedEvent();
+	virtual void timeAfterWorldStepEvent(const qint64 &tick) { Q_UNUSED(tick); }
+	virtual void timeSteppedEvent(const std::vector<TiledObjectBody *> &aboutDestruction) { Q_UNUSED(aboutDestruction); }
 
 	virtual void keyPressEvent(QKeyEvent *event) override;
 	virtual void keyReleaseEvent(QKeyEvent *event) override;

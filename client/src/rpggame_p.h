@@ -62,6 +62,8 @@ private:
 	void connectionPrepare();
 	void connectionCheck();
 
+	void contentPrepare();
+	void onDownloaderStateChanged();
 	void onContentDownloaded();
 	void onContentError();
 
@@ -75,9 +77,14 @@ private:
 	void mpEmitterAdd(const QPointF &pos, const quint32 &tagId);
 	void towerAdd(RpgTower *tower);
 
+	void addLocationSound(TiledObjectBody *object, const QString &sound,
+						  const qreal &baseVolume = 1.,
+						  const Sound::ChannelType &channel = Sound::Music2Channel);
+
+
 
 	void connectJoysticks();
-	void setJoystickState(RpgMotorPlayerControlled *motor, const TiledGame::Joystick &joystick, const TiledGame::JoystickState &state);
+	void setJoystickState(RpgPlayer *player, const TiledGame::Joystick &joystick, const TiledGame::JoystickState &state);
 	bool setFromGamepad(RpgMotorPlayerControlled *motor);
 
 	Q_INVOKABLE void joystickClickedA(const bool &clicked);
@@ -85,6 +92,16 @@ private:
 	Q_INVOKABLE void joystickClickedC(const bool &clicked);
 	Q_INVOKABLE void joystickClickedD(const bool &clicked);
 
+
+	// Questions
+
+	void reloadQuestions();
+	bool initializeQuestions();
+	bool nextQuestion();
+	void onQuestionSuccess(const QVariantMap &answer);
+	void onQuestionFailed(const QVariantMap &answer);
+	void onQuestionStarted();
+	void onQuestionFinished();
 
 	// Play
 
@@ -102,6 +119,8 @@ private:
 	void syncMp();
 	void syncDefenders();
 
+	std::optional<ScatterPoint> addToScatter(const int &scatter);
+
 	struct ObjectSet
 	{
 		QSet<quint32> player;
@@ -113,11 +132,10 @@ private:
 
 	void deleteMissingObjects(const ObjectSet &objects);
 
-	void processEvents(const qint64 &tick);
+	void processEvents(const std::vector<RpgStream::Events> &list, const qint64 &tick);
+	void processEvents(const std::vector<RpgStream::EventPlayer> &list);
 
-	void onTimeStepped();
-
-
+	void onTimeStepped(const std::vector<TiledObjectBody *> &aboutDestruction);
 
 	/// RPG LOGIC LOCAL
 
@@ -130,9 +148,20 @@ private:
 	RpgGame *const q;
 	std::unique_ptr<Rpg::RpgLogicClient> m_logic;
 	quint32 m_deadlineTick = 0;
+	quint32 m_lastProcessedEventTick = 0;			// a szervertől jött utoljára feldolgozott eseménylista tick-je
+
+
+	QVector<Question> m_questionList;
+	QVector<Question>::const_iterator m_questionIterator;
+	bool m_questionInitialized = false;
+	quint32 m_questionDuration = 0;					// todo: csökkenteni a kérdések számát...
+
 
 	RpgStream::MapData m_mapData;
 	QList<QPointer<RpgTower> > m_towerList;
+	std::vector<std::unique_ptr<TiledGameSfxLocation>> m_sfxLocations;
+	QList<QScatterSeries*> m_scatters;
+
 
 	inline static RpgStream::HashFnv1A64 m_terrainHash = {};
 	inline static RpgStream::HashFnv1A64 m_characterHash = {};

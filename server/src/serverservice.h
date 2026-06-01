@@ -149,7 +149,7 @@ public:
 
 	int mainTimerInterval() const;
 
-	void reloadDynamicContent();
+	[[deprecated]] void reloadDynamicContent();
 
 	void stop();
 	void pause();

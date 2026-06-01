@@ -28,9 +28,43 @@
 #include "rpgplayer.h"
 #include "rpgmp.h"
 #include "rpgdefender.h"
+#include "gamequestion.h"
 
 
 #define SENSOR_LENGTH	400.
+
+
+
+
+/**
+ * @brief The RpgPlayerPrivate class
+ */
+
+class RpgPlayerPrivate
+{
+private:
+	RpgPlayerPrivate(RpgPlayer *player) : q(player) {}
+
+	void updateLock(const qint64 &tick);
+
+private:
+	RpgPlayer *const q;
+
+	std::vector<RpgStream::EventPlayer> m_eventList;
+	quint32 m_lockId = 0;
+	std::optional<RpgStream::EventPlayer> m_lockedEvent;
+	qint64 m_waitForLock = 0;
+	bool m_gameQuestionLoaded = false;
+
+	bool m_controlActionDisable = false;
+	quint32 m_controlActionDisableLastNotification = 0;
+
+
+	friend class RpgPlayer;
+	friend class RpgMotorPlayerControlled;
+};
+
+
 
 
 /**
@@ -41,6 +75,7 @@
 
 RpgPlayer::RpgPlayer(RpgGameItem *gameItem, const cpVect &center)
 	: RpgEntity(gameItem, center, 25., CP_BODY_TYPE_DYNAMIC)
+	, d(new RpgPlayerPrivate(this))
 	, m_sfxPain(this)
 	, m_sfxFootStep(this)
 	, m_sfxAccept(this)
@@ -74,6 +109,8 @@ RpgPlayer::RpgPlayer(RpgGameItem *gameItem, const cpVect &center)
 	m_sfxDecline.setFollowPosition(false);
 
 
+	connect(this, &RpgPlayer::healed, this, [this](){ m_effectHealed.play(); });
+
 	/*
 	m_speedLength = 108;
 	m_speedRunLength = 210;
@@ -85,19 +122,14 @@ RpgPlayer::RpgPlayer(RpgGameItem *gameItem, const cpVect &center)
 							   QStringLiteral("death")
 };
 
-	m_castTimer.setInterval(100);
-
-	connect(this, &RpgPlayer::hurt, this, &RpgPlayer::playHurtEffect);
-	connect(this, &RpgPlayer::healed, this, &RpgPlayer::playHealedEffect);
-	connect(this, &RpgPlayer::becameAlive, this, &RpgPlayer::playAliveEffect);
-	connect(this, &RpgPlayer::becameDead, this, &RpgPlayer::playDeadEffect);
-	connect(this, &RpgPlayer::isLockedChanged, this, &RpgPlayer::playShieldEffect);
-
-	connect(m_armory.get(), &RpgArmory::currentWeaponChanged, this, &RpgPlayer::playWeaponChangedEffect);
-
-	connect(&m_castTimer, &QTimer::timeout, this, &RpgPlayer::onCastTimerTimeout);
-
 	*/
+}
+
+
+RpgPlayer::~RpgPlayer()
+{
+	delete d;
+	d = nullptr;
 }
 
 
@@ -163,10 +195,6 @@ void RpgPlayer::load(const RpgPlayerDefinition &config)
 
 	}
 
-	m_visualItem->setProperty("ellipseColor", QColor::fromRgb(57,250,65,150));
-	//m_visualItem->setProperty("ellipseSize", 1);
-	m_visualItem->setProperty("ellipseWidth", 50.);
-
 	loadSfx();
 
 	connect(m_spriteHandler, &TiledSpriteHandler::currentSpriteChanged, this, &RpgPlayer::onCurrentSpriteChanged);
@@ -205,6 +233,7 @@ void RpgPlayer::setConfig(const RpgPlayerDefinition &config)
 	setMaxHp(m_config.hp);
 
 	emit maxMpChanged();
+	emit maxBulletChanged();
 }
 
 
@@ -360,6 +389,7 @@ void RpgMotorPlayer::updateBody(TiledObject *)
 RpgMotorPlayerControlled::RpgMotorPlayerControlled(RpgPlayer *player)
 	: RpgDestinationMotor(player)
 	, m_player(player)
+	, d(m_player->d)
 {
 	Q_ASSERT(m_player);
 
@@ -506,7 +536,7 @@ bool RpgMotorPlayerControlled::checkControl(TiledObjectBody *control) const
 		return p->team() != m_player->team() && p->hp() > 0;
 	}
 
-	return true;
+	return false;
 }
 
 
@@ -518,8 +548,24 @@ bool RpgMotorPlayerControlled::checkControl(TiledObjectBody *control) const
 
 void RpgMotorPlayerControlled::updateBody(TiledObject *)
 {
+	if (!m_player->isAlive()) {
+		m_player->stop();
+		m_player->setCurrentChunk({-1,-1});
+		m_player->setCurrentChunkCenter({-1,-1});
+
+		m_player->setTargetControl(nullptr);
+		m_player->setTargetEntity(nullptr);
+		return;
+	}
+
 	// Moving (JoystickA)
 
+	if (d->m_lockedEvent) {
+		m_player->stop();
+		m_player->setCurrentChunk({-1,-1});
+		m_player->setCurrentChunkCenter({-1,-1});
+		return;
+	}
 
 	if (m_currentJoystickState.distance >= 1.0) {
 		m_targetAngle = std::nullopt;
@@ -580,24 +626,28 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 
 	// Using control (JoystickB)
 
-	float targetDist = 250;			// TODO:
+	if (d->m_controlActionDisable || !m_player->hasDefender()) {
+		m_player->setTargetControl(nullptr);
+	} else {
+		float targetDist = 250;			// TODO:
 
-	if (m_controlJoystickState.hasTouch) {
-		if (m_controlJoystickState.distance > 0.1)
-			m_targetAngle = m_controlJoystickState.angle;
-		else if (!m_player->targetControl() && !m_targetAngle.has_value())
-			m_targetAngle = m_player->desiredBodyRotation();
+		if (m_controlJoystickState.hasTouch) {
+			if (m_controlJoystickState.distance > 0.1)
+				m_targetAngle = m_controlJoystickState.angle;
+			else if (!m_player->targetControl() && !m_targetAngle.has_value())
+				m_targetAngle = m_player->desiredBodyRotation();
 
-		targetDist *= std::clamp(m_controlJoystickState.distance, 0.3, 1.0);
-	}
+			targetDist *= std::clamp(m_controlJoystickState.distance, 0.3, 1.0);
+		}
 
-	if (!m_targetJoystickState.hasTouch) {
-		if (m_targetAngle.has_value()) {
-			cpVect ahead = m_player->bodyPosition()+TiledObjectBody::vectorFromAngle(m_targetAngle.value(), targetDist);
+		if (!m_targetJoystickState.hasTouch) {
+			if (m_targetAngle.has_value()) {
+				cpVect ahead = m_player->bodyPosition()+TiledObjectBody::vectorFromAngle(m_targetAngle.value(), targetDist);
 
-			m_player->setTargetControl(findNearestControl(ahead));
-		} else {
-			m_player->setTargetControl(findNearestControl(targetDist));
+				m_player->setTargetControl(findNearestControl(ahead));
+			} else {
+				m_player->setTargetControl(findNearestControl(targetDist));
+			}
 		}
 	}
 
@@ -605,7 +655,8 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 
 	if (m_player->targetControl() || !m_controlJoystickState.hasTouch
 			|| m_controlJoystickState.distance <= 0.1
-			|| !m_targetAngle.has_value()) {
+			|| !m_targetAngle.has_value()
+			|| !m_player->hasDefender()) {
 		m_player->setCurrentChunk({-1,-1});
 		m_player->setCurrentChunkCenter({-1,-1});
 	} else {
@@ -626,7 +677,7 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 
 	// Attack enemy (JoystickC)
 
-	if (m_controlJoystickState.hasTouch) {
+	if (m_controlJoystickState.hasTouch || m_player->bullet() <= 0) {
 		m_player->setTargetEntity(nullptr);
 		return;
 	}
@@ -680,32 +731,46 @@ bool RpgMotorPlayerControlled::beforeWorldStep(const qint64 &tick, entt::entity 
 
 	const RpgStream::PlayerState *state = scope.getCurrentState<RpgStream::PlayerState>(entity);
 
-	const quint32 myId = RpgLogicObjectMapper::getId(m_player->objectId());
-
-	if (Rpg::EventsOutput *events = scope.getCtx<Rpg::EventsOutput>()) {
-		if (const RpgStream::Events *e = events->at(tick)) {
-			for (const RpgStream::EventPlayer &p : e->player()) {
-				if (p.tagId() != myId)
-					continue;
-
-				if (p.type() == RpgStream::EventPlayer::EventMpPick) {
-					LOG_CINFO("game") << "**************************************** MP PICKED *****************";
-					m_gameItem->playSfx(QStringLiteral(":/rpg/common/leather_inventory.mp3"), m_player->scene(),
-										m_player->bodyPositionF());
-				}
-			}
-		}
-	} else {
-		LOG_CERROR("game") << "NO EVENTS CTX";
-	}
-
 	if (!state) {
 		LOG_CERROR("game") << "!!!";
 		return false;
 	}
 
+
+	// Ha most vált halottra vagy éppen most támad fel
+
+	if (state->hp() == 0 || m_player->hp() == 0) {
+		m_player->emplace(state->entityState().posXAsFloat(), state->entityState().posYAsFloat());
+	}
+
+
+	bool nextControlState = (state->penalty() >= tick);
+
+	if (!nextControlState && d->m_controlActionDisable && m_player->isAlive()) {
+		m_game->gameItem()->message(QObject::tr("Penalty time over"));
+	}
+
+
 	m_player->setHp(state->hp());
 	m_player->setMp(state->mp());
+	m_player->setBullet(state->bullet());
+	m_player->setDefender(state->defender());
+	m_player->setLocked(state->lock() > 0 || d->m_lockedEvent);
+	d->m_lockId = state->lock();
+	d->updateLock(tick);
+
+
+	d->m_controlActionDisable = nextControlState;
+
+	if (d->m_controlActionDisable) {
+		if (state->penalty() > d->m_controlActionDisableLastNotification && m_player->isAlive()) {
+			int sec = std::ceil(AbstractGame::TickTimer::tickToMsec(state->penalty() - tick)/1000.);
+			m_game->gameItem()->message(QObject::tr("%1 sec penalty").arg(sec));
+		}
+
+		d->m_controlActionDisableLastNotification = state->penalty();
+	}
+
 
 	return true;
 }
@@ -755,6 +820,7 @@ bool RpgMotorPlayerControlled::afterWorldStep(const qint64 &tick, RpgStream::Ful
 		for (const RpgStream::PlayerState &s : list) {
 			LOG_CDEBUG("game") << s.tick() << "POS" << s.entityState().posXAsFloat() << s.entityState().posYAsFloat();
 		}*/
+
 
 		RpgStream::PlayerStateList sl;
 		sl.setTagId(tagId);
@@ -807,21 +873,21 @@ bool RpgMotorPlayerControlled::afterWorldStep(const qint64 &tick, RpgStream::Ful
 	}
 
 
-	if (!m_eventList.empty()) {
+	if (!d->m_eventList.empty()) {
 
-		for (RpgStream::EventPlayer &e : m_eventList) {
+		for (RpgStream::EventPlayer &e : d->m_eventList) {
 			e.setTagId(tagId);
 			e.setTick(tick);
 		}
 
 		RpgStream::Events events;
 		events.setTick(tick);
-		events.setPlayer(m_eventList);
+		events.setPlayer(d->m_eventList);
 
 		state->flags().setFlag(RpgStream::FullState::Event);
 		state->events().emplace_back(std::move(events));
 
-		m_eventList.clear();
+		d->m_eventList.clear();
 	}
 
 
@@ -862,7 +928,7 @@ void RpgMotorPlayerControlled::attackCurrentTarget()
 
 		LOG_CWARNING("game") << "ATTACK PLAYER" << e.target();
 
-		m_eventList.emplace_back(std::move(e));
+		d->m_eventList.emplace_back(std::move(e));
 
 		return;
 	}
@@ -883,11 +949,13 @@ void RpgMotorPlayerControlled::useCurrentControl()
 	if (RpgTower *tower = dynamic_cast<RpgTower*>(m_player->targetControl())) {
 		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventTower);
 		e.setTarget(RpgLogicObjectMapper::getId(tower->objectId()));
-		e.setSuccess(true);
 
-		LOG_CWARNING("game") << "ATTACK TOWER" << e.target();
+		LOG_CWARNING("game") << "ATTACK TOWER" << e.target() << d->m_lockId;
 
-		m_eventList.emplace_back(std::move(e));
+		d->m_lockedEvent = e;
+		d->m_waitForLock = m_gameItem->tickTimer()->currentTick() + 5*60;			// Wait for lockId from server
+
+		d->m_eventList.emplace_back(std::move(e));
 
 		return;
 	}
@@ -896,14 +964,20 @@ void RpgMotorPlayerControlled::useCurrentControl()
 	if (RpgDefender *p = dynamic_cast<RpgDefender*>(m_player->targetControl())) {
 		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventAttackDefender);
 		e.setTarget(RpgLogicObjectMapper::getId(p->objectId()));
-		e.setSuccess(true);
 
-		LOG_CWARNING("game") << "ATTACK DEFENDER" << e.target();
+		LOG_CWARNING("game") << "ATTACK DEFENDER" << e.target() << d->m_lockId;
 
-		m_eventList.emplace_back(std::move(e));
+		d->m_lockedEvent = e;
+		d->m_waitForLock = m_gameItem->tickTimer()->currentTick() + 5*60;			// Wait for lockId from server
+
+		d->m_eventList.emplace_back(std::move(e));
 
 		return;
 	}
+
+
+	if (dynamic_cast<RpgDefenderPoint*>(m_player->targetControl()))
+		return putDefender(true);
 
 }
 
@@ -918,11 +992,10 @@ void RpgMotorPlayerControlled::putDefender(const bool &click)
 	if (RpgDefenderPoint *p = dynamic_cast<RpgDefenderPoint*>(m_player->targetControl())) {
 		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventDefender);
 		e.setTarget(RpgLogicObjectMapper::getId(p->objectId()));
-		e.setSuccess(true);
 
 		LOG_CWARNING("game") << "PUT DEFENDER" << e.target();
 
-		m_eventList.emplace_back(std::move(e));
+		d->m_eventList.emplace_back(std::move(e));
 
 		return;
 	}
@@ -937,11 +1010,10 @@ void RpgMotorPlayerControlled::putDefender(const bool &click)
 		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventDefender);
 		e.chunk().setX(ch.x());
 		e.chunk().setY(ch.y());
-		e.setSuccess(true);
 
 		LOG_CWARNING("game") << "PUT DEFENDER ON CHUNK" << ch;
 
-		m_eventList.emplace_back(std::move(e));
+		d->m_eventList.emplace_back(std::move(e));
 	}
 
 	LOG_CWARNING("game") << "Missing point";
@@ -1051,7 +1123,7 @@ void RpgMotorPlayerControlled::eventMpPick(RpgMp *mp)
 	RpgStream::EventPlayer e(RpgStream::EventPlayer::EventMpPick);
 	e.setTarget(RpgLogicObjectMapper::getId(mp->objectId()));
 
-	m_eventList.emplace_back(std::move(e));
+	d->m_eventList.emplace_back(std::move(e));
 }
 
 
@@ -1070,6 +1142,49 @@ void RpgMotorPlayerControlled::setTargetJoystickState(const TiledGame::JoystickS
 {
 	m_targetJoystickState = newTargetJoystickState;
 }
+
+
+
+/**
+ * @brief RpgMotorPlayerControlled::questionFinished
+ * @param success
+ */
+
+void RpgMotorPlayerControlled::questionFinished(const bool &success)
+{
+	if (!d->m_lockedEvent) {
+		LOG_CERROR("game") << "Missing locked event";
+		return;
+	}
+
+	if (d->m_lockId == 0) {
+		LOG_CERROR("game") << "Invalid lock id";
+		d->m_lockedEvent = std::nullopt;
+		return;
+	}
+
+
+	if (success) {
+		RpgStream::EventPlayer e = d->m_lockedEvent.value();
+		e.setLockId(d->m_lockId);
+
+		LOG_CWARNING("game") << "RESEND ATTACK" << e.target() << d->m_lockId;
+
+		d->m_eventList.emplace_back(std::move(e));
+	} else {
+		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventFailed);
+		e.setLockId(d->m_lockId);
+		e.setTarget(d->m_lockedEvent->target());
+
+		LOG_CWARNING("game") << "***FAIL****" << e.tagId() << "--->" << e.target() << d->m_lockId;
+
+		d->m_eventList.emplace_back(std::move(e));
+	}
+
+	d->m_lockedEvent = std::nullopt;
+}
+
+
 
 
 /**
@@ -1127,10 +1242,6 @@ void RpgPlayer::onAlive()
 {
 	setSubZ(0.5);
 
-
-	/*if (m_visualItem)
-		m_visualItem->setProperty("ellipseSize", 1);*/
-
 	/*filterSet(TiledObjectBody::FixturePlayerBody,
 					  TiledObjectBody::FixtureCategories(TiledObjectBody::FixtureAll)
 					  .setFlag(TiledObjectBody::FixturePlayerBody, false)
@@ -1148,8 +1259,6 @@ void RpgPlayer::onDead()
 {
 	setSubZ(0.0);
 
-	/*if (m_visualItem)
-		m_visualItem->setProperty("ellipseSize", 0);*/
 
 	//filterSet(TiledObjectBody::FixtureInvalid, TiledObjectBody::FixtureInvalid);
 }
@@ -1181,6 +1290,65 @@ void RpgPlayer::onCurrentSpriteChanged()
 	else
 		d->idleClear();*/
 }
+
+
+/**
+ * @brief RpgPlayer::hasDefender
+ * @return
+ */
+
+bool RpgPlayer::hasDefender() const
+{
+	return m_defender != RpgStream::BaseDefenderObject::None;
+}
+
+
+void RpgPlayer::setDefender(const RpgStream::BaseDefenderObject::Type &type)
+{
+	if (m_defender == type)
+		return;
+	m_defender = type;
+	emit hasDefenderChanged();
+}
+
+
+
+/**
+ * @brief RpgPlayer::maxBullet
+ * @return
+ */
+
+int RpgPlayer::maxBullet() const
+{
+	return m_config.bullet;
+}
+
+
+
+/**
+ * @brief RpgPlayer::bullet
+ * @return
+ */
+
+int RpgPlayer::bullet() const
+{
+	return m_bullet;
+}
+
+void RpgPlayer::setBullet(int newBullet)
+{
+	if (m_bullet == newBullet)
+		return;
+	m_bullet = newBullet;
+	emit bulletChanged();
+
+	if (m_bullet > m_config.bullet) {
+		m_config.bullet = m_bullet;
+		emit maxBulletChanged();
+	}
+}
+
+
 
 
 /**
@@ -1280,6 +1448,12 @@ void RpgPlayer::loadSfx()
 
 void RpgPlayer::updateSprite()
 {
+	if (m_locked && m_hp > 0) {
+		if (!m_effectShield.active())
+			m_effectShield.play();
+	} else
+		m_effectShield.stop();
+
 	if (m_hp <= 0) {
 		jumpToSprite("death", m_facingDirection);
 		return;
@@ -1331,9 +1505,9 @@ void RpgPlayer::synchronize()
 			offset = rect.center() - bodyPositionF();
 			width = std::max(rect.width(), rect.height());			// = *0.5*2
 
-			if (RpgDefenderPoint *p = dynamic_cast<RpgDefenderPoint*>(m_targetControl))
+			if (dynamic_cast<RpgDefenderPoint*>(m_targetControl))
 				color = QColorConstants::Svg::orange;
-			else if (RpgDefender *p = dynamic_cast<RpgDefender*>(m_targetControl))
+			else if (dynamic_cast<RpgDefender*>(m_targetControl))
 				color = QColorConstants::Svg::red;
 			else
 				color = QColorConstants::Svg::lightgreen;
@@ -1352,7 +1526,7 @@ void RpgPlayer::synchronize()
 				offset = p - bodyPositionF();
 				width = 25.;
 				stroke = 2.;
-				color = QColor::fromRgb(57,250,65,150);
+				color = QColorConstants::Svg::lightgreen;
 			}
 
 		}
@@ -1368,8 +1542,25 @@ void RpgPlayer::synchronize()
 				color = QColor::fromRgb(57,250,65,150);
 			}
 		}*/
+
+		if (m_scatterPoint.isValid())
+			m_scatterPoint.scatter->setPointConfiguration(m_scatterPoint.index, QXYSeries::PointConfiguration::Size, 14);
+	} else {
+		if (m_scatterPoint.isValid())
+			m_scatterPoint.scatter->setPointConfiguration(m_scatterPoint.index, QXYSeries::PointConfiguration::Size, 10);
 	}
 
+
+
+	if (m_scatterPoint.isValid()) {
+		QPointF p = bodyPositionF();
+		p.setY(scene()->height() - p.y());
+		m_scatterPoint.scatter->replace(m_scatterPoint.index, p);
+	}
+
+
+	if (!isAlive())
+		stroke = 0;
 
 	m_visualItem->setProperty("ellipseOffset", offset);
 	m_visualItem->setProperty("ellipseWidth", width);
@@ -1378,3 +1569,35 @@ void RpgPlayer::synchronize()
 }
 
 
+
+
+
+/**
+ * @brief RpgPlayerPrivate::updateLock
+ */
+
+void RpgPlayerPrivate::updateLock(const qint64 &tick)
+{
+	if (m_lockedEvent && m_lockId == 0 && !m_gameQuestionLoaded && m_waitForLock < tick) {
+		LOG_CERROR("game") << "Wait for lockId timeout";
+		m_lockedEvent = std::nullopt;
+	}
+
+
+	if (m_lockId > 0 && !m_gameQuestionLoaded) {
+		q->m_rpgGame->loadNextQuestion();
+		m_gameQuestionLoaded = true;
+		return;
+	}
+
+	if (m_lockId == 0 && m_gameQuestionLoaded) {
+		if (m_lockedEvent)
+			q->m_rpgGame->gameQuestion()->finish();
+		else {
+			q->m_rpgGame->gameQuestion()->forceDestroy();
+			m_lockedEvent = std::nullopt;
+		}
+
+		m_gameQuestionLoaded = false;
+	}
+}

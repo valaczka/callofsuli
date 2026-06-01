@@ -99,7 +99,8 @@ void RpgTower::worldStep()
 		reloadDefenderLayersVisibility();
 	}
 
-	setCanAttack(!state->hasDefender() && state->lockedUntil() < m_gameItem->tickTimer()->currentTick());
+	setCanAttack(!state->hasDefender() && state->lockedUntil() < m_gameItem->tickTimer()->currentTick() /*&&
+				 state->lockId() == 0*/);
 }
 
 
@@ -185,6 +186,15 @@ void RpgTower::synchronize()
 
 	setColor(RpgGameItem::teamColor().value(m_state.team()));
 	setLoad(m_state.load());
+
+
+	if (m_scatterPoint.isValid()) {
+		if (m_state.active())
+			m_scatterPoint.scatter->setPointConfiguration(m_scatterPoint.index, QXYSeries::PointConfiguration::Color, m_color);
+		else
+			m_scatterPoint.scatter->setPointConfiguration(m_scatterPoint.index, QXYSeries::PointConfiguration::Color,
+														  QColorConstants::Svg::gray);
+	}
 
 	TiledObjectBody::synchronize();
 }

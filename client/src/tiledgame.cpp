@@ -905,15 +905,8 @@ void TiledGame::loadTileLayer(TiledScene *scene, Tiled::TileLayer *layer, Tiled:
  * @brief TiledGame::timeSteppedEvent
  */
 
-void TiledGame::timeSteppedEvent()
-{
 
-}
 
-void TiledGame::timeStepPrepareEvent()
-{
-
-}
 
 void TiledGame::timeBeforeWorldStepEvent(const qint64 &tick)
 {
@@ -1301,6 +1294,7 @@ void TiledGame::updateStepTimer()
 	const qint64 &currentTick = m_tickTimer->currentTick();
 
 	if (currentTick < 0) {
+		LOG_CDEBUG("game") << "****CT" << currentTick;
 		timeStepPrepareEvent();
 		synchronize();
 		return;
@@ -1308,8 +1302,10 @@ void TiledGame::updateStepTimer()
 
 	const qint64 frames = currentTick - d->m_currentFrame;
 
-	if (frames <= 0)
+	if (frames <= 0) {
+		LOG_CDEBUG("game") << "****F" << currentTick << d->m_currentFrame;
 		return;
+	}
 
 	QElapsedTimer timer1;
 	timer1.start();
@@ -1339,7 +1335,7 @@ void TiledGame::updateStepTimer()
 		LOG_CTRACE("scene") << "Render lag:" << frames << "frames";
 
 
-	timeSteppedEvent();
+	timeSteppedEvent(d->m_removeBodyList);
 
 	d->updateObjects();
 
@@ -1624,11 +1620,6 @@ void TiledGame::worldStep(TiledObjectBody *body)
 
 
 
-
-void TiledGame::timeAfterWorldStepEvent(const qint64 &tick)
-{
-	Q_UNUSED(tick);
-}
 
 
 

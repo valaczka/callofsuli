@@ -76,26 +76,17 @@ Rectangle {
 		}
 
 		ScatterSeries {
-			id: _seriesEnemies
-
-			color: Qaterial.Colors.red600
+			id: _seriesTower
 
 			axisY: _yAxis
 			axisX: _xAxis
-
-			borderWidth: 0
-			markerSize: 11
 		}
 
 		ScatterSeries {
 			id: _seriesPlayer
 
-			color: Qaterial.Colors.amber600
-
 			axisY: _yAxis
 			axisX: _xAxis
-
-			borderColor: Qaterial.Colors.amber200
 		}
 
 	}
@@ -146,9 +137,7 @@ Rectangle {
 
 	Component.onCompleted: {
 		if (game) {
-			game.scatterSeriesEnemies = _seriesEnemies
-			game.scatterSeriesPlayers = _seriesPlayer
-			game.scatterSeriesPoints = _seriesPoints
+			game.setScatterSeries([_seriesPlayer, _seriesTower, _seriesPoints])
 		}
 	}
 }

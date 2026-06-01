@@ -62,6 +62,17 @@ AbstractGame::~AbstractGame()
 
 
 /**
+ * @brief AbstractGame::client
+ * @return
+ */
+
+Client *AbstractGame::client() const
+{
+	return m_client;
+}
+
+
+/**
  * @brief AbstractGame::pageItem
  * @return
  */

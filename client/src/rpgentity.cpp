@@ -43,8 +43,31 @@ void RpgEntity::setHp(int newHp)
 {
 	if (m_hp == newHp)
 		return;
+
+	bool isHurt = newHp < m_hp;
+	bool isHealed = newHp > m_hp;
+	bool isResurrected = (isHealed && m_hp <= 0);
+
 	m_hp = newHp;
 	emit hpChanged();
+
+	if (isHurt)
+		emit hurt();
+
+	if (isHealed)
+		emit healed();
+
+	if (m_hp == 0) {
+		emit becameDead();
+		onDead();
+	}
+
+	if (isResurrected) {
+		emit becameAlive();
+		onAlive();
+	}
+
+
 }
 
 int RpgEntity::maxHp() const
@@ -341,3 +364,16 @@ void RpgEntity::setTeam(RpgStream::Team newTeam)
 	updateColor();
 }
 
+
+bool RpgEntity::locked() const
+{
+	return m_locked;
+}
+
+void RpgEntity::setLocked(bool newLocked)
+{
+	if (m_locked == newLocked)
+		return;
+	m_locked = newLocked;
+	emit lockedChanged();
+}

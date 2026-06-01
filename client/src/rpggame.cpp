@@ -27,6 +27,8 @@
 #include <libtiledquick/tilelayeritem.h>
 #include <libtiled/imagecache.h>
 #include "application.h"
+#include "gamequestion.h"
+#include "litegame.h"
 #include "rpgplayer.h"
 #include "rpgstream.h"
 #include "rpguserwallet.h"
@@ -42,6 +44,9 @@
 #include "utils_.h"
 
 
+#ifndef Q_OS_WASM
+#include "standaloneclient.h"
+#endif
 
 
 QHash<QString, RpgGameDefinition> RpgGame::m_terrains = {};
@@ -63,7 +68,7 @@ RpgGame::RpgGame(GameMapMissionLevel *missionLevel, Client *client, const bool &
 
 	LOG_CDEBUG("client") << "RpgGame created" << this;
 
-	connect(client->downloader(), &Downloader::contentDownloaded, d, &RpgGamePrivate::onContentDownloaded);
+	connect(client->downloader(), &Downloader::stateChanged, d, &RpgGamePrivate::onDownloaderStateChanged);
 	connect(client->downloader(), &Downloader::downloadError, d, &RpgGamePrivate::onContentError);
 
 }
@@ -93,7 +98,6 @@ void RpgGame::gameAbort()
 		return;
 
 	else if (m_gameState == GameStateConnect ||
-			 m_gameState == GameStateDownloadStatic ||
 			 m_gameState == GameStateDownloadContent ||
 			 m_gameState == GameStateLobby ||
 			 m_gameState == GameStateError ||
@@ -126,7 +130,7 @@ void RpgGame::loadGameItem()
 {
 	LOG_CDEBUG("game") << "LOAD GAME ITEM";
 
-	d->prepareGameItem();
+	QMetaObject::invokeMethod(d, &RpgGamePrivate::prepareGameItem, Qt::QueuedConnection);
 }
 
 
@@ -139,7 +143,20 @@ void RpgGame::gameItemPrepared()
 {
 	LOG_CDEBUG("game") << "GameItem prepared";
 
-	d->onGameItemPrepared();
+	QMetaObject::invokeMethod(d, &RpgGamePrivate::onGameItemPrepared, Qt::QueuedConnection);
+}
+
+
+
+
+
+/**
+ * @brief RpgGame::downloadAccepted
+ */
+
+void RpgGame::downloadAccepted()
+{
+	m_client->downloader()->download();
 }
 
 
@@ -294,6 +311,17 @@ Rpg::RpgLogicClient *RpgGame::rpgLogicClient()
 }
 
 
+/**
+ * @brief RpgGame::loadNextQuestion
+ * @return
+ */
+
+bool RpgGame::loadNextQuestion()
+{
+	return d->nextQuestion();
+}
+
+
 
 /**
  * @brief RpgGame::msecLeft
@@ -325,7 +353,7 @@ QQuickItem *RpgGame::loadPage()
 	if (!item)
 		return nullptr;
 
-	d->connectionPrepare();
+	d->contentPrepare();
 
 	return item;
 
@@ -338,7 +366,10 @@ QQuickItem *RpgGame::loadPage()
 
 void RpgGame::connectGameQuestion()
 {
-
+	connect(m_gameQuestion, &GameQuestion::success, d, &RpgGamePrivate::onQuestionSuccess);
+	connect(m_gameQuestion, &GameQuestion::failed, d, &RpgGamePrivate::onQuestionFailed);
+	connect(m_gameQuestion, &GameQuestion::finished, d, &RpgGamePrivate::onQuestionFinished);
+	connect(m_gameQuestion, &GameQuestion::started, d, &RpgGamePrivate::onQuestionStarted);
 }
 
 
@@ -375,12 +406,18 @@ void RpgGame::setGameItem(RpgGameItem *newGameItem)
 
 void RpgGamePrivate::onContentDownloaded()
 {
-	if (q->m_gameState == RpgGame::GameStateDownloadStatic) {
-		q->setGameState(RpgGame::GameStateLobby);
-	} else {
+	if (q->m_gameState != RpgGame::GameStateDownloadContent && q->m_gameState != RpgGame::GameStateInvalid) {
 		LOG_CERROR("client") << "Invalid state" << q->m_gameState;
 		q->setError(tr("Ismeretlen hiba: onContentDownloaded"));
+		return;
 	}
+
+
+	q->m_client->downloader()->loadDynamicContent();
+
+
+
+	connectionPrepare();
 }
 
 
@@ -403,6 +440,10 @@ void RpgGamePrivate::prepareGameItem()
 {
 	Q_ASSERT(!RpgGame::terrains().isEmpty());
 
+	if (!initializeQuestions()) {
+		q->setError(tr("Nem sikerült betölteni a kérdéseket"));
+		return;
+	}
 
 	Rpg::RpgLogicScope scope = m_logic->getScope();
 	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
@@ -413,6 +454,25 @@ void RpgGamePrivate::prepareGameItem()
 
 
 	const RpgGameDefinition def = RpgGame::terrains().value(terrain);
+
+
+	const auto &ptr = TiledGame::getDynamicTilesets(def);
+
+	if (!ptr) {
+		q->setError(tr("Nem sikerült betölteni a terepet"));
+		return;
+	}
+
+	for (const QString &s : ptr.value()) {
+		const QString res = q->m_client->downloader()->contentDict().value(s);
+
+		if (res.isEmpty()) {
+			q->setError(tr("Nem sikerült betölteni a terepet"));
+			return;
+		}
+
+		q->m_client->downloader()->loadDynamicContent(res);
+	}
 
 	LOG_CDEBUG("game") << "LOAD" << cfg->terrain() << terrain << def.name;
 
@@ -449,6 +509,18 @@ void RpgGamePrivate::onGameItemPrepared()
 
 	syncObjects();
 	syncGameState();
+
+
+	// Set tower points
+
+	for (RpgTower *tower : m_towerList) {
+		if (!tower->scatterPoint().isValid())
+			continue;
+
+		QPointF p = tower->bodyPositionF();
+		p.setY(tower->scene()->height() - p.y());
+		tower->scatterPoint().scatter->replace(tower->scatterPoint().index, p);
+	}
 
 	/// TODO...
 	///q->setGameState(RpgGame::GameStateInit);
@@ -568,6 +640,23 @@ void RpgGamePrivate::towerAdd(RpgTower *tower)
 
 
 
+/**
+ * @brief RpgGamePrivate::addLocationSound
+ * @param object
+ * @param sound
+ * @param baseVolume
+ * @param channel
+ */
+
+void RpgGamePrivate::addLocationSound(TiledObjectBody *object, const QString &sound, const qreal &baseVolume, const Sound::ChannelType &channel)
+{
+	LOG_CTRACE("game") << "Add location sound" << sound << baseVolume << object << channel;
+	m_sfxLocations.emplace_back(new TiledGameSfxLocation(sound, baseVolume, object, channel));
+}
+
+
+
+
 
 
 
@@ -612,15 +701,25 @@ void RpgGamePrivate::connectJoysticks()
 
 /**
  * @brief RpgGamePrivate::setJoystickState
- * @param motor
+ * @param player
  * @param joystick
  * @param state
  */
 
-void RpgGamePrivate::setJoystickState(RpgMotorPlayerControlled *motor, const TiledGame::Joystick &joystick, const TiledGame::JoystickState &state)
+void RpgGamePrivate::setJoystickState(RpgPlayer *player, const TiledGame::Joystick &joystick, const TiledGame::JoystickState &state)
 {
+	if (!player)
+		return;
+
+	RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(player->currentMotor());
+
 	if (!motor)
 		return;
+
+	if (!player->isAlive()) {
+		motor->setCurrentJoystickState(TiledGame::JoystickState{});
+		return;
+	}
 
 	if (setFromGamepad(motor))
 		return;
@@ -758,6 +857,222 @@ void RpgGamePrivate::joystickClickedD(const bool &clicked)
 
 
 
+
+/**
+ * @brief RpgGamePrivate::reloadQuestions
+ */
+
+void RpgGamePrivate::reloadQuestions()
+{
+	m_questionList = q->createQuestions();
+
+	std::random_device rd;
+	std::mt19937 g(rd());
+	std::shuffle(m_questionList.begin(), m_questionList.end(), g);
+
+	m_questionIterator = m_questionList.constBegin();
+}
+
+
+
+
+/**
+ * @brief RpgGamePrivate::initializeQuestions
+ */
+
+bool RpgGamePrivate::initializeQuestions()
+{
+	if (m_questionInitialized) {
+		LOG_CWARNING("game") << "RpgQuestion already initialized";
+		return false;
+	}
+
+	LOG_CTRACE("game") << "Initialize questions";
+
+	reloadQuestions();
+
+	if (m_questionList.isEmpty())
+		return false;
+
+
+	m_questionDuration = 0;
+
+	for (const Question &q : m_questionList) {
+		ModuleInterface *iface = Application::instance()->objectiveModules().value(q.module());
+
+		if (!iface)
+			continue;
+
+		m_questionDuration += SECOND_PER_QUESTION;
+
+		qreal factor = (iface->xpFactor()-1.0) * 2.0;
+
+		// Exponenciálisan növeljük
+
+		m_questionDuration += factor * SECOND_PER_QUESTION;
+	}
+
+	m_questionInitialized = true;
+
+	return true;
+}
+
+
+
+
+/**
+ * @brief RpgGamePrivate::nextQuestion
+ */
+
+bool RpgGamePrivate::nextQuestion()
+{
+	GameQuestion *gq = q->gameQuestion();
+
+	if (!gq) {
+		LOG_CERROR("game") << "Missing GameQuestion";
+		return false;
+	}
+
+	if (gq->questionComponent()) {
+		LOG_CERROR("game") << "GameQuestionComponent already loaded";
+		return false;
+	}
+
+	if (m_questionIterator == m_questionList.constEnd()) {
+		LOG_CDEBUG("game") << "Reload questions";
+		reloadQuestions();
+	}
+
+	if (m_questionIterator == m_questionList.constEnd()) {
+		LOG_CERROR("game") << "Reload questions error";
+		return false;
+	}
+
+	gq->loadQuestion(*m_questionIterator);
+	++m_questionIterator;
+
+	return true;
+}
+
+
+
+/**
+ * @brief RpgGamePrivate::onQuestionSuccess
+ * @param answer
+ */
+
+void RpgGamePrivate::onQuestionSuccess(const QVariantMap &answer)
+{
+	// ++winnerstreak
+
+	q->m_client->sound()->playSound(QStringLiteral("qrc:/sound/sfx/correct.mp3"), Sound::SfxChannel);
+	q->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/winner.mp3"), Sound::VoiceoverChannel);
+
+	GameQuestion *gq = q->gameQuestion();
+
+	if (!gq) {
+		LOG_CERROR("game") << "Missing GameQuestion";
+		return;
+	}
+
+	q->addStatistics(gq->module(), gq->objectiveUuid(), true, gq->elapsedMsec());
+
+	int xp = gq->questionData().value(QStringLiteral("xpFactor"), 0.0).toReal() * 10.;
+
+
+	gq->answerReveal(answer);
+	gq->setMsecBeforeHide(0);
+	///gq->finish();			- finish by motor
+
+	if (!q->controlledPlayer()) {
+		LOG_CERROR("game") << "Missing RpgPlayer";
+		gq->finish();
+		return;
+	}
+
+	if (RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(q->controlledPlayer()->currentMotor())) {
+		motor->questionFinished(true);
+	} else {
+		LOG_CERROR("game") << "Missing RpgMotorPlayerControlled";
+		gq->finish();
+		return;
+	}
+}
+
+
+/**
+ * @brief RpgGamePrivate::onQuestionFailed
+ * @param answer
+ */
+
+void RpgGamePrivate::onQuestionFailed(const QVariantMap &answer)
+{
+#ifndef Q_OS_WASM
+	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
+	if (client)
+		client->performVibrate();
+#endif
+
+	//setWinnerStreak(0);
+
+	q->setIsFlawless(false);
+
+	q->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/loser.mp3"), Sound::VoiceoverChannel);
+
+	GameQuestion *gq = q->gameQuestion();
+
+	if (!gq) {
+		LOG_CERROR("game") << "Missing GameQuestion";
+		return;
+	}
+
+	q->addStatistics(gq->module(), gq->objectiveUuid(), false, gq->elapsedMsec());
+
+
+	gq->answerReveal(answer);
+	gq->setMsecBeforeHide(1250);
+
+
+	if (!q->controlledPlayer()) {
+		LOG_CERROR("game") << "Missing RpgPlayer";
+		gq->finish();
+		return;
+	}
+
+	if (RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(q->controlledPlayer()->currentMotor())) {
+		motor->questionFinished(false);
+	} else {
+		LOG_CERROR("game") << "Missing RpgMotorPlayerControlled";
+		gq->finish();
+		return;
+	}
+
+}
+
+
+
+
+/**
+ * @brief RpgGamePrivate::onQuestionStarted
+ */
+
+void RpgGamePrivate::onQuestionStarted()
+{
+	q->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/fight.mp3"), Sound::VoiceoverChannel);
+}
+
+
+/**
+ * @brief RpgGamePrivate::onQuestionFinished
+ */
+
+void RpgGamePrivate::onQuestionFinished()
+{
+	q->m_gameItem->forceActiveFocus(Qt::OtherFocusReason);
+}
+
+
+
 /**
  * @brief RpgGamePrivate::startGame
  */
@@ -788,7 +1103,9 @@ void RpgGamePrivate::onBeforeWorldStep(const qint64 &tick)
 
 	syncGameState();
 	syncObjects();
-	processEvents(tick);
+
+	if (full.flags().testFlag(RpgStream::FullState::Event))
+		processEvents(full.events(), tick);
 
 	deleteMissingObjects(extractObjects(full));
 }
@@ -904,17 +1221,24 @@ void RpgGamePrivate::syncPlayers()
 		if (state) {
 			obj->setHp(state->hp());
 			obj->setMp(state->mp());
+			obj->setBullet(state->bullet());
+			obj->setDefender(state->defender());
 			obj->setTeam(p.team);
+
+			if (auto ptr = addToScatter(0)) {
+				obj->setScatterPoint(ptr.value());
+				ptr->scatter->setPointConfiguration(ptr->index, QXYSeries::PointConfiguration::Color,
+													RpgGameItem::teamColor().value(p.team));
+			}
 		}
 
 		const quint32 pid = logicRegisterObject(obj);
 
 		m_logic->entitySetIdTag(entity, pid);
 
-		LOG_CINFO("game") << "ADDED" << RpgLogicObjectMapper::toObjectId(pid).ownerId
-						  << RpgLogicObjectMapper::toObjectId(pid).sceneId
-						  << RpgLogicObjectMapper::toObjectId(pid).id
-						  << "->" << pid << "==" << obj->bodyPositionF() << "|" << obj->hp() << "HP" << "/" << obj->maxHp() << "MaxHp";
+		LOG_CINFO("game") << "ADDED" << pid << "==" << obj->hp() << "HP" << "/" << obj->maxHp() << "MaxHp" << "|" << obj->bullet();
+
+
 
 
 		if (p.playerData.playerId() == 1) {
@@ -947,17 +1271,12 @@ void RpgGamePrivate::syncMp()
 
 		Q_ASSERT(scene);
 
-		cpVect fromPos = cpvzero;
 
-		if (Rpg::MpEmitter *emitter = scope.try_get<Rpg::MpEmitter>(mp.emitter)) {
-			fromPos = emitter->pos;
-		}
-
-		LOG_CWARNING("game") << "CREATE MP" << mp.idTag << mp.pos.x << mp.pos.y << "FROM" << fromPos.x << fromPos.y;
+		LOG_CWARNING("game") << "CREATE MP" << mp.idTag << mp.pos.x << mp.pos.y << "FROM" << mp.origin.x << mp.origin.y;
 
 
 		RpgMp *obj = q->m_gameItem->createObject<RpgMp>(RpgLogicObjectMapper::toObjectId(mp.idTag), scene,
-														q->m_gameItem, fromPos, mp.pos);
+														q->m_gameItem, mp.origin, mp.pos);
 
 		Q_ASSERT(obj);
 
@@ -1043,6 +1362,32 @@ void RpgGamePrivate::syncDefenders()
 		if (obj->defenderPoint())
 			obj->defenderPoint()->visualItem()->setVisible(false);
 	}
+}
+
+
+
+
+
+/**
+ * @brief RpgGamePrivate::addToScatter
+ * @param scatter
+ * @return
+ */
+
+std::optional<ScatterPoint> RpgGamePrivate::addToScatter(const int &scatter)
+{
+	if (scatter < 0 || scatter >= m_scatters.size()) {
+		LOG_CERROR("game") << "Invalid scatter";
+		return std::nullopt;
+	}
+
+	m_scatters[scatter]->append(QPointF());
+
+	ScatterPoint p;
+	p.scatter = m_scatters[scatter];
+	p.index = m_scatters[scatter]->count()-1;
+
+	return p;
 }
 
 
@@ -1175,19 +1520,76 @@ void RpgGamePrivate::deleteMissingObjects(const ObjectSet &objects)
  * @brief RpgGamePrivate::processEvents
  */
 
-void RpgGamePrivate::processEvents(const qint64 &tick)
+void RpgGamePrivate::processEvents(const std::vector<RpgStream::Events> &list, const qint64 &tick)
 {
+	if (list.empty())
+		return;
+
+	for (const RpgStream::Events &event : list) {
+		LOG_CINFO("game") << "########### EVENT" << event.tick() << "### CURR" << tick << "### LAST" << m_lastProcessedEventTick;
+		if (event.tick() <= m_lastProcessedEventTick)
+			continue;
+
+		// Mp emitted
+
+		if (event.flags().testFlag(RpgStream::Events::Emitter)) {
+			q->m_gameItem->playSfx(QStringLiteral(":/sound/sfx/pick.mp3"), q->m_gameItem->currentScene());
+			LOG_CINFO("game") << "EMITTER EVENT";
+		}
+
+
+		// Players events
+
+		if (event.flags().testFlag(RpgStream::Events::Player))
+			processEvents(event.player());
+
+
+		m_lastProcessedEventTick = event.tick();
+	}
+}
+
+
+/**
+ * @brief RpgGamePrivate::processEvents
+ * @param list
+ */
+
+void RpgGamePrivate::processEvents(const std::vector<RpgStream::EventPlayer> &list)
+{
+	if (list.empty())
+		return;
+
 	Rpg::RpgLogicScope scope = m_logic->getScope();
 
-	if (Rpg::EventsOutput *events = scope.getCtx<Rpg::EventsOutput>()) {
-		if (const RpgStream::Events *e = events->at(tick)) {
-			if (!e->emitter().empty()) {
-				q->m_gameItem->playSfx(QStringLiteral(":/sound/sfx/pick.mp3"), q->m_gameItem->currentScene());
-				LOG_CINFO("game") << "EMITTER EVENT";
+	RpgLogicObjectMapper *mapper = scope.getCtx<RpgLogicObjectMapper>();
+
+	Q_ASSERT(mapper);
+
+	for (const RpgStream::EventPlayer &event : list) {
+		RpgPlayer *player = mapper->get<RpgPlayer>(event.tagId());
+
+		if (!player) {
+			LOG_CERROR("game") << "Invalid player id" << event.tagId();
+			continue;
+		}
+
+
+		if (player != q->m_controlledPlayer)
+			continue;
+
+		if (event.type() == RpgStream::EventPlayer::EventMpPick) {
+			LOG_CINFO("game") << "**************************************** MP PICKED *****************";
+			q->m_gameItem->playSfx(QStringLiteral(":/rpg/common/leather_inventory.mp3"),
+								   player->scene(),
+								   player->bodyPositionF());
+		} else if (event.type() == RpgStream::EventPlayer::EventRespawn) {
+			LOG_CINFO("game") << "**************************************** RESPAWN *****************";
+			if (const qint64 delta = q->m_gameItem->tickTimer()->tickTo(event.at()); delta > 0) {
+				int sec = std::ceil(AbstractGame::TickTimer::tickToMsec(delta)/1000.);
+				q->m_gameItem->message(QObject::tr("%1 sec to respawn").arg(sec));
 			}
 		}
-	} else {
-		LOG_CERROR("game") << "NO EVENTS CTX";
+
 	}
 }
 
@@ -1199,10 +1601,30 @@ void RpgGamePrivate::processEvents(const qint64 &tick)
  * @brief RpgGamePrivate::onTimeStepped
  */
 
-void RpgGamePrivate::onTimeStepped()
+void RpgGamePrivate::onTimeStepped(const std::vector<TiledObjectBody *> &aboutDestruction)
 {
+	for (TiledObjectBody *b : aboutDestruction) {
+		LOG_CERROR("game") << "ABOUT TO DELETE" << b << b->objectId().id;
 
+		if (q->m_controlledPlayer && q->m_controlledPlayer->targetControl() == b)
+			q->m_controlledPlayer->setTargetControl(nullptr);
+
+		if (q->m_controlledPlayer && q->m_controlledPlayer->targetEntity() == b)
+			q->m_controlledPlayer->setTargetEntity(nullptr);
+	}
+
+
+	// SfxLocations
+
+	for (const auto &ptr : m_sfxLocations) {
+		if (ptr->baseObject()->scene() != ptr->connectedScene())
+			ptr->setConnectedScene(ptr->baseObject()->scene());
+		ptr->checkPosition();
+	}
 }
+
+
+
 
 
 
@@ -1440,6 +1862,9 @@ RpgGamePrivate::RpgGamePrivate(RpgGame *game, const bool &multi)
 		m_logic = std::make_unique<Rpg::RpgLogicClientSingle>();
 
 
+	m_questionIterator = m_questionList.constBegin();
+
+
 #ifdef WITH_GAMEPAD
 
 	//QLoggingCategory::setFilterRules(QStringLiteral("qt.gamepad.debug=true"));
@@ -1494,14 +1919,17 @@ void RpgGamePrivate::clearSharedTextures()
 
 void RpgGamePrivate::connectionPrepare()
 {
-	if (q->m_client->server()) {
+	q->setGameState(RpgGame::GameStateConnect);
+	connectionCheck();
+
+	/*if (q->m_client->server()) {
 		connectionCheck();
 		return;
 	}
 
 	q->setGameState(RpgGame::GameStateConnect);
 
-	connect(q->m_client, &Client::serverChanged, this, &RpgGamePrivate::connectionCheck);
+	connect(q->m_client, &Client::serverChanged, this, &RpgGamePrivate::connectionCheck);*/
 
 }
 
@@ -1514,26 +1942,9 @@ void RpgGamePrivate::connectionPrepare()
 
 void RpgGamePrivate::connectionCheck()
 {
-	if (!q->m_client->server())
-		return;
+	LOG_CINFO("client") << "GAME CONNECTED";
 
-
-	LOG_CINFO("client") << "DOWNLOAD" << q->m_client->server()->availableContent().size();
-
-	/// TODO: REMOVE ..................................
-
-	q->setGameState(RpgGame::GameStateDownloadStatic);
-
-	q->m_client->server()->loadDynamicContent("/home/valaczka/Projektek/callofsuli-content/test.cres");
-	q->m_client->server()->loadDynamicContent("/home/valaczka/Projektek/callofsuli-content/character01a.cres");
-	q->m_client->server()->loadDynamicContent("/home/valaczka/Projektek/callofsuli-content/rpg.cres");
-
-	QDirIterator it(QStringLiteral("/home/valaczka/Projektek/callofsuli-content"),
-					{QStringLiteral("*.dres")}, QDir::Files);
-
-	while (it.hasNext())
-		q->m_client->server()->loadDynamicContent(it.next());
-
+	////q->setGameState(RpgGame::GameStateLobby);
 
 	q->reloadTerrains();
 	q->reloadCharacters();
@@ -1551,30 +1962,43 @@ void RpgGamePrivate::connectionCheck()
 
 	return;
 
-	/// __________________________
+
+}
 
 
-	if (!q->m_client->server()->availableContent().isEmpty()) {
-		Downloader *downloader = q->m_client->downloader();
 
-		Q_ASSERT(downloader);
 
-		downloader->contentClear();
-		downloader->setServer(q->m_client->server());
 
-		for (const Server::DynamicContent &c : q->m_client->server()->availableContent())
-			downloader->contentAdd(c);
 
-		q->setGameState(RpgGame::GameStateDownloadStatic);
+/**
+ * @brief RpgGamePrivate::contentPrepare
+ */
 
-		downloader->download();
+void RpgGamePrivate::contentPrepare()
+{
+	q->m_client->downloader()->check();
 
-		return;
+	if (q->m_client->downloader()->state() == Downloader::StateContentReady) {
+		return onContentDownloaded();
 	}
 
-	q->setGameState(RpgGame::GameStateConnect);
+	q->setGameState(RpgGame::GameStateDownloadContent);
 
-	connect(q->m_client->server(), &Server::availableContentChanged, this, &RpgGamePrivate::connectionCheck);
+	qint64 size = q->m_client->downloader()->fullSize() - q->m_client->downloader()->downloadedSize();
+
+	emit q->downloadRequest(QLocale::system().formattedDataSize(size));
+}
+
+
+
+/**
+ * @brief RpgGamePrivate::onDownloaderStateChanged
+ */
+
+void RpgGamePrivate::onDownloaderStateChanged()
+{
+	if (q->m_client->downloader()->state() == Downloader::StateContentReady)
+		onContentDownloaded();
 }
 
 

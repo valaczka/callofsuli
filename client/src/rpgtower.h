@@ -79,6 +79,8 @@ class RpgTower : public TiledObject
 {
 	Q_OBJECT
 
+	ADD_SCATTER_POINT
+
 	Q_PROPERTY(int load READ load WRITE setLoad NOTIFY loadChanged FINAL)
 	Q_PROPERTY(QColor color READ color WRITE setColor NOTIFY colorChanged FINAL)
 	Q_PROPERTY(RpgGameItem *gameItem READ gameItem CONSTANT FINAL)
