@@ -396,7 +396,6 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<TiledWeapon>("CallOfSuli", 1, 0, "TiledWeapon", "TiledWeapon is uncreatable");
 	qmlRegisterUncreatableType<Updater>("CallOfSuli", 1, 0, "Updater", "Updater is uncreatable");
 	qmlRegisterUncreatableType<Utils>("CallOfSuli", 1, 1, "Utils", "Utils is uncreatable");
-	qmlRegisterUncreatableType<WebSocket>("CallOfSuli", 1, 0, "WebSocket", "WebSocket is uncreatable");
 
 
 	qmlRegisterUncreatableType<Credential>("CallOfSuli", 1, 0, "Credential", "Credential is uncreatable");
@@ -705,6 +704,34 @@ QByteArray Application::signToRaw(const QByteArray &message) const
 	}
 
 	return signer.signToRaw(message);
+}
+
+
+
+/**
+ * @brief Application::sign
+ * @param message
+ * @return
+ */
+
+QByteArray Application::sign(const QByteArray &message) const
+{
+	PublicKeySigner signer;
+
+	{
+#ifndef Q_OS_WASM
+		QMutexLocker locker(&m_device.mutex);
+#endif
+
+		if (sodium_is_zero(m_device.privateKey.data(), m_device.privateKey.size())) {
+			LOG_CERROR("app") << "Device private key missing";
+			return {};
+		}
+
+		signer.setSecret(m_device.privateKey);
+	}
+
+	return signer.sign(message);
 }
 
 

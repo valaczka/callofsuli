@@ -55,11 +55,11 @@ void AbstractEngine::streamSet(WebSocketStream *stream)
 
 
 /**
- * @brief AbstractEngine::streamUnSet
+ * @brief AbstractEngine::streamUnset
  * @param stream
  */
 
-void AbstractEngine::streamUnSet(WebSocketStream *stream)
+void AbstractEngine::streamUnset(WebSocketStream *stream)
 {
 	if (!stream)
 		return;

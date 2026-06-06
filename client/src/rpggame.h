@@ -90,16 +90,23 @@ class RpgPlayerDefinition : public QSerializer
 
 public:
 	RpgPlayerDefinition() : QSerializer()
-	  , hp(0)
-	  , mp(0)
-	  , walk(0)
-	  , run(0)
-	  , defender(RpgStream::BaseDefenderObject::Dummy)
-	  , bullet(0)
+	  , power(5)
+	  , hp(5)
+	  , mp(15)
+	  , walk(90)
+	  , run(200)
+
+	  , push(350)
+	  , pushDistance(1000)
+	  , resist(100)
+
+	  , bullet(50)
 	{}
 
 
 	void updateSfxPath(const QString &prefix);
+
+	RpgStream::PlayerConfig toPlayerConfig() const;
 
 	QString prefixPath;
 
@@ -122,11 +129,22 @@ public:
 
 	QS_COLLECTION(QList, QString, idleSprites)
 
+
+	// Config
+
+	QS_FIELD(int, power)			// power level
+
 	QS_FIELD(int, hp)
 	QS_FIELD(int, mp)
 
 	QS_FIELD(int, walk)				// walk speed
 	QS_FIELD(int, run)				// run speed
+
+
+	QS_FIELD(int, push)				// push power
+	QS_FIELD(int, pushDistance)		// max. push distance
+	QS_FIELD(int, resist)			// slide resist
+
 
 	QS_COLLECTION(QList, RpgStream::BaseDefenderObject::Type, defender)				// available defenders
 	// todo: utility

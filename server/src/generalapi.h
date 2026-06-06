@@ -40,8 +40,6 @@ public:
 	QHttpServerResponse config();
 	QHttpServerResponse rank(const int &id = -1);
 	QHttpServerResponse grade();
-	QHttpServerResponse dynamicContent(const bool &loadable);
-	QHttpServerResponse dynamicContentDict();
 
 	QHttpServerResponse class_(const int &id = -1);
 	QHttpServerResponse classUsers(const int &id);
@@ -54,8 +52,6 @@ public:
 	QHttpServerResponse me(const std::optional<Credential> &credential);
 
 	QHttpServerResponse time(const QJsonObject &json);
-
-	QHttpServerResponse market();
 
 	static std::optional<QJsonArray> _user(const AbstractAPI *api, const QString &username,
 										   const Credential::Roles &roles = Credential::None);

@@ -125,14 +125,6 @@ void EngineHandler::websocketTrigger(WebSocketStream *stream) {
 	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::websocketTrigger, d, stream), Qt::QueuedConnection);
 }
 
-void EngineHandler::websocketObserverAdded(WebSocketStream *stream, const AbstractEngine::Type &type) {
-	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::websocketObserverAdded, d, stream, type), Qt::QueuedConnection);
-}
-
-void EngineHandler::websocketObserverRemoved(WebSocketStream *stream, const AbstractEngine::Type &type) {
-	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::websocketObserverRemoved, d, stream, type), Qt::QueuedConnection);
-}
-
 void EngineHandler::websocketEngineLink(WebSocketStream *stream, const std::shared_ptr<AbstractEngine> &engine) {
 	if (m_running) QMetaObject::invokeMethod(d, std::bind(&EngineHandlerPrivate::websocketEngineLink, d, stream, engine), Qt::QueuedConnection);
 }
@@ -384,7 +376,7 @@ void EngineHandlerPrivate::websocketAdd(QWebSocket *socket)
 	connect(wsocket, &QWebSocket::textMessageReceived, ws.get(), &WebSocketStream::onTextReceived);
 	connect(wsocket, &QWebSocket::binaryMessageReceived, ws.get(), &WebSocketStream::onBinaryDataReceived);
 	connect(wsocket, &QWebSocket::binaryMessageReceived, this,
-			std::bind(&EngineHandlerPrivate::onBinaryDataReceived, this, ws.get(), std::placeholders::_1));
+			std::bind(&EngineHandlerPrivate::onBinaryDataReceived, this, ws.get(), std::placeholders::_1), Qt::QueuedConnection);
 
 
 	LOG_CTRACE("service") << "WebSocketStream added" << &ws;
@@ -438,7 +430,7 @@ void EngineHandlerPrivate::websocketCloseAll()
 		auto ws = it->get();
 
 		for (const auto &e : m_engines)
-			e.get()->streamUnSet(ws);
+			e.get()->streamUnset(ws);
 
 		auto wsocket = ws->m_socket.get();
 
@@ -469,7 +461,7 @@ void EngineHandlerPrivate::websocketDisconnected(WebSocketStream *stream)
 	QMutexLocker locker(&m_mutex);
 
 	for (const auto &e : m_engines)
-		e.get()->streamUnSet(stream);
+		e.get()->streamUnset(stream);
 
 
 	websocketRemove(stream);
@@ -494,47 +486,6 @@ void EngineHandlerPrivate::websocketTrigger(WebSocketStream *stream)
 }
 
 
-
-/**
- * @brief EngineHandlerPrivate::websocketObserverAdded
- * @param stream
- * @param type
- */
-
-void EngineHandlerPrivate::websocketObserverAdded(WebSocketStream *stream, const AbstractEngine::Type &type)
-{
-	/*if (!stream)
-		return;
-
-	QMutexLocker locker(&m_mutex);
-
-	for (const auto &e: m_engines) {
-		if (e->type() == type) {
-			stream->engineAdd(e);
-		}
-	}*/
-}
-
-
-/**
- * @brief EngineHandlerPrivate::websocketObserverRemoved
- * @param stream
- * @param type
- */
-
-void EngineHandlerPrivate::websocketObserverRemoved(WebSocketStream *stream, const AbstractEngine::Type &type)
-{
-	if (!stream)
-		return;
-
-	QMutexLocker locker(&m_mutex);
-
-	for (const auto &e: m_engines) {
-		if (e->type() == type) {
-			stream->engineRemove(e.get());
-		}
-	}
-}
 
 
 /**
@@ -570,7 +521,7 @@ void EngineHandlerPrivate::websocketEngineUnlink(WebSocketStream *stream, Abstra
 	QMutexLocker locker(&m_mutex);
 
 	stream->engineRemove(engine);
-	engine->streamUnSet(stream);
+	engine->streamUnset(stream);
 }
 
 
@@ -663,11 +614,8 @@ void EngineHandlerPrivate::onBinaryDataReceived(WebSocketStream *stream, const Q
 		return;
 	}
 
-	QMutexLocker locker(&m_mutex);
-
-	for (const std::shared_ptr<AbstractEngine> &e : m_engines) {
-		e->onBinaryMessageReceived(data, stream);
-	}
+	if (q->service()->udpServer())
+		q->service()->udpServer()->onBinaryMessageReceived(data, stream);
 }
 
 

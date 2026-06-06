@@ -41,7 +41,6 @@
 #include <csignal>
 #include <QResource>
 #include "querybuilder.hpp"
-#include "teacherapi.h"
 #include "authapi.h"
 
 #ifdef WITH_FTXUI
@@ -369,7 +368,7 @@ void ServerService::timerEvent(QTimerEvent *)
 
 		// Clear wallet
 
-		TeacherAPI::_clearWallet(m_databaseMain.get(), this);
+		///TeacherAPI::_clearWallet(m_databaseMain.get(), this);
 	});
 
 	// Send notifications
@@ -387,130 +386,6 @@ void ServerService::timerEvent(QTimerEvent *)
 
 
 
-/**
- * @brief ServerService::loadDynamicDictFromRcc
- * @param path
- */
-
-void ServerService::loadDynamicDictFromRcc(const QString &filename, const QString &path)
-{
-	QDirIterator it2(path, { QStringLiteral("*tsx") }, QDir::Files, QDirIterator::Subdirectories);
-
-	while (it2.hasNext()) {
-		QString file = it2.next();
-		file.replace(path, QStringLiteral(""));
-
-		if (m_dynamicContentDict.contains(file)) {
-			LOG_CERROR("service") << "Dynamic content registry already exists:" << file;
-		} else {
-			m_dynamicContentDict.insert(file, filename);
-		}
-	}
-}
-
-
-
-/**
- * @brief ServerService::loadMarket
- * @return
- */
-
-RpgMarketList ServerService::loadMarket() const
-{
-	LOG_CDEBUG("service") << "Load market";
-
-	const QString &dir = m_settings->dataDir().absoluteFilePath(QStringLiteral("content"));
-
-	if (!QFile::exists(dir)) {
-		LOG_CTRACE("service") << "Dynamic content directory missing";
-		return {};
-	}
-
-	RpgMarketList ret;
-
-	QDirIterator it(dir, {
-						QStringLiteral("*.cres"), QStringLiteral("*.dres")
-					}, QDir::Files);
-
-	while (it.hasNext()) {
-		const QString &file = it.next();
-
-		LOG_CTRACE("service") << "Load:" << qPrintable(file);
-
-		if (!QResource::registerResource(file, QStringLiteral("/tmp"))) {
-			LOG_CERROR("service") << "Invalid resource:" << qPrintable(file);
-			continue;
-		}
-
-		{
-			QDirIterator it2(QStringLiteral(":/tmp"), { QStringLiteral("market.json") }, QDir::Files, QDirIterator::Subdirectories);
-
-			while (it2.hasNext()) {
-				const QString &file = it2.next();
-				const QString &name = file.section('/', -2, -2);
-
-				LOG_CTRACE("service") << "Load market data from" << file;
-
-				const auto &ptr = Utils::fileToJsonObject(file);
-
-				if (!ptr) {
-					LOG_CERROR("service") << "Invalid market data:" << qPrintable(file);
-					continue;
-				}
-
-				RpgMarket market;
-				market.fromJson(*ptr);
-				if (market.name.isEmpty())
-					market.name = name;
-
-				ret.list.append(market);
-
-
-				if (market.type == RpgMarket::Skin) {
-					const QJsonArray &list = ptr->value(QStringLiteral("weapons")).toArray();
-
-					for (const QJsonValue &v : list) {
-						RpgMarket wm;
-						wm.fromJson(v);
-						wm.type = RpgMarket::Weapon;
-						wm.belongs = market.name;
-
-						ret.list.append(wm);
-					}
-				}
-			}
-		}
-
-		if (!QResource::unregisterResource(file, QStringLiteral("/tmp"))) {
-			LOG_CERROR("service") << "Unregister resource error:" << file;
-		}
-	}
-
-	return ret;
-}
-
-
-/**
- * @brief ServerService::loadMarket
- * @param filename
- * @return
- */
-
-RpgMarketList ServerService::loadMarket(const QString &filename) const
-{
-	LOG_CDEBUG("service") << "Load market from file:" << qPrintable(filename);
-
-	const auto &ptr = Utils::fileToJsonObject(filename);
-
-	if (!ptr) {
-		LOG_CERROR("service") << "Invalid market data:" << qPrintable(filename);
-		return {};
-	}
-
-	RpgMarketList list;
-	list.fromJson(*ptr);
-	return list;
-}
 
 
 
@@ -562,20 +437,6 @@ void ServerService::loadSmtpServer()
 
 
 
-/**
- * @brief ServerService::imitateLatency
- * @return
- */
-
-int ServerService::imitateLatency() const
-{
-	return m_imitateLatency;
-}
-
-void ServerService::setImitateLatency(int newImitateLatency)
-{
-	m_imitateLatency = newImitateLatency;
-}
 
 
 
@@ -682,13 +543,10 @@ std::optional<int> ServerService::preStart()
 #ifdef QT_NO_DEBUG
 	parser.addOption({QStringLiteral("debug"), QObject::tr("Debug üzenetek megjelenítése")});
 #else
-	parser.addOption({{QStringLiteral("l"), QStringLiteral("latency")}, QObject::tr("Késleltett válaszadás"), QStringLiteral("msec")});
 	parser.addOption({{QStringLiteral("t"), QStringLiteral("token")}, QObject::tr("Create token"), QStringLiteral("username")});
 #endif
 
 	parser.addOption({{QStringLiteral("u"), QStringLiteral("upgrade")}, QObject::tr("Adatbázis frissítésének kényszerítése"), QStringLiteral("version")});
-
-	parser.addOption({{QStringLiteral("m"), QStringLiteral("market")}, QObject::tr("Market adatbázis készítése")});
 
 	parser.addOption({{QStringLiteral("z"), QStringLiteral("zap")}, QObject::tr("Felhasználói adatok TÖRLÉSE (hadjárat, dolgozat)")});
 
@@ -779,11 +637,11 @@ std::optional<int> ServerService::preStart()
 	}
 
 
-	if (parser.isSet(QStringLiteral("market"))) {
+	/*if (parser.isSet(QStringLiteral("market"))) {
 		QJsonDocument doc(loadMarket().toJson());
 		QConsole::qStdOut()->write(doc.toJson());
 		return 0;
-	}
+	}*/
 
 	m_zap = parser.isSet(QStringLiteral("zap"));
 
@@ -803,11 +661,6 @@ std::optional<int> ServerService::preStart()
 		m_settings->saveToFile(true);
 
 #ifndef QT_NO_DEBUG
-	if (parser.isSet(QStringLiteral("latency"))) {
-		setImitateLatency(parser.value(QStringLiteral("latency")).toInt());
-		LOG_CDEBUG("service") << "Imitate latency:" << m_imitateLatency;
-	}
-
 	if (parser.isSet(QStringLiteral("token"))) {
 		m_createToken = parser.value(QStringLiteral("token"));
 	}
@@ -1060,13 +913,6 @@ int ServerService::exec()
 	}
 
 
-	// Restore backed up engines
-
-	/*const int &count = ConquestEngine::restoreEngines(this);
-
-	if (count > 0)
-		LOG_CINFO("service") << count << "ConquestEngines restored";*/
-
 	if (!start())
 		return 3;
 
@@ -1202,16 +1048,6 @@ bool ServerService::start()
 
 	m_mainTimer.start(m_mainTimerInterval, Qt::PreciseTimer, this);
 	m_engineHandler->setRunning(true);
-
-	reloadDynamicContent();
-
-
-	const QString &marketFile = m_settings->dataDir().absoluteFilePath(QStringLiteral("market.json"));
-
-	if (QFile::exists(marketFile))
-		setMarket(loadMarket(marketFile));
-	else
-		setMarket(loadMarket());
 
 
 	AdminAPI::zapWallet(m_databaseMain.get());
@@ -1368,6 +1204,8 @@ UdpServer *ServerService::udpServer() const
 }
 
 
+
+
 /**
  * @brief ServerService::agentSignatures
  * @return
@@ -1376,56 +1214,6 @@ UdpServer *ServerService::udpServer() const
 const QHash<QByteArray, ServerService::AgentSignature> &ServerService::agentSignatures() const
 {
 	return m_agentSignatures;
-}
-
-
-/**
- * @brief ServerService::market
- * @return
- */
-
-const RpgMarketList &ServerService::market() const
-{
-	return m_market;
-}
-
-void ServerService::setMarket(const RpgMarketList &newMarket)
-{
-	m_market = newMarket;
-}
-
-
-/**
- * @brief ServerService::loadableDynamicContent
- * @return
- */
-
-const QJsonArray &ServerService::loadableDynamicContent() const
-{
-	return m_loadableDynamicContent;
-}
-
-
-/**
- * @brief ServerService::dynamicContentDict
- * @return
- */
-
-const QJsonObject &ServerService::dynamicContentDict() const
-{
-	return m_dynamicContentDict;
-}
-
-
-
-/**
- * @brief ServerService::dynamicContent
- * @return
- */
-
-const QJsonArray &ServerService::dynamicContent() const
-{
-	return m_dynamicContent;
 }
 
 
@@ -1439,76 +1227,6 @@ int ServerService::mainTimerInterval() const
 	return m_mainTimerInterval;
 }
 
-
-
-/**
- * @brief ServerService::reloadDynamicContent
- */
-
-void ServerService::reloadDynamicContent()
-{
-	m_dynamicContent = {};
-	m_loadableDynamicContent = {};
-	m_dynamicContentDict = {};
-
-	const QString &dir = m_settings->dataDir().absoluteFilePath(QStringLiteral("content"));
-
-	if (!QFile::exists(dir)) {
-		LOG_CDEBUG("service") << "Dynamic content directory missing";
-		return;
-	}
-
-	LOG_CINFO("service") << "Reload dynamic content:" << qPrintable(dir);
-
-	for (const bool isStatic : std::vector<bool>{true, false}) {
-		QDirIterator it(dir, {
-							isStatic ? QStringLiteral("*.cres") : QStringLiteral("*.dres")
-						}, QDir::Files);
-
-		while (it.hasNext()) {
-			const QString &file = it.next();
-
-			LOG_CTRACE("service") << "Load:" << qPrintable(file);
-
-			const auto &content = Utils::fileContent(file);
-
-			if (!content)
-				continue;
-
-			const QString &md5 = QString::fromLatin1(QCryptographicHash::hash(*content, QCryptographicHash::Md5).toHex());
-			const qint64 size = content->size();
-
-			if (!QResource::registerResource(file, QStringLiteral("/tmp"))) {
-				LOG_CERROR("service") << "Invalid resource:" << qPrintable(file);
-				continue;
-			}
-
-
-			if (isStatic)
-				m_dynamicContent.append(QJsonObject{
-											{ QStringLiteral("file"), it.fileName() },
-											{ QStringLiteral("md5"), md5 },
-											{ QStringLiteral("size"), size }
-										});
-			else
-				m_loadableDynamicContent.append(QJsonObject{
-													{ QStringLiteral("file"), it.fileName() },
-													{ QStringLiteral("md5"), md5 },
-													{ QStringLiteral("size"), size }
-												});
-
-
-
-			LOG_CDEBUG("service") << "Dynamic content registered:" << qPrintable(it.fileName());
-
-			loadDynamicDictFromRcc(it.fileName(), QStringLiteral(":/tmp/"));
-
-			if (!QResource::unregisterResource(file, QStringLiteral("/tmp"))) {
-				LOG_CERROR("service") << "Unregister resource error:" << file;
-			}
-		}
-	}
-}
 
 
 

@@ -228,18 +228,6 @@ UserAPI::UserAPI(Handler *handler, ServerService *service)
 	});
 
 
-	server->route(path+"wallet", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
-		AUTHORIZE_API();
-		return wallet(*credential);
-	});
-
-	server->route(path+"buy", QHttpServerRequest::Method::Post,
-				  [this](const QHttpServerRequest &request){
-		AUTHORIZE_API();
-		JSON_OBJECT_ASSERT();
-		return buy(*credential, *jsonObject);
-	});
-
 	server->route(path+"offline", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
 		AUTHORIZE_API();
 		JSON_OBJECT_ASSERT();
@@ -1024,9 +1012,9 @@ QHttpServerResponse UserAPI::gameUpdate(const Credential &credential, const int 
 
 	// Wallet, currency
 
-	_addWallet(username, id, json.value(QStringLiteral("wallet")).toArray());
+	/*_addWallet(username, id, json.value(QStringLiteral("wallet")).toArray());
 	if (json.contains(QStringLiteral("currency")))
-		_setCurrency(username, id, json.value(QStringLiteral("currency")).toInt());
+		_setCurrency(username, id, json.value(QStringLiteral("currency")).toInt());*/
 
 	// XP
 
@@ -1109,9 +1097,9 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 
 		// Wallet, currency
 
-		_addWallet(username, id, json.value(QStringLiteral("wallet")).toArray());
+		/*_addWallet(username, id, json.value(QStringLiteral("wallet")).toArray());
 		if (json.contains(QStringLiteral("currency")))
-			_setCurrency(username, id, json.value(QStringLiteral("currency")).toInt());
+			_setCurrency(username, id, json.value(QStringLiteral("currency")).toInt());*/
 
 		///LAMBDA_THREAD_END;				/// Nem lehet!!!
 
@@ -1281,38 +1269,8 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 
 
 
-		// Inventory
 
-		/*if (success && game.mode == GameMap::Action) {
-		QJsonArray iList;
-
-		for (auto it = inventory.constBegin(); it != inventory.constEnd(); ++it) {
-			const int num = it.value().toInt(0);
-
-			if (num <= 0)
-				continue;
-
-			LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
-									   .addQuery("WITH t AS (SELECT ").addValue(username)
-									   .addQuery(" AS username, ").addValue(it.key())
-									   .addQuery(" AS key, COALESCE((SELECT value FROM inventory WHERE username=").addValue(username)
-									   .addQuery(" AND key=").addValue(it.key())
-									   .addQuery("),0)+").addValue(num)
-									   .addQuery(" AS value) INSERT OR REPLACE INTO inventory(username, key, value) "
-												 "SELECT username, key, MIN(value, COALESCE((SELECT value FROM inventoryLimit WHERE key=t.key), 999)) "
-												 "FROM t")
-									   .exec());
-
-			iList.append(QJsonObject{
-							 { QStringLiteral("key"), it.key() },
-							 { QStringLiteral("value"), it.value() }
-						 });
-		}
-
-		retObj[QStringLiteral("inventory")] = iList;
-	}*/
-
-		if (success && game.mode == GameMap::Rpg) {
+		/*if (success && game.mode == GameMap::Rpg) {
 			QJsonArray iList;
 
 			for (auto it = inventory.constBegin(); it != inventory.constEnd(); ++it) {
@@ -1331,25 +1289,11 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 					LOG_CDEBUG("client") << "Achieved map:" << it.value().toString() << qPrintable(username);
 				}
 			}
-		}
+		}*/
 
 		db.commit();
 
-		/*
-	QueryBuilder qg(db);
-	qg.addQuery("SELECT DISTINCT id FROM studentGroupInfo WHERE username=").addValue(username);
 
-	if (qg.exec()) {
-		while (qg.sqlQuery().next()) {
-			const int groupId = qg.value("id", -1).toInt();
-
-			if (groupId > -1)
-				m_service->triggerEventStreams(EventStream::EventStreamGroupScore, groupId);
-		}
-	} else {
-		LOG_CERROR("client") << "SQL error" << qg.sqlQuery().lastError();
-	}
-*/
 
 
 	}
@@ -1360,12 +1304,6 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 		if (success) {
 			LAMBDA_SQL_ASSERT(TeacherAPI::_evaluateCampaign(this, game.campaign, username));
 		}
-
-
-		// Clear wallet
-
-		TeacherAPI::_clearWallet(databaseMain(), m_service);
-
 	}
 
 	response = responseOk(retObj);
@@ -1374,8 +1312,8 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 		*okPtr = true;
 
 
-	if (engine)
-		QMetaObject::invokeMethod(engine, std::bind(&RpgEngine::playerSetFinal, engine, id, retObj), Qt::QueuedConnection);
+	/*if (engine)
+		QMetaObject::invokeMethod(engine, std::bind(&RpgEngine::playerSetFinal, engine, id, retObj), Qt::QueuedConnection);*/
 
 	LAMBDA_THREAD_END;
 }
@@ -1550,200 +1488,6 @@ QHttpServerResponse UserAPI::exam(const Credential &credential, const int &id)
 	LAMBDA_THREAD_END;
 }
 
-
-
-
-/**
- * @brief UserAPI::wallet
- * @param credential
- * @return
- */
-
-QHttpServerResponse UserAPI::wallet(const Credential &credential)
-{
-	LOG_CTRACE("client") << "Get wallet for" << credential.username();
-
-	LAMBDA_THREAD_BEGIN(credential);
-
-	const auto &ptr = TeacherAPI::_wallet(this, credential.username());
-
-	LAMBDA_SQL_ASSERT(ptr);
-
-
-	const auto &ptrC = TeacherAPI::_currency(this, credential.username());
-
-	LAMBDA_SQL_ASSERT(ptrC);
-
-	QJsonArray list;
-
-	for (const RpgWallet &w : *ptr) {
-		list.append(w.toJson());
-	}
-
-	QJsonObject r {
-		{ QStringLiteral("list"), list },
-		{ QStringLiteral("currency"), ptrC.value() }
-	};
-
-	response = responseOk(r);
-
-	LAMBDA_THREAD_END;
-}
-
-
-
-/**
- * @brief UserAPI::buy
- * @param credential
- * @param json
- * @return
- */
-
-QHttpServerResponse UserAPI::buy(const Credential &credential, const QJsonObject &json)
-{
-	LOG_CTRACE("client") << "Buy item for" << credential.username();
-
-	LAMBDA_THREAD_BEGIN(credential, json);
-
-	RpgWallet w;
-	w.fromJson(json);
-
-	LAMBDA_SQL_ERROR("invalid type", w.type != RpgMarket::Invalid);
-	LAMBDA_SQL_ERROR("invalid amount", w.amount > 0);
-
-	db.transaction();
-
-	const auto &currency = TeacherAPI::_currency(this, credential.username());
-
-	LAMBDA_SQL_ASSERT_ROLLBACK(currency);
-
-	const auto &list = m_service->market().list;
-
-	const auto it = std::find_if(list.constBegin(), list.constEnd(), [&w](const RpgMarket &m){
-		return w.isEqual(m);
-	});
-
-	LAMBDA_SQL_ERROR_ROLLBACK("invalid type", it != list.constEnd());
-
-
-	// Check currency, rank, rollover
-
-	const RpgMarket &market = *it;
-
-	const int cost = market.cost * w.amount;
-
-	LAMBDA_SQL_ERROR_ROLLBACK("insufficient currency", cost <= currency.value());
-
-	const auto &rankPtr = QueryBuilder::q(db).addQuery("SELECT rankid FROM userRank WHERE username=").addValue(credential.username())
-						  .execToValue("rankid", 0);
-
-	LAMBDA_SQL_ASSERT_ROLLBACK(rankPtr);
-
-	LAMBDA_SQL_ERROR_ROLLBACK("insufficient rank", rankPtr->toInt() >= market.rank);
-
-	if (market.rollover == RpgMarket::Game) {
-		const int gameid = json.value(QStringLiteral("gameid")).toInt(0);
-
-		LAMBDA_SQL_ERROR_ROLLBACK("missing gameid", gameid > 0);
-
-		const auto &ptr = QueryBuilder::q(db).addQuery("SELECT amount FROM wallet WHERE username=").addValue(credential.username())
-						  .addQuery(" AND type=").addValue(w.type)
-						  .addQuery(" AND name=").addValue(w.name)
-						  .addQuery(" AND gameid=").addValue(gameid)
-						  .execToValue("amount", 0);
-
-		LAMBDA_SQL_ASSERT_ROLLBACK(ptr);
-
-		LAMBDA_SQL_ERROR_ROLLBACK("game limit reached", ptr->toInt() < market.num);
-
-		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
-								   .addQuery("INSERT OR REPLACE INTO wallet(").setFieldPlaceholder()
-								   .addQuery(") VALUES (").setValuePlaceholder().addQuery(")")
-								   .addField("username", credential.username())
-								   .addField("type", (int) w.type)
-								   .addField("name", w.name)
-								   .addField("amount", ptr->toInt() + w.amount * market.amount)
-								   .addField("gameid", gameid)
-								   .exec()
-								   );
-
-
-		LOG_CDEBUG("client") << "Buy" << qPrintable(credential.username()) << w.type << qPrintable(w.name)
-							 << "gameid:" << gameid
-							 << "amount:" << w.amount << "cost:" << cost;
-
-	} else if (market.rollover == RpgMarket::Day) {
-		const auto &ptr = QueryBuilder::q(db).addQuery("SELECT SUM(amount) AS amount FROM wallet WHERE username=").addValue(credential.username())
-						  .addQuery(" AND type=").addValue(w.type)
-						  .addQuery(" AND name=").addValue(w.name)
-						  .addQuery(" AND date(timestamp)=date('now')")
-						  .execToValue("amount", 0);
-
-		LAMBDA_SQL_ASSERT_ROLLBACK(ptr);
-
-		LAMBDA_SQL_ERROR_ROLLBACK("daily limit reached", ptr->toInt() < market.num);
-	}
-
-
-	if (market.rollover != RpgMarket::Game) {
-		QueryBuilder q(db);
-
-		// Itt kell, különben az exec() már nem éri el a memóriában
-
-		QByteArray b = QByteArrayLiteral("datetime('now', '+")+
-					   QByteArray::number(market.exp)+
-					   QByteArrayLiteral(" minutes')");
-
-		if (market.exp > 0) {
-			q.addQuery("INSERT INTO wallet(expiry,").setFieldPlaceholder()
-					.addQuery(") VALUES (")
-					.addQuery(b)
-					.addQuery(",")
-					.setValuePlaceholder().addQuery(")");
-		} else {
-			q.addQuery("INSERT INTO wallet(").setFieldPlaceholder()
-					.addQuery(") VALUES (").setValuePlaceholder().addQuery(")");
-		}
-
-		q.addField("username", credential.username())
-				.addField("type", (int) w.type)
-				.addField("name", w.name)
-				.addField("amount", w.amount * market.amount);
-
-		LAMBDA_SQL_ASSERT_ROLLBACK(q.exec());
-
-		LOG_CDEBUG("client") << "Buy" << qPrintable(credential.username()) << w.type << qPrintable(w.name)
-							 << "amount:" << w.amount << "cost:" << cost;
-	}
-
-
-	if (market.type == RpgMarket::Xp) {
-		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
-								   .addQuery("INSERT INTO score(").setFieldPlaceholder()
-								   .addQuery(") VALUES (").setValuePlaceholder().addQuery(")")
-								   .addField("username", credential.username())
-								   .addField("xp", market.amount * w.amount)
-								   .exec()
-								   );
-	}
-
-	if (cost > 0) {
-		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
-								   .addQuery("INSERT INTO currency(").setFieldPlaceholder()
-								   .addQuery(") VALUES (").setValuePlaceholder().addQuery(")")
-								   .addField("username", credential.username())
-								   .addField("amount", -cost)
-								   .exec()
-								   );
-	}
-
-
-	db.commit();
-
-	response = responseOk();
-
-	LAMBDA_THREAD_END;
-}
 
 
 
@@ -2022,45 +1766,6 @@ void UserAPI::_addStatistics(const QString &username, const QJsonArray &list) co
 
 }
 
-
-
-/**
- * @brief UserAPI::_addWallet
- * @param username
- * @param list
- */
-
-void UserAPI::_addWallet(const QString &username, const int &gameid, const QJsonArray &list) const
-{
-	if (list.isEmpty())
-		return;
-
-	QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
-
-	QMutexLocker _locker(databaseMain()->mutex());
-
-	for (const QJsonValue &v : list) {
-		RpgWallet wallet;
-		wallet.fromJson(v);
-
-		if (wallet.type == RpgMarket::Invalid) {
-			LOG_CDEBUG("client") << "Invalid wallet type" << v << "user:" << username;
-			continue;
-		}
-
-		if (!QueryBuilder::q(db)
-				.addQuery("INSERT OR REPLACE INTO wallet(").setFieldPlaceholder().addQuery(") VALUES (").setValuePlaceholder().addQuery(")")
-				.addField("username", username)
-				.addField("type", (int) wallet.type)
-				.addField("name", wallet.name)
-				.addField("amount", -wallet.amount)
-				.addField("gameid", gameid)
-				.exec()) {
-			LOG_CERROR("client") << "Game wallet update error" << gameid << qPrintable(username);
-		}
-	}
-
-}
 
 
 /**

@@ -49,30 +49,6 @@ GeneralAPI::GeneralAPI(Handler *handler, ServerService *service)
 		return config();
 	});
 
-	server->route(path+"content", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
-		AUTHORIZE_API();
-		return dynamicContent(false);
-	});
-
-	server->route(path+"content/loadable", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
-		AUTHORIZE_API();
-		return dynamicContent(true);
-	});
-
-	server->route(path+"content/loadableDict", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
-		AUTHORIZE_API();
-		return dynamicContentDict();
-	});
-
-	server->route(path+"loadable", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
-		AUTHORIZE_API();
-		return dynamicContent(true);
-	});
-
-	server->route(path+"loadableDict", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
-		AUTHORIZE_API();
-		return dynamicContentDict();
-	});
 
 	server->route(path+"grade", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		AUTHORIZE_API();
@@ -148,11 +124,6 @@ GeneralAPI::GeneralAPI(Handler *handler, ServerService *service)
 		AUTHORIZE_API();
 		JSON_OBJECT_GET();
 		return time(jsonObject.value_or(QJsonObject{}));
-	});
-
-	server->route(path+"market", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
-		AUTHORIZE_API();
-		return market();
 	});
 }
 
@@ -263,37 +234,6 @@ QHttpServerResponse GeneralAPI::grade()
 	LAMBDA_THREAD_END;
 }
 
-
-/**
- * @brief GeneralAPI::dynamicContent
- * @return
- */
-
-QHttpServerResponse GeneralAPI::dynamicContent(const bool &loadable)
-{
-	LOG_CTRACE("client") << "Get dynamic content";
-
-	QJsonObject r;
-	r.insert(QStringLiteral("list"),
-			 loadable ? m_service->loadableDynamicContent() : m_service->dynamicContent()
-			 );
-
-	return QHttpServerResponse(r, QHttpServerResponse::StatusCode::Ok);
-}
-
-
-
-/**
- * @brief GeneralAPI::dynamicContentDict
- * @return
- */
-
-QHttpServerResponse GeneralAPI::dynamicContentDict()
-{
-	LOG_CTRACE("client") << "Get loadable dynamic content";
-
-	return QHttpServerResponse(m_service->dynamicContentDict(), QHttpServerResponse::StatusCode::Ok);
-}
 
 
 
@@ -564,15 +504,6 @@ QHttpServerResponse GeneralAPI::time(const QJsonObject &json)
 }
 
 
-/**
- * @brief GeneralAPI::market
- * @return
- */
-
-QHttpServerResponse GeneralAPI::market()
-{
-	return QHttpServerResponse(m_service->market().toJson(), QHttpServerResponse::StatusCode::Ok);
-}
 
 
 /**

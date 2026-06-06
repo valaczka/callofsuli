@@ -259,6 +259,7 @@ SOURCES += \
 	rpgobject.cpp \
 	rpgplayer.cpp \
 	rpgtower.cpp \
+	rpgudpengine.cpp \
 	rpguserwallet.cpp \
 	rpgworldlanddata.cpp \
 	scorelist.cpp \
@@ -293,8 +294,7 @@ SOURCES += \
 	updater.cpp \
 	user.cpp \
 	userimporter.cpp \
-	userloglist.cpp \
-	websocket.cpp
+	userloglist.cpp
 
 RESOURCES += \
 	../qml/qml.qrc \
@@ -354,6 +354,7 @@ HEADERS += \
 	rpgobject.h \
 	rpgplayer.h \
 	rpgtower.h \
+	rpgudpengine.h \
 	rpguserwallet.h \
 	rpgworldlanddata.h \
 	rpgworldlanddata_p.h \
@@ -390,8 +391,7 @@ HEADERS += \
 	updater.h \
 	user.h \
 	userimporter.h \
-	userloglist.h \
-	websocket.h
+	userloglist.h
 
 DISTFILES += \
 	translation.pri

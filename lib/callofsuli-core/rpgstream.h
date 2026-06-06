@@ -177,7 +177,6 @@ public:
 	ConnectionToken(const QString &_user = {}, const quint32 &_peer = 0, const qint64 &_exp = 0)
 		: UdpConnectionToken(1, _user, _peer, _exp)
 		, campaign(-1)
-		, duration(0)
 	{}
 
 	QS_SERIALIZABLE
@@ -185,7 +184,6 @@ public:
 	QS_FIELD(QString, missionUuid)
 	QS_FIELD(int, missionLevel)
 	QS_FIELD(int, campaign)
-	QS_FIELD(int, duration)
 };
 
 
@@ -309,6 +307,27 @@ public:
 } \
 }
 
+
+
+
+#define STREAM_MEMBER_VECTOR_CAST(cast, type, bits, field, name, sizetype, sizebits, error) \
+	STREAM_FIELD(std::vector<cast>, field, name, {}) \
+	public: \
+	const std::vector<cast>& read##name(EngineStream &stream) { \
+	m_##field.clear(); \
+	sizetype size = readBits<sizetype>(stream, sizebits, 0); \
+	m_##field.reserve(size); \
+	for (sizetype i=0; i<size; ++i) { \
+	cast p = readBitsAs<cast, type>(stream, bits, error); \
+	m_##field.emplace_back(std::move(p)); \
+} \
+	return m_##field; } \
+	void write##name(EngineStream &stream) const { \
+	writeBits<sizetype>(stream, m_##field.size(), sizebits); \
+	for (const cast &p : m_##field) { \
+	writeBitsAs<cast, type>(stream, p, bits); \
+} \
+}
 
 
 #define ADD_STRING_RESOLVER(field, name) \
@@ -920,6 +939,8 @@ public:
 		Dummy
 	};
 
+	static quint32 requiredMp(const Type &type);
+
 
 	EngineStream& operator<<(EngineStream &stream);
 	EngineStream& operator>>(EngineStream &stream) const;
@@ -1042,6 +1063,56 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(GameConfig::Flags)
 
 
 
+
+
+/**
+ * @brief The EntityConfig class
+ */
+
+class EntityConfig
+{
+public:
+	EntityConfig() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER(ENTITY_HP_TYPE, maxHp, MaxHp, ENTITY_HP_BITS, 0)
+
+	STREAM_MEMBER(quint32, push, Push, 32, 0);
+	STREAM_MEMBER(quint32, pushDist, PushDist, 32, 0);
+	STREAM_MEMBER(quint32, resist, Resist, 32, 0);
+};
+
+
+
+
+
+/**
+ * @brief The PlayerConfig class
+ */
+
+class PlayerConfig
+{
+public:
+	PlayerConfig() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+
+	STREAM_FIELD(EntityConfig, entity, Entity, {})
+
+	STREAM_MEMBER(quint8, power, Power, 8, 0)
+	STREAM_MEMBER(ENTITY_MP_TYPE, maxMp, MaxMp, ENTITY_MP_BITS, 0)
+	STREAM_MEMBER(ENTITY_MP_TYPE, maxBullet, MaxBullet, ENTITY_HP_BITS, 0)
+
+	STREAM_MEMBER_VECTOR_CAST(BaseDefenderObject::Type, DEFENDER_TYPE, DEFENDER_BITS, defenders, Defenders, quint8, 8, BaseDefenderObject::None)
+
+};
+
+
+
 /**
  * @brief The PlayerData class
  */
@@ -1057,14 +1128,12 @@ public:
 	enum Flag {
 		FlagNull				= 0,
 		FlagCompleted			= 1 << 0,				// a karakterválasztás befejeződött, rányomott a play-re
-		FlagDownloadStarted		= 1 << 1,				// a szükséges letöltés elkezdődött
-		FlagDownloadCompleted	= 1 << 2,				// a szükséges letöltés sikerült
-		FlagLoadStarted			= 1 << 3,				// a játék betöltése helyben elkezdődőtt
-		FlagLoadCompleted		= 1 << 4,				// a játék betöltése helyben befejeződött
-		FlagGamePrepared		= 1 << 5,				// a játék teljesen elkészült (a szervertől kapottak alapján)
-		FlagGameStarted			= 1 << 6,				// a játék elkezdődött
-		FlagGameFinished		= 1 << 7,				// a játék befejeződött
-		FlagPlayerOnline		= 1 << 8,				// a játékos elérhető (van udp-kapcsolat)
+		FlagLoadStarted			= 1 << 1,				// a játék betöltése helyben elkezdődőtt
+		FlagLoadCompleted		= 1 << 2,				// a játék betöltése helyben befejeződött
+		FlagGamePrepared		= 1 << 3,				// a játék teljesen elkészült (a szervertől kapottak alapján)
+		FlagGameStarted			= 1 << 4,				// a játék elkezdődött
+		FlagGameFinished		= 1 << 5,				// a játék befejeződött
+		FlagPlayerOnline		= 1 << 6,				// a játékos elérhető (van udp-kapcsolat)
 	};
 
 	Q_DECLARE_FLAGS(Flags, Flag)
@@ -1076,10 +1145,6 @@ public:
 	STREAM_MEMBER_RESOLVED(character, Character)
 
 	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 16, FlagNull)
-
-	STREAM_MEMBER(ENTITY_HP_TYPE, maxHp, MaxHp, ENTITY_HP_BITS, 0)
-	STREAM_MEMBER(ENTITY_MP_TYPE, maxMp, MaxMp, ENTITY_MP_BITS, 0)
-	STREAM_MEMBER(ENTITY_MP_TYPE, maxBullet, MaxBullet, ENTITY_HP_BITS, 0)
 };
 
 
@@ -1092,14 +1157,15 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(PlayerData::Flags)
  * @brief The CharacterSelectServer class
  */
 
-class CharacterSelectServer
+class CharacterSelect
 {
 public:
-	CharacterSelectServer() = default;
+	CharacterSelect() = default;
 
 	EngineStream& operator<<(EngineStream &stream);
 	EngineStream& operator>>(EngineStream &stream) const;
 
+	TO_DATA_STREAM(EngineDataStream::DataOperationCharacterSelect)
 
 	STREAM_FIELD(GameConfig, gameConfig, GameConfig, {})
 	STREAM_MEMBER_VECTOR(PlayerData, players, Players, PLAYER_ID_TYPE, PLAYER_ID_BITS)
@@ -1128,7 +1194,7 @@ public:
 
 
 	STREAM_DELTA_MASK (
-			quint32, 7,
+			quint32, 9,
 
 			Tick,
 			PosX,
@@ -1136,16 +1202,20 @@ public:
 			VelX,
 			VelY,
 			Angle,
-			Facing
+			Facing,
+			SlideX,
+			SlideY
 			)
 
 
 	STREAM_DELTA_MEMBER_QUANT(posX, PosX, 0, PosX)
 	STREAM_DELTA_MEMBER_QUANT(posY, PosY, 0, PosY)
-	STREAM_DELTA_MEMBER_QUANT_SIGNED(velX, VelX, 0, VelX)
+	STREAM_DELTA_MEMBER_QUANT_SIGNED(velX, VelX, 0, VelX)					// current motor velocity
 	STREAM_DELTA_MEMBER_QUANT_SIGNED(velY, VelY, 0, VelY)
 	STREAM_DELTA_MEMBER_QUANT_SIGNED(angle, Angle, 0, Angle)
 	STREAM_DELTA_MEMBER_QUANT_SIGNED(facing, Facing, 0, Facing)
+	STREAM_DELTA_MEMBER_QUANT_SIGNED(slideX, SlideX, 0, SlideX)				// current knockback velocity
+	STREAM_DELTA_MEMBER_QUANT_SIGNED(slideY, SlideY, 0, SlideY)
 
 
 	bool operator==(const EntityState &other) const {
@@ -1154,7 +1224,10 @@ public:
 				other.m_velX == m_velX &&
 				other.m_velY == m_velY &&
 				other.m_angle == m_angle &&
-				other.m_facing == m_facing;
+				other.m_facing == m_facing &&
+				other.m_slideX == m_slideX &&
+				other.m_slideY == m_slideY
+				;
 	}
 
 
@@ -1166,6 +1239,8 @@ public:
 	LOAD_FROM_DELTA(velY, VelY)
 	LOAD_FROM_DELTA(angle, Angle)
 	LOAD_FROM_DELTA(facing, Facing)
+	LOAD_FROM_DELTA(slideX, SlideX)
+	LOAD_FROM_DELTA(slideY, SlideY)
 
 	LOAD_FROM_DELTA_END
 };
@@ -1188,14 +1263,15 @@ public:
 
 
 	STREAM_DELTA_MASK (
-			quint32, 6,
+			quint32, 7,
 
 			Hp,
 			Mp,
 			Bullet,
 			Lock,
 			Penalty,
-			Defender
+			Defender,
+			HasDefender
 
 			)
 
@@ -1208,6 +1284,7 @@ public:
 	STREAM_DELTA_MEMBER(quint32, penalty, Penalty, 32, 0, Penalty);
 
 	STREAM_DELTA_MEMBER_CAST(BaseDefenderObject::Type, defender, Defender, DEFENDER_TYPE, DEFENDER_BITS, BaseDefenderObject::None, Defender)
+	STREAM_DELTA_MEMBER_CAST(bool, hasDefender, HasDefender, quint8, 1, false, HasDefender);
 
 	bool operator==(const PlayerState &other) const {
 		return other.m_entityState == m_entityState &&
@@ -1216,7 +1293,8 @@ public:
 				other.m_bullet == m_bullet &&
 				other.m_lock == m_lock &&
 				other.m_penalty == m_penalty &&
-				other.m_defender == m_defender
+				other.m_defender == m_defender &&
+				other.m_hasDefender == m_hasDefender
 				;
 	}
 
@@ -1231,6 +1309,7 @@ public:
 	LOAD_FROM_DELTA(penalty, Penalty)
 
 	LOAD_FROM_DELTA(defender, Defender)
+	LOAD_FROM_DELTA(hasDefender, HasDefender)
 
 	LOAD_FROM_DELTA_MEMBER(entityState)
 
@@ -1315,7 +1394,7 @@ public:
 	EngineStream& operator>>(EngineStream &stream) const;
 
 	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
-	STREAM_MEMBER_CAST(BaseDefenderObject::Type, type, Type, quint32, 12, BaseDefenderObject::Dummy)						// max. 4096 types
+	STREAM_MEMBER_CAST(BaseDefenderObject::Type, type, Type, DEFENDER_TYPE, DEFENDER_BITS, BaseDefenderObject::Dummy)
 
 	STREAM_MEMBER(ENTITY_HP_TYPE, hp, Hp, ENTITY_HP_BITS, 0)
 
@@ -1355,13 +1434,17 @@ class EventPlayer : public BaseTickState
 public:
 	enum Type {
 		EventNone = 0,
-		EventMpPick,											// mp felvétele
+		EventMpPick,											// MP felvétele
 		EventTower,												// torony megtámadása
 		EventDefender,											// védő lehelyezése a toronyhoz vagy a pályára
 		EventAttackPlayer,										// másik játékos megtámadása
 		EventAttackDefender,									// védő megtámadása
 		EventFailed,											// sikertelen kérdés
-		EventRespawn											// meghalt a játékos, respawn jön x tick múlva
+		EventRespawn,											// meghalt a játékos, respawn jön x tick múlva
+		EventChangeBullet,										// MP váltása töltényre
+		EventChangeDefender,									// MP váltása defenderre
+		EventChangeSuper,										// MP váltása super képességre
+		EventStreak,											// helyes válasz streak
 	};
 
 	EventPlayer() : BaseTickState() {}

@@ -57,13 +57,14 @@ RpgObject::~RpgObject()
 
 void RpgObject::worldStep()
 {
+	IsometricObject::worldStep();
+
 	if (AbstractRpgMotor *m = currentMotor()) {
 		m->updateBody(this);
 		onMotorStepped();
 	} else
 		LOG_CERROR("game") << "Missing RpgMotor" << this;
 
-	IsometricObject::worldStep();
 }
 
 

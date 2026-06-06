@@ -62,6 +62,9 @@ public:
 	QPoint getChunkFromVector(const cpVect &point, const float &angle, cpVect *centerPtr = nullptr);
 
 	const quint32 &lastAuthDiff() const { return m_lastAuthTickDiff; }
+	quint32 jitterTick() const {
+		return m_serverTick > (m_jitterDiff+m_lastAuthTickDiff) ? (m_serverTick-m_jitterDiff-m_lastAuthTickDiff) : 0;
+	}
 
 	quint32 estimatedServerTick(const quint32 &lastAuthTick) {
 		if (m_serverRtt <= 0)
@@ -78,6 +81,7 @@ protected:
 
 protected:
 	qint64 m_serverRtt = 0;
+	const quint32 m_jitterDiff = 0;
 };
 
 

@@ -68,6 +68,9 @@ RpgGame::RpgGame(GameMapMissionLevel *missionLevel, Client *client, const bool &
 
 	LOG_CDEBUG("client") << "RpgGame created" << this;
 
+	LOG_CERROR("client") << "OVERRIDE";
+	m_gameMode = MultiPlayer;
+
 	connect(client->downloader(), &Downloader::stateChanged, d, &RpgGamePrivate::onDownloaderStateChanged);
 	connect(client->downloader(), &Downloader::downloadError, d, &RpgGamePrivate::onContentError);
 
@@ -498,8 +501,10 @@ void RpgGamePrivate::onGameItemPrepared()
 
 	m_logic->loadMapData(m_mapData);
 
-	logicAddPlayer(RpgStream::TeamA, 1);
-	logicAddPlayer(RpgStream::TeamB, 1);
+	RpgPlayerDefinition def = RpgGame::characters().value("character01a");
+
+	logicAddPlayer(def, RpgStream::TeamA, 1);
+	logicAddPlayer(def, RpgStream::TeamB, 1);
 
 	Rpg::RpgLogicScope scope = m_logic->getScope();
 	m_deadlineTick = scope.getCtx<RpgStream::GameConfig>()->duration();
@@ -1007,11 +1012,7 @@ void RpgGamePrivate::onQuestionSuccess(const QVariantMap &answer)
 
 void RpgGamePrivate::onQuestionFailed(const QVariantMap &answer)
 {
-#ifndef Q_OS_WASM
-	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
-	if (client)
-		client->performVibrate();
-#endif
+	vibrate();
 
 	//setWinnerStreak(0);
 
@@ -1222,7 +1223,7 @@ void RpgGamePrivate::syncPlayers()
 			obj->setHp(state->hp());
 			obj->setMp(state->mp());
 			obj->setBullet(state->bullet());
-			obj->setDefender(state->defender());
+			obj->setDefender(state->defender(), state->hasDefender());
 			obj->setTeam(p.team);
 
 			if (auto ptr = addToScatter(0)) {
@@ -1240,12 +1241,11 @@ void RpgGamePrivate::syncPlayers()
 
 
 
+		obj->setSecondaryMotor(std::make_unique<RpgMotorPlayerControlled>(obj));
 
 		if (p.playerData.playerId() == 1) {
-			QSizeF s = scope.getCtx<Rpg::ChunkGrid>()->chunkSize;
-			LOG_CWARNING("game") << "***** CONTROLLED" << obj << s;
+			LOG_CWARNING("game") << "***** CONTROLLED" << obj;
 
-			obj->setSecondaryMotor(std::make_unique<RpgMotorPlayerControlled>(obj));
 			q->setControlledPlayer(obj);
 		}
 	}
@@ -1588,6 +1588,11 @@ void RpgGamePrivate::processEvents(const std::vector<RpgStream::EventPlayer> &li
 				int sec = std::ceil(AbstractGame::TickTimer::tickToMsec(delta)/1000.);
 				q->m_gameItem->message(QObject::tr("%1 sec to respawn").arg(sec));
 			}
+		} else if (event.type() == RpgStream::EventPlayer::EventStreak) {
+			LOG_CINFO("game") << "**************************************** STREAK *****************";
+			q->m_gameItem->message(QObject::tr("%1 streak").arg(event.at()));
+		} else if (RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(player->currentMotor())) {
+			motor->processEvent(event);
 		}
 
 	}
@@ -1659,10 +1664,10 @@ quint32 RpgGamePrivate::logicRegisterObject(RpgObject *object)
  * @return
  */
 
-void RpgGamePrivate::logicAddPlayer(const RpgStream::Team &team, const int &count)
+void RpgGamePrivate::logicAddPlayer(const RpgPlayerDefinition &def, const RpgStream::Team &team, const int &count)
 {
 	for (int i=0; i<count; ++i)
-		m_logic->playerAdd(team);
+		m_logic->playerAdd(def.toPlayerConfig(), team);
 }
 
 
@@ -1730,9 +1735,6 @@ void RpgGamePrivate::changeControlledPlayer()
 	}
 
 	LOG_CINFO("game") << "CHANGE" << p;
-
-	q->controlledPlayer()->setSecondaryMotor(nullptr);
-	p->setSecondaryMotor(std::make_unique<RpgMotorPlayerControlled>(p));
 
 	q->setControlledPlayer(p);
 }
@@ -1898,6 +1900,18 @@ RpgGamePrivate::RpgGamePrivate(RpgGame *game, const bool &multi)
 
 
 
+
+/**
+ * @brief RpgGamePrivate::~RpgGamePrivate
+ */
+
+RpgGamePrivate::~RpgGamePrivate()
+{
+
+}
+
+
+
 /**
  * @brief RpgGamePrivate::clearSharedTextures
  */
@@ -1913,6 +1927,23 @@ void RpgGamePrivate::clearSharedTextures()
 }
 
 
+
+
+/**
+ * @brief RpgGamePrivate::vibrate
+ */
+
+void RpgGamePrivate::vibrate()
+{
+#ifndef Q_OS_WASM
+	StandaloneClient *client = qobject_cast<StandaloneClient*>(Application::instance()->client());
+	if (client)
+		client->performVibrate();
+#endif
+
+}
+
+
 /**
  * @brief RpgGamePrivate::connectionPrepare
  */
@@ -1920,16 +1951,72 @@ void RpgGamePrivate::clearSharedTextures()
 void RpgGamePrivate::connectionPrepare()
 {
 	q->setGameState(RpgGame::GameStateConnect);
-	connectionCheck();
 
-	/*if (q->m_client->server()) {
-		connectionCheck();
+	if (q->m_gameMode == RpgGame::SinglePlayer)
+		return connectionCheck();
+
+	LOG_CINFO("game") << "PREPARE MULTIPLAYER";
+
+	if (m_engine) {
+		LOG_CINFO("client") << "ALREADY HAS ENGINE";
 		return;
 	}
 
-	q->setGameState(RpgGame::GameStateConnect);
+	LOG_CINFO("client") << "START" << q->client()->server()->url();
 
-	connect(q->m_client, &Client::serverChanged, this, &RpgGamePrivate::connectionCheck);*/
+
+	RpgStream::ConnectionToken token;
+
+	token.mapUuid = "---";
+	token.missionUuid = "xxxxx";
+	token.missionLevel = 1;
+	token.campaign = -1;
+
+
+	q->m_client->send(HttpConnection::ApiUser, QStringLiteral("campaign/%1/game/token").arg(
+						  0
+						  ), token.toJson())
+			->error(this, [this](const QNetworkReply::NetworkError &){
+		q->setError(tr("Játék indítása sikertelen"));
+	})
+			->fail(this, [this](const QString &err){
+		if (err.startsWith(QStringLiteral("active"))) {
+			//QStringList f = err.split('/', Qt::SkipEmptyParts);
+
+			q->setError(err);
+
+			/*if (f.size() > 2) {
+				setActiveSeat(f.at(1).toUInt());
+				setActiveEngine(f.at(2).toInt());
+
+				m_client->messageError(tr("Be vagy jelentkezve egy aktív játékba/szobába. "
+										  "Próbáld újra úgy, hogy kiválasztod a lezárási lehetőséget."),
+									   tr("Aktív játék/szoba van folyamatban"));
+
+				destroyCurrentGame();
+				setGameState(StateSelect);
+				return;
+			}*/
+		}
+
+		/*m_client->messageError(err, tr("Játék indítása sikertelen"));
+		destroyCurrentGame();*/
+	})
+			->done(this, [this](const QJsonObject &data){
+
+		const QByteArray &token = data.value(QStringLiteral("token")).toString().toLatin1();
+
+		if (token.isEmpty()) {
+			q->setError(tr("Érvénytelen játékazonosító érekezett"));
+			return;
+		}
+
+		LOG_CDEBUG("client") << "Game play (multiplayer)";
+
+		m_connectionToken = token;
+
+		QMetaObject::invokeMethod(this, &RpgGamePrivate::connectionCheck, Qt::QueuedConnection);
+	});
 
 }
 
@@ -1944,6 +2031,12 @@ void RpgGamePrivate::connectionCheck()
 {
 	LOG_CINFO("client") << "GAME CONNECTED";
 
+	if (q->m_gameMode == RpgGame::MultiPlayer && m_connectionToken.isEmpty()) {
+		q->setError(tr("Játékazonosító hiányzik"));
+		return;
+	}
+
+
 	////q->setGameState(RpgGame::GameStateLobby);
 
 	q->reloadTerrains();
@@ -1954,15 +2047,100 @@ void RpgGamePrivate::connectionCheck()
 		return;
 	}
 
-	Rpg::RpgLogicScope scope = m_logic->getScope();
-	scope.getCtx<RpgStream::GameConfig>()->setTerrainResolved("test");
-	scope.getCtx<RpgStream::GameConfig>()->setDuration(150*60);
+	if (q->m_gameMode == RpgGame::SinglePlayer) {
+		connectionReady();
+		return;
+	}
 
-	q->setGameState(RpgGame::GameStatePrepare);
+	if (m_engine)
+		return;
 
-	return;
+	if (!q->client()->server()) {
+		q->setError(tr("Nincs beállítva szerver"));
+		return;
+	}
+
+	m_engine = std::make_unique<RpgUdpEngine>();
+
+	connect(m_engine.get(), &RpgUdpEngine::serverConnected, this, &RpgGamePrivate::onServerConnected);
+	connect(m_engine.get(), &RpgUdpEngine::serverDisconnected, this, &RpgGamePrivate::onServerDisconnected);
+	connect(m_engine.get(), &RpgUdpEngine::serverConnectFailed, this, &RpgGamePrivate::onConnectionFailed);
+	connect(m_engine.get(), &RpgUdpEngine::serverConnectionLost, this, &RpgGamePrivate::onConnectionLost);
 
 
+	m_engine->setConnectionToken(m_connectionToken);
+	m_engine->setUrl(q->client()->server()->url());
+
+}
+
+
+
+/**
+ * @brief RpgGamePrivate::connectionReady
+ */
+
+void RpgGamePrivate::connectionReady()
+{
+
+	/*Rpg::RpgLogicScope scope = m_logic->getScope();
+scope.getCtx<RpgStream::GameConfig>()->setTerrainResolved("test");
+scope.getCtx<RpgStream::GameConfig>()->setDuration(150*60);
+
+q->setGameState(RpgGame::GameStatePrepare);
+
+return;*/
+
+	LOG_CINFO("game") << "READY TO PLAY";
+}
+
+
+
+
+/**
+ * @brief RpgGamePrivate::onServerConnected
+ */
+
+void RpgGamePrivate::onServerConnected()
+{
+	LOG_CINFO("game") << "CONNECTED";
+
+	connectionReady();
+}
+
+
+/**
+ * @brief RpgGamePrivate::onServerDisconnected
+ */
+
+void RpgGamePrivate::onServerDisconnected()
+{
+	LOG_CERROR("game") << "DISCONNECTED";
+}
+
+
+
+/**
+ * @brief RpgGamePrivate::onConnectionFailed
+ * @param err
+ */
+
+void RpgGamePrivate::onConnectionFailed(const QString &err)
+{
+	LOG_CERROR("game") << "FAILED" << err;
+
+	q->setError(err);
+	m_engine.reset();
+}
+
+
+
+/**
+ * @brief RpgGamePrivate::onConnectionLost
+ */
+
+void RpgGamePrivate::onConnectionLost()
+{
+	LOG_CWARNING("game") << "LOST";
 }
 
 
@@ -1986,7 +2164,10 @@ void RpgGamePrivate::contentPrepare()
 
 	qint64 size = q->m_client->downloader()->fullSize() - q->m_client->downloader()->downloadedSize();
 
-	emit q->downloadRequest(QLocale::system().formattedDataSize(size));
+	if (size > 1000000)
+		emit q->downloadRequest(QLocale::system().formattedDataSize(size));
+	else
+		q->downloadAccepted();
 }
 
 
@@ -2188,6 +2369,38 @@ void RpgPlayerDefinition::updateSfxPath(const QString &prefix)
 
 	if (!sfxDead.isEmpty() && !sfxDead.startsWith(QStringLiteral(":/")))
 		sfxDead.prepend(prefix);
+}
+
+
+
+/**
+ * @brief RpgPlayerDefinition::toPlayerConfig
+ * @return
+ */
+
+RpgStream::PlayerConfig RpgPlayerDefinition::toPlayerConfig() const
+{
+	RpgStream::PlayerConfig cfg;
+
+	cfg.setPower(power);
+
+	cfg.setMaxMp(mp);
+	cfg.setMaxBullet(bullet);
+
+
+	cfg.entity().setMaxHp(hp);
+
+	cfg.entity().setPush(push);
+	cfg.entity().setPushDist(pushDistance);
+	cfg.entity().setResist(resist);
+
+	cfg.defenders().reserve(defender.size());
+
+	for (const RpgStream::BaseDefenderObject::Type &t : defender)
+		cfg.defenders().push_back(t);
+
+
+	return cfg;
 }
 
 

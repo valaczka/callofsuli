@@ -138,6 +138,7 @@ public:
 
 	QCborMap signToMap(const QByteArray &message) const;
 	QByteArray signToRaw(const QByteArray &message) const;
+	QByteArray sign(const QByteArray &message) const;
 
 	std::optional<std::pair<QByteArray, QByteArray> > deviceIdentity() const;
 	void setOnDeviceIdentityReady(QObject *instance, const std::function<void(bool)> &func, const bool &startTimer = true);

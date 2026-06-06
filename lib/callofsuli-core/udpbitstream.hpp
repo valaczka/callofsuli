@@ -96,8 +96,8 @@ public:
 	UdpBitStream& operator=(UdpBitStream&& temp_obj) noexcept = default;
 
 	UdpBitStream(const std::uint8_t &type = MessageInvalid);
-	UdpBitStream(const std::vector<unsigned char> &buffer);
-	UdpBitStream(std::uint8_t *buffer, const std::size_t &size, const bool &auto_realloc_enabled = false);
+	UdpBitStream(const std::vector<uint8_t> &buffer);
+	UdpBitStream(const std::uint8_t *buffer, const std::size_t &size, const bool &auto_realloc_enabled = false);
 
 	virtual ~UdpBitStream();
 
@@ -361,7 +361,7 @@ inline UdpBitStream::UdpBitStream(const ENetEvent &event)
  * @param buffer
  */
 
-inline UdpBitStream::UdpBitStream(const std::vector<unsigned char> &buffer)
+inline UdpBitStream::UdpBitStream(const std::vector<uint8_t> &buffer)
 	: m_stream(nullptr, 0)
 {
 	BMLib::Buffer *buf = BMLib::Buffer::allocate(false, buffer.size());
@@ -383,7 +383,7 @@ inline UdpBitStream::UdpBitStream(const std::vector<unsigned char> &buffer)
  * @param size
  */
 
-inline UdpBitStream::UdpBitStream(uint8_t *buffer, const std::size_t &size, const bool &auto_realloc_enabled)
+inline UdpBitStream::UdpBitStream(const uint8_t *buffer, const std::size_t &size, const bool &auto_realloc_enabled)
 	: m_stream(BMLib::Buffer::allocate(auto_realloc_enabled, size), 0)
 {
 	BMLib::Buffer *buf = m_stream.getBuffer();

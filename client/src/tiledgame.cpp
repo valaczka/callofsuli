@@ -1302,10 +1302,8 @@ void TiledGame::updateStepTimer()
 
 	const qint64 frames = currentTick - d->m_currentFrame;
 
-	if (frames <= 0) {
-		LOG_CDEBUG("game") << "****F" << currentTick << d->m_currentFrame;
+	if (frames <= 0)
 		return;
-	}
 
 	QElapsedTimer timer1;
 	timer1.start();

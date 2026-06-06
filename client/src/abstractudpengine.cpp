@@ -28,6 +28,7 @@
 #include "Logger.h"
 #include "abstractudpengine_p.h"
 #include "qabstracteventdispatcher.h"
+#include "application.h"
 #include <sodium/crypto_sign.h>
 #include <credential.h>
 #include <QDataStream>
@@ -63,6 +64,9 @@ AbstractUdpEngine::AbstractUdpEngine(QObject *parent)
 
 	m_worker->execInThread(std::bind(&AbstractUdpEnginePrivate::run, d));
 
+#else
+	d = new AbstractUdpEnginePrivate(this);
+	d->runWebSocket();
 #endif
 
 
@@ -88,16 +92,6 @@ AbstractUdpEngine::~AbstractUdpEngine()
 	LOG_CDEBUG("client") << "Udp engine destroyed";
 }
 
-
-/**
- * @brief AbstractUdpEngine::authKey
- * @return
- */
-
-const PublicKeySigner &AbstractUdpEngine::signer() const
-{
-	return d->m_signer;
-}
 
 
 /**
@@ -125,6 +119,8 @@ void AbstractUdpEngine::sendMessage(const std::vector<uint8_t> &data, const bool
 	m_worker->execInThread([this, data, reliable](){
 		d->sendMessage(data, reliable);
 	});
+#else
+	d->sendMessage(data, reliable);
 #endif
 }
 
@@ -141,6 +137,8 @@ void AbstractUdpEngine::setUrl(const QUrl &url)
 	m_worker->execInThread([this, url](){
 		d->setUrl(url);
 	});
+#else
+	d->setUrl(url);
 #endif
 }
 
@@ -152,8 +150,8 @@ void AbstractUdpEngine::setUrl(const QUrl &url)
 
 QByteArray AbstractUdpEngine::connectionToken() const
 {
-	QByteArray token;
 #ifndef Q_OS_WASM
+	QByteArray token;
 	QDefer ret;
 	m_worker->execInThread([this, &token, ret]() mutable {
 		token = d->connectionToken();
@@ -161,8 +159,10 @@ QByteArray AbstractUdpEngine::connectionToken() const
 	});
 
 	QDefer::await(ret);
-#endif
 	return token;
+#else
+	return d->connectionToken();
+#endif
 }
 
 
@@ -179,6 +179,8 @@ void AbstractUdpEngine::setConnectionToken(const QByteArray &token)
 	m_worker->execInThread([this, token](){
 		d->setConnectionToken(token);
 	});
+#else
+	d->setConnectionToken(token);
 #endif
 }
 
@@ -196,13 +198,7 @@ void AbstractUdpEngine::setConnectionToken(const QByteArray &token)
 AbstractUdpEnginePrivate::AbstractUdpEnginePrivate(AbstractUdpEngine *engine)
 	: q(engine)
 {
-	std::array<unsigned char, crypto_sign_SECRETKEYBYTES> key;
 
-	randombytes_buf(key.data(), key.size());
-
-	m_signer.setSecret(key);
-
-	LOG_CINFO("client") << "secret generated" << QByteArray::fromRawData((const char*) key.data(), key.size()).toBase64();
 }
 
 
@@ -342,6 +338,7 @@ void AbstractUdpEnginePrivate::run()
 
 
 	destroyHostAndPeer();
+
 #endif
 }
 
@@ -353,8 +350,47 @@ void AbstractUdpEnginePrivate::run()
 
 void AbstractUdpEnginePrivate::stop()
 {
-	LOG_CDEBUG("engine") << "Stop UDP server";
+	LOG_CDEBUG("client") << "Stop UDP server";
 	m_running.storeRelease(0);
+}
+
+
+
+/**
+ * @brief AbstractUdpEnginePrivate::runWebSocket
+ */
+
+void AbstractUdpEnginePrivate::runWebSocket()
+{
+	m_webSocket.reset(new QWebSocket);
+
+	connect(m_webSocket.get(), &QWebSocket::connected, this, [this](){
+		sendConnectionToken();
+
+		if (m_udpState == UdpBitStream::MessageConnected)		// Reconnected
+			emit q->serverConnected();
+	});
+
+	connect(m_webSocket.get(), &QWebSocket::disconnected, this, [this](){
+		if (m_udpState == UdpBitStream::MessageConnected) {
+			emit q->serverConnectionLost();
+			destroyHostAndPeer();
+		} else {
+			destroyHostAndPeer();
+			emit q->serverConnectFailed(tr("Connection rejected"));
+		}
+	});
+
+
+	connect(m_webSocket.get(), &QWebSocket::sslErrors, this, [this](const QList<QSslError> &errors) {
+		LOG_CWARNING("client") << "Ignore SSL errors" << errors;
+		m_webSocket->ignoreSslErrors();
+	});
+
+	connect(m_webSocket.get(), &QWebSocket::binaryMessageReceived, this, &AbstractUdpEnginePrivate::messageReceived);
+	/*connect(m_webSocket.get(), &QWebSocket::textMessageReceived, this, [](const QString &text) {
+		LOG_CDEBUG("client") << "***" << text;
+	});*/
 }
 
 
@@ -374,6 +410,11 @@ void AbstractUdpEnginePrivate::sendMessage(const std::vector<uint8_t> &data, con
 	packet.data = data;
 
 	m_cacheSnd.push(std::move(packet));
+
+
+#ifdef Q_OS_WASM
+	deliverPackets();
+#endif
 }
 
 
@@ -390,15 +431,30 @@ void AbstractUdpEnginePrivate::setUrl(const QUrl &newUrl)
 	if (m_url == newUrl)
 		return;
 
+	m_url = newUrl;
+
 #ifndef Q_OS_WASM
 	if (m_enet_host && !newUrl.isEmpty()) {
 		LOG_CERROR("client") << "Can't change server url";
 		return;
 	}
+#else
+	if (!m_webSocket) {
+		LOG_CERROR("client") << "Missing websocket";
+		return;
+	}
+
+	QUrl ws;
+	ws.setScheme(m_url.scheme() == QStringLiteral("https") ? QStringLiteral("wss") : QStringLiteral("ws"));
+	ws.setHost(m_url.host());
+	ws.setPort(m_url.port());
+	ws.setPath(QStringLiteral("/ws"));
+
+	m_webSocket->open(ws);
 
 #endif
 
-	m_url = newUrl;
+
 }
 
 
@@ -416,7 +472,6 @@ void AbstractUdpEnginePrivate::deliverPackets()
 		std::vector<UdpPacketSnd> out = m_cacheSnd.take();
 
 		for (const UdpPacketSnd &p : out) {
-
 #ifndef Q_OS_WASM
 			ENetPacket *packet = enet_packet_create(p.data.data(), p.data.size(),
 													p.reliable ? ENET_PACKET_FLAG_RELIABLE :
@@ -427,12 +482,12 @@ void AbstractUdpEnginePrivate::deliverPackets()
 				enet_packet_destroy(packet);
 
 				if (m_udpState == UdpBitStream::MessageConnected) {
-					LOG_CDEBUG("engine") << "Udp connection lost";
+					LOG_CDEBUG("client") << "Udp connection lost";
 
 					emit q->serverConnectionLost();
 
 				} else {
-					LOG_CDEBUG("engine") << "Udp connection failed";
+					LOG_CDEBUG("client") << "Udp connection failed";
 					emit q->serverConnectFailed(tr("Connection lost"));
 				}
 
@@ -441,6 +496,10 @@ void AbstractUdpEnginePrivate::deliverPackets()
 
 #endif
 
+			if (m_webSocket) {
+				QByteArray d = QByteArray::fromRawData(reinterpret_cast<const char*>(p.data.data()), p.data.size());
+				m_webSocket->sendBinaryMessage(d);
+			}
 		}
 	}
 
@@ -478,6 +537,11 @@ void AbstractUdpEnginePrivate::destroyHostAndPeer()
 	m_enet_peer = nullptr;
 	m_enet_host = nullptr;
 
+#else
+	if (m_webSocket) {
+		m_webSocket->close();
+		m_webSocket.reset();
+	}
 #endif
 	LOG_CDEBUG("client") << "Disconnected from host" << qPrintable(m_url.toDisplayString());
 	emit q->serverDisconnected();
@@ -497,26 +561,96 @@ void AbstractUdpEnginePrivate::destroyHostAndPeer()
 bool AbstractUdpEnginePrivate::packetChallengeReceived(const std::unique_ptr<UdpBitStream> &data)
 {
 	if (m_connectionToken.isEmpty()) {
-		LOG_CERROR("engine") << "Connection token missing";
+		LOG_CERROR("client") << "Connection token missing";
 		return false;
 	}
 
 	const auto &ptr = data->readChallenge();
 
 	if (!ptr) {
-		LOG_CWARNING("engine") << "Challenge error";
+		LOG_CWARNING("client") << "Challenge error";
 		return false;
 	}
 
 	const QByteArray challenge = QByteArray::fromRawData(reinterpret_cast<const char*>(ptr->data()), ptr->size());
 
-	const QByteArray content = m_signer.sign(challenge);
+	const QByteArray sign = Application::instance()->sign(challenge);
 
-	UdpBitStream msg(m_connectionToken, content);
+	if (sign.isEmpty()) {
+		LOG_CERROR("client") << "Missing public key";
+		return false;
+	}
+
+	UdpBitStream msg(m_connectionToken, sign);
 
 	sendMessage(*msg);
 
 	return true;
+}
+
+
+
+
+/**
+ * @brief AbstractUdpEnginePrivate::packetReceived
+ * @param data
+ */
+
+void AbstractUdpEnginePrivate::messageReceived(const QByteArray &data)
+{
+	std::unique_ptr<UdpBitStream> stream = std::make_unique<UdpBitStream>(reinterpret_cast<const unsigned char*>(data.constData()),
+																		  data.size());
+
+	if (!stream->validate()) {
+		LOG_CWARNING("client") << "Invalid data from peer";
+		return;
+	}
+
+
+	if (stream->type() == UdpBitStream::MessageConnect) {
+		LOG_CWARNING("client") << "MESSAGE CONNECT";
+
+		sendConnectionToken();
+
+		return;
+
+	} else if (stream->type() == UdpBitStream::MessageConnected || stream->type() >= UdpBitStream::MessageUser) {
+
+		if (stream->type() == UdpBitStream::MessageConnected) {
+			LOG_CINFO("client") << "MESSAGE CONNECTED";
+
+			stream->getConnected(&m_peerId, &m_peerIndex);
+
+			LOG_CINFO("client") << "#####" << m_peerId << m_peerIndex;
+		}
+
+		m_cacheRcv.push(UdpPacketRcv(std::move(stream), -1));
+
+		if (m_udpState != UdpBitStream::MessageConnected) {
+			m_udpState = UdpBitStream::MessageConnected;
+			emit q->serverConnected();
+		}
+
+		deliverPackets();
+
+		return;
+
+	} else if (stream->type() == UdpBitStream::MessageServerFull) {
+		m_udpState = UdpBitStream::MessageRejected;
+		LOG_CWARNING("client") << "MESSAGE SERVERFULL";
+		emit q->serverConnectFailed(tr("Server full"));
+		return;
+
+	} else if (stream->type() == UdpBitStream::MessageRejected) {
+		m_udpState = UdpBitStream::MessageRejected;
+
+		emit q->serverConnectFailed(tr("Connection rejected"));
+		return;
+
+	} else {
+		LOG_CWARNING("client") <<  "Invalid message type from peer" << stream->type();
+	}
+
 }
 
 
@@ -531,12 +665,12 @@ bool AbstractUdpEnginePrivate::packetChallengeReceived(const std::unique_ptr<Udp
 bool AbstractUdpEnginePrivate::packetReceived(const ENetEvent &event)
 {
 	if (!event.peer) {
-		LOG_CWARNING("engine") << "Invalid peer";
+		LOG_CWARNING("client") << "Invalid peer";
 		return false;
 	}
 
 	if (event.packet->dataLength <= 0) {
-		LOG_CWARNING("engine") << qPrintable(UdpAddress::address(event.peer->address)) << "Invalid data from peer";
+		LOG_CWARNING("client") << qPrintable(UdpAddress::address(event.peer->address)) << "Invalid data from peer";
 		return false;
 	}
 
@@ -544,14 +678,13 @@ bool AbstractUdpEnginePrivate::packetReceived(const ENetEvent &event)
 	std::unique_ptr<UdpBitStream> stream = std::make_unique<UdpBitStream>(event);
 
 	if (!stream->validate()) {
-		LOG_CWARNING("engine") << qPrintable(UdpAddress::address(event.peer->address)) << "Invalid data from peer";
+		LOG_CWARNING("client") << qPrintable(UdpAddress::address(event.peer->address)) << "Invalid data from peer";
 		return false;
 	}
 
 
-
 	if (stream->type() == UdpBitStream::MessageConnect) {
-		LOG_CWARNING("engine") << "MESSAGE CONNECT";
+		LOG_CWARNING("client") << "MESSAGE CONNECT";
 
 		sendConnectionToken();
 
@@ -571,11 +704,11 @@ bool AbstractUdpEnginePrivate::packetReceived(const ENetEvent &event)
 		m_speed.addRtt(rtt);
 
 		if (stream->type() == UdpBitStream::MessageConnected) {
-			LOG_CINFO("engine") << "MESSAGE CONNECTED";
+			LOG_CINFO("client") << "MESSAGE CONNECTED";
 
 			stream->getConnected(&m_peerId, &m_peerIndex);
 
-			LOG_CINFO("engine") << "#####" << m_peerId << m_peerIndex;
+			LOG_CINFO("client") << "#####" << m_peerId << m_peerIndex;
 		}
 
 		m_cacheRcv.push(UdpPacketRcv(std::move(stream), rtt));
@@ -588,19 +721,19 @@ bool AbstractUdpEnginePrivate::packetReceived(const ENetEvent &event)
 		return true;
 
 	} else if (stream->type() == UdpBitStream::MessageServerFull) {
-		LOG_CWARNING("engine") << "MESSAGE SERVERFULL";
+		m_udpState = UdpBitStream::MessageRejected;
+		LOG_CWARNING("client") << "MESSAGE SERVERFULL";
+		emit q->serverConnectFailed(tr("Server full"));
 		return true;
 
 	} else if (stream->type() == UdpBitStream::MessageRejected) {
-		LOG_CWARNING("engine") << "MESSAGE REJECTED";
-
 		m_udpState = UdpBitStream::MessageRejected;
 
 		emit q->serverConnectFailed(tr("Connection rejected"));
 		return true;
 
 	} else {
-		LOG_CWARNING("engine") << qPrintable(UdpAddress::address(event.peer->address)) << "Invalid message type from peer" << stream->type();
+		LOG_CWARNING("client") << qPrintable(UdpAddress::address(event.peer->address)) << "Invalid message type from peer" << stream->type();
 		return false;
 	}
 

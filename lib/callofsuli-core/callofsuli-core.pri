@@ -20,6 +20,7 @@ HEADERS += \
 	$$PWD/gamemapreaderiface.h \
 	$$PWD/offlineengine.h \
 	$$PWD/rank.h \
+	$$PWD/rpgconfig.h \
 	$$PWD/rpglogic.h \
 	$$PWD/rpgstream.h \
 	$$PWD/selectableobject.h \

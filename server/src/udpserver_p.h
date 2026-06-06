@@ -110,7 +110,8 @@ public:
 	bool removePeer(const quint32 &peerId);
 	bool removeIndex(const quint32 &idx);
 
-	std::optional<UdpBitStream> updateConnection(const UdpConnectionToken &token, const AbstractEngine::Type &type, const QJsonObject &tokenObj);
+	std::optional<UdpBitStream> updateConnection(const UdpConnectionToken &token, const AbstractEngine::Type &type,
+												 const QJsonObject &tokenObj, WebSocketStream *stream);
 	std::optional<UdpBitStream> updateChallenge(const UdpConnectionToken &connToken, const QByteArray &content, ENetPeer *peer);
 	bool updateEngine(const quint32 &peerId, const std::shared_ptr<UdpEngine> &engine);
 
@@ -171,6 +172,10 @@ private:
 	bool packetChallengeReceived(std::unique_ptr<UdpBitStream> &&data, const ENetEvent &event);
 	bool packetUserReceived(std::unique_ptr<UdpBitStream> &&data, const ENetEvent &event);
 
+	void binaryMessageReceived(const QByteArray &data, QPointer<WebSocketStream> stream);
+	void packetConnectReceived(std::unique_ptr<UdpBitStream> &&data, WebSocketStream *stream);
+	void packetUserReceived(std::unique_ptr<UdpBitStream> &&data, WebSocketStream *stream);
+
 	static QByteArray hashToken(const QByteArray &token);
 	static QByteArray hashToken(const uint8_t *data, const std::size_t &size);
 
@@ -200,7 +205,7 @@ private:
 
 	UdpCacheQueue<UdpPacketRcv> m_cacheRcv;
 	UdpCacheQueue<UdpPacketSnd> m_cacheSnd;
-	QHash<UdpServerPeer*, UdpCacheQueue<UdpPacketSnd>> m_cacheSndPeer;
+	std::unordered_map<UdpServerPeer*, UdpCacheQueue<UdpPacketSnd> > m_cacheSndPeer;
 
 
 	friend class UdpServer;

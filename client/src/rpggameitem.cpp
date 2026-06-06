@@ -927,9 +927,21 @@ void RpgGameItem::keyPressEvent(QKeyEvent *event)
 			emit minimapToggleRequest();
 			break;
 
-		case Qt::Key_P:
+
+		case Qt::Key_F10:
 			d->changeControlledPlayer();
 			break;
+
+		case Qt::Key_F11:
+			if (motor)
+				motor->changeMpToDefender();
+			break;
+
+		case Qt::Key_F9:
+			if (motor)
+				motor->changeMpToBullet();
+			break;
+
 
 		case Qt::Key_Return:
 		case Qt::Key_Enter:

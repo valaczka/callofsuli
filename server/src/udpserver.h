@@ -64,7 +64,7 @@ public:
 	int port() const { return port(m_peer); }
 	static int port(ENetPeer *peer);
 
-	QString address() const { return address(m_peer); }
+	QString address() const;
 	static QString address(ENetPeer *peer);
 
 	std::shared_ptr<UdpEngine> engine() const { return m_engine; }
@@ -82,10 +82,14 @@ public:
 	bool isReconnecting() const { return m_isReconnecting; }
 	void setIsReconnecting(bool newIsReconnecting) { m_isReconnecting = newIsReconnecting; }
 
+	WebSocketStream *stream() const;
+	void setStream(WebSocketStream *newStream);
+
 private:
 	const quint32 m_peerID;
 	UdpServer *m_server = nullptr;
 	ENetPeer *m_peer = nullptr;
+	WebSocketStream *m_stream = nullptr;
 	std::shared_ptr<UdpEngine> m_engine;
 	bool m_isReconnecting = false;
 	bool m_isRejected = false;
@@ -107,6 +111,7 @@ struct UdpPacketRcv {
 	std::unique_ptr<UdpBitStream> data;
 
 	ENetPeer *getENetPeer() const { return peer ? peer->peer() : nullptr; }
+	WebSocketStream *getStream() const { return peer ? peer->stream() : nullptr; }
 };
 
 
@@ -153,6 +158,8 @@ public:
 
 	QString dumpPeers() const;
 	void removeExpiredPeers();
+
+	void onBinaryMessageReceived(const QByteArray &data, WebSocketStream *stream);
 
 private:
 	UdpServerPrivate *d = nullptr;

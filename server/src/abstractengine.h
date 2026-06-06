@@ -54,7 +54,6 @@ public:
 protected:
 	virtual void streamLinkedEvent(WebSocketStream *stream) { Q_UNUSED(stream); }
 	virtual void streamUnlinkedEvent(WebSocketStream *stream) { Q_UNUSED(stream); }
-	virtual void onBinaryMessageReceived(const QByteArray &data, WebSocketStream *stream) { Q_UNUSED(data); Q_UNUSED(stream); }
 
 	virtual void onRemoveRequest() {}
 
@@ -68,7 +67,7 @@ protected:
 
 private:
 	void streamSet(WebSocketStream *stream);
-	void streamUnSet(WebSocketStream *stream);
+	void streamUnset(WebSocketStream *stream);
 
 	friend class EngineHandlerPrivate;
 };

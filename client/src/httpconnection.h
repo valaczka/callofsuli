@@ -33,7 +33,6 @@
 #include <QAbstractSocket>
 #include <QJSValue>
 #include <QJsonObject>
-#include "websocket.h"
 
 #define HTTPREPLY_DELETE_AFTER_MSEC	20000
 
@@ -58,7 +57,6 @@ class HttpConnection : public QObject
 	Q_PROPERTY(Server *server READ server WRITE setServer NOTIFY serverChanged)
 	Q_PROPERTY(State state READ state NOTIFY stateChanged)
 	Q_PROPERTY(bool pending READ pending NOTIFY pendingChanged)
-	Q_PROPERTY(WebSocket* webSocket READ webSocket CONSTANT)
 
 public:
 	explicit HttpConnection(Client *client);
@@ -108,8 +106,6 @@ public:
 
 	QUrl getUrl(const HttpConnection::API &api, const QString &path) const;
 
-	WebSocket* webSocket() const;
-
 public slots:
 	HttpReply *connectToServer(Server *server = nullptr);
 	void close();
@@ -156,10 +152,7 @@ private:
 	QVector<QPointer<HttpReply>> m_replies;
 	bool m_pending = false;
 
-	std::unique_ptr<WebSocket> m_webSocket;
-
 	friend class HttpReply;
-	friend class WebSocket;
 };
 
 

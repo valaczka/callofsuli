@@ -76,9 +76,14 @@ bool WebServer::start()
 
 	// WebSocket connection
 
-	m_server.get()->route("/ws", [](const QHttpServerRequest &) {
-		return QFuture<QHttpServerResponse>();
+	m_server->addWebSocketUpgradeVerifier(
+				m_server.get(), [](const QHttpServerRequest &request) {
+		if (request.url().path() == QStringLiteral("/ws"))
+			return QHttpServerWebSocketUpgradeResponse::accept();
+		else
+			return QHttpServerWebSocketUpgradeResponse::passToNext();
 	});
+
 
 	connect(m_server.get(), &QAbstractHttpServer::newWebSocketConnection, this, &WebServer::onWebSocketConnection);
 

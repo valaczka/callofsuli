@@ -38,7 +38,6 @@
 #include "webserver.h"
 #include "oauth2authenticator.h"
 #include "enginehandler.h"
-#include "rpgconfig.h"
 
 #ifdef WITH_FTXUI
 #include "ftxterminal.hpp"
@@ -136,9 +135,6 @@ public:
 
 	const QString logDir() const { return m_logDir; }
 
-	int imitateLatency() const;
-	void setImitateLatency(int newImitateLatency);
-
 	const QString &serverName() const;
 	void setServerName(const QString &newServerName);
 
@@ -149,21 +145,11 @@ public:
 
 	int mainTimerInterval() const;
 
-	[[deprecated]] void reloadDynamicContent();
-
 	void stop();
 	void pause();
 	void reload();
 
-	const QJsonArray &dynamicContent() const;
-	const QJsonObject &dynamicContentDict() const;
-	const QJsonArray &loadableDynamicContent() const;
-
-	const RpgMarketList &market() const;
-	void setMarket(const RpgMarketList &newMarket);
-
 	UdpServer *udpServer() const;
-
 
 	struct AgentSignature {
 		std::array<unsigned char, crypto_sign_PUBLICKEYBYTES> publicKey;
@@ -186,9 +172,6 @@ protected:
 	virtual void timerEvent(QTimerEvent *event) override;
 
 private:
-	void loadDynamicDictFromRcc(const QString &filename, const QString &path);
-	RpgMarketList loadMarket() const;
-	RpgMarketList loadMarket(const QString &filename) const;
 	static void processSignal(int sig);
 	void loadSmtpServer();
 
@@ -222,19 +205,12 @@ private:
 	QString m_loadedWasmResource;
 	QString m_importDb;
 	QString m_forceUpgrade;
-	int m_imitateLatency = 0;
 	QString m_createToken;
 	bool m_zap = false;
 
 	QBasicTimer m_mainTimer;
 	QDateTime m_mainTimerLastTick;
 	int m_mainTimerInterval = 0;
-
-	QJsonArray m_dynamicContent;
-	QJsonArray m_loadableDynamicContent;
-	QJsonObject m_dynamicContentDict;
-
-	RpgMarketList m_market;
 
 	static ServerService *m_instance;
 

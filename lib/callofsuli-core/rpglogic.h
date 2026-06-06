@@ -464,7 +464,9 @@ struct EventTag {									// Előre rögzítjük (majd meg fog történni)
 struct EventProcessingTag { };						// Az aktuális renderben dolgozzuk fel (ellenőrzések után az ütközések feloldása)
 struct EventRealTag { };							// Az aktuális renderben ténylegesen megtörtént események
 
-
+struct KnockbackTag {								// Folyamatban van még a hátracsúszás
+	quint32 tick = 0;
+};
 
 
 
@@ -476,8 +478,6 @@ struct Player
 	RpgStream::PlayerData playerData;
 
 	RpgStream::Team team = RpgStream::TeamNone;
-
-	quint32 lastObjectId = 0;
 
 	quint32 idTag() const;
 };
@@ -590,7 +590,7 @@ struct DefenderObject
 
 	entt::entity defender = entt::null;
 
-	RpgStream::BaseDefenderObject::Type type = RpgStream::BaseDefenderObject::Dummy;
+	RpgStream::BaseDefenderObject::Type type = RpgStream::BaseDefenderObject::None;
 	RpgStream::Team team = RpgStream::TeamNone;
 	quint32 maxHp = 0;
 };
@@ -709,6 +709,7 @@ struct EventTower {
 	entt::entity tower;
 	entt::entity player;
 	bool lock = true;
+	bool skipLock = false;
 };
 
 
@@ -718,6 +719,7 @@ struct EventTower {
 struct EventDefenderPut {
 	entt::entity defender;
 	entt::entity player;
+	RpgStream::BaseDefenderObject::Type type = RpgStream::BaseDefenderObject::None;
 };
 
 
@@ -727,6 +729,7 @@ struct EventDefenderPut {
 struct EventDefenderAdd {
 	Chunk chunk;
 	entt::entity player;
+	RpgStream::BaseDefenderObject::Type type = RpgStream::BaseDefenderObject::None;
 };
 
 
@@ -747,6 +750,7 @@ struct EventAttackDefender {
 	entt::entity player;
 	entt::entity target;
 	bool lock = true;
+	bool skipLock = false;
 };
 
 
@@ -761,6 +765,24 @@ struct EventTowerActiveChanged {
 
 
 
+// Change Mp to bullet
+
+struct EventChangeBullet {
+	entt::entity player;
+	bool lock = true;
+	bool skipLock = false;
+};
+
+
+// Change Mp to defender
+
+struct EventChangeDefender {
+	entt::entity player;
+	bool lock = true;
+	bool skipLock = false;
+	RpgStream::BaseDefenderObject::Type type = RpgStream::BaseDefenderObject::None;
+};
+
 
 
 class RpgLogicPrivate;
@@ -774,7 +796,7 @@ class RpgLogicScope;
 class RpgLogic
 {
 public:
-	RpgLogic(const quint32 &lastAuthDiff = 0, const quint32 &jitterDiff = 0);
+	RpgLogic(const quint32 &lastAuthDiff = 0);
 	virtual ~RpgLogic();
 
 	// Get scope
@@ -785,7 +807,6 @@ public:
 
 	quint32 serverTick() const { return m_serverTick; }
 	quint32 lastAuthTick() const { return m_serverTick > m_lastAuthTickDiff ? m_serverTick-m_lastAuthTickDiff : 0; }
-	quint32 jitterTick() const { return m_serverTick > m_jitterDiff ? m_serverTick-m_jitterDiff : 0; }
 
 
 
@@ -832,9 +853,20 @@ public:
 
 	// Player
 
-	entt::entity playerAdd(const RpgStream::Team &team = RpgStream::TeamNone);
+	entt::entity playerAdd(const RpgStream::PlayerConfig &config, const RpgStream::Team &team = RpgStream::TeamNone);
 
 	void emplacePlayers();
+
+
+	// Common entity
+
+	static cpVect addKnockbackImpulse(RpgStream::EntityState *targetState,
+									  const RpgStream::EntityState &attackerState,
+									  const RpgStream::EntityConfig &attacker,
+									  const RpgStream::EntityConfig &target);
+
+	static cpVect decayKnockback(RpgStream::EntityState *targetState);
+	static cpVect decayKnockback(cpVect &knockback);
 
 
 protected:
@@ -846,7 +878,6 @@ protected:
 	RpgLogicPrivate *d = nullptr;
 	quint32 m_serverTick = 0;
 	const quint32 m_lastAuthTickDiff = 0;
-	const quint32 m_jitterDiff = 0;
 
 	template <typename T>
 	void registerCtx() {

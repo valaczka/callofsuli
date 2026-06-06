@@ -42,7 +42,7 @@
  * @param parent
  */
 
-RpgEngine::RpgEngine(EngineHandler *handler, const RpgConfigBase &config, QObject *parent)
+RpgEngine::RpgEngine(EngineHandler *handler, QObject *parent)
 	: UdpEngine(EngineRpg, handler, parent)
 	, d(new RpgEnginePrivate(this))
 {
@@ -66,7 +66,7 @@ RpgEngine::~RpgEngine()
  * @return
  */
 
-std::shared_ptr<RpgEngine> RpgEngine::engineCreate(EngineHandler *handler, const RpgConfigBase &config, UdpServer *server)
+std::shared_ptr<RpgEngine> RpgEngine::engineCreate(EngineHandler *handler, UdpServer *server)
 {
 	if (!handler)
 		return {};
@@ -74,7 +74,7 @@ std::shared_ptr<RpgEngine> RpgEngine::engineCreate(EngineHandler *handler, const
 	LOG_CDEBUG("engine") << "Create RpgEngine" << m_nextId << server;
 
 
-	auto ptr = std::make_shared<RpgEngine>(handler, config);
+	auto ptr = std::make_shared<RpgEngine>(handler);
 	ptr->setId(m_nextId);
 	increaseNextId();
 
@@ -248,6 +248,7 @@ std::shared_ptr<RpgEngine> RpgEngine::peerFind(UdpServer *server, const QString 
 bool RpgEngine::peerAbort(const quint32 &peerId)
 {
 	////return d->abortPlayer(peerId);
+	return false;
 }
 
 
@@ -313,6 +314,9 @@ void RpgEngine::binaryDataReceived(const UdpServerPeerReceivedList &data)
 
 
 
+
+
+
 /**
  * @brief RpgEngine::binaryDataReceived
  * @param peer
@@ -332,6 +336,8 @@ void RpgEngine::binaryDataReceived(const UdpPacketRcv &recv)
 
 	d->dataReceived(player, recv.data);*/
 }
+
+
 
 
 /**
@@ -500,7 +506,7 @@ void RpgEngine::setLoggerFile(const QString &fname)
  * @return
  */
 
-void RpgEnginePrivate::sendEngineList(const RpgConfigBase &config, UdpServerPeer *peer, EngineHandler *handler)
+void RpgEnginePrivate::sendEngineList(UdpServerPeer *peer, EngineHandler *handler)
 {
 	Q_ASSERT(handler);
 	Q_ASSERT(peer);
@@ -517,7 +523,7 @@ void RpgEnginePrivate::sendEngineList(const RpgConfigBase &config, UdpServerPeer
 
 		const auto &e = std::dynamic_pointer_cast<RpgEngine>(ptr);
 
-		if (!canConnect(peer->peerID(), config, e.get()))
+		if (!canConnect(peer->peerID(), e.get()))
 			continue;
 
 		list.engines().push_back(e->toStream());
@@ -541,16 +547,16 @@ void RpgEnginePrivate::sendEngineList(const RpgConfigBase &config, UdpServerPeer
  */
 
 
-bool RpgEnginePrivate::canConnect(const qint64 &peerID, const RpgConfigBase &config, RpgEngine *engine)
+bool RpgEnginePrivate::canConnect(const qint64 &peerID, RpgEngine *engine)
 {
 	return (engine &&
 			/*(engine->config().gameState == RpgConfig::StateConnect ||
-			 engine->config().gameState == RpgConfig::StateCharacterSelect) &&
-			engine->config() == config &&*/
+					 engine->config().gameState == RpgConfig::StateCharacterSelect) &&
+					engine->config() == config &&*/
 			!engine->d->m_locked /*&&
-			!engine->d->m_banList.contains(peerID) &&
-			!engine->d->m_abortList.contains(peerID) &&
-			(engine->m_playerLimit <= 0 || engine->m_player.size() < engine->m_playerLimit)*/
+					!engine->d->m_banList.contains(peerID) &&
+					!engine->d->m_abortList.contains(peerID) &&
+					(engine->m_playerLimit <= 0 || engine->m_player.size() < engine->m_playerLimit)*/
 			);
 }
 

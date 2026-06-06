@@ -34,6 +34,25 @@ namespace RpgStream
 
 
 /**
+ * @brief BaseDefenderObject::requiredMp
+ * @param type
+ * @return
+ */
+
+quint32 BaseDefenderObject::requiredMp(const Type &type) {
+	switch (type) {
+		case Dummy:
+			return 5;
+
+		case None:
+			return 0;
+
+	}
+
+	return 0;
+}
+
+/**
  * @brief EngineList::toStream
  * @return
  */
@@ -261,7 +280,7 @@ EngineStream &GameConfig::operator>>(EngineStream &stream) const
  * @return
  */
 
-EngineStream &CharacterSelectServer::operator<<(EngineStream &stream)
+EngineStream &CharacterSelect::operator<<(EngineStream &stream)
 {
 	m_gameConfig << stream;
 	readEngineReadableId(stream);
@@ -278,7 +297,7 @@ EngineStream &CharacterSelectServer::operator<<(EngineStream &stream)
  * @return
  */
 
-EngineStream &CharacterSelectServer::operator>>(EngineStream &stream) const
+EngineStream &CharacterSelect::operator>>(EngineStream &stream) const
 {
 	m_gameConfig >> stream;
 	writeEngineReadableId(stream);
@@ -303,10 +322,6 @@ EngineStream &PlayerData::operator<<(EngineStream &stream)
 	readCharacter(stream);
 	readFlags(stream);
 
-	readMaxHp(stream);
-	readMaxMp(stream);
-	readMaxBullet(stream);
-
 	return stream;
 }
 
@@ -324,10 +339,6 @@ EngineStream &PlayerData::operator>>(EngineStream &stream) const
 	writeNickName(stream);
 	writeCharacter(stream);
 	writeFlags(stream);
-
-	writeMaxHp(stream);
-	writeMaxMp(stream);
-	writeMaxBullet(stream);
 
 	return stream;
 }
@@ -348,6 +359,8 @@ EngineStream &EntityState::operator<<(EngineStream &stream)
 	readVelYDelta(stream);
 	readAngleDelta(stream);
 	readFacingDelta(stream);
+	readSlideXDelta(stream);
+	readSlideYDelta(stream);
 
 	return stream;
 }
@@ -368,6 +381,8 @@ EngineStream &EntityState::operator>>(EngineStream &stream) const
 	writeVelYDelta(stream);
 	writeAngleDelta(stream);
 	writeFacingDelta(stream);
+	writeSlideXDelta(stream);
+	writeSlideYDelta(stream);
 
 	return stream;
 }
@@ -392,7 +407,8 @@ EngineStream &PlayerState::operator<<(EngineStream &stream)
 	readLockDelta(stream);
 	readPenaltyDelta(stream);
 
-	readDefender(stream);
+	readDefenderDelta(stream);
+	readHasDefenderDelta(stream);
 
 	return stream;
 }
@@ -417,7 +433,8 @@ EngineStream &PlayerState::operator>>(EngineStream &stream) const
 	writeLockDelta(stream);
 	writePenaltyDelta(stream);
 
-	writeDefender(stream);
+	writeDefenderDelta(stream);
+	writeHasDefenderDelta(stream);
 
 	return stream;
 }
@@ -721,7 +738,8 @@ EngineStream &EventPlayer::operator<<(EngineStream &stream)
 		m_chunk << stream;
 	}
 
-	if (m_type == EventRespawn)
+	if (m_type == EventRespawn ||
+			m_type == EventStreak)				// itt a streak-et tároljuk nem az msec-t!
 		readAt(stream);
 
 	return stream;
@@ -755,7 +773,8 @@ EngineStream &EventPlayer::operator>>(EngineStream &stream) const
 		m_chunk >> stream;
 	}
 
-	if (m_type == EventRespawn)
+	if (m_type == EventRespawn ||
+			m_type == EventStreak)
 		writeAt(stream);
 
 	return stream;
@@ -1014,6 +1033,8 @@ EngineStream &Defender::operator>>(EngineStream &stream) const
  * @return
  */
 
+
+
 EngineStream &BaseDefenderObject::operator<<(EngineStream &stream)
 {
 	readTagId(stream);
@@ -1030,6 +1051,9 @@ EngineStream &BaseDefenderObject::operator<<(EngineStream &stream)
 	switch (m_type) {
 		case BaseDefenderObject::Dummy:
 			readDummy(stream);
+			break;
+
+		case BaseDefenderObject::None:
 			break;
 	}
 
@@ -1059,6 +1083,9 @@ EngineStream &BaseDefenderObject::operator>>(EngineStream &stream) const
 	switch (m_type) {
 		case BaseDefenderObject::Dummy:
 			writeDummy(stream);
+			break;
+
+		case BaseDefenderObject::None:
 			break;
 	}
 
@@ -1121,6 +1148,85 @@ EngineStream &DefenderState::operator>>(EngineStream &stream) const
 		case BaseDefenderObject::None:
 			break;
 	}
+
+	return stream;
+}
+
+
+
+/**
+ * @brief PlayerConfig::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &PlayerConfig::operator<<(EngineStream &stream)
+{
+	readPower(stream);
+	readMaxMp(stream);
+	readMaxBullet(stream);
+
+	m_entity << stream;
+
+	readDefenders(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief PlayerConfig::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &PlayerConfig::operator>>(EngineStream &stream) const
+{
+	writePower(stream);
+	writeMaxMp(stream);
+	writeMaxBullet(stream);
+
+	m_entity >> stream;
+
+	writeDefenders(stream);
+
+	return stream;
+}
+
+
+
+
+/**
+ * @brief EntityConfig::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &EntityConfig::operator<<(EngineStream &stream)
+{
+	readMaxHp(stream);
+	readPush(stream);
+	readResist(stream);
+	readPushDist(stream);
+
+	return stream;
+}
+
+
+
+
+/**
+ * @brief EntityConfig::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &EntityConfig::operator>>(EngineStream &stream) const
+{
+	writeMaxHp(stream);
+	writePush(stream);
+	writeResist(stream);
+	writePushDist(stream);
 
 	return stream;
 }

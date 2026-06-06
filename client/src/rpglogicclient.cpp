@@ -27,12 +27,12 @@
 #include "rpglogicclient.h"
 #include "rpggame.h"
 #include "rpgobject.h"
-#include "rpgtower.h"
 
 namespace Rpg {
 
 RpgLogicClient::RpgLogicClient(const quint32 &lastAuthDiff, const quint32 &jitterDiff)
-	: RpgLogic(lastAuthDiff, jitterDiff)
+	: RpgLogic(lastAuthDiff+1)						// nem lehet 0, mert akkor nem engedne feldolgozni semmit
+	, m_jitterDiff(jitterDiff)
 {
 	registerCtx<RpgLogicObjectMapper>();
 }
@@ -132,7 +132,7 @@ void RpgLogicClient::eventRealized(entt::entity entity)
  * @brief RpgLogicClientSingle::RpgLogicClientSingle
  */
 
-RpgLogicClientSingle::RpgLogicClientSingle() : RpgLogicClient(1, 0) {}						// nem lehet 0, mert akkor nem engedne feldolgozni semmit
+RpgLogicClientSingle::RpgLogicClientSingle() : RpgLogicClient(0, 0) {}
 
 
 /**

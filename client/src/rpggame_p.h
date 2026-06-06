@@ -35,6 +35,7 @@
 #include "rpgobject.h"
 #include "rpgplayer.h"
 #include "rpgtower.h"
+#include "rpgudpengine.h"
 
 
 
@@ -53,14 +54,22 @@ class RpgGamePrivate : public QObject
 
 private:
 	RpgGamePrivate(RpgGame *game, const bool &multi);
+	virtual ~RpgGamePrivate();
 
 	void clearSharedTextures();
+	void vibrate();
 
 
 	// Connect
 
 	void connectionPrepare();
 	void connectionCheck();
+	void connectionReady();
+
+	void onServerConnected();
+	void onServerDisconnected();
+	void onConnectionFailed(const QString &err);
+	void onConnectionLost();
 
 	void contentPrepare();
 	void onDownloaderStateChanged();
@@ -140,7 +149,7 @@ private:
 	/// RPG LOGIC LOCAL
 
 	quint32 logicRegisterObject(RpgObject *object);
-	void logicAddPlayer(const RpgStream::Team &team = RpgStream::TeamNone, const int &count = 1);		// deprecated
+	void logicAddPlayer(const RpgPlayerDefinition &def, const RpgStream::Team &team = RpgStream::TeamNone, const int &count = 1);		// deprecated
 
 	void changeControlledPlayer();					// deprecated
 
@@ -176,6 +185,11 @@ private:
 	std::unique_ptr<QGamepad> m_gamePad;
 #endif
 
+
+	// Multiplayer
+
+	QByteArray m_connectionToken;
+	std::unique_ptr<RpgUdpEngine> m_engine;
 
 	friend class RpgGame;
 	friend class RpgGameItem;

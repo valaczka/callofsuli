@@ -43,7 +43,6 @@ HttpConnection::HttpConnection(Client *client)
 	: QObject()
 	, m_client(client)
 	, m_networkManager(new QNetworkAccessManager())
-	, m_webSocket(new WebSocket(this))
 {
 	LOG_CTRACE("http") << "HttpConnection created";
 
@@ -131,9 +130,6 @@ void HttpConnection::setServer(Server *newServer)
 
 	m_server = newServer;
 	emit serverChanged();
-
-	if (!m_server && m_webSocket)
-		m_webSocket->close();
 }
 
 
@@ -282,16 +278,6 @@ void HttpConnection::abortAllReplies()
 	m_replies.clear();*/
 }
 
-
-/**
- * @brief HttpConnection::webSocket
- * @return
- */
-
-WebSocket* HttpConnection::webSocket() const
-{
-	return m_webSocket.get();
-}
 
 
 
@@ -730,7 +716,7 @@ void HttpReply::abort()
 		m_socket->checkPending();
 	}
 
-	m_socket = nullptr;
+	///m_socket = nullptr;
 
 	//close();
 }

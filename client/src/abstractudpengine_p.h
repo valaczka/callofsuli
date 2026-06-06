@@ -32,6 +32,9 @@
 #include <QObject>
 #include <QMap>
 #include <QElapsedTimer>
+#include <QWebSocket>
+
+
 
 #ifndef Q_OS_WASM
 #include <enet/enet.h>
@@ -54,6 +57,7 @@ public:
 
 	void run();
 	void stop();
+	void runWebSocket();
 
 	void sendMessage(const std::vector<uint8_t> &data, const bool &reliable = false);
 	void setUrl(const QUrl &url);
@@ -80,6 +84,9 @@ private:
 	ENetPeer *m_enet_peer = nullptr;
 #endif
 
+	std::unique_ptr<QWebSocket> m_webSocket;
+
+	void messageReceived(const QByteArray &data);
 
 	struct UdpSpeedClient : public UdpSpeed
 	{
@@ -105,8 +112,6 @@ private:
 
 	UdpCacheQueue<UdpPacketRcv> m_cacheRcv;
 	UdpCacheQueue<UdpPacketSnd> m_cacheSnd;
-
-	PublicKeySigner m_signer;
 
 	QByteArray m_connectionToken;
 

@@ -30,7 +30,6 @@
 #include "abstractapi.h"
 #include "gamemap.h"
 #include "qjsonarray.h"
-#include "rpgconfig.h"
 
 class TeacherAPI : public AbstractAPI
 {
@@ -182,10 +181,6 @@ public:
 											 const QString &username);
 	static std::optional<float> _evaluateCriterionMissionLevels(const AbstractAPI *api, const QJsonObject &criterion, const QString &map,
 											 const QString &username);
-
-	static std::optional<QVector<RpgWallet>> _wallet(const AbstractAPI *api, const QString &username);
-	static std::optional<QVector<RpgWallet>> _wallet(const DatabaseMain *dbMain, const QString &username);
-	static bool _clearWallet(const DatabaseMain *dbMain, ServerService *service);
 
 	static std::optional<int> _currency(const AbstractAPI *api, const QString &username);
 	static std::optional<int> _currency(const DatabaseMain *dbMain, const QString &username);

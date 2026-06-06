@@ -49,7 +49,6 @@ public:
 private:
 	const QVector<std::shared_ptr<AbstractEngine> > &engines() const { return m_engines; }
 	void engineAdd(const std::shared_ptr<AbstractEngine> &engine);
-	//void engineRemove(const std::shared_ptr<AbstractEngine> &engine);
 	void engineRemove(AbstractEngine *engine);
 	void engineRemoveUnused();
 
@@ -66,8 +65,6 @@ private:
 	void websocketCloseAll();
 	void websocketDisconnected(WebSocketStream *stream);
 	void websocketTrigger(WebSocketStream *stream);
-	void websocketObserverAdded(WebSocketStream *stream, const AbstractEngine::Type &type);
-	void websocketObserverRemoved(WebSocketStream *stream, const AbstractEngine::Type &type);
 	void websocketEngineLink(WebSocketStream *stream, const std::shared_ptr<AbstractEngine> &engine);
 	void websocketEngineUnlink(WebSocketStream *stream, AbstractEngine *engine);
 

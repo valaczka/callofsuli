@@ -46,9 +46,9 @@ private:
 	{}
 
 
-	static void sendEngineList(const RpgConfigBase &config, UdpServerPeer *peer, EngineHandler *handler);
+	static void sendEngineList(UdpServerPeer *peer, EngineHandler *handler);
 
-	static bool canConnect(const qint64 &peerID, const RpgConfigBase &config, RpgEngine *engine);
+	static bool canConnect(const qint64 &peerID, RpgEngine *engine);
 
 
 	QElapsedTimer m_elapsedTimer;

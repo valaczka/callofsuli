@@ -446,11 +446,15 @@ void RpgUserWalletList::reload()
 
 void RpgUserWalletList::reloadMarket()
 {
-	Application::instance()->client()->send(HttpConnection::ApiGeneral, QStringLiteral("market"))
+	// DEPRECATED
+
+	LOG_CERROR("client") << "DEPRECATED";
+
+	/*Application::instance()->client()->send(HttpConnection::ApiGeneral, QStringLiteral("market"))
 			->done(this, &RpgUserWalletList::loadMarket)
 			->fail(this, [](const QString &err){
 		LOG_CERROR("game") << "Load market error" << qPrintable(err);
-	});
+	});*/
 }
 
 

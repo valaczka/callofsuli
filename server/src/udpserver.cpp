@@ -80,6 +80,8 @@ void UdpEngine::onRemoveRequest()
 
 
 
+
+
 /**
  * @brief UdpServer::UdpServer
  * @param handler
@@ -134,12 +136,22 @@ void UdpServer::send(UdpServerPeer *peer, const std::vector<std::uint8_t> &data,
 	if (!peer)
 		return;
 
-	if (m_worker->getThread() == QThread::currentThread())
-		d->sendPacket(peer->peer(), data, reliable);
-	else
-		m_worker->execInThread([this, peer, data, reliable]() {
+	if (peer->peer()) {
+		if (m_worker->getThread() == QThread::currentThread())
 			d->sendPacket(peer->peer(), data, reliable);
-		});
+		else
+			m_worker->execInThread([this, peer, data, reliable]() {
+				d->sendPacket(peer->peer(), data, reliable);
+			});
+	}
+
+	if (WebSocketStream *stream = peer->stream()) {
+		QByteArray d(reinterpret_cast<const char*>(data.data()), data.size());
+
+		QMetaObject::invokeMethod(stream,
+								  std::bind(&WebSocketStream::sendBinaryMessage, stream, d),
+								  Qt::QueuedConnection);
+	}
 }
 
 
@@ -302,6 +314,33 @@ void UdpServer::removeExpiredPeers()
 
 
 
+/**
+ * @brief UdpServer::onBinaryMessageReceived
+ * @param data
+ * @param stream
+ */
+
+void UdpServer::onBinaryMessageReceived(const QByteArray &data, WebSocketStream *stream)
+{
+	if (!stream) {
+		LOG_CWARNING("engine") << "Invalid stream";
+		return;
+	}
+
+
+	if (data.size() == 0) {
+		LOG_CWARNING("engine") << "Invalid data" << stream->peerAddress();
+		return;
+	}
+
+	QByteArray b = data;
+	QPointer<WebSocketStream> s = stream;
+
+	QMetaObject::invokeMethod(d, std::bind(&UdpServerPrivate::binaryMessageReceived, d, b, s), Qt::QueuedConnection);
+}
+
+
+
 
 
 
@@ -388,7 +427,7 @@ void UdpServerPrivate::run()
 				case ENET_EVENT_TYPE_RECEIVE:
 					if (!packetReceived(event)) {
 						LOG_CDEBUG("engine") << "Reject connection" << qPrintable(UdpServerPeer::address(event.peer));
-						////enet_peer_disconnect_later(event.peer, 1);
+						enet_peer_disconnect_later(event.peer, 1);
 					}
 					enet_packet_destroy(event.packet);
 					break;
@@ -397,6 +436,10 @@ void UdpServerPrivate::run()
 					break;
 			}
 		}
+
+		// Read websocket events
+
+		QThread::currentThread()->eventDispatcher()->processEvents(QEventLoop::ProcessEventsFlag::AllEvents);
 
 
 		deliverPackets();
@@ -512,7 +555,9 @@ void UdpServerPrivate::udpPeerRemove(ENetPeer *peer)
 
 	m_cacheSnd.clearPeer(peer);
 	m_cacheRcv.clearPeer(peer);
-	m_cacheSndPeer.remove(p);
+
+	if (const auto it = m_cacheSndPeer.find(p); it != m_cacheSndPeer.cend())
+		m_cacheSndPeer.erase(it);
 
 
 	std::erase_if(q->m_peerList, [p](const std::unique_ptr<UdpServerPeer> &ptr) {
@@ -659,7 +704,7 @@ bool UdpServerPrivate::packetConnectReceived(std::unique_ptr<UdpBitStream> &&dat
 		return false;
 	}
 
-	auto stream = m_lobby->updateConnection(usertoken.peer, engineType, *connectionToken);
+	auto stream = m_lobby->updateConnection(usertoken, engineType, *connectionToken, nullptr);
 
 	if (!stream.has_value()) {
 		LOG_CWARNING("engine") << "PeerId not found" << usertoken.peer << usertoken.user << UdpServerPeer::address(event.peer);
@@ -667,9 +712,6 @@ bool UdpServerPrivate::packetConnectReceived(std::unique_ptr<UdpBitStream> &&dat
 	}
 
 	m_pendingClient.insert(hash, event.peer->address);
-
-
-	LOG_CWARNING("engine") << "*****SEND" << *stream;
 
 	sendPacket(event.peer, (*stream).data(), false);
 
@@ -725,7 +767,6 @@ bool UdpServerPrivate::packetChallengeReceived(std::unique_ptr<UdpBitStream> &&d
 
 	UdpConnectionToken usertoken;
 	usertoken.fromJson(*connectionToken);
-
 
 	auto stream = m_lobby->updateChallenge(usertoken, *ptrSignedContent, event.peer);
 
@@ -829,6 +870,176 @@ bool UdpServerPrivate::packetUserReceived(std::unique_ptr<UdpBitStream> &&data, 
 
 
 
+/**
+ * @brief UdpServerPrivate::binaryMessageReceived
+ * @param data
+ * @param stream
+ */
+
+void UdpServerPrivate::binaryMessageReceived(const QByteArray &data, QPointer<WebSocketStream> stream)
+{
+	if (!stream)
+		return;
+
+	std::unique_ptr<UdpBitStream> st = std::make_unique<UdpBitStream>(reinterpret_cast<const unsigned char*>(data.constData()),
+																	  data.size());
+
+
+	if (!st->validate()) {
+		LOG_CWARNING("engine") << "Invalid data from peer" << stream->peerAddress();
+		return;
+	}
+
+
+	if (st->type() == UdpBitStream::MessageConnect) {
+		return packetConnectReceived(std::move(st), stream);
+	} else if (st->type() >= UdpBitStream::MessageUser) {
+		return packetUserReceived(std::move(st), stream);
+	} else {
+		LOG_CWARNING("engine") << "Invalid message type from peer" << stream->peerAddress();
+		return;
+	}
+}
+
+
+
+
+/**
+ * @brief UdpServerPrivate::packetConnectReceived
+ * @param data
+ * @param stream
+ */
+
+void UdpServerPrivate::packetConnectReceived(std::unique_ptr<UdpBitStream> &&data, WebSocketStream *stream)
+{
+	if (!stream)
+		return;
+
+	auto ptr = data->readByteArray();
+
+	if (!ptr) {
+		LOG_CWARNING("engine") << "Invalid connect message" << stream->peerAddress();
+		return;
+	}
+
+	QByteArray hash;
+
+	auto connectionToken = verifyToken(*ptr, &hash);
+
+	if (!connectionToken) {
+		LOG_CWARNING("engine") << "Invalid token" << stream->peerAddress();
+		return;
+	}
+
+	UdpConnectionToken usertoken;
+	usertoken.fromJson(*connectionToken);
+
+	if (usertoken.exp <= QDateTime::currentSecsSinceEpoch()) {
+		LOG_CWARNING("engine") << "Expired token" << usertoken.exp << usertoken.user << stream->peerAddress();
+		return;
+	}
+
+	AbstractEngine::Type engineType = static_cast<AbstractEngine::Type>(usertoken.type);
+
+	if (engineType == AbstractEngine::EngineInvalid) {
+		LOG_CWARNING("engine") << "Invalid engine type" << usertoken.type << usertoken.user << stream->peerAddress();
+		return;
+	}
+
+	auto s = m_lobby->updateConnection(usertoken, engineType, *connectionToken, stream);
+
+	if (!s.has_value()) {
+		LOG_CWARNING("engine") << "PeerId not found" << usertoken.peer << usertoken.user << stream->peerAddress();
+		return;
+	}
+
+	std::vector<std::uint8_t> d = s->data();
+
+	QMetaObject::invokeMethod(stream, std::bind(&WebSocketStream::sendUdpMessage, stream, d), Qt::QueuedConnection);
+}
+
+
+
+
+
+/**
+ * @brief UdpServerPrivate::packetUserReceived
+ * @param data
+ * @param stream
+ */
+
+void UdpServerPrivate::packetUserReceived(std::unique_ptr<UdpBitStream> &&data, WebSocketStream *stream)
+{
+	if (!stream)
+		return;
+
+	const auto &index = data->readPeerIndex();
+
+	if (!index) {
+		LOG_CWARNING("engine") << "Missing peerIndex" << stream->peerAddress();
+		return;
+	}
+
+	const auto &peerData = m_lobby->at(*index);
+
+	if (!peerData) {
+		LOG_CWARNING("engine") << "Invalid peerIndex" << stream->peerAddress();
+		return;
+	}
+
+	if (!peerData->signer.has_value()) {
+		LOG_CWARNING("engine") << "Missing public key" << peerData->peerId << peerData->username << stream->peerAddress();
+		return;
+	}
+
+	const auto &lastPos = data->verifyBuffer(peerData->signer.value());
+
+	if (!lastPos) {
+		LOG_CWARNING("engine") << "Authentication error" << peerData->peerId << peerData->username << stream->peerAddress();
+		return;
+	}
+
+	data->setAuthLastPosition(*lastPos);
+
+	UdpServerPeer *peer = static_cast<UdpServerPeer*>(stream->udpPeer());
+	std::shared_ptr<UdpEngine> engine = peerData->engine.lock();
+
+	if (!peer) {
+		LOG_CINFO("engine") << "Create UdpServerPeer" << peerData->peerId << peerData->username << stream->peerAddress();
+		//LOG_CINFO("engine") << "Create UdpServerPeer engine:" << engine->id() << "peer:" << peerData->peerId << peerData->username << UdpServerPeer::address(event.peer);
+
+		const std::unique_ptr<UdpServerPeer> &p = q->m_peerList.emplace_back(std::make_unique<UdpServerPeer>(peerData->peerId, q, nullptr));
+		peer = p.get();
+		peer->setStream(stream);
+
+		if (engine)
+			peer->server()->peerConnectToEngine(peer, engine);
+	}
+
+
+
+	UdpPacketRcv packet(std::move(data));
+	packet.peer = peer;
+
+	if (!engine) {
+		std::shared_ptr<UdpEngine> peerEngine = UdpEngine::dispatch(q->m_service->engineHandler(),
+																	peerData->type,
+																	peerData->connectionToken,
+																	std::move(packet));
+
+		if (peerEngine)
+			m_lobby->updateEngine(peerData->peerId, peerEngine);
+
+	} else {
+		LOG_CDEBUG("engine") << "PEER ON ENGINE" << peerData->peerId << engine->id();
+		m_cacheRcv.push(std::move(packet));
+	}
+
+
+}
+
+
+
 
 /**
  * @brief UdpServerPrivate::hashToken
@@ -913,7 +1124,7 @@ void UdpServerPrivate::deliverPackets()
 
 	}
 
-	for (const auto &[peer, cache] : m_cacheSndPeer.asKeyValueRange()) {
+	for (auto &[peer, cache] : m_cacheSndPeer) {
 		if (!peer->readyToSend())
 			continue;
 
@@ -1072,6 +1283,23 @@ int UdpServerPeer::port(ENetPeer *peer)
 
 /**
  * @brief UdpServerPeer::address
+ * @return
+ */
+
+QString UdpServerPeer::address() const
+{
+	if (m_peer)
+		return address(m_peer);
+
+	if (m_stream)
+		return m_stream->peerAddress().toString();
+
+	return QString();
+}
+
+
+/**
+ * @brief UdpServerPeer::address
  * @param peer
  * @return
  */
@@ -1124,6 +1352,23 @@ bool UdpServerPeer::readyToSend(const int &maxFps)
 	}
 
 	return false;
+}
+
+
+
+/**
+ * @brief UdpServerPeer::stream
+ * @return
+ */
+
+WebSocketStream *UdpServerPeer::stream() const
+{
+	return m_stream;
+}
+
+void UdpServerPeer::setStream(WebSocketStream *newStream)
+{
+	m_stream = newStream;
 }
 
 
@@ -1302,7 +1547,8 @@ bool Lobby::removeIndex(const quint32 &idx)
  * @return
  */
 
-std::optional<UdpBitStream> Lobby::updateConnection(const UdpConnectionToken &token, const AbstractEngine::Type &type, const QJsonObject &tokenObj)
+std::optional<UdpBitStream> Lobby::updateConnection(const UdpConnectionToken &token, const AbstractEngine::Type &type,
+													const QJsonObject &tokenObj, WebSocketStream *stream)
 {
 	Q_ASSERT(m_server);
 
@@ -1310,6 +1556,7 @@ std::optional<UdpBitStream> Lobby::updateConnection(const UdpConnectionToken &to
 		return std::nullopt;
 
 	QMutexLocker l(&m_mutex);
+
 
 	auto idx = _index(token.peer);
 
@@ -1334,6 +1581,16 @@ std::optional<UdpBitStream> Lobby::updateConnection(const UdpConnectionToken &to
 		d.session = QByteArray::fromBase64(token.ses.toLatin1());
 		d.publicKey = QByteArray::fromBase64(token.pub.toLatin1());
 		d.connectionToken = tokenObj;
+
+		if (stream) {
+			PublicKeySigner signer;
+			signer.setPublicKey(d.publicKey);
+			d.signer = std::move(signer);
+
+			LOG_CINFO("engine") << "Peer connected:" << d.session << stream->peerAddress();
+
+			return std::optional<UdpBitStream>(std::in_place, d.peerId, idx.value());
+		}
 
 		return std::optional<UdpBitStream>(std::in_place, d.challenge);
 	}
@@ -1381,17 +1638,12 @@ std::optional<UdpBitStream> Lobby::updateChallenge(const UdpConnectionToken &con
 
 		QByteArray challenge = QByteArray::fromRawData(reinterpret_cast<const char*>(d.challenge.data()), d.challenge.size());
 
-		PublicKeySigner signer(d.publicKey);
 
-		auto res = UdpBitStream::verifyBuffer(signer, reinterpret_cast<const unsigned char*>(content.data()), content.size());
+		PublicKeySigner signer;
+		signer.setPublicKey(d.publicKey);
 
-		if (!res.has_value() || *res < 0 || *res >= (size_t) content.size()) {
+		if (!signer.verifySign(challenge, content)) {
 			LOG_CWARNING("engine") << "Invalid challenge" << connToken.peer << connToken.user << qPrintable(UdpServerPeer::address(peer));
-			return std::nullopt;
-		}
-
-		if (challenge != content.first(*res)) {
-			LOG_CWARNING("engine") << "Challenge mismatch" << connToken.peer << connToken.user << qPrintable(UdpServerPeer::address(peer));
 			return std::nullopt;
 		}
 

@@ -89,7 +89,7 @@ public:
 	int maxBullet() const;
 
 	bool hasDefender() const;
-	void setDefender(const RpgStream::BaseDefenderObject::Type &type);
+	void setDefender(const RpgStream::BaseDefenderObject::Type &type, const bool &hasDefender);
 
 	RpgEntity *targetEntity() const;
 	void setTargetEntity(RpgEntity *newTargetEntity);
@@ -131,6 +131,7 @@ private:
 	int m_bullet = 0;
 
 	RpgStream::BaseDefenderObject::Type m_defender = RpgStream::BaseDefenderObject::None;
+	bool m_hasDefender = false;
 
 
 	TiledGameSfx m_sfxPain;
@@ -208,6 +209,11 @@ public:
 	void useCurrentControl();
 	void putDefender(const bool &click);
 
+	void changeMpToBullet();
+	void changeMpToDefender();
+	void changeMpToSuper();
+
+	void processEvent(const RpgStream::EventPlayer &event);
 
 protected:
 	virtual void onShapeContactBegin(cpShape *self, cpShape *other) override;

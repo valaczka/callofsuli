@@ -28,7 +28,6 @@
 #define RPGENGINE_H
 
 #include "abstractengine.h"
-#include "rpgconfig.h"
 #include "rpgstream.h"
 #include "udpserver.h"
 
@@ -54,11 +53,11 @@ class RpgEngine : public UdpEngine
 	Q_OBJECT
 
 public:
-	explicit RpgEngine(EngineHandler *handler, const RpgConfigBase &config, QObject *parent = nullptr);
+	explicit RpgEngine(EngineHandler *handler, QObject *parent = nullptr);
 	virtual ~RpgEngine();
 
 
-	static std::shared_ptr<RpgEngine> engineCreate(EngineHandler *handler, const RpgConfigBase &config, UdpServer *server);
+	static std::shared_ptr<RpgEngine> engineCreate(EngineHandler *handler, UdpServer *server);
 	static std::shared_ptr<RpgEngine> engineDispatch(EngineHandler *handler, const QJsonObject &connectionToken, UdpPacketRcv &&data);
 
 

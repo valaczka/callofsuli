@@ -675,10 +675,12 @@ void Client::onUserLoggedIn()
 			stackPushPage(QStringLiteral("PagePanel.qml"));
 		else if (server()->user()->roles().testFlag(Credential::Teacher) || server()->user()->roles().testFlag(Credential::Admin))
 			stackPushPage(QStringLiteral("PageTeacherDashboard.qml"));
-		else if (server()->offlineEngine())
-			server()->offlineEngine()->loadSyncMode(QStringLiteral("PageStudentDashboard.qml"));
+		///// TODO ///////////////////////////////////////////////////////////////
+		//else if (server()->offlineEngine())
+		//	server()->offlineEngine()->loadSyncMode(QStringLiteral("PageStudentDashboard.qml"));
 		else
-			stackPushPage(QStringLiteral("PageStudentDashboard.qml"));
+			/////stackPushPage(QStringLiteral("PageStudentDashboard.qml"));
+			loadDemoMap();
 	});
 }
 
