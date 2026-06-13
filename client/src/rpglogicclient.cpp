@@ -27,6 +27,7 @@
 #include "rpglogicclient.h"
 #include "rpggame.h"
 #include "rpgobject.h"
+#include "rpgudpengine.h"
 
 namespace Rpg {
 
@@ -36,6 +37,10 @@ RpgLogicClient::RpgLogicClient(const quint32 &lastAuthDiff, const quint32 &jitte
 {
 	registerCtx<RpgLogicObjectMapper>();
 }
+
+
+
+
 
 
 /**
@@ -135,11 +140,65 @@ void RpgLogicClient::eventRealized(entt::entity entity)
 RpgLogicClientSingle::RpgLogicClientSingle() : RpgLogicClient(0, 0) {}
 
 
+
+
 /**
  * @brief RpgLogicClientMulti::RpgLogicClientMulti
  */
 
-RpgLogicClientMulti::RpgLogicClientMulti() : RpgLogicClient(6, 6) { }
+RpgLogicClientMulti::RpgLogicClientMulti()
+	: RpgLogicClient(6, 6)
+{
+	registerCtx<RpgLogicControlledObjects>();
+}
+
+
+/**
+ * @brief RpgLogicClientMulti::loadFull
+ * @param full
+ */
+
+void RpgLogicClientMulti::loadFull(const RpgStream::Full &full)
+{
+	if (!m_engine) {
+		LOG_CERROR("game") << "Missing engine";
+		return;
+	}
+
+	Rpg::RpgLogicScope scope = getScope();
+
+	RpgLogicControlledObjects *objs = scope.getCtx<RpgLogicControlledObjects>();
+
+	Q_ASSERT(objs);
+
+	for (const RpgStream::FullPlayerMap &m : full.map()) {
+		if (m.peerId() != m_engine->peerId())
+			continue;
+
+		objs->player = m.player();
+		objs->entities.clear();
+		objs->entities.reserve(m.entities().size());
+
+		for (const RpgStream::FullMapTag &t : m.entities())
+			objs->entities.insert(t.tagId());
+
+	}
+
+	fullStateLoad(full.fullState(), {});
+
+	render(true);
+}
+
+
+RpgUdpEngine *RpgLogicClientMulti::engine() const
+{
+	return m_engine;
+}
+
+void RpgLogicClientMulti::setEngine(RpgUdpEngine *newEngine)
+{
+	m_engine = newEngine;
+}
 
 
 

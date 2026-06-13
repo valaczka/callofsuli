@@ -31,6 +31,7 @@
 #include <QApplication>
 #include <QtQml>
 #include <sodium.h>
+#include "credential.h"
 #include "../modules/interfaces.h"
 
 
@@ -139,6 +140,8 @@ public:
 	QCborMap signToMap(const QByteArray &message) const;
 	QByteArray signToRaw(const QByteArray &message) const;
 	QByteArray sign(const QByteArray &message) const;
+
+	std::optional<PublicKeySigner> getSigner() const;
 
 	std::optional<std::pair<QByteArray, QByteArray> > deviceIdentity() const;
 	void setOnDeviceIdentityReady(QObject *instance, const std::function<void(bool)> &func, const bool &startTimer = true);

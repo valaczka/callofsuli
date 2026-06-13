@@ -367,6 +367,7 @@ protected:
 	virtual void loadImageLayer(TiledScene *scene, Tiled::ImageLayer *image, Tiled::MapRenderer *renderer);
 
 	virtual void timerEvent(QTimerEvent *event) override final;
+	virtual void prepareEvent() {  }
 	virtual void timeStepPrepareEvent() {  }
 	virtual void timeBeforeWorldStepEvent(const qint64 &tick);
 	virtual void worldStep(TiledObjectBody *body);

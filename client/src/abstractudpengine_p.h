@@ -29,11 +29,11 @@
 
 #include "qurl.h"
 #include "abstractudpengine.h"
+#include "udphelper.h"
 #include <QObject>
 #include <QMap>
 #include <QElapsedTimer>
 #include <QWebSocket>
-
 
 
 #ifndef Q_OS_WASM
@@ -54,6 +54,7 @@ class AbstractUdpEnginePrivate : public QObject
 
 public:
 	AbstractUdpEnginePrivate(AbstractUdpEngine *engine);
+	virtual ~AbstractUdpEnginePrivate();
 
 	void run();
 	void stop();
@@ -64,6 +65,9 @@ public:
 
 	QByteArray connectionToken() const;
 	void setConnectionToken(const QByteArray &newConnectionToken);
+
+signals:
+	void readyToDeliver();
 
 
 private:

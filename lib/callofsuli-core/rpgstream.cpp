@@ -52,20 +52,6 @@ quint32 BaseDefenderObject::requiredMp(const Type &type) {
 	return 0;
 }
 
-/**
- * @brief EngineList::toStream
- * @return
- */
-
-EngineStream EngineList::toStream() const
-{
-	EngineStream stream(EngineStream::OperationList);
-
-	*this >> stream;
-
-	return stream;
-}
-
 
 
 
@@ -90,12 +76,8 @@ std::vector<uint8_t> EngineStream::data() const
 EngineStream::EngineStream(UdpBitStream &&other)
 	: UdpBitStream(std::move(other))
 {
-	LOG_CINFO("engine") << "GET ENGINE STREAM" << this;
-
 	readOperation(*this);
 	setVersion(readVersion(*this));
-
-	LOG_CINFO("engine") << "OPERATION" << m_operation << "v" << m_version;
 }
 
 
@@ -103,12 +85,8 @@ EngineStream::EngineStream(UdpBitStream &&other)
 EngineStream::EngineStream(std::unique_ptr<UdpBitStream> &stream)
 	: UdpBitStream(std::move(*stream.release()))
 {
-	LOG_CINFO("engine") << "GET ENGINE STREAM" << this;
-
 	readOperation(*this);
 	setVersion(readVersion(*this));
-
-	LOG_CINFO("engine") << "OPERATION" << m_operation << "v" << m_version;;
 }
 
 
@@ -128,113 +106,6 @@ void EngineStream::finalize() const
 
 		m_hasFinalized = true;
 	}
-}
-
-
-
-/**
- * @brief EnginePlayer::operator <<
- * @param stream
- * @return
- */
-
-EnginePlayer::EnginePlayer(const QByteArray &userName, const QByteArray &nickName)
-	: RpgStream::EnginePlayer()
-{
-	setUserName(userName);
-	setNickName(nickName);
-}
-
-
-EngineStream &EnginePlayer::operator<<(EngineStream &stream)
-{
-	readUserName(stream);
-	readNickName(stream);
-
-	return stream;
-}
-
-
-
-/**
- * @brief EnginePlayer::operator >>
- * @param stream
- * @return
- */
-
-EngineStream &EnginePlayer::operator>>(EngineStream &stream) const
-{
-	writeUserName(stream);
-	writeNickName(stream);
-
-	return stream;
-}
-
-
-
-/**
- * @brief EngineList::operator <<
- * @param stream
- * @return
- */
-
-EngineStream &EngineList::operator<<(EngineStream &stream)
-{
-	readCanCreate(stream);
-	readEngines(stream);
-	return stream;
-}
-
-
-/**
- * @brief EngineList::operator >>
- * @param stream
- * @return
- */
-
-EngineStream &EngineList::operator>>(EngineStream &stream) const
-{
-	writeCanCreate(stream);
-	writeEngines(stream);
-	return stream;
-}
-
-
-
-/**
- * @brief Engine::readPlayers
- * @param stream
- * @return
- */
-
-EngineStream &Engine::operator<<(EngineStream &stream)
-{
-	readId(stream);
-	readReadableId(stream);
-	readMaxPlayer(stream);
-	m_owner << stream;
-	readPlayers(stream);
-
-	return stream;
-}
-
-
-
-/**
- * @brief Engine::operator >>
- * @param stream
- * @return
- */
-
-EngineStream &Engine::operator>>(EngineStream &stream) const
-{
-	writeId(stream);
-	writeReadableId(stream);
-	writeMaxPlayer(stream);
-	m_owner >> stream;
-	writePlayers(stream);
-
-	return stream;
 }
 
 
@@ -275,40 +146,6 @@ EngineStream &GameConfig::operator>>(EngineStream &stream) const
 
 
 /**
- * @brief CharacterSelectServer::operator <<
- * @param stream
- * @return
- */
-
-EngineStream &CharacterSelect::operator<<(EngineStream &stream)
-{
-	m_gameConfig << stream;
-	readEngineReadableId(stream);
-	readMaxPlayers(stream);
-	readPlayers(stream);
-
-	return stream;
-}
-
-
-/**
- * @brief CharacterSelectServer::operator >>
- * @param stream
- * @return
- */
-
-EngineStream &CharacterSelect::operator>>(EngineStream &stream) const
-{
-	m_gameConfig >> stream;
-	writeEngineReadableId(stream);
-	writeMaxPlayers(stream);
-	writePlayers(stream);
-
-	return stream;
-}
-
-
-/**
  * @brief PlayerData::operator <<
  * @param stream
  * @return
@@ -321,6 +158,9 @@ EngineStream &PlayerData::operator<<(EngineStream &stream)
 	readNickName(stream);
 	readCharacter(stream);
 	readFlags(stream);
+	readTeam(stream);
+
+	m_config << stream;
 
 	return stream;
 }
@@ -339,6 +179,9 @@ EngineStream &PlayerData::operator>>(EngineStream &stream) const
 	writeNickName(stream);
 	writeCharacter(stream);
 	writeFlags(stream);
+	writeTeam(stream);
+
+	m_config >> stream;
 
 	return stream;
 }
@@ -559,6 +402,7 @@ EngineStream &MapData::operator<<(EngineStream &stream)
 	m_chunkGrid << stream;
 	readPlayerPositionList(stream);
 	readMpEmitterList(stream);
+	readtowerList(stream);
 
 	return stream;
 }
@@ -575,6 +419,7 @@ EngineStream &MapData::operator>>(EngineStream &stream) const
 	m_chunkGrid >> stream;
 	writePlayerPositionList(stream);
 	writeMpEmitterList(stream);
+	writetowerList(stream);
 
 	return stream;
 }
@@ -1227,6 +1072,243 @@ EngineStream &EntityConfig::operator>>(EngineStream &stream) const
 	writePush(stream);
 	writeResist(stream);
 	writePushDist(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief RoomList::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &RoomList::operator<<(EngineStream &stream)
+{
+	readCanCreate(stream);
+	readRooms(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief RoomList::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &RoomList::operator>>(EngineStream &stream) const
+{
+	writeCanCreate(stream);
+	writeRooms(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief RoomList::toStream
+ * @return
+ */
+
+EngineStream RoomList::toStream() const
+{
+	EngineStream stream(EngineStream::OperationList);
+
+	*this >> stream;
+
+	return stream;
+}
+
+
+
+/**
+ * @brief Room::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &Room::operator<<(EngineStream &stream)
+{
+	readId(stream);
+	readReadableId(stream);
+	readHostId(stream);
+	readPlayers(stream);
+
+	return stream;
+}
+
+EngineStream &Room::operator>>(EngineStream &stream) const
+{
+	writeId(stream);
+	writeReadableId(stream);
+	writeHostId(stream);
+	writePlayers(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief CharacterSelectServer::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &CharacterSelectServer::operator<<(EngineStream &stream)
+{
+	m_room << stream;
+	m_gameConfig << stream;
+
+	return stream;
+}
+
+
+
+EngineStream &CharacterSelectServer::operator>>(EngineStream &stream) const
+{
+	m_room >> stream;
+	m_gameConfig >> stream;
+
+	return stream;
+}
+
+
+
+/**
+ * @brief CharacterSelectClient::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &CharacterSelectClient::operator<<(EngineStream &stream)
+{
+	m_gameConfig << stream;
+	m_data << stream;
+
+	return stream;
+}
+
+
+/**
+ * @brief CharacterSelectClient::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &CharacterSelectClient::operator>>(EngineStream &stream) const
+{
+	m_gameConfig >> stream;
+	m_data >> stream;
+
+	return stream;
+}
+
+
+
+/**
+ * @brief Full::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &Full::operator<<(EngineStream &stream)
+{
+	readServerAuthTick(stream);
+	m_config << stream;
+
+	readPlayers(stream);
+	readMpEmitters(stream);
+	readTowers(stream);
+
+	readMap(stream);
+	m_fullState << stream;
+
+	return stream;
+}
+
+
+
+/**
+ * @brief Full::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &Full::operator>>(EngineStream &stream) const
+{
+	writeServerAuthTick(stream);
+	m_config >> stream;
+
+	writePlayers(stream);
+	writeMpEmitters(stream);
+	writeTowers(stream);
+
+	writeMap(stream);
+	m_fullState >> stream;
+
+	return stream;
+}
+
+
+/**
+ * @brief FullPlayerMap::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &FullPlayerMap::operator<<(EngineStream &stream)
+{
+	readPeerId(stream);
+	readPlayer(stream);
+	readEntities(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief FullPlayerMap::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &FullPlayerMap::operator>>(EngineStream &stream) const
+{
+	writePeerId(stream);
+	writePlayer(stream);
+	writeEntities(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief FullMapTag::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &FullMapTag::operator<<(EngineStream &stream)
+{
+	readTagId(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief FullMapTag::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &FullMapTag::operator>>(EngineStream &stream) const
+{
+	writeTagId(stream);
 
 	return stream;
 }

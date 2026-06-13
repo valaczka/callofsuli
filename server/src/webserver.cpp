@@ -261,7 +261,8 @@ void WebServer::onWebSocketConnection()
 		QWebSocket *ws = ptr.get();
 		ptr.release();
 
-		m_service->engineHandler()->websocketAdd(ws);
+		if (m_service->udpServer())
+			m_service->udpServer()->websocketAdd(ws);
 	}
 }
 

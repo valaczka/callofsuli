@@ -155,7 +155,7 @@ public:
 		{
 			T result = 0;
 			for (std::size_t i = 0; i < size; ++i)
-				result |= static_cast<std::uint8_t>(this->readBit(false)) << (true ? (size - i - 1) : i);
+				result |= static_cast<T>(this->readBit(false)) << (true ? (size - i - 1) : i);
 			return result;
 		}
 
@@ -189,7 +189,7 @@ public:
 	// Crypto Auth
 
 	void setAuthLastPosition(const std::size_t &pos);
-	bool authBuffer(const AuthKeySigner &secret) const;
+	bool authBuffer(const PublicKeySigner &secret) const;
 	std::optional<std::size_t> verifyBuffer(const PublicKeySigner &signer) const;
 	static std::optional<std::size_t> verifyBuffer(const PublicKeySigner &signer, const unsigned char *data, const size_t &len);
 
@@ -228,16 +228,17 @@ public:
 
 		debug.nospace().noquote() << QStringLiteral("\nUdpBitStream(") << c.m_stream.getBuffer()->size
 								  << ',' << c.m_stream.position
-								  << QStringLiteral(" | r")
-								  << c.m_stream.curr_read_octet << '/' << c.m_stream.curr_bit_read_pos
-								  << QStringLiteral(" | w")
-								  << c.m_stream.curr_write_octet << '/' << c.m_stream.curr_bit_write_pos
-								  << QStringLiteral(")\n");
+								  << QStringLiteral(" | r[%1/%2] | w[%3/%4]")
+									 .arg(c.m_stream.curr_read_octet, 8, 2, '0')
+									 .arg(c.m_stream.curr_bit_read_pos)
+									 .arg(c.m_stream.curr_write_octet, 8, 2, '0')
+									 .arg(c.m_stream.curr_bit_write_pos)
+								  << QStringLiteral("])\n");
 
 		std::uint8_t *ptr = c.m_stream.getBuffer()->binary;
 
 		for (size_t i=0; i<c.m_stream.getBuffer()->size; ++i) {
-			debug.nospace().noquote() << QStringLiteral("%1 ").arg(*ptr, 2, 16, QChar('0'));
+			debug.nospace().noquote() << QStringLiteral("%1 ").arg(*ptr, 8/*2*/, 2/*16*/, QChar('0'));
 
 			if (i % 16 == 15)
 				debug.nospace() << '\n';
@@ -402,7 +403,7 @@ inline UdpBitStream::UdpBitStream(const uint8_t *buffer, const std::size_t &size
 
 inline UdpBitStream::~UdpBitStream()
 {
-	LOG_CDEBUG("engine") << "DESTROY" << this;
+
 }
 
 
@@ -648,7 +649,7 @@ inline std::optional<std::size_t> UdpBitStream::verifyBuffer(const PublicKeySign
  * @brief UdpBitStream::encryptBuffer
  */
 
-inline bool UdpBitStream::authBuffer(const AuthKeySigner &signer) const
+inline bool UdpBitStream::authBuffer(const PublicKeySigner &signer) const
 {
 	BMLib::Buffer *buffer = m_stream.getBuffer();
 

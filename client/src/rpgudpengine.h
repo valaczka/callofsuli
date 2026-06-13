@@ -28,18 +28,81 @@
 #define RPGUDPENGINE_H
 
 #include "abstractudpengine.h"
+#include "rpglogicclient.h"
+#include "rpgstream.h"
+
+class RpgGame;
 
 class RpgUdpEngine : public AbstractUdpEngine
 {
 	Q_OBJECT
 
-public:
-	explicit RpgUdpEngine(QObject *parent = nullptr);
+	Q_PROPERTY(bool isHost READ isHost WRITE setIsHost NOTIFY isHostChanged FINAL)
 
+public:
+	explicit RpgUdpEngine(class RpgGamePrivate *game, const PublicKeySigner &signer, QObject *parent = nullptr);
+	virtual ~RpgUdpEngine();
+
+	PublicKeySigner signer() const { return m_signer; }
+
+	RpgStream::EngineStream getStream(const RpgStream::EngineStream::Operation &operation) const {
+		return RpgStream::EngineStream(m_signer, peerIndex(), operation);
+	}
+
+	RpgStream::EngineDataStream getDataStream(const RpgStream::EngineDataStream::DataOperation &dataOperation) const {
+		return RpgStream::EngineDataStream(m_signer, peerIndex(), dataOperation);
+	}
+
+	const std::optional<RpgStream::Room> &room() const;
+
+	bool isHost() const;
+	void setIsHost(bool newIsHost);
+
+signals:
+	void isHostChanged();
 
 protected:
-	virtual void binaryDataReceived(std::vector<UdpPacketRcv> &list) override;
+	virtual void binaryDataReceived(std::vector<UdpPacketRcv> &&list) override;
 
+private:
+	Rpg::RpgLogicClientMulti *logic() const;
+	void onDataReceived(std::unique_ptr<UdpBitStream> data);
+
+	void updateRoom();
+
+
+	// Lobby
+
+	void lobbyReload();
+	void lobbyCreate();
+	void lobbyConnect(const int &id);
+	void lobbyLoad(const RpgStream::RoomList &list);
+
+
+	// Character select
+
+	void sendCharacterSelect(const RpgStream::CharacterSelectClient &data);
+
+	// Prepare
+
+	void updateMapData(RpgStream::EngineDataStream &&stream);
+	void updateFull(RpgStream::EngineDataStream &&stream);
+
+protected:
+	const PublicKeySigner m_signer;
+
+private:
+	RpgGamePrivate *const m_gamePrivate;
+	RpgGame *const m_game;
+
+	std::optional<RpgStream::Room> m_room;
+	bool m_isHost = false;
+
+	bool m_isMapReady = false;
+
+
+	friend class RpgGame;
+	friend class RpgGamePrivate;
 };
 
 #endif // RPGUDPENGINE_H

@@ -301,42 +301,32 @@ RpgMotorPlayer::RpgMotorPlayer(RpgPlayer *player)
 
 bool RpgMotorPlayer::beforeWorldStep(const qint64 &tick, entt::entity &entity)
 {
-	const qint64 jittered = m_game->rpgLogicClient()->jitterTick();
+	/*const qint64 jittered = m_game->rpgLogicClient()->jitterTick();
 
 	if (jittered == 0)
-		return false;
+		return false;*/
 
 
 	Rpg::RpgLogicScope scope = m_game->rpgLogicClient()->getScope();
 
-	auto [player, map] = scope.try_get<Rpg::Player, Rpg::PlayerStateOutput>(entity);
+	const RpgStream::PlayerState *state = scope.getCurrentState<RpgStream::PlayerState>(entity);
 
-
-	if (!player || !map)
-		return false;
-
-	const RpgStream::PlayerState *last = map->last();
-
-	if (!last) {
+	if (!state) {
 		LOG_CERROR("game") << "!!!";
 		return false;
 	}
 
-	m_player->setHp(last->hp());
-	m_player->setMp(last->mp());
+
+	// TODO
+	m_player->emplace(state->entityState().posXAsFloat(), state->entityState().posYAsFloat());
 
 
-	const RpgStream::PlayerState *st = map->at(jittered);
+	m_player->setHp(state->hp());
+	m_player->setMp(state->mp());
+	m_player->setBullet(state->bullet());
+	m_player->setDefender(state->defender(), state->hasDefender());
 
-	if (!st) {
-		return false;
-	} else {
-		LOG_CINFO("game") << "++++++++++++++++++++++++" << tick << jittered << last->tick();
-	}
-
-
-
-	m_current = *st;
+	m_player->setLocked(state->lock() > 0);
 
 
 	return true;
@@ -351,7 +341,7 @@ bool RpgMotorPlayer::beforeWorldStep(const qint64 &tick, entt::entity &entity)
 
 void RpgMotorPlayer::updateBody(TiledObject *)
 {
-	if (!m_current) {
+	/*if (!m_current) {
 		m_player->stop();
 		return;
 	}
@@ -375,7 +365,7 @@ void RpgMotorPlayer::updateBody(TiledObject *)
 		m_player->moveToPoint(to);
 	}
 
-	m_current.reset();
+	m_current.reset();*/
 }
 
 

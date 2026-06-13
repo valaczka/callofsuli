@@ -48,11 +48,11 @@ AbstractUdpEngine::AbstractUdpEngine(QObject *parent)
 	, m_worker(new QLambdaThreadWorker)
 	#endif
 {
-	LOG_CDEBUG("client") << "Start udp engine";
+	LOG_CDEBUG("client") << "Start udp engine" << this;
 
 
 #ifndef Q_OS_WASM
-	m_worker->getThread()->setPriority(QThread::TimeCriticalPriority);
+	//m_worker->getThread()->setPriority(QThread::TimeCriticalPriority);
 
 	QDefer ret;
 	m_worker->execInThread([this, ret]() mutable {
@@ -62,14 +62,18 @@ AbstractUdpEngine::AbstractUdpEngine(QObject *parent)
 
 	QDefer::await(ret);
 
+
+	connect(d, &AbstractUdpEnginePrivate::readyToDeliver, this, &AbstractUdpEngine::onPacketReceived, Qt::QueuedConnection);
+
 	m_worker->execInThread(std::bind(&AbstractUdpEnginePrivate::run, d));
 
 #else
 	d = new AbstractUdpEnginePrivate(this);
+	connect(d, &AbstractUdpEnginePrivate::readyToDeliver, this, &AbstractUdpEngine::onPacketReceived);
 	d->runWebSocket();
 #endif
 
-
+	LOG_CDEBUG("client") << "Started udp engine" << m_worker.get() << d;
 }
 
 
@@ -80,16 +84,47 @@ AbstractUdpEngine::AbstractUdpEngine(QObject *parent)
 
 AbstractUdpEngine::~AbstractUdpEngine()
 {
+	LOG_CDEBUG("client") << "Stop udp engine";
+
+	stop();
+
+	LOG_CDEBUG("client") << "Stopped udp engine";
+
+	delete d;
+	d = nullptr;
+
+	LOG_CDEBUG("client") << "Udp engine destroyed";
+}
+
+
+
+/**
+ * @brief AbstractUdpEngine::stop
+ */
+
+void AbstractUdpEngine::stop()
+{
 #ifndef Q_OS_WASM
-	d->stop();
+
+	LOG_CWARNING("client") << "STOP THREAD";
+
+	if (m_worker->getThread()->isFinished())
+		return;
+
+	LOG_CWARNING("client") << "STOP THREAD REALLY";
+
+	disconnect(d, nullptr, this, nullptr);
+
+	QMetaObject::invokeMethod(d, &AbstractUdpEnginePrivate::stop, Qt::BlockingQueuedConnection);
+
+	//m_worker->execInThread(std::bind(&AbstractUdpEnginePrivate::stop, d));
 
 	m_worker->quitThread();
 	m_worker->getThread()->wait();
+
+	LOG_CWARNING("client") << "STOPPED THREAD";
 #endif
 
-	delete d;
-
-	LOG_CDEBUG("client") << "Udp engine destroyed";
 }
 
 
@@ -102,6 +137,17 @@ AbstractUdpEngine::~AbstractUdpEngine()
 const quint32 &AbstractUdpEngine::peerIndex() const
 {
 	return d->m_peerIndex;
+}
+
+
+/**
+ * @brief AbstractUdpEngine::peerId
+ * @return
+ */
+
+const quint32 &AbstractUdpEngine::peerId() const
+{
+	return d->m_peerId;
 }
 
 
@@ -186,6 +232,18 @@ void AbstractUdpEngine::setConnectionToken(const QByteArray &token)
 
 
 
+/**
+ * @brief AbstractUdpEngine::onPacketReceived
+ * @param list
+ */
+
+void AbstractUdpEngine::onPacketReceived()
+{
+	binaryDataReceived(d->m_cacheRcv.take());
+}
+
+
+
 
 
 
@@ -198,7 +256,17 @@ void AbstractUdpEngine::setConnectionToken(const QByteArray &token)
 AbstractUdpEnginePrivate::AbstractUdpEnginePrivate(AbstractUdpEngine *engine)
 	: q(engine)
 {
+	LOG_CDEBUG("game") << "UDP PRIVATE" << this;
+}
 
+
+/**
+ * @brief AbstractUdpEnginePrivate::~AbstractUdpEnginePrivate
+ */
+
+AbstractUdpEnginePrivate::~AbstractUdpEnginePrivate()
+{
+	LOG_CDEBUG("game") << "UDP PRIVATE DESTROY" << this;
 }
 
 
@@ -209,6 +277,10 @@ AbstractUdpEnginePrivate::AbstractUdpEnginePrivate(AbstractUdpEngine *engine)
 
 void AbstractUdpEnginePrivate::run()
 {
+	Q_ASSERT(QThread::currentThread() == this->thread());
+
+	LOG_CDEBUG("game") << "RUN...";
+
 #ifndef Q_OS_WASM
 	m_running.storeRelease(1);
 
@@ -336,6 +408,7 @@ void AbstractUdpEnginePrivate::run()
 		QThread::msleep(1);
 	}
 
+	LOG_CDEBUG("game") << "STOP...";
 
 	destroyHostAndPeer();
 
@@ -350,6 +423,8 @@ void AbstractUdpEnginePrivate::run()
 
 void AbstractUdpEnginePrivate::stop()
 {
+	Q_ASSERT(QThread::currentThread() == this->thread());
+
 	LOG_CDEBUG("client") << "Stop UDP server";
 	m_running.storeRelease(0);
 }
@@ -362,6 +437,8 @@ void AbstractUdpEnginePrivate::stop()
 
 void AbstractUdpEnginePrivate::runWebSocket()
 {
+	Q_ASSERT(QThread::currentThread() == this->thread());
+
 	m_webSocket.reset(new QWebSocket);
 
 	connect(m_webSocket.get(), &QWebSocket::connected, this, [this](){
@@ -388,9 +465,9 @@ void AbstractUdpEnginePrivate::runWebSocket()
 	});
 
 	connect(m_webSocket.get(), &QWebSocket::binaryMessageReceived, this, &AbstractUdpEnginePrivate::messageReceived);
-	/*connect(m_webSocket.get(), &QWebSocket::textMessageReceived, this, [](const QString &text) {
+	connect(m_webSocket.get(), &QWebSocket::textMessageReceived, this, [](const QString &text) {
 		LOG_CDEBUG("client") << "***" << text;
-	});*/
+	});
 }
 
 
@@ -404,6 +481,8 @@ void AbstractUdpEnginePrivate::runWebSocket()
 
 void AbstractUdpEnginePrivate::sendMessage(const std::vector<uint8_t> &data, const bool &reliable)
 {
+	Q_ASSERT(QThread::currentThread() == this->thread());
+
 	UdpPacketSnd packet;
 
 	packet.reliable = reliable;
@@ -428,6 +507,8 @@ void AbstractUdpEnginePrivate::sendMessage(const std::vector<uint8_t> &data, con
 
 void AbstractUdpEnginePrivate::setUrl(const QUrl &newUrl)
 {
+	Q_ASSERT(QThread::currentThread() == this->thread());
+
 	if (m_url == newUrl)
 		return;
 
@@ -466,6 +547,8 @@ void AbstractUdpEnginePrivate::setUrl(const QUrl &newUrl)
 
 void AbstractUdpEnginePrivate::deliverPackets()
 {
+	Q_ASSERT(QThread::currentThread() == this->thread());
+
 	// Send outgoing packets (channel 0 = normal, channel 1 = reliable)
 
 	if (m_speed.readyToSend()) {
@@ -506,9 +589,7 @@ void AbstractUdpEnginePrivate::deliverPackets()
 
 	// Deliver received packets
 
-	std::vector<UdpPacketRcv> list = m_cacheRcv.take();
-
-	q->binaryDataReceived(list);
+	emit readyToDeliver();
 }
 
 
@@ -523,6 +604,8 @@ void AbstractUdpEnginePrivate::deliverPackets()
 
 void AbstractUdpEnginePrivate::destroyHostAndPeer()
 {
+	Q_ASSERT(QThread::currentThread() == this->thread());
+
 #ifndef Q_OS_WASM
 	if (m_enet_peer) {
 		enet_peer_disconnect(m_enet_peer, 0);
@@ -560,6 +643,8 @@ void AbstractUdpEnginePrivate::destroyHostAndPeer()
 
 bool AbstractUdpEnginePrivate::packetChallengeReceived(const std::unique_ptr<UdpBitStream> &data)
 {
+	Q_ASSERT(QThread::currentThread() == this->thread());
+
 	if (m_connectionToken.isEmpty()) {
 		LOG_CERROR("client") << "Connection token missing";
 		return false;
@@ -598,6 +683,8 @@ bool AbstractUdpEnginePrivate::packetChallengeReceived(const std::unique_ptr<Udp
 
 void AbstractUdpEnginePrivate::messageReceived(const QByteArray &data)
 {
+	Q_ASSERT(QThread::currentThread() == this->thread());
+
 	std::unique_ptr<UdpBitStream> stream = std::make_unique<UdpBitStream>(reinterpret_cast<const unsigned char*>(data.constData()),
 																		  data.size());
 
@@ -664,6 +751,8 @@ void AbstractUdpEnginePrivate::messageReceived(const QByteArray &data)
 
 bool AbstractUdpEnginePrivate::packetReceived(const ENetEvent &event)
 {
+	Q_ASSERT(QThread::currentThread() == this->thread());
+
 	if (!event.peer) {
 		LOG_CWARNING("client") << "Invalid peer";
 		return false;
@@ -749,6 +838,7 @@ bool AbstractUdpEnginePrivate::packetReceived(const ENetEvent &event)
 
 QByteArray AbstractUdpEnginePrivate::connectionToken() const
 {
+	Q_ASSERT(QThread::currentThread() == this->thread());
 	return m_connectionToken;
 }
 
@@ -760,6 +850,8 @@ QByteArray AbstractUdpEnginePrivate::connectionToken() const
 
 void AbstractUdpEnginePrivate::setConnectionToken(const QByteArray &newConnectionToken)
 {
+	Q_ASSERT(QThread::currentThread() == this->thread());
+
 	m_connectionToken = newConnectionToken;
 
 	Token jwt(m_connectionToken);
@@ -778,6 +870,8 @@ void AbstractUdpEnginePrivate::setConnectionToken(const QByteArray &newConnectio
 
 void AbstractUdpEnginePrivate::sendConnectionToken()
 {
+	Q_ASSERT(QThread::currentThread() == this->thread());
+
 	if (m_connectionToken.isEmpty()) {
 		LOG_CERROR("client") << "Emtpy connection token";
 		return;

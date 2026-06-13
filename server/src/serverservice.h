@@ -37,7 +37,6 @@
 #include "udpserver.h"
 #include "webserver.h"
 #include "oauth2authenticator.h"
-#include "enginehandler.h"
 
 #ifdef WITH_FTXUI
 #include "ftxterminal.hpp"
@@ -124,7 +123,6 @@ public:
 	DatabaseMain *databaseMain() const;
 	QLambdaThreadWorker *databaseMainWorker() const;
 	std::weak_ptr<WebServer> webServer() const;
-	EngineHandler *engineHandler() const { return m_engineHandler.get(); }
 	SimpleMail::Server *smtpServer() const { return m_smtpServer.get(); }
 
 	ServerConfig &config();
@@ -199,7 +197,6 @@ private:
 	std::unique_ptr<QNetworkAccessManager> m_networkManager;
 	std::shared_ptr<WebServer> m_webServer;
 	std::unique_ptr<UdpServer> m_udpServer;
-	std::unique_ptr<EngineHandler> m_engineHandler;
 	std::unique_ptr<SimpleMail::Server> m_smtpServer;
 
 	QString m_loadedWasmResource;

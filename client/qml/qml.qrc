@@ -247,5 +247,6 @@
         <file>QMapPathSelector.qml</file>
         <file>QMapTagDialog.qml</file>
         <file>RpgTowerMarker.qml</file>
+        <file>RpgCharacterSelectTmp.qml</file>
     </qresource>
 </RCC>

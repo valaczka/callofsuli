@@ -27,8 +27,7 @@
 #ifndef RPGENGINE_H
 #define RPGENGINE_H
 
-#include "abstractengine.h"
-#include "rpgstream.h"
+#include "rpglogicserver.h"
 #include "udpserver.h"
 
 
@@ -53,49 +52,48 @@ class RpgEngine : public UdpEngine
 	Q_OBJECT
 
 public:
-	explicit RpgEngine(EngineHandler *handler, QObject *parent = nullptr);
+	explicit RpgEngine(UdpServer *server, UdpRoom *room, QObject *parent = nullptr);
 	virtual ~RpgEngine();
 
+	static void peerWithoutRoomHandle(std::unique_ptr<UdpBitStream> &&data, UdpServerPeer *peer, const QSet<RpgEngine*> &engines);
+	static void sendRoomList(UdpServer *server, const QSet<RpgEngine*> &engines, const bool &reliable = false);
+	static RpgStream::RoomList toRoomList(const QSet<RpgEngine*> &engines);
+	static RpgEngine* findEngine(UdpServer *server, const quint32 &id);
+	static bool peerConnectToEngine(UdpServerPeer *peer, RpgEngine *engine);
 
-	static std::shared_ptr<RpgEngine> engineCreate(EngineHandler *handler, UdpServer *server);
-	static std::shared_ptr<RpgEngine> engineDispatch(EngineHandler *handler, const QJsonObject &connectionToken, UdpPacketRcv &&data);
+	RpgStream::Room toRoom() const;
 
-
-	static std::shared_ptr<RpgEngine> peerFind(UdpServer *server, const QString &username, quint32 *idPtr = nullptr);
-	bool peerAbort(const quint32 &peerId);
-
-	virtual bool canDelete(const int &useCount) override;
-
-	virtual void binaryDataReceived(const UdpServerPeerReceivedList &data) override;
+	virtual void binaryDataReceived(UdpServerPeerReceivedList &data) override;
 	virtual void udpPeerAdd(UdpServerPeer *peer) override;
 	virtual void udpPeerRemove(UdpServerPeer *peer) override;
 	virtual void disconnectUnusedPeer(UdpServerPeer *peer) override;
-	virtual bool isPeerValid(const quint32 &peerId) const override;
+	virtual void udpTimerEvent(const qint64 &dt) override;
 
 	virtual QString dumpEngine() const override;
 
-
-	RpgStream::Engine toStream() const;
-
 	Logger *_logger() const;
+
+	quint32 internalId() const { return m_id; }
+
+	RpgStream::GameConfig::Flags configFlags() const;
+	RpgStream::GameConfig::Stage configStage() const;
+
 
 private:
 	void setLoggerFile(const QString &fname);
+	void binaryDataReceived(UdpPacketRcv &recv);
 
-	void binaryDataReceived(const UdpPacketRcv &recv);
 
-	int m_nextPlayerId = 1;
-	int m_readableId = -1;
-
+private:
 	RpgEnginePrivate *d;
+	mutable RpgLogicServer m_logic;
+
+	const quint32 m_id;
+
+	quint32 m_pausedTick = 0;
 
 	friend class RpgEnginePrivate;
 };
-
-
-
-
-
 
 
 

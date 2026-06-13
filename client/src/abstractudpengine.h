@@ -28,10 +28,11 @@
 #define ABSTRACTUDPENGINE_H
 
 #include "udpbitstream.hpp"
-#include "udphelper.h"
 #include <QObject>
 #include <QThread>
 #include <QCborMap>
+
+
 
 #ifndef Q_OS_WASM
 #include "qlambdathreadworker.h"
@@ -87,7 +88,10 @@ public:
 	explicit AbstractUdpEngine(QObject *parent = nullptr);
 	virtual ~AbstractUdpEngine();
 
+	void stop();
+
 	const quint32 &peerIndex() const;
+	const quint32 &peerId() const;
 
 	void sendMessage(const std::vector<uint8_t> &data, const bool &reliable = false);
 
@@ -103,9 +107,11 @@ signals:
 	void serverConnectionLost();
 
 protected:
-	virtual void binaryDataReceived(std::vector<UdpPacketRcv> &list) = 0;
+	virtual void binaryDataReceived(std::vector<UdpPacketRcv> &&list) = 0;
 
 private:
+	void onPacketReceived();
+
 #ifndef Q_OS_WASM
 	std::unique_ptr<QLambdaThreadWorker> m_worker;
 #endif

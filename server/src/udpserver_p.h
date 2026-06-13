@@ -41,7 +41,14 @@
 
 #include <entt/entity/registry.hpp>
 
+#include <QRandomGenerator>
+
 class UdpServerPrivate;
+
+
+
+
+struct PeerData;
 
 
 
@@ -49,26 +56,19 @@ class UdpServerPrivate;
  * @brief The PeerData class
  */
 
-struct PeerData
+struct PeerData : public UdpPeerData
 {
-	quint32 peerId = 0;
-	std::weak_ptr<UdpEngine> engine;
-	AbstractEngine::Type type = AbstractEngine::EngineInvalid;
 	UdpChallenge challenge;
 	std::optional<PublicKeySigner> signer = std::nullopt;
 
 	bool hasChallenge = false;
 
-	QJsonObject connectionToken;			// azért QJsonObject, hogy pl. RpgConnectionToken is lehessen
-	QString username;
 	QDeadlineTimer deadline;
-	QByteArray session;
 	QByteArray publicKey;
+	UdpRoom *room = nullptr;
 
-	void reset() {
+	void reset(const bool &holdRoom = false) {
 		peerId = 0;
-		engine.reset();
-		type = AbstractEngine::EngineInvalid;
 		challenge.fill(0);
 		signer = std::nullopt;
 		hasChallenge = false;
@@ -77,6 +77,13 @@ struct PeerData
 		connectionToken = QJsonObject();
 		username.clear();
 		deadline.setRemainingTime(-1);
+
+		// Ha nem vesszük ki a szobából (csak peer-t cserélünk pl. kapcsolatmegszakadás miatt)
+
+		if (!holdRoom) {
+			type = UdpType::EngineInvalid;
+			room = nullptr;
+		}
 	}
 };
 
@@ -107,21 +114,34 @@ public:
 
 	std::optional<quint32> index(const quint32 &peerId) const;
 
+	UdpRoom *createRoom();
+	const UdpRoom *findRoom(const std::function<bool (const UdpRoom *)> &fn) const;
+
 	bool removePeer(const quint32 &peerId);
 	bool removeIndex(const quint32 &idx);
 
-	std::optional<UdpBitStream> updateConnection(const UdpConnectionToken &token, const AbstractEngine::Type &type,
-												 const QJsonObject &tokenObj, WebSocketStream *stream);
+	std::optional<UdpBitStream> updateConnection(const UdpConnectionToken &token, const UdpType &type,
+												 const QJsonObject &tokenObj, QWebSocket *socket);
 	std::optional<UdpBitStream> updateChallenge(const UdpConnectionToken &connToken, const QByteArray &content, ENetPeer *peer);
-	bool updateEngine(const quint32 &peerId, const std::shared_ptr<UdpEngine> &engine);
-
-	void removeEngine(UdpEngine *engine);
-	std::shared_ptr<UdpEngine> getEngineForUser(const AbstractEngine::Type &type, const QString &username, quint32 *idPtr) const;
-	bool peerRemoveEngine(UdpServerPeer *peer);
 
 	void removeExpiredPeers();
 
 	QString dumpPeers() const;
+
+	QSet<UdpEngine*> engines() const;
+	QSet<UdpEngine*> engines(const UdpType &type) const;
+
+	template <class T, typename = std::enable_if<std::is_base_of<UdpEngine, T>::value>::type>
+	QSet<T*> engines(const UdpType &type) const {
+		QSet<UdpEngine*> list = engines(type);
+		QSet<T*> ret;
+		ret.reserve(list.size());
+		for (UdpEngine *e : list) {
+			if (T* ee = qobject_cast<T*>(e))
+				ret.insert(ee);
+		}
+		return ret;
+	}
 
 private:
 	std::optional<quint32> _nextUnusedIndex() const;
@@ -130,12 +150,14 @@ private:
 	std::array<PeerData, UdpBitStream::peerCapacity()> m_data;
 	QHash<quint32, quint32> m_indexMap;
 
-	UdpServerPrivate *m_server = nullptr;
+	std::array<UdpRoom, UdpBitStream::peerCapacity()> m_rooms;
+
+	UdpServer *m_server = nullptr;
+	UdpServerPrivate *m_serverPrivate = nullptr;
 
 	const quint32 m_size;
 
 	mutable QMutex m_mutex;
-
 };
 
 
@@ -160,21 +182,30 @@ public:
 	void sendPacket(ENetPeer *peer, const std::vector<std::uint8_t> &data, const bool isReliable);
 	void sendPacket(UdpServerPeer *peer, const std::vector<std::uint8_t> &data, const bool isReliable);
 
+	static void sendPacket(QWebSocket *socket, const std::vector<std::uint8_t> &data);
+	static void sendHello(QWebSocket *socket);
+	static void closeSocket(QWebSocket *socket, const QString &error = QString());
+
 private:
 	void peerConnect(ENetPeer *peer);
 	void peerDisconnect(ENetPeer *peer);
 	void udpPeerRemove(ENetPeer *peer);
-	UdpServerPeer* peerConnectToEngine(UdpServerPeer *peer, const std::shared_ptr<UdpEngine> &engine);
-	bool peerReject(const quint32 &id, UdpServerPeer *peer);
 
 	bool packetReceived(const ENetEvent &event);
 	bool packetConnectReceived(std::unique_ptr<UdpBitStream> &&data, const ENetEvent &event);
 	bool packetChallengeReceived(std::unique_ptr<UdpBitStream> &&data, const ENetEvent &event);
 	bool packetUserReceived(std::unique_ptr<UdpBitStream> &&data, const ENetEvent &event);
 
-	void binaryMessageReceived(const QByteArray &data, QPointer<WebSocketStream> stream);
-	void packetConnectReceived(std::unique_ptr<UdpBitStream> &&data, WebSocketStream *stream);
-	void packetUserReceived(std::unique_ptr<UdpBitStream> &&data, WebSocketStream *stream);
+	void websocketAdd(QPointer<QWebSocket> socket);
+	void websocketRemove(QWebSocket *socket);
+	void websocketBinaryReceived(const QByteArray &data);
+	void websocketTextReceived(const QString &text);
+	void websocketDisconnected();
+
+	void packetConnectReceived(std::unique_ptr<UdpBitStream> &&data, QWebSocket *socket);
+	void packetUserReceived(std::unique_ptr<UdpBitStream> &&data, QWebSocket *socket);
+
+	void peerWithoutRoomHandle(std::unique_ptr<UdpBitStream> &&data, UdpServerPeer *peer);
 
 	static QByteArray hashToken(const QByteArray &token);
 	static QByteArray hashToken(const uint8_t *data, const std::size_t &size);
@@ -190,9 +221,11 @@ private:
 
 	std::unique_ptr<Lobby> m_lobby;
 
+	QElapsedTimer m_timer;
 
 	QHash<QByteArray, qint64> m_connectTokenHash;
 	QHash<QByteArray, ENetAddress> m_pendingClient;
+	std::vector<std::unique_ptr<QWebSocket> > m_pendingSocket;
 
 	struct KeyPair {
 		std::array<std::uint8_t, crypto_box_PUBLICKEYBYTES> publicKey;

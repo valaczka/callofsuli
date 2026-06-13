@@ -129,6 +129,7 @@ protected:
 	virtual void loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer) override;
 	virtual void loadImageLayer(TiledScene *scene, Tiled::ImageLayer *image, Tiled::MapRenderer *renderer) override;
 
+	virtual void prepareEvent() override final;
 	virtual void timeStepPrepareEvent() override final;
 	virtual void timeBeforeWorldStepEvent(const qint64 &tick) override final;
 	virtual void timeAfterWorldStepEvent(const qint64 &tick) override final;

@@ -28,6 +28,7 @@
 #define RPGGAME_H
 
 #include "abstractlevelgame.h"
+#include "qslistmodel.h"
 #include "rpglogicclient.h"
 #include "tiledgame.h"
 #include "rpgstream.h"
@@ -224,6 +225,12 @@ class RpgGame : public AbstractLevelGame
 	Q_PROPERTY(QColor colorTeam READ colorTeam WRITE setColorTeam NOTIFY colorTeamChanged FINAL)
 	Q_PROPERTY(QColor colorOpponent READ colorOpponent WRITE setColorOpponent NOTIFY colorOpponentChanged FINAL)
 
+	Q_PROPERTY(QSListModel* modelLobby READ modelLobby CONSTANT FINAL)
+	Q_PROPERTY(QSListModel* modelPlayer READ modelPlayer CONSTANT FINAL)
+
+	Q_PROPERTY(QString readableRoom READ readableRoom NOTIFY readableRoomChanged FINAL)
+	Q_PROPERTY(QString terrain READ terrain WRITE setTerrain NOTIFY terrainChanged FINAL)
+
 public:
 	RpgGame(GameMapMissionLevel *missionLevel, Client *client, const bool &multiplayer);
 	virtual ~RpgGame();
@@ -259,6 +266,10 @@ public:
 
 	Q_INVOKABLE void menuBgMusicPlay();
 	Q_INVOKABLE void menuBgMusicStop();
+
+	Q_INVOKABLE void reloadLobby();
+	Q_INVOKABLE void connectLobby(const QVariantMap &data);
+	Q_INVOKABLE void characterSelect(const QVariantMap &data);
 
 
 	static const QHash<QString, RpgGameDefinition> &terrains() { return m_terrains; }
@@ -304,6 +315,15 @@ public:
 	QColor colorOpponent() const;
 	void setColorOpponent(const QColor &newColorOpponent);
 
+	QSListModel* modelLobby() const;
+
+	QSListModel* modelPlayer() const;
+
+	QString readableRoom() const;
+
+	QString terrain() const;
+	void setTerrain(const QString &newTerrain);
+
 signals:
 	void downloadRequest(QString size);
 	void gameStateChanged();
@@ -315,6 +335,8 @@ signals:
 	void ptsOpponentChanged();
 	void colorTeamChanged();
 	void colorOpponentChanged();
+	void readableRoomChanged();
+	void terrainChanged();
 
 protected:
 	virtual void timerEvent(QTimerEvent *) override;
@@ -339,6 +361,11 @@ private:
 	int m_ptsOpponent = 0;
 	QColor m_colorTeam;
 	QColor m_colorOpponent;
+
+	QString m_terrain;
+
+	std::unique_ptr<QSListModel> m_modelLobby;
+	std::unique_ptr<QSListModel> m_modelPlayer;
 
 	static QHash<QString, RpgGameDefinition> m_terrains;
 	static QHash<QString, RpgPlayerDefinition> m_characters;

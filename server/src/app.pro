@@ -50,12 +50,10 @@ win32 {
 
 SOURCES += \
 	abstractapi.cpp \
-	abstractengine.cpp \
 	adminapi.cpp \
 	authapi.cpp \
 	database.cpp \
 	databasemain.cpp \
-	enginehandler.cpp \
 	generalapi.cpp \
 	googleoauth2authenticator.cpp \
 	handler.cpp \
@@ -65,13 +63,13 @@ SOURCES += \
 	oauth2codeflow.cpp \
 	offlineserverengine.cpp \
 	rpgengine.cpp \
+	rpglogicserver.cpp \
 	serverservice.cpp \
 	serversettings.cpp \
 	teacherapi.cpp \
 	udpserver.cpp \
 	userapi.cpp \
-	webserver.cpp \
-	websocketstream.cpp
+	webserver.cpp
 
 RESOURCES += \
 	html.qrc \
@@ -81,13 +79,10 @@ RESOURCES += \
 HEADERS += \
 	../../version/version.h \
 	abstractapi.h \
-	abstractengine.h \
 	adminapi.h \
 	authapi.h \
 	database.h \
 	databasemain.h \
-	enginehandler.h \
-	enginehandler_p.h \
 	generalapi.h \
 	googleoauth2authenticator.h \
 	handler.h \
@@ -98,12 +93,12 @@ HEADERS += \
 	querybuilder.hpp \
 	rpgengine.h \
 	rpgengine_p.h \
+	rpglogicserver.h \
 	serverservice.h \
 	serversettings.h \
 	teacherapi.h \
 	udpserver.h \
 	udpserver_p.h \
 	userapi.h \
-	webserver.h \
-	websocketstream.h
+	webserver.h
 

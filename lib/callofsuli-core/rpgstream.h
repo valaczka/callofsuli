@@ -37,9 +37,6 @@
 #define ENGINE_READABLE_ID_TYPE		quint32
 #define ENGINE_READABLE_ID_BITS		20
 
-#define PLAYER_ID_TYPE				quint8
-#define PLAYER_ID_BITS				3
-
 
 #define TAG_ID_TYPE					quint32
 #define TAG_ID_BITS					32
@@ -119,8 +116,8 @@ T readBits(UdpBitStream &stream, const size_t &bits, const T &errorValue) {
 
 template <typename T>
 void writeBits(UdpBitStream &stream, const T &value, const size_t &bits) {
-	if (value >= std::pow(2, bits))
-		LOG_CWARNING("engine") << "Out of range" << value << "on" << bits << "bits";
+	/*if (bits > 64 || !(value < (T{1} << bits)))
+		LOG_CWARNING("engine") << "Out of range" << value << "on" << bits << "bits";*/
 	stream.stream().writeBits<T>(value, bits, true);
 }
 
@@ -143,8 +140,8 @@ C readBitsAs(UdpBitStream &stream, const size_t &bits, const C &errorValue) {
 
 template <typename C, typename T>
 void writeBitsAs(UdpBitStream &stream, const C &value, const size_t &bits) {
-	if (static_cast<T>(value) >= std::pow(2, bits))
-		LOG_CWARNING("engine") << "Out of range" << value << "on" << bits << "bits";
+	/*if (static_cast<T>(value) >= std::pow(2, bits))
+		LOG_CWARNING("engine") << "Out of range" << value << "on" << bits << "bits";*/
 	stream.stream().writeBits<T>(value, bits, true);
 }
 
@@ -586,12 +583,12 @@ public:
 
 	static constexpr quint8 CurrentVersion = 1;
 
-	EngineStream(const std::array<unsigned char, crypto_auth_KEYBYTES> &secret,
+	EngineStream(const PublicKeySigner &signer,
 				 const quint32 &peerIndex, const Operation &operation)
 		: UdpBitStream(MessageUser)
 		, m_operation(operation)
 		, m_version(CurrentVersion)
-		, m_signer(AuthKeySigner(secret))
+		, m_signer(signer)
 	{
 		writePeerIndex(peerIndex);
 		writeOperation(*this);
@@ -623,20 +620,16 @@ public:
 
 	STREAM_MEMBER_CAST(Operation, operation, Operation, quint32, 3, OperationInvalid)
 	STREAM_MEMBER(quint8, version, Version, 4, 0);
-	STREAM_STATIC(EngineId, ENGINE_ID_TYPE, ENGINE_ID_BITS, 0);
+	//STREAM_STATIC(EngineId, ENGINE_ID_TYPE, ENGINE_ID_BITS, 0);
 
 	virtual std::vector<std::uint8_t> data() const override;
 
-	void setSecret(const std::array<unsigned char, crypto_auth_KEYBYTES> &secret) { m_signer = AuthKeySigner(secret); }
-	void setSecret(const QByteArray &secret) { m_signer = AuthKeySigner(secret); }
-	void clearSecret() { m_signer = std::nullopt; }
-
-	const std::optional<AuthKeySigner> &signer() const { return m_signer; }
+	const std::optional<PublicKeySigner> &signer() const { return m_signer; }
 
 	void finalize() const;
 
 protected:
-	std::optional<AuthKeySigner> m_signer = std::nullopt;
+	std::optional<PublicKeySigner> m_signer = std::nullopt;
 	mutable bool m_hasFinalized = false;
 };
 
@@ -655,6 +648,7 @@ public:
 		DataOperationInvalid = 0x0,
 		DataOperationCharacterSelect,
 		DataOperationMapData,
+		DataOperationFull
 	};
 
 	EngineDataStream(const DataOperation &dataOperation)
@@ -666,6 +660,13 @@ public:
 
 	EngineDataStream(const quint32 &peerIndex, const DataOperation &dataOperation)
 		: EngineStream(peerIndex, OperationData)
+		, m_dataOperation(dataOperation)
+	{
+		writeDataOperation(*this);
+	}
+
+	EngineDataStream(const PublicKeySigner &signer, const quint32 &peerIndex, const DataOperation &dataOperation)
+		: EngineStream(signer, peerIndex, OperationData)
 		, m_dataOperation(dataOperation)
 	{
 		writeDataOperation(*this);
@@ -694,71 +695,9 @@ public:
 
 
 
-/**
- * @brief The EnginePlayer class
- */
-
-class EnginePlayer
-{
-public:
-	EnginePlayer() = default;
-	EnginePlayer(const QByteArray &userName, const QByteArray &nickName);
-
-	EngineStream& operator<<(EngineStream &stream);
-	EngineStream& operator>>(EngineStream &stream) const;
-
-	STREAM_MEMBER_BYTEARRAY(userName, UserName)
-	STREAM_MEMBER_BYTEARRAY(nickName, NickName)
-};
 
 
 
-
-
-
-
-/**
- * @brief The Engine class
- */
-
-class Engine
-{
-public:
-
-	Engine() = default;
-
-	EngineStream& operator<<(EngineStream &stream);
-	EngineStream& operator>>(EngineStream &stream) const;
-
-
-	STREAM_MEMBER(ENGINE_ID_TYPE, id, Id, ENGINE_ID_BITS, 0);
-	STREAM_MEMBER(ENGINE_READABLE_ID_TYPE, readableId, ReadableId, ENGINE_READABLE_ID_BITS, 0);
-	STREAM_MEMBER_VECTOR(EnginePlayer, players, Players, PLAYER_ID_TYPE, PLAYER_ID_BITS)
-	STREAM_FIELD(EnginePlayer, owner, Owner, {})
-	STREAM_MEMBER(PLAYER_ID_TYPE, maxPlayer, MaxPlayer, PLAYER_ID_BITS, 0)
-
-};
-
-
-
-
-/**
- * @brief The EngineList class
- */
-
-class EngineList
-{
-public:
-	EngineList() = default;
-
-	EngineStream& operator<<(EngineStream &stream);
-	EngineStream& operator>>(EngineStream &stream) const;
-
-	EngineStream toStream() const;
-
-	STREAM_MEMBER_VECTOR(Engine, engines, Engines, quint8, 8)
-	STREAM_MEMBER_CAST(bool, canCreate, CanCreate, quint8, 1, false)
-};
 
 
 
@@ -1138,13 +1077,17 @@ public:
 
 	Q_DECLARE_FLAGS(Flags, Flag)
 
-	STREAM_MEMBER(PLAYER_ID_TYPE, playerId, PlayerId, PLAYER_ID_BITS, 0)
+	STREAM_MEMBER(quint32, playerId, PlayerId, 32, 0)
 	STREAM_MEMBER_BYTEARRAY(userName, UserName)
 	STREAM_MEMBER_BYTEARRAY(nickName, NickName)
 
 	STREAM_MEMBER_RESOLVED(character, Character)
 
 	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 16, FlagNull)
+
+	STREAM_FIELD(PlayerConfig, config, Config, {})
+
+	STREAM_MEMBER_CAST(Team, team, Team, quint8, 2, TeamNone)
 };
 
 
@@ -1153,29 +1096,92 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(PlayerData::Flags)
 
 
 
+
+
+
 /**
- * @brief The CharacterSelectServer class
+ * @brief The Engine class
  */
 
-class CharacterSelect
+class Room
 {
 public:
-	CharacterSelect() = default;
+
+	Room() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER(ENGINE_ID_TYPE, id, Id, ENGINE_ID_BITS, 0);
+	STREAM_MEMBER(ENGINE_READABLE_ID_TYPE, readableId, ReadableId, ENGINE_READABLE_ID_BITS, 0);
+	STREAM_MEMBER(quint32, hostId, HostId, 32, 0)
+	STREAM_MEMBER_VECTOR(PlayerData, players, Players, quint32, PEER_INDEX_BITS)
+};
+
+
+
+
+/**
+ * @brief The EngineList class
+ */
+
+class RoomList
+{
+public:
+	RoomList() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	EngineStream toStream() const;
+
+	STREAM_MEMBER_VECTOR(Room, rooms, Rooms, quint8, 8)
+	STREAM_MEMBER_CAST(bool, canCreate, CanCreate, quint8, 1, false)
+};
+
+
+
+
+
+
+/**
+ * @brief The CharacterSelect class
+ */
+
+class CharacterSelectServer
+{
+public:
+	CharacterSelectServer() = default;
 
 	EngineStream& operator<<(EngineStream &stream);
 	EngineStream& operator>>(EngineStream &stream) const;
 
 	TO_DATA_STREAM(EngineDataStream::DataOperationCharacterSelect)
 
+	STREAM_FIELD(Room, room, Room, {})
 	STREAM_FIELD(GameConfig, gameConfig, GameConfig, {})
-	STREAM_MEMBER_VECTOR(PlayerData, players, Players, PLAYER_ID_TYPE, PLAYER_ID_BITS)
-	STREAM_MEMBER(PLAYER_ID_TYPE, maxPlayers, MaxPlayers, PLAYER_ID_BITS, 0)
-	STREAM_MEMBER(ENGINE_READABLE_ID_TYPE, engineReadableId, EngineReadableId, ENGINE_READABLE_ID_BITS, 0);
 };
 
 
 
 
+/**
+ * @brief The CharacterSelectClient class
+ */
+
+class CharacterSelectClient
+{
+public:
+	CharacterSelectClient() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	TO_DATA_STREAM(EngineDataStream::DataOperationCharacterSelect)
+
+	STREAM_FIELD(PlayerData, data, Data, {})
+	STREAM_FIELD(GameConfig, gameConfig, GameConfig, {})
+};
 
 
 
@@ -1552,7 +1558,43 @@ public:
 
 
 
-/// TODO: FullEntityList
+
+/**
+ * @brief The FullMapTag class
+ */
+
+class FullMapTag
+{
+public:
+	FullMapTag() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
+};
+
+
+
+/**
+ * @brief The FullPlayerMap class
+ */
+
+class FullPlayerMap
+{
+public:
+	FullPlayerMap() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER(quint32, peerId, PeerId, 32, 0)
+	STREAM_MEMBER(TAG_ID_TYPE, player, Player, TAG_ID_BITS, 0);
+	STREAM_MEMBER_VECTOR(FullMapTag, entities, Entities, ENTITY_LIST_TYPE, ENTITY_LIST_BITS);
+};
+
+
+
 
 
 
@@ -1594,6 +1636,36 @@ public:
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(FullState::Flags)
+
+
+
+
+
+/**
+ * @brief The Full class
+ */
+
+class Full
+{
+public:
+	Full() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	TO_DATA_STREAM(EngineDataStream::DataOperationFull)
+
+	STREAM_MEMBER(quint32, serverAuthTick, ServerAuthTick, 32, 0)
+	STREAM_FIELD(GameConfig, config, Config, {})
+	STREAM_MEMBER_VECTOR(PlayerData, players, Players, quint32, PEER_INDEX_BITS)
+	STREAM_MEMBER_VECTOR(MpEmitter, mpEmitters, MpEmitters, quint8, 8);
+	STREAM_MEMBER_VECTOR(Tower, towers, Towers, quint8, 8);
+
+	STREAM_MEMBER_VECTOR(FullPlayerMap, map, Map, quint32, PEER_INDEX_BITS)
+	STREAM_FIELD(FullState, fullState, FullState, {})
+};
+
+
 
 }		// end of namespace
 

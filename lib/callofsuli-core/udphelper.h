@@ -31,6 +31,7 @@
 #include <QDateTime>
 #include "qdeadlinetimer.h"
 #include "qelapsedtimer.h"
+#include "qwebsocket.h"
 #include <deque>
 #include <map>
 #include <vector>
@@ -120,6 +121,20 @@ public:
 		});
 	}
 #endif
+
+
+	void clearSocket(QWebSocket *socket) {
+		if (!socket)
+			return;
+
+#ifndef Q_OS_WASM
+		QMutexLocker locker(&m_mutex);
+#endif
+
+		std::erase_if(m_queue, [socket](const T &data) {
+			return data.getWebSocket() == socket;
+		});
+	}
 
 private:
 #ifndef Q_OS_WASM

@@ -94,7 +94,6 @@ ServerService::ServerService(int &argc, char **argv)
 
 	connect(m_application.get(), &QCoreApplication::aboutToQuit, this, [this](){
 		m_mainTimer.stop();
-		m_engineHandler.reset();
 		m_webServer.reset();
 		m_networkManager.reset();
 		m_authenticators.clear();
@@ -652,8 +651,6 @@ std::optional<int> ServerService::preStart()
 		m_forceUpgrade = parser.value(QStringLiteral("upgrade"));
 
 
-	m_engineHandler.reset(new EngineHandler(this));
-
 
 	m_settings->loadFromFile();
 
@@ -722,6 +719,7 @@ const char *ServerService::version() const
  * @brief ServerService::exec
  * @return
  */
+
 
 int ServerService::exec()
 {
@@ -1046,9 +1044,7 @@ bool ServerService::start()
 
 	m_webServer->setRedirectHost(m_settings->redirectHost());
 
-	m_mainTimer.start(m_mainTimerInterval, Qt::PreciseTimer, this);
-	m_engineHandler->setRunning(true);
-
+	m_mainTimer.start(m_mainTimerInterval, this);
 
 	AdminAPI::zapWallet(m_databaseMain.get());
 	//AdminAPI::fillCurrency(m_databaseMain.get());
@@ -1107,11 +1103,9 @@ void ServerService::stop()
 	m_state = ServerFinished;
 
 	if (m_webServer) {
-		m_engineHandler->websocketCloseAll();
 		m_webServer.reset();
 	}
 
-	m_engineHandler->setRunning(false);
 	m_mainTimer.stop();
 	m_databaseMain->databaseClose();
 
@@ -1136,13 +1130,11 @@ void ServerService::pause()
 		m_udpServer.reset();
 
 	if (m_webServer) {
-		m_engineHandler->websocketCloseAll();
 		m_webServer.reset();
 	}
 
 	m_state = ServerPaused;
 
-	m_engineHandler->setRunning(false);
 	m_mainTimer.stop();
 	m_databaseMain->databaseClose();
 }
@@ -1168,7 +1160,6 @@ void ServerService::resume()
 		return std::exit(10);
 
 	m_mainTimer.start(m_mainTimerInterval, this);
-	m_engineHandler->setRunning(true);
 
 	if (!start())
 		m_application->quit();

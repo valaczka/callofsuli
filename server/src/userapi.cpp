@@ -887,7 +887,7 @@ QHttpServerResponse UserAPI::gameTokenCreate(const Credential &credential, const
 
 	token.fromJson(json);
 	token.campaign = campaign;
-	token.type = 1;
+	token.type = EngineRpg;
 
 	if (token.mapUuid.isEmpty() || token.missionUuid.isEmpty())
 		return responseError("missing map/mission");
@@ -907,17 +907,19 @@ QHttpServerResponse UserAPI::gameTokenCreate(const Credential &credential, const
 	QDateTime exp = QDateTime::currentDateTimeUtc().addSecs(120);
 
 	quint32 id = 0;
-	std::shared_ptr<RpgEngine> engine = RpgEngine::peerFind(udpServer, credential.username(), &id);
+	////std::shared_ptr<RpgEngine> engine = RpgEngine::peerFind(udpServer, credential.username(), &id);
 
 	if (id > 0) {
-		LOG_CINFO("engine") << "SEAT EXISTS" << credential.username() << id << engine.get();
+		LOG_CERROR("engine") << "SEAT EXISTS" << credential.username() << id;
 
-		if (engine) {
+		token.peer = 0;
+
+		/*if (engine) {
 			LOG_CERROR("engine") << "SEAT ENGINE EXISTS" << credential.username() << id << engine->id();
 			return responseResult("error", QStringLiteral("active/%1/%2").arg(id).arg(engine->id()));
 		}
 
-		token.peer = udpServer->resetPeer(id, credential.username(), exp);
+		token.peer = udpServer->resetPeer(id, credential.username(), exp); */
 	} else {
 		token.peer = udpServer->addPeer(credential.username(), exp);
 	}
@@ -961,7 +963,7 @@ QHttpServerResponse UserAPI::gameClose(const Credential &credential, const QJson
 
 	quint32 idPtr = 0;
 
-	std::shared_ptr<RpgEngine> engine = RpgEngine::peerFind(udpServer, credential.username(), &idPtr);
+	/*std::shared_ptr<RpgEngine> engine = RpgEngine::peerFind(udpServer, credential.username(), &idPtr);
 
 	LOG_CINFO("engine") << "???" << id << idPtr << engineId << engine->id();
 
@@ -969,7 +971,7 @@ QHttpServerResponse UserAPI::gameClose(const Credential &credential, const QJson
 		return responseError("invalid id");
 	}
 
-	QMetaObject::invokeMethod(engine.get(), std::bind(&RpgEngine::peerAbort, engine.get(), id), Qt::QueuedConnection);
+	QMetaObject::invokeMethod(engine.get(), std::bind(&RpgEngine::peerAbort, engine.get(), id), Qt::QueuedConnection);*/
 
 	return responseOk();
 }

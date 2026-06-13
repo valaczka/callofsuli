@@ -736,6 +736,31 @@ QByteArray Application::sign(const QByteArray &message) const
 
 
 
+
+/**
+ * @brief Application::getSigner
+ * @return
+ */
+
+std::optional<PublicKeySigner> Application::getSigner() const
+{
+#ifndef Q_OS_WASM
+	QMutexLocker locker(&m_device.mutex);
+#endif
+	PublicKeySigner signer;
+
+	if (sodium_is_zero(m_device.privateKey.data(), m_device.privateKey.size())) {
+		LOG_CERROR("app") << "Device private key missing";
+		return std::nullopt;
+	}
+
+	signer.setSecret(m_device.privateKey);
+
+	return signer;
+}
+
+
+
 /**
  * @brief Application::deviceIdentity
  * @return

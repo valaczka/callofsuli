@@ -97,15 +97,15 @@ Page {
 		}
 	}
 
-	/*Component {
+	Component {
 		id: _cmpCharacterSelect
 
-		RpgCharacterSelect {
+		RpgCharacterSelectTmp {
 			game: root.game
 
-			onMarketRequest: Client.stackPushPage("PageMarket.qml")
+			//onMarketRequest: Client.stackPushPage("PageMarket.qml")
 		}
-	}*/
+	}
 
 	Component {
 		id: _cmpRpg

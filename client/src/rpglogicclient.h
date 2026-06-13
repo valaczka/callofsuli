@@ -33,6 +33,8 @@
 
 class RpgObject;
 class RpgTower;
+class RpgUdpEngine;
+
 
 namespace Rpg {
 
@@ -106,6 +108,22 @@ class RpgLogicClientMulti : public RpgLogicClient
 {
 public:
 	RpgLogicClientMulti();
+
+	void loadFull(const RpgStream::Full &full);
+
+	RpgUdpEngine *engine() const;
+	void setEngine(RpgUdpEngine *newEngine);
+
+private:
+	RpgUdpEngine *m_engine = nullptr;
+};
+
+
+
+struct RpgLogicControlledObjects
+{
+	quint32 player = 0;
+	std::unordered_set<quint32> entities;
 };
 
 }		// end of namespace

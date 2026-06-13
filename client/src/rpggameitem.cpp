@@ -706,6 +706,20 @@ void RpgGameItem::loadImageLayer(TiledScene *scene, Tiled::ImageLayer *image, Ti
 }
 
 
+/**
+ * @brief RpgGameItem::prepareEvent
+ */
+
+void RpgGameItem::prepareEvent()
+{
+
+	//d->onBeforeWorldStep(-1);		// Csak objektum szinkronizáció
+
+	timeBeforeWorldStepEvent(-1);
+
+}
+
+
 
 /**
  * @brief RpgGameItem::timeStepPrepareEvent
@@ -743,7 +757,7 @@ void RpgGameItem::timeBeforeWorldStepEvent(const qint64 &tick)
 		if (!it.value())
 			continue;
 
-		AbstractRpgMotor *motor = it.value()->currentMotor();
+		AbstractRpgMotor *motor = (tick < 0 ? it.value()->defaultMotor() : it.value()->currentMotor());
 
 		if (!motor) {
 			LOG_CERROR("game") << "Missing RpgMotor";
@@ -836,7 +850,7 @@ void RpgGameItem::timeSteppedEvent(const std::vector<TiledObjectBody *> &aboutDe
 		overrideCurrentFrame(tick);
 	}
 */
-/*
+	/*
 	static const qint64 delta = 3;
 
 			if (diff > 2*delta || diff < -3*delta) {

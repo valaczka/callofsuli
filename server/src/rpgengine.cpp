@@ -28,8 +28,8 @@
 #include "rpgstream.h"
 #include "FileAppender.h"
 #include "Logger.h"
-#include "serverservice.h"
 #include "udpserver.h"
+#include "serverservice.h"
 #include <QCborArray>
 #include <QCborMap>
 
@@ -38,15 +38,34 @@
 
 /**
  * @brief RpgEngine::RpgEngine
- * @param handler
+ * @param server
  * @param parent
  */
 
-RpgEngine::RpgEngine(EngineHandler *handler, QObject *parent)
-	: UdpEngine(EngineRpg, handler, parent)
+RpgEngine::RpgEngine(UdpServer *server, UdpRoom *room, QObject *parent)
+	: UdpEngine(server, room, parent)
 	, d(new RpgEnginePrivate(this))
+	, m_logic(this)
+	, m_id(RpgEnginePrivate::m_engineId++)
 {
+	Q_ASSERT(room);
+	Q_ASSERT(server);
+
+	LOG_CDEBUG("engine") << "Create new RpgEngine" << m_id << m_readableId;
+
+	room->setType(EngineRpg);
+
+	if (const QString &dir = server->service()->logDir(); !dir.isEmpty()) {
+		const QString fname = dir+QStringLiteral("/rpg-%1.log").arg(m_id, 3, 10, '0');
+
+		if (QFile::exists(fname))
+			QFile::remove(fname);
+
+		setLoggerFile(fname);
+	}
 }
+
+
 
 
 /**
@@ -60,226 +79,191 @@ RpgEngine::~RpgEngine()
 }
 
 
-/**
- * @brief RpgEngine::engineCreate
- * @param handler
- * @return
- */
-
-std::shared_ptr<RpgEngine> RpgEngine::engineCreate(EngineHandler *handler, UdpServer *server)
-{
-	if (!handler)
-		return {};
-
-	LOG_CDEBUG("engine") << "Create RpgEngine" << m_nextId << server;
-
-
-	auto ptr = std::make_shared<RpgEngine>(handler);
-	ptr->setId(m_nextId);
-	increaseNextId();
-
-	ptr->m_readableId = QRandomGenerator::global()->bounded(1000, 1000000);
-
-	ptr->setUdpServer(server);
-
-	ptr->setPlayerLimit(4);
-
-	if (const QString &dir = handler->service()->logDir(); !dir.isEmpty()) {
-		const QString fname = dir+QStringLiteral("/rpg-%1.log").arg(ptr->id(), 3, 10, '0');
-
-		if (QFile::exists(fname))
-			QFile::remove(fname);
-
-		ptr->setLoggerFile(fname);
-	}
-
-	handler->engineAdd(ptr);
-
-	return ptr;
-}
-
 
 
 /**
- * @brief RpgEngine::engineDispatch
- * @param handler
+ * @brief RpgEngine::peerWithoutRoomHandle
  * @param data
- * @param server
- * @return
+ * @param peer
+ * @param engines
  */
 
-std::shared_ptr<RpgEngine> RpgEngine::engineDispatch(EngineHandler *handler, const QJsonObject &connectionToken,
-													 UdpPacketRcv &&data)
+void RpgEngine::peerWithoutRoomHandle(std::unique_ptr<UdpBitStream> &&data, UdpServerPeer *peer, const QSet<RpgEngine *> &engines)
 {
-	Q_ASSERT(handler);
-	Q_ASSERT(data.peer);
-	Q_ASSERT(data.peer->server());
+	if (!peer || !peer->server())
+		return;
+
+	if (peer->room())
+		return;
 
 
-	RpgStream::EngineStream stream(data.data);
+	if (data) {
+		RpgStream::EngineStream stream(data);
 
-	LOG_CDEBUG("engine") << "*********************** operation" << data.peer->peerID() << stream.operation();
+		if (stream.operation() == RpgStream::EngineStream::OperationCreate) {
 
-	if (stream.operation() == RpgStream::EngineStream::OperationInvalid) {
-		LOG_CWARNING("engine") << "Invalid operation" << data.peer->peerID();
+			RpgEngine *engine = peer->server()->createEngine<RpgEngine>();
 
-		return {};
-	}
-
-
-	RpgStream::ConnectionToken cToken;
-	cToken.fromJson(connectionToken);
-
-	if (stream.operation() == RpgStream::EngineStream::OperationList) {
-		/////RpgEnginePrivate::sendEngineList(cToken.config, data.peer, handler);
-		return {};
-	}
-
-
-	if (stream.operation() == RpgStream::EngineStream::OperationDisconnect) {
-		LOG_CWARNING("engine") << "Invalid Disconnect operation" << data.peer->peerID();
-
-		return {};
-	}
-
-
-	// Create
-
-	if (stream.operation() == RpgStream::EngineStream::OperationCreate) {
-		/*std::shared_ptr<RpgEngine> engine = engineCreate(handler, cToken.config, data.peer->server());
-
-		LOG_CINFO("engine") << "Create engine" << data.peer->peerID() << "id:" << engine->id();
-
-		data.peer->server()->peerConnectToEngine(data.peer, engine);
-
-		return engine;*/
-	}
-
-
-
-	/*
-
-	// Connect
-
-	const auto &list = handler->engines();
-
-	const auto it = std::find_if(list.constBegin(),
-								 list.constEnd(),
-								 [peer](const std::shared_ptr<AbstractEngine> &ptr){
-		if (!ptr || ptr->type() != EngineRpg)
-			return false;
-
-		return std::dynamic_pointer_cast<RpgEngine>(ptr)->player(peer->peerID()) != nullptr;
-
-	});
-
-	if (it != list.constEnd()) {
-		std::shared_ptr<RpgEngine> engine = std::dynamic_pointer_cast<RpgEngine>(*it);
-
-		if (!engine) {
-			LOG_CERROR("engine") << "Engine cast error";
-			return {};
-		}
-
-		if (engine->config() == cToken.config) {
-			if (selector.engine <= 0 || selector.engine == engine->id()) {
-				peer->server()->peerConnectToEngine(peer, engine);
-				return engine;
+			if (!engine) {
+				LOG_CERROR("engine") << "ENGINE CREATE ERROR";
 			} else {
-				LOG_CWARNING("engine") << "Engine config mismatch" << peer->peerID() << selector.engine << "vs." << engine->id();
+				peer->server()->sendRoomList(EngineRpg, true);
+
+				peerConnectToEngine(peer, engine);
+			}
+
+			return;
+		} else if (stream.operation() == RpgStream::EngineStream::OperationConnect) {
+			RpgStream::Room r;
+			r << stream;
+
+			if (RpgEngine *e = findEngine(peer->server(), r.id())) {
+
+				peerConnectToEngine(peer, e);
+
+				return;
+			} else {
+				LOG_CWARNING("engine") << "Room not found" << r.id() << r.readableId();
 			}
 		}
 	}
 
 
-	// Direct connect
+	peer->send(toRoomList(engines).toStream().data(), false);
 
-	const auto eit = std::find_if(list.constBegin(),
-								  list.constEnd(),
-								  [&cToken, &selector, peerId = peer->peerID()](const std::shared_ptr<AbstractEngine> &ptr){
-		if (!ptr || ptr->type() != AbstractEngine::EngineRpg)
-			return false;
-
-		if (!RpgEnginePrivate::canConnect(peerId, cToken.config, std::dynamic_pointer_cast<RpgEngine>(ptr).get()))
-			return false;
-
-		return ptr->id() == selector.engine;
-	});
-
-
-	if (eit == list.constEnd()) {
-		LOG_CWARNING("engine") << "Invalid engine" << peer->peerID() << selector.engine;
-		return {};
-	}
-
-
-	std::shared_ptr<RpgEngine> engine = std::dynamic_pointer_cast<RpgEngine>(*eit);
-
-	peer->server()->peerConnectToEngine(peer, engine);
-	return engine;
-	*/
-
-	return {};
 }
 
 
+
 /**
- * @brief RpgEngine::peerFind
+ * @brief RpgEngine::sendRoomList
  * @param server
- * @param username
- * @return
+ * @param engines
  */
 
-std::shared_ptr<RpgEngine> RpgEngine::peerFind(UdpServer *server, const QString &username, quint32 *idPtr)
+void RpgEngine::sendRoomList(UdpServer *server, const QSet<RpgEngine *> &engines, const bool &reliable)
 {
 	Q_ASSERT(server);
 
-	return std::dynamic_pointer_cast<RpgEngine>(server->findEngineForUser(AbstractEngine::EngineRpg, username, idPtr));
+	const std::vector<uint8_t> d = toRoomList(engines).toStream().data();
+
+	server->sendAll(d, [](UdpServerPeer *peer) {
+		return peer && peer->peerData().type == EngineRpg && !peer->room();
+	}, reliable);
 }
 
 
 
 /**
- * @brief RpgEngine::peerAbort
- * @param peerId
+ * @brief RpgEngine::toRoomList
+ * @param engines
  * @return
  */
 
-bool RpgEngine::peerAbort(const quint32 &peerId)
+RpgStream::RoomList RpgEngine::toRoomList(const QSet<RpgEngine *> &engines)
 {
-	////return d->abortPlayer(peerId);
-	return false;
+	QMap<quint32, RpgEngine *> sorted;
+
+	for (RpgEngine *e : engines)
+		sorted.insert(e->internalId(), e);
+
+	RpgStream::RoomList list;
+
+	for (RpgEngine *e : sorted)
+		list.rooms().emplace_back(e->toRoom());
+
+	list.setCanCreate(true);
+
+	return list;
+}
+
+
+/**
+ * @brief RpgEngine::findEngine
+ * @param server
+ * @param id
+ * @return
+ */
+
+RpgEngine *RpgEngine::findEngine(UdpServer *server, const quint32 &id)
+{
+	if (!server)
+		return nullptr;
+
+	return server->findEngine<RpgEngine>([id](const UdpRoom *r) {
+		if (r->type() != EngineRpg)
+			return false;
+
+		RpgEngine *e = qobject_cast<RpgEngine*>(r->engine());
+
+		if (!e)
+			return false;
+
+		return e->m_id == id;
+	});
+
 }
 
 
 
+
 /**
- * @brief RpgEngine::canDelete
- * @param useCount
+ * @brief RpgEngine::peerConnectToEngine
+ * @param peer
+ * @param engine
  * @return
  */
 
-bool RpgEngine::canDelete(const int &useCount)
+bool RpgEngine::peerConnectToEngine(UdpServerPeer *peer, RpgEngine *engine)
 {
-	if (!d->m_removeTimer.isForever()) {
-		return d->m_removeTimer.hasExpired();
-	} /*else if (m_config.gameState == RpgConfig::StatePlay) {
-		// Ha van még, aki nincs kész, akkor nem zárjuk le
+	if (!peer || !engine)
+		return false;
 
-		const auto it = std::find_if(m_player.cbegin(),
-									 m_player.cend(),
-									 [](const auto &ptr) {
-			return !ptr->config().finished;
-		});
+	LOG_CDEBUG("engine") << "Peer connnect to engine" << engine->readableId() << qPrintable(peer->address());
 
-		const bool hasNoFinished = (it != m_player.cend());
+	// TODO: can connect
 
-		return !hasNoFinished;
+	engine->room()->peerAdd(peer);
 
-	}*/ else {
-		return AbstractEngine::canDelete(useCount);
+	RpgStream::EngineStream st(RpgStream::EngineStream::OperationConnect);
+
+	engine->toRoom() >> st;
+
+	peer->send(st.data(), true);
+
+	return true;
+}
+
+
+
+
+/**
+ * @brief RpgEngine::toRoom
+ * @return
+ */
+
+RpgStream::Room RpgEngine::toRoom() const
+{
+	RpgStream::Room r;
+
+	r.setId(m_id);
+	r.setReadableId(m_readableId);
+	r.setHostId(d->m_host);
+
+
+	for (const RpgEnginePrivate::RpgPeerData &p : d->m_players) {
+		RpgStream::PlayerData pd = p.data;
+
+		pd.setNickName(pd.nickName() +
+					   (pd.flags().testFlag(RpgStream::PlayerData::FlagPlayerOnline) ? " ON" : " off"));
+
+		r.players().emplace_back(std::move(pd));
 	}
+
+
+	return r;
 }
+
 
 
 
@@ -288,28 +272,10 @@ bool RpgEngine::canDelete(const int &useCount)
  * @param data
  */
 
-void RpgEngine::binaryDataReceived(const UdpServerPeerReceivedList &data)
+void RpgEngine::binaryDataReceived(UdpServerPeerReceivedList &data)
 {
-	for (const auto &pair : data)
+	for (auto &pair : data)
 		binaryDataReceived(pair);
-
-	/*QElapsedTimer t2;
-	t2.start();
-
-	d->updateState();
-
-	d->renderTimerMeausure(RpgEnginePrivate::TimerUpd, t2.elapsed());
-
-	if (m_config.gameState == RpgConfig::StateCharacterSelect)
-		d->dataSend(RpgEnginePrivate::SendChrSel);
-	else if (m_config.gameState == RpgConfig::StatePrepare)
-		d->dataSend(RpgEnginePrivate::SendPrepare);
-	else if (m_config.gameState == RpgConfig::StatePlay)
-		d->dataSendPlay();
-	else if (m_config.gameState == RpgConfig::StateFinished)
-		d->dataSendFinished();
-
-	d->renderTimerMeausure(RpgEnginePrivate::TimerTick, t2.elapsed());*/
 }
 
 
@@ -323,18 +289,415 @@ void RpgEngine::binaryDataReceived(const UdpServerPeerReceivedList &data)
  * @param data
  */
 
-void RpgEngine::binaryDataReceived(const UdpPacketRcv &recv)
+void RpgEngine::binaryDataReceived(UdpPacketRcv &recv)
 {
 	Q_ASSERT(recv.peer);
 
-	/*RpgEnginePlayer *player = d->getPlayer(recv.peer);
+	RpgStream::EngineDataStream stream(recv.data);
+
+
+	if (stream.operation() == RpgStream::EngineStream::OperationConnect ||
+			stream.operation() == RpgStream::EngineStream::OperationList) {
+		RpgStream::EngineStream r(RpgStream::EngineStream::OperationConnect);
+		toRoom() >> r;
+		recv.peer->send(r.data(), true);
+
+		return;
+	}
+
+	// Todo: disconnect,...
+
+
+	RpgEnginePrivate::RpgPeerData *player = d->getPlayer(recv.peer);
 
 	if (!player) {
 		ELOG_ERROR << "Player not found" << recv.peer;
 		return;
 	}
 
-	d->dataReceived(player, recv.data);*/
+
+	if (stream.dataOperation() == RpgStream::EngineDataStream::DataOperationCharacterSelect)
+		d->receiveCharacterSelect(player, std::move(stream));
+	else if (stream.dataOperation() == RpgStream::EngineDataStream::DataOperationMapData)
+		d->receiveWaitingData(player, std::move(stream));
+}
+
+
+
+/**
+ * @brief RpgEngine::sendCharacterSelect
+ */
+
+void RpgEnginePrivate::sendCharacterSelect(const bool reliable)
+{
+	RpgStream::CharacterSelectServer stream;
+
+	stream.setRoom(q->toRoom());
+
+	{
+		Rpg::RpgLogicScope scope = q->m_logic.getScope();
+		RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
+		Q_ASSERT(cfg);
+
+		stream.setGameConfig(*cfg);
+	}
+
+	const std::vector<uint8_t> data = stream.toDataStream().data();
+
+	for (const RpgPeerData &p : m_players) {
+		if (p.peer)
+			p.peer->send(data, reliable);
+	}
+}
+
+
+
+/**
+ * @brief RpgEnginePrivate::checkCompleted
+ */
+
+void RpgEnginePrivate::checkCompleted()
+{
+	if (m_players.isEmpty())
+		return;
+
+	Rpg::RpgLogicScope scope = q->m_logic.getScope();
+	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
+	Q_ASSERT(cfg);
+
+	if (cfg->flags().testFlag(RpgStream::GameConfig::FlagSelected))
+		return;
+
+	bool cmpltd = true;
+
+	for (const RpgPeerData &p : m_players) {
+		if (!p.data.flags().testFlag(RpgStream::PlayerData::FlagCompleted)) {
+			cmpltd = false;
+			break;
+		}
+	}
+
+	if (!cmpltd)
+		return;
+
+
+	if (cfg->terrain() == 0) {
+		LOG_CERROR("engine") << "No terrain";
+		return;
+	}
+
+
+	cfg->flags().setFlag(RpgStream::GameConfig::FlagSelected);
+
+	onAllCompleted();
+}
+
+
+
+/**
+ * @brief RpgEnginePrivate::onAllCompleted
+ */
+
+void RpgEnginePrivate::onAllCompleted()
+{
+	LOG_CWARNING("engine") << "ALL COMPLETED";
+
+	Rpg::RpgLogicScope scope = q->m_logic.getScope();
+	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
+	Q_ASSERT(cfg);
+
+
+	for (RpgPeerData &p : m_players) {
+		scope.logic()->playerAdd(p.data, &p.rpgId, &p.playerTag);
+
+		ELOG_DEBUG << "Add player" << p.rpgId << p.peerId << p.playerTag << p.data.userName() << p.token.mapUuid << p.token.missionUuid << p.token.missionLevel;
+	}
+
+	ELOG_INFO << "All completed";
+	ELOG_INFO << engineDump().toUtf8().constData();
+
+	cfg->flags().setFlag(RpgStream::GameConfig::FlagWaitingData);
+}
+
+
+
+/**
+ * @brief RpgEnginePrivate::receiveWaitingData
+ * @param player
+ * @param stream
+ */
+
+void RpgEnginePrivate::receiveWaitingData(RpgPeerData *player, RpgStream::EngineDataStream &&stream)
+{
+	Q_ASSERT(player);
+
+	if (player->peerId != m_host) {
+		LOG_CWARNING("engine") << "Data without host permission";
+		ELOG_WARNING << "Data without host permission" << qPrintable(player->peer->address()) << player->peerId;
+		return;
+	}
+
+	Rpg::RpgLogicScope scope = q->m_logic.getScope();
+	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
+	Q_ASSERT(cfg);
+
+	if (cfg->flags().testFlag(RpgStream::GameConfig::FlagDataCompleted)) {
+		//LOG_CWARNING("engine") << "Engine data already completed";
+		//ELOG_WARNING << "Engine selection already completed";
+		return;
+	}
+
+	RpgStream::MapData d;
+	d << stream;
+
+	if (!d.playerPositionList().empty() && d.chunkGrid().chunkHeight() > 0 && d.chunkGrid().chunkWidth() > 0) {
+		q->m_logic.loadMapData(d);
+		cfg->flags().setFlag(RpgStream::GameConfig::FlagWaitingData, false);
+		cfg->flags().setFlag(RpgStream::GameConfig::FlagDataCompleted);
+
+		onDataReceived();
+	}
+}
+
+
+
+/**
+ * @brief RpgEnginePrivate::sendWaitingData
+ */
+
+void RpgEnginePrivate::sendWaitingData()
+{
+	const auto flags = q->configFlags();
+
+	RpgStream::MapData stream;
+
+	if (flags.testFlags(RpgStream::GameConfig::FlagDataCompleted)) {
+		if (const auto &ptr = q->m_logic.getMapData())
+			stream = ptr.value();
+	}
+
+
+	const std::vector<uint8_t> data = stream.toDataStream().data();
+
+	for (const RpgPeerData &p : m_players) {
+		if (p.peer)
+			p.peer->send(data, false);
+	}
+}
+
+
+
+/**
+ * @brief RpgEnginePrivate::onDataReceived
+ */
+
+void RpgEnginePrivate::onDataReceived()
+{
+	LOG_CWARNING("engine") << "ALL DATA RECEIVED";
+
+	ELOG_INFO << "All data received";
+	ELOG_INFO << engineDump().toUtf8().constData();
+
+	if (q->m_logic.initialize())
+		ELOG_INFO << "Game initialized";
+	else
+		ELOG_ERROR << "Game initialize error";
+}
+
+
+
+/**
+ * @brief RpgEnginePrivate::sendFull
+ */
+
+void RpgEnginePrivate::sendFull()
+{
+	const auto flags = q->configFlags();
+
+	if (!flags.testFlags(RpgStream::GameConfig::FlagDataPrepared))
+		return;
+
+
+#ifdef WITH_FTXUI
+	QString txt;
+	RpgStream::Full stream = q->m_logic.getFull(&txt);
+#else
+	RpgStream::Full stream = q->m_logic.getFull();
+#endif
+
+
+	stream.map().reserve(m_players.size());
+
+	for (const RpgPeerData &p : m_players) {
+		RpgStream::FullPlayerMap m;
+
+		m.setPeerId(p.peerId);
+		m.setPlayer(p.playerTag);
+		// TODO: set entities
+
+		stream.map().emplace_back(std::move(m));
+	}
+
+	const std::vector<uint8_t> data = stream.toDataStream().data();
+
+	for (const RpgPeerData &p : m_players) {
+		if (p.peer)
+			p.peer->send(data, false);
+	}
+
+#ifdef WITH_FTXUI
+	QCborMap m;
+	m.insert(QStringLiteral("mode"), QStringLiteral("SND"));
+	m.insert(QStringLiteral("txt"), txt);
+	q->m_udpServer->service()->writeToSocket(m.toCborValue());
+#endif
+
+}
+
+
+
+/**
+ * @brief RpgEnginePrivate::getPlayer
+ * @param peer
+ * @return
+ */
+
+RpgEnginePrivate::RpgPeerData *RpgEnginePrivate::getPlayer(UdpServerPeer *peer)
+{
+	auto it = std::find_if(m_players.begin(),
+						   m_players.end(),
+						   [peer](const RpgPeerData &d) {
+		return d.peer == peer;
+	});
+
+	if (it == m_players.end())
+		return nullptr;
+
+	return &(it.value());
+}
+
+
+
+
+/**
+ * @brief RpgEnginePrivate::receiveCharacterSelect
+ * @param stream
+ */
+
+RpgStream::Team RpgEnginePrivate::nextTeam() const
+{
+	if (m_players.isEmpty())
+		return RpgStream::TeamA;
+
+	int numA = 0;
+	int numB = 0;
+
+	for (const RpgPeerData &p : m_players) {
+		switch (p.team) {
+			case RpgStream::TeamA:
+				++numA;
+				break;
+			case RpgStream::TeamB:
+				++numB;
+				break;
+			case RpgStream::TeamNone:
+				break;
+		}
+	}
+
+
+	return numA > numB ? RpgStream::TeamB : RpgStream::TeamA;
+}
+
+
+
+
+
+
+
+/**
+ * @brief RpgEnginePrivate::changeHost
+ * @return
+ */
+
+quint32 RpgEnginePrivate::changeHost()
+{
+	if (m_host != 0 && m_players.contains(m_host) && m_players[m_host].data.flags().testFlags(RpgStream::PlayerData::FlagPlayerOnline)) {
+		return m_host;
+
+	} else {
+		quint32 h = 0;
+
+
+		for (const RpgPeerData &p : m_players) {
+			if (p.data.flags().testFlag(RpgStream::PlayerData::FlagPlayerOnline)) {
+				h = p.peerId;
+				break;
+			}
+		}
+
+		LOG_CWARNING("engine") << "Next host" << h;
+
+		m_host = h;
+
+		return h;
+	}
+}
+
+
+
+
+/**
+ * @brief RpgEnginePrivate::receiveCharacterSelect
+ * @param player
+ * @param stream
+ */
+
+void RpgEnginePrivate::receiveCharacterSelect(RpgPeerData *player, RpgStream::EngineDataStream &&stream)
+{
+	Q_ASSERT(player);
+
+
+	if (player->data.flags().testFlag(RpgStream::PlayerData::FlagCompleted)) {
+		LOG_CWARNING("engine") << "Player already completed" << player->peerId;
+		ELOG_WARNING << "Player already completed" << player->peerId;
+		return;
+	}
+
+	RpgStream::CharacterSelectClient s;
+	s << stream;
+
+	{
+		Rpg::RpgLogicScope scope = q->m_logic.getScope();
+		RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
+		Q_ASSERT(cfg);
+
+		if (cfg->flags().testFlag(RpgStream::GameConfig::FlagSelected)) {
+			LOG_CWARNING("engine") << "Engine selection already completed";
+			ELOG_WARNING << "Engine selection already completed";
+			return;
+		}
+
+		if (player->peerId == m_host)
+			cfg->setTerrain(s.gameConfig().terrain());
+	}
+
+
+	player->data.setCharacter(s.data().character());
+	player->data.setNickName(s.data().nickName());
+	player->data.setConfig(s.data().config());
+
+	if (s.data().team() != RpgStream::TeamNone)
+		player->team = s.data().team();
+
+	if (s.data().flags().testFlag(RpgStream::PlayerData::FlagCompleted)) {
+		player->data.flags().setFlag(RpgStream::PlayerData::FlagCompleted);
+
+		checkCompleted();
+	}
+
+
+	sendCharacterSelect(true);
 }
 
 
@@ -349,6 +712,48 @@ void RpgEngine::udpPeerAdd(UdpServerPeer *peer)
 {
 	if (!peer)
 		return;
+
+	const quint32 id = peer->peerData().peerId;
+
+	ELOG_DEBUG << "Peer add" << id << qPrintable(peer->peerData().username) << qPrintable(peer->address());
+
+
+	if (d->m_players.contains(id)) {
+		ELOG_WARNING << "Player peerId already exists" << id << peer->peerData().username;
+
+		RpgEnginePrivate::RpgPeerData &pd = d->m_players[id];
+
+		if (pd.peer) {
+			ELOG_ERROR << "Peer already connected" << id << qPrintable(pd.peer->address());
+			return;
+		}
+
+		pd.peer = peer;
+		pd.data.flags().setFlag(RpgStream::PlayerData::FlagPlayerOnline);
+
+		d->changeHost();
+
+		d->sendCharacterSelect(true);
+
+		return;
+	}
+
+	RpgEnginePrivate::RpgPeerData pd(peer->peerData());
+
+	pd.loadToken();
+	pd.peer = peer;
+	pd.team = d->nextTeam();
+
+	pd.data.setPlayerId(pd.peerId);
+	pd.data.setUserName(pd.token.user.toUtf8());
+	pd.data.setTeam(pd.team);
+	pd.data.flags().setFlag(RpgStream::PlayerData::FlagPlayerOnline);
+
+	d->m_players.insert(id, pd);
+
+	d->changeHost();
+
+	d->sendCharacterSelect(true);
 }
 
 
@@ -360,8 +765,30 @@ void RpgEngine::udpPeerAdd(UdpServerPeer *peer)
 
 void RpgEngine::udpPeerRemove(UdpServerPeer *peer)
 {
+	const quint32 id = peer->peerData().peerId;
 
+	ELOG_DEBUG << "Peer remove" << id << qPrintable(peer->peerData().username) << qPrintable(peer->address());
+
+	if (!d->m_players.contains(id)) {
+		ELOG_WARNING << "Player peerId not found" << id;
+		return;
+	}
+
+	RpgEnginePrivate::RpgPeerData &pd = d->m_players[id];
+
+	if (pd.peer && pd.peer != peer) {
+		ELOG_ERROR << "Peer mismatch" << id << qPrintable(pd.peer->address());
+	}
+
+	pd.peer = nullptr;
+	pd.data.flags().setFlag(RpgStream::PlayerData::FlagPlayerOnline, false);
+
+	d->changeHost();
+
+	d->sendCharacterSelect(true);
 }
+
+
 
 
 
@@ -384,25 +811,41 @@ void RpgEngine::disconnectUnusedPeer(UdpServerPeer *peer)
 }
 
 
+
 /**
- * @brief RpgEngine::isPeerValid
- * @param peerId
- * @return
+ * @brief RpgEngine::udpTimerEvent
  */
 
-bool RpgEngine::isPeerValid(const quint32 &peerId) const
+void RpgEngine::udpTimerEvent(const qint64 &dt)
 {
-	/*if (m_config.gameState == RpgConfig::StateError || m_config.gameState == RpgConfig::StateFinished)
-		return false;
+	d->m_dtAcc += dt;
 
-	if (d->m_abortList.contains(peerId))
-		return false;
+	const RpgStream::GameConfig::Flags flags = configFlags();
 
-	if (player(peerId))
-		return true;*/
 
-	return false;
+	if (!flags.testFlags(RpgStream::GameConfig::FlagSelected)) {
+		if (d->m_dtAcc < 250)  return;
+
+		d->sendCharacterSelect(false);
+
+	} else if (flags.testFlags(RpgStream::GameConfig::FlagDataPrepared)) {
+		if (d->m_dtAcc < 50)  return;
+
+		d->sendWaitingData();
+		d->sendFull();
+	} else if (flags.testFlags(RpgStream::GameConfig::FlagWaitingData) &&
+			!flags.testFlags(RpgStream::GameConfig::FlagDataCompleted)) {
+
+		if (d->m_dtAcc < 50)  return;
+
+		d->sendWaitingData();
+	} else {
+		return;
+	}
+
+	d->m_dtAcc = 0;
 }
+
 
 
 
@@ -417,37 +860,6 @@ QString RpgEngine::dumpEngine() const
 }
 
 
-/**
- * @brief RpgEngine::toStream
- * @return
- */
-
-RpgStream::Engine RpgEngine::toStream() const
-{
-	RpgStream::Engine e;
-
-	e.setId(m_id);
-	e.setReadableId(m_readableId);
-	e.setMaxPlayer(m_playerLimit);
-
-	/*if (m_hostPlayer) {
-		e.owner().setUserName(m_hostPlayer->config().username.toUtf8());
-		e.owner().setNickName(m_hostPlayer->config().nickname.toUtf8());
-	}
-
-	for (const auto &p : m_player) {
-		if (!p.get())
-			continue;
-
-		if (m_hostPlayer && p.get() == m_hostPlayer)
-			continue;
-
-		e.players().emplace_back(p->config().username.toUtf8(), p->config().nickname.toUtf8());
-	}*/
-
-	return e;
-}
-
 
 /**
  * @brief RpgEngine::_logger
@@ -458,6 +870,41 @@ Logger *RpgEngine::_logger() const
 {
 	return d->m_logger.get();
 }
+
+
+
+/**
+ * @brief RpgEngine::configFlags
+ * @return
+ */
+
+RpgStream::GameConfig::Flags RpgEngine::configFlags() const
+{
+	Rpg::RpgLogicScope scope = m_logic.getScope();
+	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
+	Q_ASSERT(cfg);
+
+	return cfg->flags();
+}
+
+
+
+
+/**
+ * @brief RpgEngine::configStage
+ * @return
+ */
+
+RpgStream::GameConfig::Stage RpgEngine::configStage() const
+{
+	Rpg::RpgLogicScope scope = m_logic.getScope();
+	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
+	Q_ASSERT(cfg);
+
+	return cfg->stage();
+}
+
+
 
 
 
@@ -491,74 +938,6 @@ void RpgEngine::setLoggerFile(const QString &fname)
 
 
 
-
-
-
-
-
-
-
-
-
-/**
- * @brief RpgEnginePrivate::getPlayer
- * @param peer
- * @return
- */
-
-void RpgEnginePrivate::sendEngineList(UdpServerPeer *peer, EngineHandler *handler)
-{
-	Q_ASSERT(handler);
-	Q_ASSERT(peer);
-	Q_ASSERT(peer->server());
-
-	LOG_CINFO("engine") << "++++++++++ send engine list" << peer->peerID() << peer->peer();
-
-	RpgStream::EngineList list;
-
-
-	for (const auto &ptr : handler->engines()) {
-		if (!ptr || ptr->type() != AbstractEngine::EngineRpg)
-			continue;
-
-		const auto &e = std::dynamic_pointer_cast<RpgEngine>(ptr);
-
-		if (!canConnect(peer->peerID(), e.get()))
-			continue;
-
-		list.engines().push_back(e->toStream());
-
-	}
-
-	const int max = std::max(1, handler->service()->settings()->udpMaxEngines());
-
-	list.setCanCreate(handler->engines().size() < max);
-
-	peer->send(list.toStream().data(), false);
-}
-
-
-
-/**
- * @brief RpgEnginePrivate::canConnect
- * @param config
- * @param engine
- * @return
- */
-
-
-bool RpgEnginePrivate::canConnect(const qint64 &peerID, RpgEngine *engine)
-{
-	return (engine &&
-			/*(engine->config().gameState == RpgConfig::StateConnect ||
-					 engine->config().gameState == RpgConfig::StateCharacterSelect) &&
-					engine->config() == config &&*/
-			!engine->d->m_locked /*&&
-					!engine->d->m_banList.contains(peerID) &&
-					!engine->d->m_abortList.contains(peerID) &&
-					(engine->m_playerLimit <= 0 || engine->m_player.size() < engine->m_playerLimit)*/
-			);
-}
 
 
 
@@ -629,6 +1008,10 @@ QString RpgEnginePrivate::renderTimerDump() const
 
 QString RpgEnginePrivate::engineDump() const
 {
+	Rpg::RpgLogicScope scope = q->m_logic.getScope();
+	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
+	Q_ASSERT(cfg);
+
 	QString txt;
 
 	txt += QStringLiteral("[ENGINE %1] - %2\n").arg(q->m_id).arg(q->m_readableId, 6, 10, '0');
@@ -636,26 +1019,47 @@ QString RpgEnginePrivate::engineDump() const
 
 	txt += renderTimerDump();
 
-	/*txt += QStringLiteral("State: %1 | Players: %2 | Tick: %3\n")
-		   .arg(q->m_config.gameState, 2).arg(q->m_player.size(), 2)
-		   .arg(q->m_currentTick, 5)
-		   ;
+	if (!cfg->flags().testFlag(RpgStream::GameConfig::FlagSelected)) {
+		txt += QStringLiteral("Character select... | Players: %1 | Terrain: %2 | Host: %3\n")
+			   .arg(m_players.size(), 2)
+			   .arg(cfg->terrain())
+			   .arg(m_host);
+	} else if (!cfg->flags().testFlag(RpgStream::GameConfig::FlagPlaying)) {
+		txt += QStringLiteral("Preparing... | Players: %1 | Terrain: %2 | Host: %3\n")
+			   .arg(m_players.size(), 2)
+			   .arg(cfg->terrain())
+			   .arg(m_host);
+	} else {
+		txt += QStringLiteral("Stage: %1 | Players: %2 | Tick: %3 | Terrain: %4 | Host: %5\n")
+			   .arg(cfg->stage(), 2)
+			   .arg(m_players.size(), 2)
+			   .arg(q->m_logic.serverTick(), 5)
+			   .arg(cfg->terrain())
+			   .arg(m_host)
+			   ;
+	}
+
 
 	txt += QStringLiteral("------------------------------------------------------------------\n");
 
-	for (const auto &ptr : q->m_player) {
-		if (ptr->isHost())
+	for (const auto &[key, data] : m_players.asKeyValueRange()) {
+		if (!data.peer)
+			txt += QStringLiteral("    ");
+		else if (key == m_host)
 			txt += QStringLiteral("(*) ");
 		else
 			txt += QStringLiteral("( ) ");
 
-		txt += QStringLiteral("P%1 [%2] ")
-			   .arg(ptr->playerId())
-			   .arg(ptr->peerID(), 12)
+		txt += QStringLiteral("%1 [%2] T%3 ")
+			   .arg(data.rpgId, 2)
+			   .arg(data.peerId, 12)
+			   .arg(data.team)
 			   ;
 
+		txt += data.username + " " + data.data.nickName();
 
-		if (UdpServerPeer *peer = ptr->udpPeer()) {
+
+		if (UdpServerPeer *peer = data.peer) {
 			txt += QStringLiteral("%1 | ").arg(peer->address(), 21);
 			txt += QStringLiteral("RTT %1 | FPS: %2 | Peer FPS: %3")
 				   .arg(peer->currentRtt(), 2)
@@ -665,7 +1069,7 @@ QString RpgEnginePrivate::engineDump() const
 		}
 
 		txt += '\n';
-	}*/
+	}
 
 	txt += QStringLiteral(" \n \n");
 

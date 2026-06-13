@@ -40,28 +40,95 @@ class RpgEnginePrivate
 {
 private:
 	RpgEnginePrivate(RpgEngine *engine)
-		: m_removeTimer(-1)
-		, q(engine)
+		: q(engine)
 		, m_logger(new Logger(QStringLiteral("engineprivate"), false))
 	{}
 
 
-	static void sendEngineList(UdpServerPeer *peer, EngineHandler *handler);
 
-	static bool canConnect(const qint64 &peerID, RpgEngine *engine);
+	/**
+	 * @brief The RpgPeerData class
+	 */
+
+	struct RpgPeerData : public UdpPeerData
+	{
+		RpgStream::ConnectionToken token;
+		RpgStream::Team team = RpgStream::TeamNone;
+		UdpServerPeer *peer = nullptr;
+
+		RpgStream::PlayerData data;
+
+		quint32 rpgId = 0;										// A hosszú peerId helyett ez lesz az RpgLogic-ban a player sorszáma (PlayerData::playerId)
+		quint32 playerTag = 0;									// Az általa irányított player tagId-je
+
+		// TODO: controlledd entities tag ids...
 
 
-	QElapsedTimer m_elapsedTimer;
-	qint64 m_elapsedTimerReference = 0;
+		void loadToken() {
+			token = {};
+			token.fromJson(connectionToken);
+		}
+	};
 
-	QDeadlineTimer m_removeTimer;
 
-	bool m_locked = false;
+	quint32 tick() const { return m_elapsedTimer.isValid() ? (m_elapsedTimerReference + m_elapsedTimer.elapsed()*60./1000.) : 0; }
+	bool running() const { return m_elapsedTimer.isValid(); }
 
+	void start(const qint64 &startTick = 0) {
+		m_elapsedTimerReference = startTick;
+		m_elapsedTimer.start();
+	}
+
+	quint32 stop() {
+		quint32 t = tick();
+		m_elapsedTimer.invalidate();
+		return t;
+	}
+
+
+	RpgPeerData *getPlayer(UdpServerPeer *peer);
+
+
+	RpgStream::Team nextTeam() const;
+	quint32 changeHost();
+
+	void receiveCharacterSelect(RpgEnginePrivate::RpgPeerData *player, RpgStream::EngineDataStream &&stream);
+	void sendCharacterSelect(const bool reliable = false);
+	void checkCompleted();
+	void onAllCompleted();
+
+	void receiveWaitingData(RpgEnginePrivate::RpgPeerData *player, RpgStream::EngineDataStream &&stream);
+	void sendWaitingData();
+
+	void onDataReceived();
+	void sendFull();
+
+
+private:
 	RpgEngine *q;
 
 	std::unique_ptr<Logger> m_logger;
 	Logger *_logger() const { return m_logger.get(); }
+
+	QMap<quint32, RpgPeerData> m_players;
+	quint32 m_host = 0;
+
+	QElapsedTimer m_elapsedTimer;
+	qint64 m_elapsedTimerReference = 0;
+
+	qint64 m_dtAcc = 0;
+
+
+	inline static quint32 m_engineId = 1;
+
+
+
+
+
+
+
+
+
 
 	/// ---- MEASURE ----
 

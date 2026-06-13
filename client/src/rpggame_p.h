@@ -56,6 +56,8 @@ private:
 	RpgGamePrivate(RpgGame *game, const bool &multi);
 	virtual ~RpgGamePrivate();
 
+	static QString toReadableRoomId(const RpgStream::Room &room);
+
 	void clearSharedTextures();
 	void vibrate();
 
@@ -76,6 +78,11 @@ private:
 	void onContentDownloaded();
 	void onContentError();
 
+
+	// Character select
+
+	void characterSelect(const QVariantMap &data);
+	void updateCharacterSelect();
 
 	// Prepare
 
@@ -149,12 +156,16 @@ private:
 	/// RPG LOGIC LOCAL
 
 	quint32 logicRegisterObject(RpgObject *object);
-	void logicAddPlayer(const RpgPlayerDefinition &def, const RpgStream::Team &team = RpgStream::TeamNone, const int &count = 1);		// deprecated
 
 	void changeControlledPlayer();					// deprecated
 
 private:
 	RpgGame *const q;
+
+	bool m_isMapLoaded = false;
+
+	RpgStream::CharacterSelectClient m_characterSelect;
+
 	std::unique_ptr<Rpg::RpgLogicClient> m_logic;
 	quint32 m_deadlineTick = 0;
 	quint32 m_lastProcessedEventTick = 0;			// a szervertől jött utoljára feldolgozott eseménylista tick-je
@@ -191,8 +202,10 @@ private:
 	QByteArray m_connectionToken;
 	std::unique_ptr<RpgUdpEngine> m_engine;
 
+
 	friend class RpgGame;
 	friend class RpgGameItem;
+	friend class RpgUdpEngine;
 };
 
 

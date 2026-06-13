@@ -14,7 +14,7 @@ QItemGradient {
 
     title: game ? game.name + qsTr(" – level %1").arg(game.level): ""
 
-    Qaterial.BusyIndicator {
+    /*Qaterial.BusyIndicator {
         id: _busyIndicator
         anchors.centerIn: parent
         visible: false
@@ -102,6 +102,81 @@ QItemGradient {
             leftPadding: 15 * Qaterial.Style.pixelSizeRatio
             rightPadding: 15 * Qaterial.Style.pixelSizeRatio
         }
+    }*/
+
+    QScrollable {
+        anchors.fill: parent
+        spacing: 15
+        //contentCentered: true
+        topPadding: Math.max(verticalPadding, Client.safeMarginTop, root.paddingTop)
+
+        /*refreshEnabled: true
+
+        onRefreshRequest: reload()*/
+
+        Qaterial.LabelHeadline4 {
+            id: _rooms
+        }
+
+
+        QListView {
+            id: _view
+
+            width: parent.width
+            height: contentHeight
+
+            /*anchors.leftMargin: Qaterial.Style.card.horizontalPadding
+            anchors.rightMargin: Qaterial.Style.card.horizontalPadding
+            anchors.topMargin: Qaterial.Style.card.verticalPadding
+            anchors.bottomMargin: Qaterial.Style.card.verticalPadding*/
+
+            model: game ? game.modelLobby : null
+
+            delegate: Qaterial.ItemDelegate {
+                width: ListView.view.width
+
+                text: readableId
+
+                secondaryText: model
+
+                //secondaryText: owner.nickName + (players.length > 1 ? " +" + (players.length-1) : "")
+
+                icon.source: Qaterial.Icons.accountMultiple
+
+                onClicked: {
+                    game.connectLobby(model)
+                }
+            }
+
+            /*header: Qaterial.ItemDelegate {
+                width: ListView.view.width
+                font: Qaterial.Style.textTheme.headline6
+                visible: !_labelFull.visible
+                text: qsTr("Válassz szobát")
+            }*/
+
+            footer: Qaterial.ItemDelegate {
+                width: ListView.view.width
+                height: visible ? implicitHeight : 0
+                //visible: game && game.canAddEngine
+                textColor: Qaterial.Colors.green500
+                iconColor: textColor
+                icon.source: Qaterial.Icons.plus
+                text: qsTr("Új szoba létrehozása")
+
+                onClicked: game.connectLobby({})
+            }
+
+
+        }
+    }
+
+    Timer {
+        interval: 1250
+        running: true
+        repeat: true
+        triggeredOnStart: true
+        onTriggered: if (game) game.reloadLobby()
     }
 
 

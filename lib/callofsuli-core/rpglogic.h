@@ -832,9 +832,14 @@ public:
 
 
 	void fullStateLoad(const RpgStream::FullState &full, const QSet<quint32> &acceptedInputList);
-	RpgStream::FullState getFullState(const int &maxTick);
+	RpgStream::FullState getFullState(const int &maxTick, QString *textPtr = nullptr);
 
-	void render();
+	void fullLoad(const RpgStream::Full &full);
+	RpgStream::Full getFull(QString *textPtr = nullptr);
+
+	bool initialize();
+
+	void render(const bool &first = false);
 
 	// EnTT object id
 
@@ -849,13 +854,12 @@ public:
 
 	void loadMapData(const RpgStream::MapData &data);
 	bool isChunkEmpty(const Chunk &chunk) const;
+	std::optional<RpgStream::MapData> getMapData() const;
 
 
 	// Player
 
-	entt::entity playerAdd(const RpgStream::PlayerConfig &config, const RpgStream::Team &team = RpgStream::TeamNone);
-
-	void emplacePlayers();
+	entt::entity playerAdd(const RpgStream::PlayerData &data, quint32 *idPtr = nullptr, quint32 *tagIdPtr = nullptr);
 
 
 	// Common entity

@@ -1294,8 +1294,9 @@ void TiledGame::updateStepTimer()
 	const qint64 &currentTick = m_tickTimer->currentTick();
 
 	if (currentTick < 0) {
-		LOG_CDEBUG("game") << "****CT" << currentTick;
-		timeStepPrepareEvent();
+		prepareEvent();
+		QMutexLocker locker(&d->m_stepMutex);
+		d->stepWorlds();
 		synchronize();
 		return;
 	}
