@@ -36,6 +36,8 @@ FocusScope {
 		joystickB: _gameJoystickControl
 		joystickC: _gameJoystickShot
 
+		readonly property bool multiplayer: game && game.gameMode == RpgGame.MultiPlayer
+
 		messageList: _messageList
 		defaultMessageColor: Qaterial.Style.iconColor()
 
@@ -49,9 +51,7 @@ FocusScope {
 
 		onMinimapToggleRequest: _mapRect.visible = !_mapRect.visible
 
-		/*	onGameLoaded: _prGameLoaded = true
-
-			onQuestsRequest: showQuests()*/
+		onStageChanged: _infoTime.marked = true
 
 		function resetBaseScale() {
 			if (width < 576 * Qaterial.Style.devicePixelSizeCorrection)
@@ -98,7 +98,7 @@ FocusScope {
 			border.color: "white"
 			border.width: 1
 
-			fontImage.icon: /*_multiplayer ||*/ _gameQuestion.objectiveUuid != "" ? Qaterial.Icons.close : Qaterial.Icons.pause
+			fontImage.icon: _item.multiplayer || _gameQuestion.objectiveUuid != "" ? Qaterial.Icons.close : Qaterial.Icons.pause
 			fontImage.color: "white"
 			fontImageScale: 0.7
 

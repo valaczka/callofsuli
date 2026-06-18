@@ -320,6 +320,14 @@ void RpgEngine::binaryDataReceived(UdpPacketRcv &recv)
 		d->receiveCharacterSelect(player, std::move(stream));
 	else if (stream.dataOperation() == RpgStream::EngineDataStream::DataOperationMapData)
 		d->receiveWaitingData(player, std::move(stream));
+	else if (stream.dataOperation() == RpgStream::EngineDataStream::DataOperationFull)
+		d->receiveFull(player, std::move(stream));
+	else if (stream.dataOperation() == RpgStream::EngineDataStream::DataOperationPlayerData)
+		d->receivePlayerData(player, std::move(stream));
+	else if (stream.dataOperation() == RpgStream::EngineDataStream::DataOperationState)
+		d->receiveState(player, std::move(stream));
+	else
+		LOG_CWARNING("engine") << "Invalid data" << stream.operation() << stream.dataOperation();
 }
 
 
@@ -332,15 +340,18 @@ void RpgEnginePrivate::sendCharacterSelect(const bool reliable)
 {
 	RpgStream::CharacterSelectServer stream;
 
-	stream.setRoom(q->toRoom());
-
 	{
 		Rpg::RpgLogicScope scope = q->m_logic.getScope();
 		RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
 		Q_ASSERT(cfg);
 
+		if (cfg->flags().testFlag(RpgStream::GameConfig::FlagFinished))
+			return;
+
 		stream.setGameConfig(*cfg);
 	}
+
+	stream.setRoom(q->toRoom());
 
 	const std::vector<uint8_t> data = stream.toDataStream().data();
 
@@ -409,6 +420,7 @@ void RpgEnginePrivate::onAllCompleted()
 
 	for (RpgPeerData &p : m_players) {
 		scope.logic()->playerAdd(p.data, &p.rpgId, &p.playerTag);
+		p.acceptedTags.insert(p.playerTag, {});
 
 		ELOG_DEBUG << "Add player" << p.rpgId << p.peerId << p.playerTag << p.data.userName() << p.token.mapUuid << p.token.missionUuid << p.token.missionLevel;
 	}
@@ -417,6 +429,74 @@ void RpgEnginePrivate::onAllCompleted()
 	ELOG_INFO << engineDump().toUtf8().constData();
 
 	cfg->flags().setFlag(RpgStream::GameConfig::FlagWaitingData);
+}
+
+
+
+
+/**
+ * @brief RpgEnginePrivate::receivePlayerData
+ * @param player
+ * @param stream
+ */
+
+void RpgEnginePrivate::receivePlayerData(RpgPeerData *player, RpgStream::EngineDataStream &&stream)
+{
+	Q_ASSERT(player);
+
+	if (!player->data.flags().setFlag(RpgStream::PlayerData::FlagCompleted)) {
+		LOG_CWARNING("engine") << "Flag mismatch";
+		return;
+	}
+
+	RpgStream::PlayerData d;
+	d << stream;
+
+	/*{
+		Rpg::RpgLogicScope scope = q->m_logic.getScope();
+		RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
+		Q_ASSERT(cfg);
+
+		if (cfg->flags().testFlag(RpgStream::GameConfig::FlagSelected)) {
+			LOG_CWARNING("engine") << "Engine selection already completed";
+			ELOG_WARNING << "Engine selection already completed";
+			return;
+		}
+
+		if (player->peerId == m_host)
+			cfg->setTerrain(s.gameConfig().terrain());
+	}*/
+
+
+	if (d.flags().testFlag(RpgStream::PlayerData::FlagLoadStarted)) {
+		if (!player->data.flags().testFlag(RpgStream::PlayerData::FlagLoadStarted))
+			ELOG_DEBUG << "Player" << player->data.playerId() << "load started...";
+
+		player->data.flags().setFlag(RpgStream::PlayerData::FlagLoadStarted);
+	}
+
+	if (d.flags().testFlag(RpgStream::PlayerData::FlagLoadCompleted)) {
+		if (player->data.flags().testFlag(RpgStream::PlayerData::FlagLoadStarted)) {
+
+			if (!player->data.flags().testFlag(RpgStream::PlayerData::FlagLoadCompleted))
+				ELOG_DEBUG << "Player" << player->data.playerId() << "load completed.";
+
+			player->data.flags().setFlag(RpgStream::PlayerData::FlagLoadCompleted);
+		}
+	}
+
+	if (d.flags().testFlag(RpgStream::PlayerData::FlagGamePrepared)) {
+		if (player->data.flags().testFlag(RpgStream::PlayerData::FlagLoadCompleted)) {
+
+			if (!player->data.flags().testFlag(RpgStream::PlayerData::FlagGamePrepared))
+				ELOG_DEBUG << "Player" << player->data.playerId() << "game prepared.";
+
+			player->data.flags().setFlag(RpgStream::PlayerData::FlagGamePrepared);
+
+			checkPrepared();
+		}
+	}
+
 }
 
 
@@ -469,6 +549,12 @@ void RpgEnginePrivate::sendWaitingData()
 {
 	const auto flags = q->configFlags();
 
+	if (flags.testFlags(RpgStream::GameConfig::FlagFinished))
+		return;
+
+	if (flags.testFlags(RpgStream::GameConfig::FlagPlaying))
+		return;
+
 	RpgStream::MapData stream;
 
 	if (flags.testFlags(RpgStream::GameConfig::FlagDataCompleted)) {
@@ -488,6 +574,54 @@ void RpgEnginePrivate::sendWaitingData()
 
 
 /**
+ * @brief RpgEnginePrivate::receiveFull
+ * @param player
+ * @param stream
+ */
+
+void RpgEnginePrivate::receiveFull(RpgPeerData *player, RpgStream::EngineDataStream &&stream)
+{
+	Q_ASSERT(player);
+
+	LOG_CDEBUG("engine") << "TODO: receiveFull...";
+
+	return;
+
+	/*Rpg::RpgLogicScope scope = q->m_logic.getScope();
+	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
+	Q_ASSERT(cfg);*/
+
+	/*if (cfg->flags().testFlag(RpgStream::GameConfig::FlagDataCompleted)) {
+		//LOG_CWARNING("engine") << "Engine data already completed";
+		//ELOG_WARNING << "Engine selection already completed";
+		return;
+	}*/
+
+
+	// TODO: full request handling
+
+	/*RpgStream::Full d;
+	d << stream;
+
+
+	if (d.config().flags().testFlag(RpgStream::PlayerData::FlagCompleted)) {
+		player->data.flags().setFlag(RpgStream::PlayerData::FlagCompleted);
+
+		checkCompleted();
+	}
+
+	if (!d.playerPositionList().empty() && d.chunkGrid().chunkHeight() > 0 && d.chunkGrid().chunkWidth() > 0) {
+		q->m_logic.loadMapData(d);
+		cfg->flags().setFlag(RpgStream::GameConfig::FlagWaitingData, false);
+		cfg->flags().setFlag(RpgStream::GameConfig::FlagDataCompleted);
+
+		onDataReceived();
+	}*/
+}
+
+
+
+/**
  * @brief RpgEnginePrivate::onDataReceived
  */
 
@@ -496,7 +630,6 @@ void RpgEnginePrivate::onDataReceived()
 	LOG_CWARNING("engine") << "ALL DATA RECEIVED";
 
 	ELOG_INFO << "All data received";
-	ELOG_INFO << engineDump().toUtf8().constData();
 
 	if (q->m_logic.initialize())
 		ELOG_INFO << "Game initialized";
@@ -541,6 +674,12 @@ void RpgEnginePrivate::sendFull()
 	const std::vector<uint8_t> data = stream.toDataStream().data();
 
 	for (const RpgPeerData &p : m_players) {
+		// TODO: full request handling
+
+		if (p.data.flags().testFlags(RpgStream::PlayerData::FlagGamePrepared) ||
+				!p.data.flags().testFlags(RpgStream::PlayerData::FlagLoadCompleted))
+			continue;
+
 		if (p.peer)
 			p.peer->send(data, false);
 	}
@@ -553,6 +692,161 @@ void RpgEnginePrivate::sendFull()
 #endif
 
 }
+
+
+
+/**
+ * @brief RpgEnginePrivate::checkPrepared
+ */
+
+void RpgEnginePrivate::checkPrepared()
+{
+	if (m_players.isEmpty())
+		return;
+
+	Rpg::RpgLogicScope scope = q->m_logic.getScope();
+	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
+	Q_ASSERT(cfg);
+
+	if (cfg->flags().testFlag(RpgStream::GameConfig::FlagPlaying) ||
+			cfg->flags().testFlag(RpgStream::GameConfig::FlagFinished)) {
+		return;
+	}
+
+	if (!cfg->flags().testFlag(RpgStream::GameConfig::FlagDataPrepared)) {
+		LOG_CDEBUG("engine") << "NOT PREPARED";
+		return;
+	}
+
+	bool cmpltd = true;
+
+	for (const RpgPeerData &p : m_players) {
+		if (!p.data.flags().testFlag(RpgStream::PlayerData::FlagGamePrepared)) {
+			cmpltd = false;
+			break;
+		}
+	}
+
+	LOG_CDEBUG("engine") << "COMPLETED" << cmpltd;
+
+	if (!cmpltd)
+		return;
+
+
+	//cfg->flags().setFlag(RpgStream::GameConfig::FlagSelected);
+
+	onAllPrepared();
+}
+
+
+
+
+/**
+ * @brief RpgEnginePrivate::onAllPrepared
+ */
+
+void RpgEnginePrivate::onAllPrepared()
+{
+	LOG_CWARNING("engine") << "ALL PREPARED";
+
+	Rpg::RpgLogicScope scope = q->m_logic.getScope();
+	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
+	Q_ASSERT(cfg);
+
+	ELOG_INFO << "All prepared";
+
+	cfg->flags().setFlag(RpgStream::GameConfig::FlagPlaying);
+
+	scope.logic()->startStageSelect();
+	m_selectTimer.start();
+}
+
+
+
+/**
+ * @brief RpgEnginePrivate::receiveState
+ * @param player
+ * @param stream
+ */
+
+void RpgEnginePrivate::receiveState(RpgPeerData *player, RpgStream::EngineDataStream &&stream)
+{
+	Q_ASSERT(player);
+
+	/*if (player->data.flags().testFlag(RpgStream::PlayerData::FlagCompleted)) {
+		LOG_CWARNING("engine") << "Player already completed" << player->peerId;
+		ELOG_WARNING << "Player already completed" << player->peerId;
+		return;
+	}*/
+
+	if (!q->configFlags().testFlag(RpgStream::GameConfig::FlagPlaying)) {
+		LOG_CWARNING("engine") << "NOT PLAYING";
+		//ELOG_WARNING << "Engine selection already completed";
+		return;
+	}
+
+
+	RpgStream::FullState s;
+	s << stream;
+
+	//LOG_CDEBUG("engine") << "***" << s.serverTick() << s.flags() << s.events().size();
+
+	/*for (const RpgStream::PlayerStateList &l : s.players()) {
+		LOG_CDEBUG("engine") << "   " << l.tagId();
+	}*/
+
+	q->m_logic.fullStateLoad(s, &player->acceptedTags);
+}
+
+
+
+/**
+ * @brief RpgEnginePrivate::onSelectFinished
+ */
+
+void RpgEnginePrivate::onSelectFinished()
+{
+	m_selectTimer.invalidate();
+
+	Rpg::RpgLogicScope scope = q->m_logic.getScope();
+	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
+	Q_ASSERT(cfg);
+
+	ELOG_INFO << "Select finished";
+
+	LOG_CINFO("engine")	 << "SELECT FINISHED";
+
+	m_deadlineTick = cfg->duration();
+
+	start(0);
+}
+
+
+
+
+
+/**
+ * @brief RpgEnginePrivate::onAborted
+ */
+
+void RpgEnginePrivate::onAborted()
+{
+	Rpg::RpgLogicScope scope = q->m_logic.getScope();
+	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
+	Q_ASSERT(cfg);
+
+	cfg->flags().setFlag(RpgStream::GameConfig::FlagFinished);
+
+	ELOG_INFO << "Aborted";
+
+	LOG_CINFO("engine")	 << "ABORTED";
+
+	stop();
+}
+
+
+
+
 
 
 
@@ -579,9 +873,105 @@ RpgEnginePrivate::RpgPeerData *RpgEnginePrivate::getPlayer(UdpServerPeer *peer)
 
 
 
+
 /**
- * @brief RpgEnginePrivate::receiveCharacterSelect
- * @param stream
+ * @brief RpgEnginePrivate::render
+ */
+
+void RpgEnginePrivate::render()
+{
+	if (m_deadlineTick > 0 && !running()) {
+		return;
+	}
+
+	if (m_deadlineTick > 0 && m_host == 0) {
+		if (running()) {
+			LOG_CERROR("engine") << "NO HOST";
+			onAborted();
+		}
+
+		return;
+	}
+
+
+	if (m_selectTimer.isValid() && m_selectTimer.hasExpired(2500)) {
+		LOG_CINFO("engine") << "EXPIRED";
+		onSelectFinished();
+
+		return;
+	}
+
+
+	const bool isStageSelect = (!running() && q->configStage() == RpgStream::GameConfig::StageSelect);
+
+	quint32 t = isStageSelect ? 1 : tick();
+
+	/*if (t > m_deadlineTick) {
+		LOG_CINFO("engine") << "STOP GAME";
+
+		stop();
+
+		return;
+	}*/
+
+	quint32 st = isStageSelect ? 0 : q->m_logic.serverTick();
+
+	for (; st<t ; ++st) {
+		bool requireFull = isStageSelect;
+
+		if (isStageSelect)
+			q->m_logic.renderStageSelect();
+		else
+			requireFull |= q->m_logic.render(false);
+
+		const RpgStream::Full &full = q->m_logic.getRenderedState(requireFull);
+
+		const RpgStream::FullState::Flags flags = full.fullState().flags();
+
+		if (!requireFull && flags == RpgStream::FullState::Null)
+			continue;
+
+		RpgStream::FullState state = full.fullState();
+
+		// Send only events (reliable)
+
+		if (flags.testFlag(RpgStream::FullState::Event)) {
+			state.setFlags(RpgStream::FullState::Null | RpgStream::FullState::Event);
+
+			const std::vector<uint8_t> data = state.toDataStream().data();
+
+			for (const RpgPeerData &p : m_players) {
+				if (p.peer)
+					p.peer->send(data, true);
+			}
+
+			state.setFlags(flags);
+		}
+
+		// Send full (not reliable)
+
+		std::vector<uint8_t> data;
+
+		if (requireFull)
+			data = full.toDataStream().data();
+		else
+			data = state.toDataStream().data();
+
+
+		for (const RpgPeerData &p : m_players) {
+			if (p.peer)
+				p.peer->send(data, requireFull && !isStageSelect);
+		}
+	}
+
+}
+
+
+
+
+/**
+ * @brief RpgEnginePrivate::nextTeam
+ * @return
  */
 
 RpgStream::Team RpgEnginePrivate::nextTeam() const
@@ -710,6 +1100,8 @@ void RpgEnginePrivate::receiveCharacterSelect(RpgPeerData *player, RpgStream::En
 
 void RpgEngine::udpPeerAdd(UdpServerPeer *peer)
 {
+	UdpEngine::udpPeerAdd(peer);
+
 	if (!peer)
 		return;
 
@@ -823,7 +1215,20 @@ void RpgEngine::udpTimerEvent(const qint64 &dt)
 	const RpgStream::GameConfig::Flags flags = configFlags();
 
 
-	if (!flags.testFlags(RpgStream::GameConfig::FlagSelected)) {
+	if (flags.testFlags(RpgStream::GameConfig::FlagFinished)) {
+		if (d->m_closeTimer.isForever()) {
+			LOG_CDEBUG("engine") << "FINISHED....";
+			d->m_closeTimer.setRemainingTime(5000);
+		} else if (d->m_dtAcc < 100) {
+			return;
+		}
+
+		d->sendFull();
+
+	} else if (flags.testFlags(RpgStream::GameConfig::FlagPlaying)) {
+		d->render();
+
+	} else if (!flags.testFlags(RpgStream::GameConfig::FlagSelected)) {
 		if (d->m_dtAcc < 250)  return;
 
 		d->sendCharacterSelect(false);
@@ -834,7 +1239,7 @@ void RpgEngine::udpTimerEvent(const qint64 &dt)
 		d->sendWaitingData();
 		d->sendFull();
 	} else if (flags.testFlags(RpgStream::GameConfig::FlagWaitingData) &&
-			!flags.testFlags(RpgStream::GameConfig::FlagDataCompleted)) {
+			   !flags.testFlags(RpgStream::GameConfig::FlagDataCompleted)) {
 
 		if (d->m_dtAcc < 50)  return;
 
@@ -857,6 +1262,17 @@ void RpgEngine::udpTimerEvent(const qint64 &dt)
 QString RpgEngine::dumpEngine() const
 {
 	return d->engineDump();
+}
+
+
+/**
+ * @brief RpgEngine::canRemove
+ * @return
+ */
+
+bool RpgEngine::canRemove() const
+{
+	return !d->m_closeTimer.isForever() && d->m_closeTimer.hasExpired();
 }
 
 

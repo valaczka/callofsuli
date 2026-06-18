@@ -281,6 +281,19 @@ UdpRoom *UdpServer::createRoom()
 
 
 /**
+ * @brief UdpServer::setRoom
+ * @param index
+ * @param room
+ */
+
+void UdpServer::setRoom(const quint32 &index, UdpRoom *room)
+{
+	if (d->m_lobby)
+		d->m_lobby->setRoom(index, room);
+}
+
+
+/**
  * @brief UdpServer::findRoom
  * @param fn
  * @return
@@ -303,6 +316,26 @@ UdpEngine *UdpServer::findEngine(const std::function<bool (const UdpRoom *)> &fn
 	const UdpRoom *room = findRoom(fn);
 
 	return room ? room->engine() : nullptr;
+}
+
+
+
+/**
+ * @brief UdpServer::removeEngine
+ * @param engine
+ */
+
+void UdpServer::removeEngine(UdpEngine *engine)
+{
+	LOG_CDEBUG("engine") << "REMOVE ENGINE" << engine;
+
+	Q_ASSERT(engine);
+
+	UdpRoom *room = engine->room();
+
+	Q_ASSERT(room);
+
+	d->m_lobby->removeRoom(room);
 }
 
 
@@ -1375,15 +1408,20 @@ void UdpServerPrivate::deliverPackets()
 
 void UdpServerPrivate::disconnectUnusedPeers()
 {
-	for (const auto &ptr : q->m_peerList) {
-		/*if (ptr->m_isRejected)
+	/*for (const auto &ptr : q->m_peerList) {
+		if (ptr->m_isRejected)
 			sendPacket(ptr->peer(), UdpBitStream(UdpBitStream::MessageRejected).data(), true);
 
 		UdpEngine *e = ptr->engine().get();
 		if (!e)
 			continue;
 
-		e->disconnectUnusedPeer(ptr.get());*/
+		e->disconnectUnusedPeer(ptr.get());
+	}*/
+
+	for (UdpEngine *engine : m_lobby->engines()) {
+		if (engine->canRemove())
+			q->removeEngine(engine);
 	}
 }
 
@@ -1771,6 +1809,57 @@ const UdpRoom *Lobby::findRoom(const std::function<bool (const UdpRoom *)> &fn) 
 
 	return &room;
 }
+
+
+
+/**
+ * @brief Lobby::removeRoom
+ * @param room
+ */
+
+void Lobby::removeRoom(UdpRoom *room)
+{
+	Q_ASSERT(room);
+
+	QMutexLocker l(&m_mutex);
+
+	QSet<quint32> indices;
+
+	for (UdpServerPeer *p : room->peers()) {
+		indices.insert(p->peerIndex());
+	}
+
+	room->reset();
+
+	l.unlock();
+
+	for (const quint32 i : indices)
+		removeIndex(i);
+}
+
+
+
+
+
+/**
+ * @brief Lobby::setRoom
+ * @param index
+ * @param room
+ */
+
+void Lobby::setRoom(const quint32 &index, UdpRoom *room)
+{
+	QMutexLocker l(&m_mutex);
+
+	if (index >= m_size) {
+		LOG_CERROR("engine") << "Invalid peer index" << index;
+		return;
+	}
+
+	m_data[index].room = room;
+	m_data[index].type = room ? room->type() : EngineInvalid;
+}
+
 
 
 
@@ -2270,6 +2359,40 @@ UdpEngine::~UdpEngine()
 
 
 /**
+ * @brief UdpEngine::udpPeerAdd
+ * @param peer
+ */
+
+void UdpEngine::udpPeerAdd(UdpServerPeer *peer)
+{
+	if (!peer)
+		return;
+
+	LOG_CDEBUG("engine") << "Add peer" << qPrintable(peer->address()) << "to engine" << m_readableId;
+
+	m_udpServer->setRoom(peer->peerIndex(), m_room);
+}
+
+
+
+/**
+ * @brief UdpEngine::udpPeerRemove
+ * @param peer
+ */
+
+void UdpEngine::udpPeerRemove(UdpServerPeer *peer)
+{
+	if (!peer)
+		return;
+
+	LOG_CDEBUG("engine") << "Remove peer" << qPrintable(peer->address()) << "from engine" << m_readableId;
+
+	m_udpServer->setRoom(peer->peerIndex(), nullptr);
+}
+
+
+
+/**
  * @brief UdpEngine::dumpEngine
  * @return
  */
@@ -2375,6 +2498,39 @@ void UdpRoom::peerRemove(UdpServerPeer *peer)
 
 	if (m_engine)
 		m_engine->udpPeerRemove(peer);
+}
+
+
+
+
+/**
+ * @brief UdpRoom::peerRemoveAll
+ */
+
+void UdpRoom::peerRemoveAll()
+{
+	for (UdpServerPeer *peer : m_peers) {
+		if (peer->room() == this)
+			peer->setRoom(nullptr);
+
+		if (m_engine)
+			m_engine->udpPeerRemove(peer);
+	}
+
+	m_peers.clear();
+}
+
+
+
+/**
+ * @brief UdpRoom::reset
+ */
+
+void UdpRoom::reset()
+{
+	peerRemoveAll();
+	m_engine.reset();
+	setType(EngineInvalid);
 }
 
 

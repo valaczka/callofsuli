@@ -107,7 +107,7 @@ signals:
 	void serverConnectionLost();
 
 protected:
-	virtual void binaryDataReceived(std::vector<UdpPacketRcv> &&list) = 0;
+	virtual void binaryDataReceived(std::vector<UdpPacketRcv> &&list, const int &currentRtt) = 0;
 
 private:
 	void onPacketReceived();

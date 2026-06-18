@@ -31,11 +31,30 @@
 
 namespace Rpg {
 
+
+
+
 RpgLogicClient::RpgLogicClient(const quint32 &lastAuthDiff, const quint32 &jitterDiff)
 	: RpgLogic(lastAuthDiff+1)						// nem lehet 0, mert akkor nem engedne feldolgozni semmit
 	, m_jitterDiff(jitterDiff)
 {
 	registerCtx<RpgLogicObjectMapper>();
+}
+
+
+
+
+
+/**
+ * @brief RpgLogicClient::addLocalIdTag
+ * @param entitiy
+ */
+
+void RpgLogicClient::addLocalIdTag(entt::entity entity)
+{
+	QMutexLocker locker(&m_mutex);
+
+	m_registry.emplace_or_replace<LocalIdTag>(entity);
 }
 
 
@@ -109,6 +128,22 @@ QPoint RpgLogicClient::getChunkFromVector(const cpVect &point, const float &angl
 
 
 /**
+ * @brief RpgLogicClient::estimatedServerTick
+ * @return
+ */
+
+quint32 RpgLogicClient::estimatedServerTick() const {
+	const quint32 delta = m_lastInputTimer.isValid() ? AbstractGame::TickTimer::msecToTick(m_lastInputTimer.elapsed()) : 0;
+
+	if (m_serverRtt <= 0)
+		return m_serverTick + delta;
+
+	return m_serverTick + delta + AbstractGame::TickTimer::msecToTick(m_serverRtt/2.);
+}
+
+
+
+/**
  * @brief RpgLogicClient::eventRealized
  * @param entity
  */
@@ -165,6 +200,10 @@ void RpgLogicClientMulti::loadFull(const RpgStream::Full &full)
 		return;
 	}
 
+	m_serverTick = full.serverTick();
+	m_lastInputTimer.start();
+
+
 	Rpg::RpgLogicScope scope = getScope();
 
 	RpgLogicControlledObjects *objs = scope.getCtx<RpgLogicControlledObjects>();
@@ -184,10 +223,63 @@ void RpgLogicClientMulti::loadFull(const RpgStream::Full &full)
 
 	}
 
-	fullStateLoad(full.fullState(), {});
+	loadFullState(full.fullState());
 
-	render(true);
+	m_engine->updateStage(full.config(), full.serverTick());
+
 }
+
+
+
+/**
+ * @brief RpgLogicClientMulti::loadFullState
+ * @param full
+ */
+
+void RpgLogicClientMulti::loadFullState(const RpgStream::FullState &full)
+{
+	if (!m_engine) {
+		LOG_CERROR("game") << "Missing engine";
+		return;
+	}
+
+	m_serverTick = full.serverTick();
+	m_lastInputTimer.start();
+
+	{
+		Rpg::RpgLogicScope scope = getScope();
+
+		RpgStream::GameState *state = scope.getCtx<RpgStream::GameState>();
+
+		if (!state) {
+			scope.registerCtx<RpgStream::GameState>();
+			state = scope.getCtx<RpgStream::GameState>();
+		}
+
+		*state = full.state();
+	}
+
+
+	if (full.flags().testFlag(RpgStream::FullState::Player))
+		loadPlayers(full.players());
+
+
+	if (full.flags().testFlag(RpgStream::FullState::Event))
+		loadEvents(full.events());
+
+	if (full.flags().testFlag(RpgStream::FullState::Tower))
+		loadTowers(full.towers());
+
+	if (full.flags().testFlag(RpgStream::FullState::Mp))
+		loadMp(full.mps());
+
+	if (full.flags().testFlag(RpgStream::FullState::Defender))
+		loadDefenders(full.defenders());
+}
+
+
+
+
 
 
 RpgUdpEngine *RpgLogicClientMulti::engine() const
@@ -198,6 +290,190 @@ RpgUdpEngine *RpgLogicClientMulti::engine() const
 void RpgLogicClientMulti::setEngine(RpgUdpEngine *newEngine)
 {
 	m_engine = newEngine;
+}
+
+
+
+
+/**
+ * @brief RpgLogicClientMulti::loadPlayers
+ * @param list
+ */
+
+void RpgLogicClientMulti::loadPlayers(const std::vector<RpgStream::PlayerStateList> &list)
+{
+	Rpg::RpgLogicScope scope = getScope();
+
+	IdTagMapper *mapper = scope.getCtx<IdTagMapper>();
+
+	Q_ASSERT(mapper);
+
+	for (const RpgStream::PlayerStateList &s : list) {
+		entt::entity player = mapper->get(s.tagId());
+
+		if (!scope.valid(player)) {
+			LOG_CERROR("game") << "Invalid player" << s.tagId();
+			continue;
+		}
+
+		PlayerStateOutput *out = scope.try_get<PlayerStateOutput>(player);
+
+		if (!out) {
+			LOG_CERROR("game") << "Invalid player" << s.tagId();
+			continue;
+		}
+
+		for (const RpgStream::PlayerState &state : s.state()) {
+			out->insert(state);
+		}
+	}
+}
+
+
+
+/**
+ * @brief RpgLogicClientMulti::loadEvents
+ * @param list
+ */
+
+void RpgLogicClientMulti::loadEvents(const std::vector<RpgStream::Events> &list)
+{
+	Rpg::RpgLogicScope scope = getScope();
+
+	EventsOutput *out = scope.getCtx<EventsOutput>();
+
+	Q_ASSERT(out);
+
+	for (const RpgStream::Events &event : list) {
+		LOG_CINFO("game") << "LOAD" << event.tick() << event.flags() << event.stage().size();
+		out->insert(event);
+	}
+}
+
+
+
+
+
+/**
+ * @brief RpgLogicClientMulti::loadTowers
+ * @param list
+ */
+
+void RpgLogicClientMulti::loadTowers(const std::vector<RpgStream::TowerState> &list)
+{
+	Rpg::RpgLogicScope scope = getScope();
+
+	IdTagMapper *mapper = scope.getCtx<IdTagMapper>();
+
+	Q_ASSERT(mapper);
+
+	for (const RpgStream::TowerState &s : list) {
+		entt::entity tower = mapper->get(s.tagId());
+
+		if (!scope.valid(tower)) {
+			LOG_CERROR("game") << "Invalid tower" << s.tagId();
+			continue;
+		}
+
+		TowerStateOutput *out = scope.try_get<TowerStateOutput>(tower) ;
+
+		if (!out) {
+			LOG_CERROR("game") << "Invalid tower" << s.tagId();
+			continue;
+		}
+
+		out->insert(s);
+	}
+}
+
+
+
+
+/**
+ * @brief RpgLogicClientMulti::loadMp
+ * @param list
+ */
+
+void RpgLogicClientMulti::loadMp(const std::vector<RpgStream::MpData> &list)
+{
+	Rpg::RpgLogicScope scope = getScope();
+
+	std::unordered_map<quint32, entt::entity> entities;
+	entities.reserve(list.size());
+
+	for (auto e : scope.view<Mp>()) {
+		if (!scope.valid(e))
+			continue;
+
+		entities[scope.get<Mp>(e).idTag] = e;
+	}
+
+	std::unordered_set<quint32> ids;
+
+	ids.reserve(list.size());
+
+	for (const RpgStream::MpData &p : list) {
+		ids.insert(p.tagId());
+
+		auto it = entities.find(p.tagId());
+
+		if (it == entities.end()) {
+			auto entity = m_registry.create();
+
+			Mp &mp = m_registry.emplace<Mp>(entity);
+			mp.idTag = p.tagId();
+			mp.pos = cpv(p.posXAsFloat(), p.posYAsFloat());
+			mp.origin = cpv(p.origXAsFloat(), p.origYAsFloat());
+
+			entitySetIdTag(entity, mp.idTag);
+
+			LOG_CDEBUG("game") << "ADD MP" << mp.idTag << mp.pos.x << mp.pos.y ;
+		}
+	}
+
+	for (const auto &[id, e] : entities) {
+		if (ids.contains(id))
+			continue;
+
+		m_registry.emplace_or_replace<DeleteTag>(e);
+	}
+}
+
+
+
+
+
+
+/**
+ * @brief RpgLogicClientMulti::loadDefenders
+ * @param list
+ */
+
+void RpgLogicClientMulti::loadDefenders(const std::vector<RpgStream::DefenderState> &list)
+{
+	Rpg::RpgLogicScope scope = getScope();
+
+	IdTagMapper *mapper = scope.getCtx<IdTagMapper>();
+
+	Q_ASSERT(mapper);
+
+	for (const RpgStream::DefenderState &s : list) {
+		entt::entity defender = mapper->get(s.tagId());
+
+		if (!scope.valid(defender)) {
+			LOG_CERROR("game") << "Invalid defender" << s.tagId();
+			continue;
+		}
+
+		DefenderStateOutput *out = scope.try_get<DefenderStateOutput>(defender);
+
+		if (!out) {
+			LOG_CERROR("game") << "Invalid defender" << s.tagId();
+			continue;
+		}
+
+		out->insert(s);
+	}
 }
 
 

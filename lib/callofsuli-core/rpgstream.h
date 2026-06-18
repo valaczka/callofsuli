@@ -48,7 +48,7 @@
 #define QUANTIZED_BITS				24
 
 #define QUANTIZED_SIGNED_TYPE		qint32
-#define QUANTIZED_SIGNED_BITS		24
+#define QUANTIZED_SIGNED_BITS		32
 
 #define STATE_LIST_TYPE				quint8
 #define STATE_LIST_BITS				8						// Max: 256 frame = ~4 sec
@@ -648,7 +648,9 @@ public:
 		DataOperationInvalid = 0x0,
 		DataOperationCharacterSelect,
 		DataOperationMapData,
-		DataOperationFull
+		DataOperationFull,
+		DataOperationPlayerData,
+		DataOperationState
 	};
 
 	EngineDataStream(const DataOperation &dataOperation)
@@ -890,11 +892,8 @@ public:
 	STREAM_MEMBER_CAST(Team, team, Team, quint8, 2, TeamNone)
 	STREAM_MEMBER(ENTITY_HP_TYPE, maxHp, MaxHp, ENTITY_HP_BITS, 0)
 
-	// Tower része
-	STREAM_MEMBER(TAG_ID_TYPE, defenderId, DefenderId, TAG_ID_BITS, 0);
-
-	// Map része
-	STREAM_FIELD(Chunk, chunk, Chunk, {})
+	STREAM_MEMBER_QUANT(posX, PosX, 0);
+	STREAM_MEMBER_QUANT(posY, PosY, 0);
 
 
 	// Dummy
@@ -1219,7 +1218,7 @@ public:
 	STREAM_DELTA_MEMBER_QUANT_SIGNED(velX, VelX, 0, VelX)					// current motor velocity
 	STREAM_DELTA_MEMBER_QUANT_SIGNED(velY, VelY, 0, VelY)
 	STREAM_DELTA_MEMBER_QUANT_SIGNED(angle, Angle, 0, Angle)
-	STREAM_DELTA_MEMBER_QUANT_SIGNED(facing, Facing, 0, Facing)
+	STREAM_DELTA_MEMBER(quint32, facing, Facing, 9, 0, Facing)				// degree, max. 360
 	STREAM_DELTA_MEMBER_QUANT_SIGNED(slideX, SlideX, 0, SlideX)				// current knockback velocity
 	STREAM_DELTA_MEMBER_QUANT_SIGNED(slideY, SlideY, 0, SlideY)
 
@@ -1430,12 +1429,24 @@ public:
 
 
 
+class BaseEventState : public BaseTickState
+{
+public:
+	BaseEventState() = default;
+	BaseEventState(const quint32 &seq) :
+		m_seq(seq)
+	{}
+
+	STREAM_MEMBER(quint32, seq, Seq, 32, 0)
+};
+
+
 
 /**
  * @brief The EventPlayer class
  */
 
-class EventPlayer : public BaseTickState
+class EventPlayer : public BaseEventState
 {
 public:
 	enum Type {
@@ -1453,9 +1464,9 @@ public:
 		EventStreak,											// helyes válasz streak
 	};
 
-	EventPlayer() : BaseTickState() {}
-	EventPlayer(const Type &type)
-		: BaseTickState()
+	EventPlayer() : BaseEventState() {}
+	EventPlayer(const Type &type, const quint32 &seq = 0)
+		: BaseEventState(seq)
 		, m_type(type)
 	{}
 
@@ -1498,6 +1509,27 @@ public:
 
 
 
+
+
+/**
+ * @brief The EventStageChanged class
+ */
+
+class EventStageChanged : public BaseTickState
+{
+public:
+	EventStageChanged() : BaseTickState() {}
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_FIELD(GameConfig, config, Config, {});
+};
+
+
+
+
+
 /**
  * @brief The EventList class
  */
@@ -1516,6 +1548,7 @@ public:
 		Null			= 0,
 		Player			= 1 << 0,
 		Emitter			= 1 << 1,
+		Stage			= 1 << 2,
 	};
 
 	Q_DECLARE_FLAGS(Flags, Flag)
@@ -1523,6 +1556,7 @@ public:
 	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 32, Null)
 	STREAM_MEMBER_VECTOR(EventPlayer, player, Player, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 	STREAM_MEMBER_VECTOR(EventMpEmitter, emitter, Emitter, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
+	STREAM_MEMBER_VECTOR(EventStageChanged, stage, Stage, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 };
 
 
@@ -1554,6 +1588,8 @@ public:
 	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
 	STREAM_MEMBER_QUANT(posX, PosX, 0);
 	STREAM_MEMBER_QUANT(posY, PosY, 0);
+	STREAM_MEMBER_QUANT(origX, OrigX, 0);
+	STREAM_MEMBER_QUANT(origY, OrigY, 0);
 };
 
 
@@ -1610,6 +1646,8 @@ public:
 	EngineStream& operator<<(EngineStream &stream);
 	EngineStream& operator>>(EngineStream &stream) const;
 
+	TO_DATA_STREAM(EngineDataStream::DataOperationState)
+
 	enum Flag {
 		Null			= 0,
 		Player			= 1 << 0,
@@ -1624,7 +1662,7 @@ public:
 	STREAM_ADD_DELTA_MODE
 
 	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 4, Null)
-	STREAM_MEMBER(quint32, serverAuthTick, ServerAuthTick, 32, 0)
+	STREAM_MEMBER(quint32, serverTick, ServerTick, 32, 0)
 
 	STREAM_FIELD(GameState, state, State, {})
 
@@ -1655,11 +1693,12 @@ public:
 
 	TO_DATA_STREAM(EngineDataStream::DataOperationFull)
 
-	STREAM_MEMBER(quint32, serverAuthTick, ServerAuthTick, 32, 0)
+	STREAM_MEMBER(quint32, serverTick, ServerTick, 32, 0)
 	STREAM_FIELD(GameConfig, config, Config, {})
 	STREAM_MEMBER_VECTOR(PlayerData, players, Players, quint32, PEER_INDEX_BITS)
 	STREAM_MEMBER_VECTOR(MpEmitter, mpEmitters, MpEmitters, quint8, 8);
 	STREAM_MEMBER_VECTOR(Tower, towers, Towers, quint8, 8);
+	STREAM_MEMBER_VECTOR(BaseDefenderObject, defenders, Defenders, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 
 	STREAM_MEMBER_VECTOR(FullPlayerMap, map, Map, quint32, PEER_INDEX_BITS)
 	STREAM_FIELD(FullState, fullState, FullState, {})

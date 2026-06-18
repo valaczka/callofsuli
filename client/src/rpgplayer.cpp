@@ -61,6 +61,7 @@ private:
 
 	std::vector<RpgStream::EventPlayer> m_eventList;
 	quint32 m_lockId = 0;
+	quint32 m_penalty = 0;
 	std::optional<RpgStream::EventPlayer> m_lockedEvent;
 	qint64 m_waitForLock = 0;
 	bool m_gameQuestionLoaded = false;
@@ -301,25 +302,47 @@ RpgMotorPlayer::RpgMotorPlayer(RpgPlayer *player)
 
 bool RpgMotorPlayer::beforeWorldStep(const qint64 &tick, entt::entity &entity)
 {
-	/*const qint64 jittered = m_game->rpgLogicClient()->jitterTick();
-
-	if (jittered == 0)
-		return false;*/
-
-
 	Rpg::RpgLogicScope scope = m_game->rpgLogicClient()->getScope();
 
-	const RpgStream::PlayerState *state = scope.getCurrentState<RpgStream::PlayerState>(entity);
+	const Rpg::PlayerStateOutput *out = scope.try_get<Rpg::PlayerStateOutput>(entity);
 
-	if (!state) {
+	if (!out) {
 		LOG_CERROR("game") << "!!!";
 		return false;
 	}
 
 
-	// TODO
-	m_player->emplace(state->entityState().posXAsFloat(), state->entityState().posYAsFloat());
+	if (tick < 0) {
+		const RpgStream::PlayerState *state = out->at(0);
 
+		if (!state) {
+			LOG_CERROR("game") << "Missing tick 0" << this;
+			return false;
+		}
+
+		m_current = *state;
+
+		updateBody(nullptr);
+		m_player->synchronize();
+
+		return true;
+	}
+
+	const quint32 jittered = m_game->rpgLogicClient()->jitterTick(tick);
+
+	if (jittered == 0)
+		return false;
+
+
+	const RpgStream::PlayerState *state = out->at(jittered);
+
+	if (!state) {
+		//LOG_CERROR("game") << "!!! STATE" << tick << jittered;
+		return false;
+	}
+
+
+	m_current = *state;
 
 	m_player->setHp(state->hp());
 	m_player->setMp(state->mp());
@@ -341,31 +364,41 @@ bool RpgMotorPlayer::beforeWorldStep(const qint64 &tick, entt::entity &entity)
 
 void RpgMotorPlayer::updateBody(TiledObject *)
 {
-	/*if (!m_current) {
+	if (!m_current) {
 		m_player->stop();
 		return;
 	}
 
-	cpVect to = cpv(m_current->entityState().posXAsFloat(),
-					m_current->entityState().posYAsFloat());
+	updateBody(m_player, m_current.value(), false);
 
-	////m_player->moveToPoint(to);
-
-	// Ez nem ide kell, hanem a controlledbe!
-	cpVect knockback = cpv(m_current->entityState().slideXAsFloat(),
-						   m_current->entityState().slideYAsFloat());
+	m_current.reset();
+}
 
 
 
-	if (!cpveql(knockback, cpvzero)) {
-		LOG_CINFO("game") << "ADD KNOCKBACK" << knockback.x << knockback.y;
+/**
+ * @brief RpgMotorPlayer::updateBody
+ * @param player
+ * @param state
+ */
 
-		m_player->setSpeed(knockback);
-	} else {
-		m_player->moveToPoint(to);
-	}
+void RpgMotorPlayer::updateBody(RpgPlayer *player, const RpgStream::PlayerState &state, const bool &isEmplace)
+{
+	Q_ASSERT(player);
 
-	m_current.reset();*/
+	cpVect to = cpv(state.entityState().posXAsFloat(),
+					state.entityState().posYAsFloat());
+
+	if (isEmplace)
+		player->emplace(to);
+	else
+		player->TiledObjectBody::moveToPoint(to);
+
+	player->rotateBody(state.entityState().angleAsFloat(), true);
+	player->setFacingDirection(TiledObject::Direction(state.entityState().facing()));
+	player->overrideCurrentSpeed(cpv(state.entityState().velXAsFloat(),
+									 state.entityState().velYAsFloat()
+									 ));
 }
 
 
@@ -711,6 +744,12 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 
 
 
+
+
+
+
+
+
 /**
  * @brief RpgMotorPlayerControlled::beforeWorldStep
  * @param tick
@@ -720,20 +759,80 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 
 bool RpgMotorPlayerControlled::beforeWorldStep(const qint64 &tick, entt::entity &entity)
 {
-	Rpg::RpgLogicScope scope = m_game->rpgLogicClient()->getScope();
+	if (tick < 0) {
 
-	const RpgStream::PlayerState *state = scope.getCurrentState<RpgStream::PlayerState>(entity);
+		Rpg::RpgLogicScope scope = m_game->rpgLogicClient()->getScope();
 
-	if (!state) {
-		LOG_CERROR("game") << "!!!";
+		const Rpg::PlayerStateOutput *out = scope.try_get<Rpg::PlayerStateOutput>(entity);
+
+		if (!out) {
+			LOG_CERROR("game") << "!!!";
+			return false;
+		}
+
+
+		const RpgStream::PlayerState *state = out->at(0);
+
+		if (!state) {
+			LOG_CERROR("game") << "Missing tick 0" << this;
+			return false;
+		}
+
+		RpgMotorPlayer::updateBody(m_player, *state, true);
+
+		saveCurrentState(0);
+
+		m_player->synchronize();
+
+		return true;
+	}
+
+
+
+	const RpgStream::PlayerState *latest = nullptr;
+
+	const std::map<quint32, RpgStream::PlayerState> sim = m_game->rpgLogicClient()->getSimulatedStates(entity, m_statePull, &latest);
+
+	if (!latest) {
+		LOG_CERROR("game") << "!!!" << tick;
 		return false;
 	}
+
+	const RpgStream::PlayerState *state = nullptr;
+
+
+	if (!sim.empty() && sim.cbegin()->second == *latest) {
+		state = &(sim.rbegin()->second);
+	} else {
+		bool reqEmplace = true;
+
+		if (sim.empty())
+			LOG_CWARNING("game") << "<>" << latest->tick() << "NO SIM";
+		else {
+			// Csak akkor helyezzük vissza, ha a pozíció sem stimmel (pl. ha mp-t vett fel, és emiatt változott a státusz, akkor nem bántjuk
+			// Később (pl. hp == 0) lekezeljük újra
+
+			if (sim.cbegin()->second.entityState() == latest->entityState()) {
+				reqEmplace = false;
+				LOG_CINFO("game") << "<>" << latest->tick() << sim.cbegin()->first << "-->" << sim.rbegin()->first;
+			} else {
+				LOG_CWARNING("game") << "<>" << latest->tick() << sim.cbegin()->first << "-->" << sim.rbegin()->first;
+			}
+		}
+
+		state = latest;
+
+		if (reqEmplace)
+			RpgMotorPlayer::updateBody(m_player, *state, true);
+	}
+
 
 
 	// Ha most vált halottra vagy éppen most támad fel
 
 	if (state->hp() == 0 || m_player->hp() == 0) {
-		m_player->emplace(state->entityState().posXAsFloat(), state->entityState().posYAsFloat());
+		RpgMotorPlayer::updateBody(m_player, *state, true);
+		//m_player->emplace(state->entityState().posXAsFloat(), state->entityState().posYAsFloat());
 	}
 
 
@@ -753,12 +852,14 @@ bool RpgMotorPlayerControlled::beforeWorldStep(const qint64 &tick, entt::entity 
 
 	m_player->setLocked(state->lock() > 0 || d->m_lockedEvent);
 	d->m_lockId = state->lock();
+	d->m_penalty = state->penalty();
 	d->updateLock(tick);
 
 	// Ha a locked status váltott
 
 	if (m_player->locked() != oldLock) {
-		m_player->emplace(state->entityState().posXAsFloat(), state->entityState().posYAsFloat());
+		RpgMotorPlayer::updateBody(m_player, *state, true);
+		//m_player->emplace(state->entityState().posXAsFloat(), state->entityState().posYAsFloat());
 	}
 
 
@@ -801,32 +902,17 @@ bool RpgMotorPlayerControlled::afterWorldStep(const qint64 &tick, RpgStream::Ful
 
 	const quint32 tagId = RpgLogicObjectMapper::getId(m_player->objectId());
 
-	/*Rpg::RpgLogicScope scope = m_game->rpgLogicClient().getScope();
+	saveCurrentState(tick);
 
-		auto [player, map] = scope.try_get<Rpg::Player, Rpg::PlayerTickMap>(entity);
-
-		LOG_CINFO("game") << "CURR" << tick << m_player->bodyPositionF()
-						  << (player ? player ->playerData.playerId() : -1)
-						  << "---" << (map ? map->map.size() : -1)
-						  << "LAST"
-						  << (map && !map->map.isEmpty() ? map->map.last().entityState().posXAsFloat() : -1);
-						  */
-
-	RpgStream::PlayerState st;
-	st.setTick(tick);
-	st.entityState().setPosXAsFloat(m_player->bodyPosition().x);
-	st.entityState().setPosYAsFloat(m_player->bodyPosition().y);
-
-	m_statePull.append(std::move(st));
-
-	std::vector<RpgStream::PlayerState> list = m_statePull.extract(m_game->gameMode() == RpgGame::MultiPlayer ? 6 : 1);			// SINGLE PLAYER: 1
+	std::vector<RpgStream::PlayerState> list =
+			m_statePull.extractAtLeast(m_game->gameMode() == RpgGame::MultiPlayer ? state->serverTick() : 0,
+									   m_game->gameMode() == RpgGame::MultiPlayer ? 6 : 1);			// SINGLE PLAYER: 1
 
 
-	/*LOG_CINFO("game") << "---------------------------";
-
-		for (const RpgStream::PlayerState &s : list) {
-			LOG_CDEBUG("game") << s.tick() << "POS" << s.entityState().posXAsFloat() << s.entityState().posYAsFloat();
-		}*/
+	/*if (!list.empty()) {
+		const RpgStream::PlayerState &s = list.back();
+		LOG_CDEBUG("game") << ">>>>>>>>>>>>>>" << s.tick() << "POS" << s.entityState().posXAsFloat() << s.entityState().posYAsFloat();
+	}*/
 
 
 	RpgStream::PlayerStateList sl;
@@ -841,44 +927,6 @@ bool RpgMotorPlayerControlled::afterWorldStep(const qint64 &tick, RpgStream::Ful
 	state->players().push_back(std::move(sl));
 
 
-
-	/*	for (const RpgStream::PlayerStateList &l : state->players().list()) {
-			LOG_CDEBUG("game") << "####" << l.tagId() << l.isDeltaMode();
-
-			for (const RpgStream::PlayerState &s : l.state()) {
-				LOG_CDEBUG("game") << "#" << s.tick() << "POS" << s.entityState().posXAsFloat() << s.entityState().posYAsFloat()
-								   << "|" << s.entityState().deltaMask() << s.entityState().hasPosXDeltaMask() << s.entityState().hasPosYDeltaMask();
-			}
-		}*/
-
-	/*
-			RpgStream::PlayerStateList stream;
-			stream.setIsDeltaMode(true);
-			stream.compressStateVector(list, out);
-
-			LOG_CWARNING("game") << "---------------------------";
-
-			LOG_CDEBUG("game") << out.entityState().tick() << "POS" << out.entityState().posXAsFloat() << out.entityState().posYAsFloat();
-
-			for (const RpgStream::PlayerState &s : stream.state()) {
-				LOG_CDEBUG("game") << s.entityState().tick() << "POS" << s.entityState().posXAsFloat() << s.entityState().posYAsFloat()
-								   << "|" << s.entityState().deltaMask() << s.entityState().hasPosXDeltaMask() << s.entityState().hasPosYDeltaMask();
-			}
-
-			LOG_CERROR("game") << "---------------------------";
-
-			std::vector<RpgStream::PlayerState> test = stream.extractStateVector(out);
-
-			LOG_CDEBUG("game") << out.entityState().tick() << "POS" << out.entityState().posXAsFloat() << out.entityState().posYAsFloat();
-
-			for (const RpgStream::PlayerState &s : test) {
-				LOG_CDEBUG("game") << s.entityState().tick() << "POS" << s.entityState().posXAsFloat() << s.entityState().posYAsFloat();
-			}
-			*/
-
-	//map->map.insert(tick, std::move(st));
-
-
 	if (!d->m_eventList.empty()) {
 
 		for (RpgStream::EventPlayer &e : d->m_eventList) {
@@ -888,7 +936,10 @@ bool RpgMotorPlayerControlled::afterWorldStep(const qint64 &tick, RpgStream::Ful
 
 		RpgStream::Events events;
 		events.setTick(tick);
+		events.flags().setFlag(RpgStream::Events::Player);
 		events.setPlayer(d->m_eventList);
+
+		LOG_CINFO("game") << "EVENT" << tick << events.player().size();
 
 		state->flags().setFlag(RpgStream::FullState::Event);
 		state->events().emplace_back(std::move(events));
@@ -898,6 +949,44 @@ bool RpgMotorPlayerControlled::afterWorldStep(const qint64 &tick, RpgStream::Ful
 
 
 	return true;
+}
+
+
+
+/**
+ * @brief RpgMotorPlayerControlled::saveCurrentState
+ * @return
+ */
+
+const RpgStream::PlayerState *RpgMotorPlayerControlled::saveCurrentState(const qint64 &tick)
+{
+	RpgStream::PlayerState st;
+	st.setTick(tick);
+	st.entityState().setPosXAsFloat(m_player->bodyPosition().x);
+	st.entityState().setPosYAsFloat(m_player->bodyPosition().y);
+	st.entityState().setAngleAsFloat(m_player->desiredBodyRotation());
+
+	const cpVect velocity = cpBodyGetVelocity(m_player->body());
+
+	st.entityState().setFacing(m_player->facingDirection());
+	st.entityState().setVelXAsFloat(velocity.x);
+	st.entityState().setVelYAsFloat(velocity.y);
+	st.entityState().setSlideXAsFloat(m_player->d->m_knockbackVelocity.x);
+	st.entityState().setSlideYAsFloat(m_player->d->m_knockbackVelocity.y);
+
+
+	st.setHp(m_player->hp());
+	st.setMp(m_player->mp());
+	st.setBullet(m_player->bullet());
+	st.setLock(d->m_lockId);
+	st.setPenalty(d->m_penalty);
+	st.setDefender(m_player->m_defender);
+	st.setHasDefender(m_player->m_hasDefender);
+
+
+	m_statePull.append(std::move(st));
+
+	return m_statePull.last();
 }
 
 
@@ -930,6 +1019,7 @@ void RpgMotorPlayerControlled::attackCurrentTarget()
 {
 	if (RpgPlayer *player = qobject_cast<RpgPlayer*>(m_player->targetEntity())) {
 		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventAttackPlayer);
+		e.setSeq(m_player->nextEventId());
 		e.setTarget(RpgLogicObjectMapper::getId(player->objectId()));
 
 		LOG_CWARNING("game") << "ATTACK PLAYER" << e.target();
@@ -954,6 +1044,7 @@ void RpgMotorPlayerControlled::useCurrentControl()
 {
 	if (RpgTower *tower = dynamic_cast<RpgTower*>(m_player->targetControl())) {
 		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventTower);
+		e.setSeq(m_player->nextEventId());
 		e.setTarget(RpgLogicObjectMapper::getId(tower->objectId()));
 
 		LOG_CWARNING("game") << "ATTACK TOWER" << e.target() << d->m_lockId;
@@ -969,6 +1060,7 @@ void RpgMotorPlayerControlled::useCurrentControl()
 
 	if (RpgDefender *p = dynamic_cast<RpgDefender*>(m_player->targetControl())) {
 		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventAttackDefender);
+		e.setSeq(m_player->nextEventId());
 		e.setTarget(RpgLogicObjectMapper::getId(p->objectId()));
 
 		LOG_CWARNING("game") << "ATTACK DEFENDER" << e.target() << d->m_lockId;
@@ -997,6 +1089,7 @@ void RpgMotorPlayerControlled::putDefender(const bool &click)
 {
 	if (RpgDefenderPoint *p = dynamic_cast<RpgDefenderPoint*>(m_player->targetControl())) {
 		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventDefender);
+		e.setSeq(m_player->nextEventId());
 		e.setTarget(RpgLogicObjectMapper::getId(p->objectId()));
 
 		LOG_CWARNING("game") << "PUT DEFENDER" << e.target();
@@ -1014,6 +1107,7 @@ void RpgMotorPlayerControlled::putDefender(const bool &click)
 
 	if (const QPoint &ch = m_player->currentChunk(); ch.x() >= 0 && ch.y() >= 0) {
 		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventDefender);
+		e.setSeq(m_player->nextEventId());
 		e.chunk().setX(ch.x());
 		e.chunk().setY(ch.y());
 
@@ -1041,6 +1135,8 @@ void RpgMotorPlayerControlled::changeMpToBullet()
 	}
 
 	RpgStream::EventPlayer e(RpgStream::EventPlayer::EventChangeBullet);
+
+	e.setSeq(m_player->nextEventId());
 
 	LOG_CWARNING("game") << "CHANGE BULLET" << e.target() << d->m_lockId;
 
@@ -1077,6 +1173,8 @@ void RpgMotorPlayerControlled::changeMpToDefender()
 	}
 
 	RpgStream::EventPlayer e(RpgStream::EventPlayer::EventChangeDefender);
+
+	e.setSeq(m_player->nextEventId());
 
 	LOG_CWARNING("game") << "CHANGE DEFENDER" << e.target() << d->m_lockId << "->" << d->m_currentDefender;
 
@@ -1203,6 +1301,7 @@ void RpgMotorPlayerControlled::eventMpPick(RpgMp *mp)
 		return;
 
 	RpgStream::EventPlayer e(RpgStream::EventPlayer::EventMpPick);
+	e.setSeq(m_player->nextEventId());
 	e.setTarget(RpgLogicObjectMapper::getId(mp->objectId()));
 
 	d->m_eventList.emplace_back(std::move(e));
@@ -1248,6 +1347,7 @@ void RpgMotorPlayerControlled::questionFinished(const bool &success)
 
 	if (success) {
 		RpgStream::EventPlayer e = d->m_lockedEvent.value();
+		e.setSeq(m_player->nextEventId());
 		e.setLockId(d->m_lockId);
 
 		LOG_CWARNING("game") << "RESEND ATTACK" << e.target() << d->m_lockId;
@@ -1255,6 +1355,7 @@ void RpgMotorPlayerControlled::questionFinished(const bool &success)
 		d->m_eventList.emplace_back(std::move(e));
 	} else {
 		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventFailed);
+		e.setSeq(m_player->nextEventId());
 		e.setLockId(d->m_lockId);
 		e.setTarget(d->m_lockedEvent->target());
 

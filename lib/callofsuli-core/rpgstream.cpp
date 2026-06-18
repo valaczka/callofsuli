@@ -464,7 +464,7 @@ EngineStream &PlayerStateList::operator>>(EngineStream &stream) const
 
 EngineStream &FullState::operator<<(EngineStream &stream)
 {
-	readServerAuthTick(stream);
+	readServerTick(stream);
 	readFlags(stream);
 
 	m_state << stream;
@@ -493,7 +493,7 @@ EngineStream &FullState::operator<<(EngineStream &stream)
 
 EngineStream &FullState::operator>>(EngineStream &stream) const
 {
-	writeServerAuthTick(stream);
+	writeServerTick(stream);
 	writeFlags(stream);
 
 	m_state >> stream;
@@ -531,6 +531,9 @@ EngineStream &Events::operator<<(EngineStream &stream)
 	if (m_flags & Emitter)
 		readEmitter(stream);
 
+	if (m_flags & Stage)
+		readStage(stream);
+
 	return stream;
 }
 
@@ -552,6 +555,9 @@ EngineStream &Events::operator>>(EngineStream &stream) const
 	if (m_flags & Emitter)
 		writeEmitter(stream);
 
+	if (m_flags & Stage)
+		writeStage(stream);
+
 	return stream;
 }
 
@@ -566,6 +572,7 @@ EngineStream &EventPlayer::operator<<(EngineStream &stream)
 {
 	readTick(stream);
 	readTagId(stream);
+	readSeq(stream);
 	readType(stream);
 	readLockId(stream);
 
@@ -579,7 +586,7 @@ EngineStream &EventPlayer::operator<<(EngineStream &stream)
 		readTarget(stream);
 	}
 
-	if (m_type == EventDefender && m_tagId == 0) {
+	if (m_type == EventDefender && m_target == 0) {
 		m_chunk << stream;
 	}
 
@@ -601,6 +608,7 @@ EngineStream &EventPlayer::operator>>(EngineStream &stream) const
 {
 	writeTick(stream);
 	writeTagId(stream);
+	writeSeq(stream);
 	writeType(stream);
 	writeLockId(stream);
 
@@ -614,7 +622,7 @@ EngineStream &EventPlayer::operator>>(EngineStream &stream) const
 		writeTarget(stream);
 	}
 
-	if (m_type == EventDefender && m_tagId == 0) {
+	if (m_type == EventDefender && m_target == 0) {
 		m_chunk >> stream;
 	}
 
@@ -676,6 +684,8 @@ EngineStream &MpData::operator<<(EngineStream &stream)
 	readTagId(stream);
 	readPosX(stream);
 	readPosY(stream);
+	readOrigX(stream);
+	readOrigY(stream);
 
 	return stream;
 }
@@ -692,6 +702,8 @@ EngineStream &MpData::operator>>(EngineStream &stream) const
 	writeTagId(stream);
 	writePosX(stream);
 	writePosY(stream);
+	writeOrigX(stream);
+	writeOrigY(stream);
 
 	return stream;
 }
@@ -887,11 +899,9 @@ EngineStream &BaseDefenderObject::operator<<(EngineStream &stream)
 
 	readTeam(stream);
 	readMaxHp(stream);
-	readDefenderId(stream);
 
-	if (m_defenderId == 0u)
-		m_chunk << stream;
-
+	readPosX(stream);
+	readPosY(stream);
 
 	switch (m_type) {
 		case BaseDefenderObject::Dummy:
@@ -920,10 +930,9 @@ EngineStream &BaseDefenderObject::operator>>(EngineStream &stream) const
 
 	writeTeam(stream);
 	writeMaxHp(stream);
-	writeDefenderId(stream);
 
-	if (m_defenderId == 0u)
-		m_chunk >> stream;
+	writePosX(stream);
+	writePosY(stream);
 
 	switch (m_type) {
 		case BaseDefenderObject::Dummy:
@@ -1217,12 +1226,13 @@ EngineStream &CharacterSelectClient::operator>>(EngineStream &stream) const
 
 EngineStream &Full::operator<<(EngineStream &stream)
 {
-	readServerAuthTick(stream);
+	readServerTick(stream);
 	m_config << stream;
 
 	readPlayers(stream);
 	readMpEmitters(stream);
 	readTowers(stream);
+	readDefenders(stream);
 
 	readMap(stream);
 	m_fullState << stream;
@@ -1240,12 +1250,13 @@ EngineStream &Full::operator<<(EngineStream &stream)
 
 EngineStream &Full::operator>>(EngineStream &stream) const
 {
-	writeServerAuthTick(stream);
+	writeServerTick(stream);
 	m_config >> stream;
 
 	writePlayers(stream);
 	writeMpEmitters(stream);
 	writeTowers(stream);
+	writeDefenders(stream);
 
 	writeMap(stream);
 	m_fullState >> stream;
@@ -1309,6 +1320,34 @@ EngineStream &FullMapTag::operator<<(EngineStream &stream)
 EngineStream &FullMapTag::operator>>(EngineStream &stream) const
 {
 	writeTagId(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief EventStageChanged::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &EventStageChanged::operator<<(EngineStream &stream)
+{
+	m_config << stream;
+
+	return stream;
+}
+
+
+/**
+ * @brief EventStageChanged::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &EventStageChanged::operator>>(EngineStream &stream) const
+{
+	m_config >> stream;
 
 	return stream;
 }

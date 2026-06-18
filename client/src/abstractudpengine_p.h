@@ -115,7 +115,26 @@ private:
 	QAtomicInt m_running{0};
 
 	UdpCacheQueue<UdpPacketRcv> m_cacheRcv;
-	UdpCacheQueue<UdpPacketSnd> m_cacheSnd;
+
+	class UdpCacheQueueSnd : public UdpCacheQueue<UdpPacketSnd>  {
+	public:
+		UdpCacheQueueSnd() = default;
+
+		bool hasEvent() const {
+			QMutexLocker l(&m_mutex);
+			return m_hasEvent;
+		}
+
+		void setEvent(const bool &hasEvent = true) {
+			QMutexLocker l(&m_mutex);
+			m_hasEvent = hasEvent;
+		}
+
+	private:
+		bool m_hasEvent = false;
+	};
+
+	UdpCacheQueueSnd m_cacheSnd;
 
 	QByteArray m_connectionToken;
 

@@ -121,12 +121,15 @@ private:
 
 	// Play
 
-	void startGame();
+	void startGame(const quint32 &tick = 0);
 	void onBeforeWorldStep(const qint64 &tick);
 	void onAfterWorldStep(const RpgStream::FullState &full);
+	void finishGame();
 
 
 	// Synchronize
+
+	void syncGameConfig(const RpgStream::GameConfig &config, const quint32 &tick);
 
 	void syncGameState();
 
@@ -150,6 +153,7 @@ private:
 
 	void processEvents(const std::vector<RpgStream::Events> &list, const qint64 &tick);
 	void processEvents(const std::vector<RpgStream::EventPlayer> &list);
+	void processEvents(const std::vector<RpgStream::EventStageChanged> &list);
 
 	void onTimeStepped(const std::vector<TiledObjectBody *> &aboutDestruction);
 
@@ -158,6 +162,7 @@ private:
 	quint32 logicRegisterObject(RpgObject *object);
 
 	void changeControlledPlayer();					// deprecated
+
 
 private:
 	RpgGame *const q;
@@ -168,7 +173,7 @@ private:
 
 	std::unique_ptr<Rpg::RpgLogicClient> m_logic;
 	quint32 m_deadlineTick = 0;
-	quint32 m_lastProcessedEventTick = 0;			// a szervertől jött utoljára feldolgozott eseménylista tick-je
+	qint64 m_lastProcessedEventTick = -1;			// a szervertől jött utoljára feldolgozott eseménylista tick-je
 
 
 	QVector<Question> m_questionList;

@@ -25,14 +25,110 @@
  */
 
 #include "rpglogicserver.h"
+#include "rpgengine.h"
+#include "serverservice.h"
 
 #define LAST_AUTH_DIFF				6
+#define SEND_STATE_COUNT			3
 
 RpgLogicServer::RpgLogicServer(RpgEngine *engine)
 	: Rpg::RpgLogic(LAST_AUTH_DIFF)
 	, m_engine(engine)
 {
 
+}
+
+
+/**
+ * @brief RpgLogicServer::getRenderedState
+ * @return
+ */
+
+RpgStream::Full RpgLogicServer::getRenderedState(const bool &requireFull)
+{
+	RpgStream::Full f;
+
+#ifdef WITH_FTXUI
+	QString txt;
+
+	if (requireFull) {
+		f = getFull(&txt);
+	} else {
+		const RpgStream::FullState &st = getFullState(SEND_STATE_COUNT, &txt);
+		f.setFullState(st);
+	}
+#else
+	if (requireFull) {
+		f = getFull();
+	} else {
+		const RpgStream::FullState &st = getFullState(SEND_STATE_COUNT);
+		f.setFullState(st);
+	}
+#endif
+
+
+#ifdef WITH_FTXUI
+	QCborMap m;
+	m.insert(QStringLiteral("mode"), QStringLiteral("SND"));
+	m.insert(QStringLiteral("txt"), txt);
+	m_engine->udpServer()->service()->writeToSocket(m.toCborValue());
+#endif
+
+	return f;
+}
+
+
+
+/**
+ * @brief RpgLogicServer::eventRealized
+ * @param entity
+ */
+
+void RpgLogicServer::eventRealized(entt::entity entity)
+{
+	QMutexLocker locker(&m_mutex);
+
+	if (RpgStream::EventStageChanged *ev = m_registry.try_get<RpgStream::EventStageChanged>(entity)) {
+		LOG_CINFO("engine") << "REALIZED STAGE" << ev->config().stage();
+		ELOG_DEBUG << "Stage changed to" << ev->config().stage();
+
+		if (!onStageChanged(ev->config().stage()))
+			eventRealizedDefault(entity);
+	}
+
+
+
+}
+
+
+
+/**
+ * @brief RpgLogicServer::onStageChanged
+ * @param stage
+ */
+
+bool RpgLogicServer::onStageChanged(const RpgStream::GameConfig::Stage &stage)
+{
+	if (stage == RpgStream::GameConfig::StageWarmingUp)	{
+		LOG_CINFO("engine") << "WARMING UP";
+		ELOG_DEBUG << "Stage: warming up";
+	}
+
+	// run default
+
+	return false;
+}
+
+
+/**
+ * @brief RpgLogicServer::_logger
+ * @return
+ */
+
+Logger *RpgLogicServer::_logger() const
+{
+	Q_ASSERT (m_engine);
+	return m_engine->_logger();
 }
 
 

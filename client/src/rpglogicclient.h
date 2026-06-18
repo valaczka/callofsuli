@@ -29,7 +29,6 @@
 
 #include "chipmunk/chipmunk_types.h"
 #include <rpglogic.h>
-#include "abstractgame.h"
 
 class RpgObject;
 class RpgTower;
@@ -59,24 +58,48 @@ class RpgLogicClient : public RpgLogic
 public:
 	RpgLogicClient(const quint32 &lastAuthDiff, const quint32 &jitterDiff);
 
+	void addLocalIdTag(entt::entity entity);
+
 	void removeFromMapper(RpgObject *object);
 	QPoint getChunkFromVector(const cpVect &point, cpVect *centerPtr = nullptr);
 	QPoint getChunkFromVector(const cpVect &point, const float &angle, cpVect *centerPtr = nullptr);
 
+	quint32 jitterTick(const quint32 &tick) const {
+		return tick > (m_jitterDiff+m_lastAuthTickDiff) ? (tick-m_jitterDiff-m_lastAuthTickDiff) : 0;
+	}
+
 	const quint32 &lastAuthDiff() const { return m_lastAuthTickDiff; }
-	quint32 jitterTick() const {
-		return m_serverTick > (m_jitterDiff+m_lastAuthTickDiff) ? (m_serverTick-m_jitterDiff-m_lastAuthTickDiff) : 0;
-	}
 
-	quint32 estimatedServerTick(const quint32 &lastAuthTick) {
-		if (m_serverRtt <= 0)
-			return lastAuthTick + m_lastAuthTickDiff;
-
-		return lastAuthTick + m_lastAuthTickDiff + AbstractGame::TickTimer::msecToTick(m_serverRtt/2.);
-	}
+	quint32 estimatedServerTick() const;
 
 	qint64 serverRtt() const { return m_serverRtt; }
 	void setServerRtt(qint64 newServerRtt) { m_serverRtt = newServerRtt; }
+
+	template <typename T, std::size_t PULL_SIZE = DEFAULT_PULL_SIZE,
+			  typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T>::value>::type>
+	std::map<quint32, T> getSimulatedStates(entt::entity ent, const BaseStatePull<T, PULL_SIZE> &local,
+											const T** latestPtr = nullptr) const
+	{
+		QMutexLocker locker(&m_mutex);
+
+		std::map<quint32, T> ret;
+
+		const BaseStatePull<T> *pull = m_registry.try_get<BaseStatePull<T> >(ent);
+
+		if (!pull)
+			return ret;
+
+		const T* latest = pull->latest();
+
+		if (!latest)
+			return ret;
+
+		if (latestPtr)
+			*latestPtr = latest;
+
+		return local.extractToMap(latest->tick());
+	}
+
 
 protected:
 	virtual void eventRealized(entt::entity entity) override;
@@ -84,7 +107,10 @@ protected:
 protected:
 	qint64 m_serverRtt = 0;
 	const quint32 m_jitterDiff = 0;
+
+	QElapsedTimer m_lastInputTimer;
 };
+
 
 
 
@@ -110,15 +136,34 @@ public:
 	RpgLogicClientMulti();
 
 	void loadFull(const RpgStream::Full &full);
+	void loadFullState(const RpgStream::FullState &full);
 
 	RpgUdpEngine *engine() const;
 	void setEngine(RpgUdpEngine *newEngine);
 
 private:
+	void loadPlayers(const std::vector<RpgStream::PlayerStateList> &list);
+	void loadEvents(const std::vector<RpgStream::Events> &list);
+	void loadTowers(const std::vector<RpgStream::TowerState> &list);
+	void loadMp(const std::vector<RpgStream::MpData> &list);
+	void loadDefenders(const std::vector<RpgStream::DefenderState> &list);
+
 	RpgUdpEngine *m_engine = nullptr;
 };
 
 
+
+
+
+/**
+ * @brief The LocalIdTag class
+ */
+
+struct LocalIdTag {};
+
+/**
+ * @brief The RpgLogicControlledObjects class
+ */
 
 struct RpgLogicControlledObjects
 {

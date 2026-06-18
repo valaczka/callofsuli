@@ -71,6 +71,8 @@ public:
 
 	virtual QString dumpEngine() const override;
 
+	virtual bool canRemove() const override;
+
 	Logger *_logger() const;
 
 	quint32 internalId() const { return m_id; }

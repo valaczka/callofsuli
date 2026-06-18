@@ -141,6 +141,8 @@ public:
 
 	AbstractRpgMotor* currentMotor() const { return m_secondaryMotor ? m_secondaryMotor.get() : m_defaultMotor.get(); }
 
+	quint32 nextEventId() { return ++m_eventId; }
+
 protected:
 	void synchronize() override;
 	void worldStep() override final;
@@ -152,6 +154,8 @@ protected:
 	RpgGame *m_rpgGame = nullptr;
 	std::unique_ptr<AbstractRpgMotor> m_defaultMotor;
 	std::unique_ptr<AbstractRpgMotor> m_secondaryMotor;
+
+	quint32 m_eventId = 0;
 
 	friend class AbstractRpgMotor;
 };

@@ -44,7 +44,16 @@ public:
 
 	RpgEngine *engine() const { return m_engine; }
 
+	RpgStream::Full getRenderedState(const bool &isStageSelect);
+
+protected:
+	virtual void eventRealized(entt::entity entity) override;
+
+	bool onStageChanged(const RpgStream::GameConfig::Stage &stage);
+
 private:
+	Logger *_logger() const;
+
 	RpgEngine *const m_engine;
 };
 

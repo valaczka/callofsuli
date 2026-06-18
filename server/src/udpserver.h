@@ -108,6 +108,8 @@ public:
 
 	UdpRoom *createRoom();
 
+	void setRoom(const quint32 &index, UdpRoom *room);
+
 	template <class T, typename = std::enable_if<std::is_base_of<UdpEngine, T>::value>::type>
 	T* createEngine();
 
@@ -119,6 +121,8 @@ public:
 	T* findEngine(const std::function<bool(const UdpRoom*)> &fn) const {
 		return qobject_cast<T*>(findEngine(fn));
 	}
+
+	void removeEngine(UdpEngine *engine);
 
 private:
 	UdpServerPrivate *d = nullptr;
@@ -239,14 +243,16 @@ public:
 	virtual ~UdpEngine();
 
 	virtual void binaryDataReceived(UdpServerPeerReceivedList &data) { Q_UNUSED(data); }
-	virtual void udpPeerAdd(UdpServerPeer *peer) { Q_UNUSED(peer); }
-	virtual void udpPeerRemove(UdpServerPeer *peer) { Q_UNUSED(peer); }
+	virtual void udpPeerAdd(UdpServerPeer *peer);
+	virtual void udpPeerRemove(UdpServerPeer *peer);
 	virtual void disconnectUnusedPeer(UdpServerPeer *peer) { Q_UNUSED(peer); }
 	virtual void hostChanged(UdpServerPeer *peer) { Q_UNUSED(peer); }
 
 	virtual void udpTimerEvent(const qint64 &dt) { Q_UNUSED(dt); }
 
 	virtual QString dumpEngine() const;
+
+	virtual bool canRemove() const { return false; }
 
 	UdpServer *udpServer() const { return m_udpServer; }
 	void setUdpServer(UdpServer *server) { m_udpServer = server; }
@@ -297,6 +303,9 @@ public:
 
 	void peerAdd(UdpServerPeer *peer);
 	void peerRemove(UdpServerPeer *peer);
+	void peerRemoveAll();
+
+	void reset();
 
 protected:
 	UdpType m_type = UdpType::EngineInvalid;

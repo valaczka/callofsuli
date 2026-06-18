@@ -615,6 +615,9 @@ void RpgGamePrivate::prepareGameItem()
 {
 	Q_ASSERT(!RpgGame::terrains().isEmpty());
 
+	if (m_engine)
+		m_engine->m_gameFlags.setFlag(RpgStream::PlayerData::FlagLoadStarted);
+
 	if (!initializeQuestions()) {
 		q->setError(tr("Nem sikerült betölteni a kérdéseket"));
 		return;
@@ -666,30 +669,9 @@ void RpgGamePrivate::onGameItemPrepared()
 {
 	LOG_CINFO("game") << "********************************************************";
 
-
 	connectJoysticks();
 
 	loadChunkGrid();
-
-
-	if (q->m_gameMode == RpgGame::MultiPlayer) {
-		m_engine->m_isMapReady = true;
-		return;
-	} else {
-		m_logic->loadMapData(m_mapData);
-		m_isMapLoaded = true;
-	}
-
-
-/*
-	Rpg::RpgLogicScope scope = m_logic->getScope();
-	m_deadlineTick = scope.getCtx<RpgStream::GameConfig>()->duration();
-
-
-	m_logic->emplacePlayers();*/
-
-	syncObjects();
-	syncGameState();
 
 
 	// Set tower points
@@ -702,6 +684,30 @@ void RpgGamePrivate::onGameItemPrepared()
 		p.setY(tower->scene()->height() - p.y());
 		tower->scatterPoint().scatter->replace(tower->scatterPoint().index, p);
 	}
+
+
+	// Load game
+
+	if (q->m_gameMode == RpgGame::MultiPlayer) {
+		m_engine->m_isMapReady = true;
+		m_engine->m_gameFlags.setFlag(RpgStream::PlayerData::FlagLoadCompleted);
+
+		return;
+	} else {
+		m_logic->loadMapData(m_mapData);
+		m_isMapLoaded = true;
+	}
+
+
+	/*
+	Rpg::RpgLogicScope scope = m_logic->getScope();
+	m_deadlineTick = scope.getCtx<RpgStream::GameConfig>()->duration();
+
+
+	m_logic->emplacePlayers();*/
+
+	syncObjects();
+	syncGameState();
 
 	/// TODO...
 	///q->setGameState(RpgGame::GameStateInit);
@@ -1254,12 +1260,12 @@ void RpgGamePrivate::onQuestionFinished()
  * @brief RpgGamePrivate::startGame
  */
 
-void RpgGamePrivate::startGame()
+void RpgGamePrivate::startGame(const quint32 &tick)
 {
-	LOG_CINFO("game") << "START GAME";
+	LOG_CINFO("game") << "START GAME" << tick << m_logic->serverTick() << m_logic->estimatedServerTick() << "AUTH" << m_logic->lastAuthTick();
 
 	q->setGameState(RpgGame::GameStatePlay);
-	q->m_gameItem->tickTimer()->start(q);
+	q->m_gameItem->tickTimer()->start(q, tick);
 }
 
 
@@ -1274,16 +1280,16 @@ void RpgGamePrivate::onBeforeWorldStep(const qint64 &tick)
 	syncGameState();
 	syncObjects();
 
-	if (tick < 0)
-		return;
-
 	if (q->m_gameMode == RpgGame::SinglePlayer) {
 		m_logic->render();
+	} else {
+		if (m_engine)
+			m_engine->onBeforeWorldStep(tick);
+
+		m_logic->renderUpdate();				// delete tags
 	}
 
 	RpgStream::FullState full = m_logic->getFullState(1);
-
-
 
 	if (full.flags().testFlag(RpgStream::FullState::Event))
 		processEvents(full.events(), tick);
@@ -1303,6 +1309,85 @@ void RpgGamePrivate::onAfterWorldStep(const RpgStream::FullState &full)
 {
 	if (q->m_gameMode == RpgGame::SinglePlayer) {
 		m_logic->fullStateLoad(full, {});
+	} else if (m_engine) {
+		m_engine->sendState(full);
+	}
+}
+
+
+
+/**
+ * @brief RpgGamePrivate::finishGame
+ */
+
+void RpgGamePrivate::finishGame()
+{
+	if (q->gameState() != RpgGame::GameStateFinished) {
+		LOG_CERROR("game") << "Invalid state" << q->gameState();
+		return;
+	}
+
+	LOG_CINFO("game") << "FINISH GAME" << q->m_gameItem->tickTimer()->currentTick() << m_logic->serverTick() << m_logic->estimatedServerTick() << "AUTH" << m_logic->lastAuthTick();
+
+	q->setGameState(RpgGame::GameStateFinished);
+	q->m_gameItem->tickTimer()->stop();
+
+	q->setFinishState(AbstractGame::Fail);			// TODO
+
+	q->gameFinish();
+}
+
+
+
+
+/**
+ * @brief RpgGamePrivate::syncGameConfig
+ */
+
+void RpgGamePrivate::syncGameConfig(const RpgStream::GameConfig &config, const quint32 &tick)
+{
+	Rpg::RpgLogicScope scope = m_logic->getScope();
+
+	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
+
+	Q_ASSERT(cfg);
+
+	cfg->setDuration(config.duration());
+
+	if (!cfg->flags().testFlag(RpgStream::GameConfig::FlagPlaying) &&
+			config.flags().testFlag(RpgStream::GameConfig::FlagPlaying)) {
+		LOG_CINFO("game") << "START:" << cfg->stage() << "->" << config.stage();
+		q->m_gameItem->message(QObject::tr("START"));
+
+		cfg->flags().setFlag(RpgStream::GameConfig::FlagPlaying);
+		q->setGameState(RpgGame::GameStateInit);
+	}
+
+	if (!cfg->flags().testFlag(RpgStream::GameConfig::FlagFinished) &&
+			config.flags().testFlag(RpgStream::GameConfig::FlagFinished)) {
+		LOG_CINFO("game") << "STOP:" << cfg->stage() << "->" << config.stage();
+		q->m_gameItem->message(QObject::tr("FINISHED"));
+
+		cfg->flags().setFlag(RpgStream::GameConfig::FlagFinished);
+
+		finishGame();
+	}
+
+	if (config.stage() > cfg->stage()) {
+		LOG_CINFO("game") << "New stage:" << cfg->stage() << "->" << config.stage() << tick;
+
+		q->m_gameItem->onStageChanged(config.stage());
+
+		if (cfg->stage() < RpgStream::GameConfig::StageWarmingUp && config.stage() >= RpgStream::GameConfig::StageWarmingUp) {
+			const quint32 serverTick = m_logic->estimatedServerTick();
+			LOG_CINFO("game") << "START GAME AT" << serverTick;
+
+			startGame(serverTick);
+			q->m_gameItem->overrideCurrentFrame(serverTick);
+			m_deadlineTick = cfg->duration();
+		}
+
+		cfg->setStage(config.stage());
 	}
 }
 
@@ -1365,7 +1450,7 @@ void RpgGamePrivate::syncPlayers()
 
 	Rpg::RpgLogicControlledObjects *controlledObjects = scope.getCtx<Rpg::RpgLogicControlledObjects>();
 
-	auto view = scope.view<Rpg::Player>(entt::exclude<Rpg::IdTag>);
+	auto view = scope.view<Rpg::Player>(entt::exclude<Rpg::LocalIdTag>);
 
 	for (auto entity : view) {
 		const RpgStream::PlayerState *state = scope.getCurrentState<RpgStream::PlayerState>(entity);
@@ -1416,8 +1501,7 @@ void RpgGamePrivate::syncPlayers()
 		}
 
 		const quint32 pid = logicRegisterObject(obj);
-
-		m_logic->entitySetIdTag(entity, pid);
+		m_logic->addLocalIdTag(entity);
 
 		LOG_CINFO("game") << "ADDED" << pid << "==" << obj->hp() << "HP" << "/" << obj->maxHp() << "MaxHp" << "|" << obj->bullet();
 
@@ -1443,7 +1527,7 @@ void RpgGamePrivate::syncMp()
 {
 	Rpg::RpgLogicScope scope = m_logic->getScope();
 
-	auto view = scope.view<Rpg::Mp>(entt::exclude<Rpg::IdTag>);
+	auto view = scope.view<Rpg::Mp>(entt::exclude<Rpg::LocalIdTag>);
 
 	for (auto entity : view) {
 		const Rpg::Mp &mp = scope.get<Rpg::Mp>(entity);
@@ -1464,7 +1548,8 @@ void RpgGamePrivate::syncMp()
 
 		const quint32 pid = logicRegisterObject(obj);
 
-		m_logic->entitySetIdTag(entity, pid);
+		m_logic->addLocalIdTag(entity);
+
 
 		LOG_CINFO("game") << "ADDED MP" << RpgLogicObjectMapper::toObjectId(pid).ownerId
 						  << RpgLogicObjectMapper::toObjectId(pid).sceneId
@@ -1484,7 +1569,7 @@ void RpgGamePrivate::syncDefenders()
 {
 	Rpg::RpgLogicScope scope = m_logic->getScope();
 
-	auto view = scope.view<Rpg::DefenderObject>(entt::exclude<Rpg::IdTag>);
+	auto view = scope.view<Rpg::DefenderObject>(entt::exclude<Rpg::LocalIdTag>);
 
 	for (auto entity : view) {
 		const Rpg::DefenderObject &def = scope.get<Rpg::DefenderObject>(entity);
@@ -1532,7 +1617,8 @@ void RpgGamePrivate::syncDefenders()
 
 		const quint32 pid = logicRegisterObject(obj);
 
-		m_logic->entitySetIdTag(entity, pid);
+		m_logic->addLocalIdTag(entity);
+
 
 		LOG_CINFO("game") << "ADDED DEFENDER" << RpgLogicObjectMapper::toObjectId(pid).ownerId
 						  << RpgLogicObjectMapper::toObjectId(pid).sceneId
@@ -1616,48 +1702,6 @@ void RpgGamePrivate::deleteMissingObjects(const ObjectSet &objects)
 
 	RpgLogicObjectMapper *mapper = scope.getCtx<RpgLogicObjectMapper>();
 
-	/*
-	if (objects.flag.testFlag(RpgStream::FullState::Player)) {
-		auto view = scope.view<Rpg::Player>();
-
-		for (auto e : view) {
-			const Rpg::Player &p = scope.get<Rpg::Player>(e);
-			if (!objects.player.contains(p.idTag())) {
-				LOG_CINFO("game") << "SET DELETE TAG PLAYER" << p.idTag();
-				scope.setDeleteTag(e);
-			}
-		}
-	}
-
-	if (objects.flag.testFlag(RpgStream::FullState::Mp)) {
-		auto view = scope.view<Rpg::Mp>();
-
-		for (auto e : view) {
-			const Rpg::Mp &p = scope.get<Rpg::Mp>(e);
-			if (!objects.mp.contains(p.idTag)) {
-				LOG_CINFO("game") << "SET DELETE TAG MP" << p.idTag;
-				scope.setDeleteTag(e);
-			}
-		}
-	}
-
-	if (objects.flag.testFlag(RpgStream::FullState::Defender)) {
-		auto view = scope.view<Rpg::Mp>();
-
-		for (auto e : view) {
-			const Rpg::DefenderObject &p = scope.get<Rpg::DefenderObject>(e);
-			if (!objects.defender.contains(p.idTag)) {
-				LOG_CINFO("game") << "SET DELETE TAG DEFENDER" << p.idTag;
-				scope.setDeleteTag(e);
-			}
-		}
-	}
-
-
-	scope.destroyDeleteTags();
-
-*/
-
 	for (auto it = mapper->map.cbegin(); it != mapper->map.cend(); ) {
 		bool found = true;
 
@@ -1707,9 +1751,18 @@ void RpgGamePrivate::processEvents(const std::vector<RpgStream::Events> &list, c
 		return;
 
 	for (const RpgStream::Events &event : list) {
-		LOG_CINFO("game") << "########### EVENT" << event.tick() << "### CURR" << tick << "### LAST" << m_lastProcessedEventTick;
-		if (event.tick() <= m_lastProcessedEventTick)
+
+		// Stage events (ezt nézzük mindig, mert az elején a -1 tick alatt több is történhet
+
+		if (event.flags().testFlag(RpgStream::Events::Stage))
+			processEvents(event.stage());
+
+		// A többit nem dolgozzuk fel többször
+
+		if ((qint64) event.tick() <= m_lastProcessedEventTick)
 			continue;
+
+		LOG_CINFO("game") << "########### EVENT" << event.tick() << "### CURR" << tick << "### LAST" << m_lastProcessedEventTick;
 
 		// Mp emitted
 
@@ -1776,6 +1829,24 @@ void RpgGamePrivate::processEvents(const std::vector<RpgStream::EventPlayer> &li
 			motor->processEvent(event);
 		}
 
+	}
+}
+
+
+
+
+/**
+ * @brief RpgGamePrivate::processEvents
+ * @param list
+ */
+
+void RpgGamePrivate::processEvents(const std::vector<RpgStream::EventStageChanged> &list)
+{
+	if (list.empty())
+		return;
+
+	for (const RpgStream::EventStageChanged &event : list) {
+		syncGameConfig(event.config(), event.tick());
 	}
 }
 

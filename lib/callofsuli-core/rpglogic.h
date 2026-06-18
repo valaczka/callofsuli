@@ -231,7 +231,7 @@ public:
 		int n = 0;
 		for (const T &state : list) {
 			if (state.tick() < minTick || (maxTick > 0 && state.tick() > maxTick)) {
-				LOG_CTRACE("game") << "Tick dropped" << state.tick();
+				//LOG_CTRACE("game") << "Tick dropped" << state.tick() << "min:" << minTick << "max:" << maxTick;
 				continue;
 			}
 
@@ -302,7 +302,7 @@ public:
 		int n = 0;
 		for (const T &state : list) {
 			if (state.tick() < minTick || (maxTick > 0 && state.tick() > maxTick)) {
-				LOG_CTRACE("game") << "Tick dropped" << state.tick();
+				//LOG_CTRACE("game") << "Tick dropped" << state.tick() << "min:" << minTick << "max:" << maxTick;
 				continue;
 			}
 
@@ -344,6 +344,7 @@ public:
 
 		m_list[m_head % PULL_SIZE] = content;
 		++m_head;
+		m_maxTick = std::max(content.tick(), m_maxTick);
 	}
 	void append(T &&content) {
 		if (m_head > 1 && m_list[(m_head-1) % PULL_SIZE] == content)
@@ -351,9 +352,41 @@ public:
 
 		m_list[m_head % PULL_SIZE] = std::move(content);
 		++m_head;
+		m_maxTick = std::max(content.tick(), m_maxTick);
 	}
 
-	std::vector<T> extract(const int &max = 0) {
+	void appendGreater(const T &content) {
+		if (m_head == 0 || content.tick() > m_maxTick)
+			append(content);
+	}
+
+	void appendGreater(T &&content) {
+		if (m_head == 0 || content.tick() > m_maxTick)
+			append(std::move(content));
+	}
+
+	void insert(const T &content) {
+		for (quint32 i=0; i<PULL_SIZE && i<m_head; ++i) {
+			if (m_list[i].tick() == content.tick()) {
+				m_list[i] = content;
+				return;
+			}
+		}
+
+		append(content);
+	}
+	void insert(T &&content) {
+		for (quint32 i=0; i<PULL_SIZE && i<m_head; ++i) {
+			if (m_list[i].tick() == content.tick()) {
+				m_list[i] = std::move(content);
+				return;
+			}
+		}
+
+		append(std::move(content));
+	}
+
+	std::vector<T> extract(const int &max = 0) const {
 		std::vector<T> list;
 
 		if (m_head == 0)
@@ -371,7 +404,7 @@ public:
 		return list;
 	}
 
-	std::vector<T> extractAtLeast(const quint32 &minTick, const int &max = 0) {
+	std::vector<T> extractAtLeast(const quint32 &minTick, const int &max = 0) const {
 		std::vector<T> list;
 
 		if (m_head == 0)
@@ -386,6 +419,21 @@ public:
 			const T &d = m_list[i % PULL_SIZE];
 			if (d.tick() >= minTick)
 				list.emplace_back(d);
+		}
+
+		return list;
+	}
+
+	std::map<quint32, T> extractToMap(const quint32 &minTick = 0) const {
+		std::map<quint32, T> list;
+
+		if (m_head == 0)
+			return list;
+
+		for (quint32 i=0; i<m_head && i<PULL_SIZE; ++i) {
+			const T &d = m_list[i % PULL_SIZE];
+			if (d.tick() >= minTick)
+				list[d.tick()] = d;
 		}
 
 		return list;
@@ -406,6 +454,23 @@ public:
 	}
 
 
+
+	const T* atMost(const quint32 &tick) const {
+		if (m_head == 0)
+			return nullptr;
+
+		const T* r = nullptr;
+
+		for (const T &t : m_list) {
+			if (t.tick() <= tick && (!r || r->tick() < tick)) {
+				r = &t;
+			}
+		}
+
+		return r;
+	}
+
+
 	const T* last() const {
 		if (m_head == 0)
 			return nullptr;
@@ -414,9 +479,27 @@ public:
 	}
 
 
+
+	const T* latest() const {
+		if (m_head == 0)
+			return nullptr;
+
+		const T* r = nullptr;
+
+		for (const T &t : m_list) {
+			if (!r || r->tick() < t.tick()) {
+				r = &t;
+			}
+		}
+
+		return r;
+	}
+
+
 protected:
 	std::array<T, PULL_SIZE> m_list;
 	quint32 m_head = 0;
+	quint32 m_maxTick = 0;
 };
 
 
@@ -593,6 +676,9 @@ struct DefenderObject
 	RpgStream::BaseDefenderObject::Type type = RpgStream::BaseDefenderObject::None;
 	RpgStream::Team team = RpgStream::TeamNone;
 	quint32 maxHp = 0;
+
+	static DefenderObject fromRpgStream(const RpgStream::BaseDefenderObject &stream);
+	RpgStream::BaseDefenderObject toRpgStream() const;
 };
 
 
@@ -604,6 +690,9 @@ struct DefenderObject
 struct DefenderDummyObject
 {
 	quint32 dummy = 0;
+
+	static DefenderDummyObject fromRpgStream(const RpgStream::BaseDefenderObject &stream);
+	void toRpgStream(RpgStream::BaseDefenderObject &stream) const;
 };
 
 
@@ -690,6 +779,82 @@ typedef BaseStatePull<RpgStream::Events> EventsOutput;
 ///
 /// Game events
 ///
+
+
+
+
+
+// Egy event-et csak egyszer dolgozunk fel a szerveren
+
+struct EventWindow {
+	quint32 highestSeq = 0;
+	quint64 mask = 0;
+	bool initialized = false;
+
+	bool accept(const quint32 &seq) {
+		if (!initialized) {
+			initialized = true;
+			highestSeq = seq;
+			mask = 1ull;
+			return true;
+		}
+
+		if (seq > highestSeq) {
+			uint32_t diff = seq - highestSeq;
+
+			if (diff >= 64) {
+				mask = 1ull;
+			} else {
+				mask <<= diff;
+				mask |= 1ull;
+			}
+
+			highestSeq = seq;
+			return true;
+		}
+
+
+		uint32_t diff = highestSeq - seq;
+
+		if (diff >= 64)
+			return false;
+
+		uint64_t bit = 1ull << diff;
+
+		if (mask & bit)
+			return false;
+
+
+		mask |= bit;
+		return true;
+	}
+};
+
+
+
+
+/**
+ * @brief The EventWindowHash class
+ */
+
+class EventWindowHash : public QHash<quint32, EventWindow>
+{
+public:
+	EventWindowHash() = default;
+	~EventWindowHash() = default;
+
+	bool accept(const quint32 &tag, const quint32 &seq) {
+		auto it = this->find(tag);
+		if (it == this->end())
+			return false;
+		return it->accept(seq);
+	}
+
+	bool accept(const quint32 &tag, const RpgStream::BaseEventState &eventState) {
+		return accept(tag, eventState.seq());
+	}
+};
+
 
 
 
@@ -831,23 +996,23 @@ public:
 	///
 
 
-	void fullStateLoad(const RpgStream::FullState &full, const QSet<quint32> &acceptedInputList);
+	void fullStateLoad(const RpgStream::FullState &full, EventWindowHash *acceptedInputList);
 	RpgStream::FullState getFullState(const int &maxTick, QString *textPtr = nullptr);
 
 	void fullLoad(const RpgStream::Full &full);
 	RpgStream::Full getFull(QString *textPtr = nullptr);
 
 	bool initialize();
+	bool startStageSelect();
 
-	void render(const bool &first = false);
+	bool render(const bool &first = false);
+	void renderStageSelect();
+	void renderUpdate();
 
 	// EnTT object id
 
 	static quint32 packId(const quint32 &scene, const quint32 &owner, const quint32 &id);
 	static void unpackId(const quint32 &from, quint32 &scene, quint32 &owner, quint32 &id);
-
-	void entitySetIdTag(entt::entity &entity, const quint32 &tag);
-	entt::entity entityFromIdTag(const quint32 &tag) const;
 
 
 	// Map Data
@@ -875,6 +1040,10 @@ public:
 
 protected:
 	virtual void eventRealized(entt::entity entity) { Q_UNUSED(entity); }
+	void eventRealizedDefault(entt::entity entity);
+
+	void entitySetIdTag(entt::entity &entity, const quint32 &tag);
+	entt::entity entityFromIdTag(const quint32 &tag) const;
 
 
 
@@ -980,9 +1149,6 @@ public:
 	entt::entity entityFromIdTag(const quint32 &tag) const { return m_logic->entityFromIdTag(tag); }
 
 	bool valid(const entt::entity ent) const { return m_logic->m_registry.valid(ent); }
-
-	void setDeleteTag(const entt::entity ent);
-	void destroyDeleteTags();
 
 private:
 	RpgLogic *const m_logic;

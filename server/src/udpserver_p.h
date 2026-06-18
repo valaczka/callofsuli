@@ -114,8 +114,14 @@ public:
 
 	std::optional<quint32> index(const quint32 &peerId) const;
 
+
+
 	UdpRoom *createRoom();
 	const UdpRoom *findRoom(const std::function<bool (const UdpRoom *)> &fn) const;
+
+	void removeRoom(UdpRoom *room);
+
+	void setRoom(const quint32 &index, UdpRoom *room);
 
 	bool removePeer(const quint32 &peerId);
 	bool removeIndex(const quint32 &idx);

@@ -143,11 +143,14 @@ signals:
 	void minimapToggleRequest();
 	void gameChanged();
 	void isContentReadyChanged();
+	void stageChanged();
 
 private:
 	void loadMp(Tiled::GroupLayer *group, TiledScene *scene, Tiled::MapRenderer *renderer);
 	void loadTower(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer);
 	RpgDefenderPoint* loadDefender(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer);
+
+	void onStageChanged(const RpgStream::GameConfig::Stage &stage);
 
 	RpgGamePrivate *d = nullptr;
 

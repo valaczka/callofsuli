@@ -58,17 +58,21 @@ public:
 	bool isHost() const;
 	void setIsHost(bool newIsHost);
 
+	void updateStage(const RpgStream::GameConfig &config, const quint32 &tick);
+
 signals:
 	void isHostChanged();
 
 protected:
-	virtual void binaryDataReceived(std::vector<UdpPacketRcv> &&list) override;
+	virtual void binaryDataReceived(std::vector<UdpPacketRcv> &&list, const int &currentRtt) override;
 
 private:
 	Rpg::RpgLogicClientMulti *logic() const;
 	void onDataReceived(std::unique_ptr<UdpBitStream> data);
 
 	void updateRoom();
+
+	void onBeforeWorldStep(const qint64 &tick);
 
 
 	// Lobby
@@ -88,6 +92,11 @@ private:
 	void updateMapData(RpgStream::EngineDataStream &&stream);
 	void updateFull(RpgStream::EngineDataStream &&stream);
 
+	// Play
+
+	void updateState(RpgStream::EngineDataStream &&stream);
+	void sendState(const RpgStream::FullState &data);
+
 protected:
 	const PublicKeySigner m_signer;
 
@@ -99,6 +108,9 @@ private:
 	bool m_isHost = false;
 
 	bool m_isMapReady = false;
+	bool m_fullReceived = false;
+
+	RpgStream::PlayerData::Flags m_gameFlags = RpgStream::PlayerData::FlagNull;
 
 
 	friend class RpgGame;

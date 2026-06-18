@@ -26,6 +26,7 @@
 
 #include <libtiled/objectgroup.h>
 #include "rpggameitem.h"
+#include "client.h"
 #include "grouplayer.h"
 #include "rpggame.h"
 #include "rpggame_p.h"
@@ -608,6 +609,29 @@ RpgDefenderPoint *RpgGameItem::loadDefender(TiledScene *scene, Tiled::GroupLayer
 
 
 /**
+ * @brief RpgGameItem::onStageChanged
+ * @param stage
+ */
+
+void RpgGameItem::onStageChanged(const RpgStream::GameConfig::Stage &stage)
+{
+	message(QObject::tr("Next stage: %1").arg(stage));
+
+	if (stage == RpgStream::GameConfig::StageSelect) {
+		m_game->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/prepare_yoursef.mp3"), Sound::VoiceoverChannel);
+	} else if (stage == RpgStream::GameConfig::StageWarmingUp) {
+		m_game->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/begin.mp3"), Sound::VoiceoverChannel);
+		emit stageChanged();					// mark time label
+	} else if (stage == RpgStream::GameConfig::StageLast) {
+		m_game->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/final_round.mp3"), Sound::VoiceoverChannel);
+		emit stageChanged();					// mark time label
+	}
+
+}
+
+
+
+/**
  * @brief RpgGameItem::loadMp
  * @param group
  * @param scene
@@ -757,7 +781,7 @@ void RpgGameItem::timeBeforeWorldStepEvent(const qint64 &tick)
 		if (!it.value())
 			continue;
 
-		AbstractRpgMotor *motor = (tick < 0 ? it.value()->defaultMotor() : it.value()->currentMotor());
+		AbstractRpgMotor *motor = it.value()->currentMotor();
 
 		if (!motor) {
 			LOG_CERROR("game") << "Missing RpgMotor";
@@ -784,6 +808,14 @@ void RpgGameItem::timeAfterWorldStepEvent(const qint64 &tick)
 	RpgStream::FullState full;
 
 	full.setIsDeltaMode(false);
+
+	// A serverTick-be tesszük ideiglenesen azt a ticket, aminél kisebbet nem küldünk (mert nem is fogadja el a szerver)
+	// = számított aktuális server tick (=lastAuthTick on the server) - lastauthdiff
+	//
+	// Ez valójában csak belső használatra kell, a szerver nem fogja nézni
+
+	full.setServerTick(m_game->rpgLogicClient()->estimatedServerTick()
+					   - m_game->rpgLogicClient()->lastAuthDiff());
 
 	{
 		Rpg::RpgLogicScope scope = m_game->rpgLogicClient()->getScope();

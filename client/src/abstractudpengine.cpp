@@ -239,7 +239,7 @@ void AbstractUdpEngine::setConnectionToken(const QByteArray &token)
 
 void AbstractUdpEngine::onPacketReceived()
 {
-	binaryDataReceived(d->m_cacheRcv.take());
+	binaryDataReceived(d->m_cacheRcv.take(), d->m_speed.currentRtt);
 }
 
 
@@ -490,6 +490,9 @@ void AbstractUdpEnginePrivate::sendMessage(const std::vector<uint8_t> &data, con
 
 	m_cacheSnd.push(std::move(packet));
 
+	if (reliable)
+		m_cacheSnd.setEvent(true);
+
 
 #ifdef Q_OS_WASM
 	deliverPackets();
@@ -551,8 +554,10 @@ void AbstractUdpEnginePrivate::deliverPackets()
 
 	// Send outgoing packets (channel 0 = normal, channel 1 = reliable)
 
-	if (m_speed.readyToSend()) {
+	if (m_speed.readyToSend() || m_cacheSnd.hasEvent()) {
 		std::vector<UdpPacketSnd> out = m_cacheSnd.take();
+
+		m_cacheSnd.setEvent(false);
 
 		for (const UdpPacketSnd &p : out) {
 #ifndef Q_OS_WASM

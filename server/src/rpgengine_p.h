@@ -42,6 +42,7 @@ private:
 	RpgEnginePrivate(RpgEngine *engine)
 		: q(engine)
 		, m_logger(new Logger(QStringLiteral("engineprivate"), false))
+		, m_closeTimer(-1)
 	{}
 
 
@@ -59,10 +60,9 @@ private:
 		RpgStream::PlayerData data;
 
 		quint32 rpgId = 0;										// A hosszú peerId helyett ez lesz az RpgLogic-ban a player sorszáma (PlayerData::playerId)
-		quint32 playerTag = 0;									// Az általa irányított player tagId-je
+		quint32 playerTag = 0;
 
-		// TODO: controlledd entities tag ids...
-
+		Rpg::EventWindowHash acceptedTags;
 
 		void loadToken() {
 			token = {};
@@ -88,6 +88,8 @@ private:
 
 	RpgPeerData *getPlayer(UdpServerPeer *peer);
 
+	void render();
+
 
 	RpgStream::Team nextTeam() const;
 	quint32 changeHost();
@@ -97,11 +99,22 @@ private:
 	void checkCompleted();
 	void onAllCompleted();
 
+	void receivePlayerData(RpgEnginePrivate::RpgPeerData *player, RpgStream::EngineDataStream &&stream);
+
 	void receiveWaitingData(RpgEnginePrivate::RpgPeerData *player, RpgStream::EngineDataStream &&stream);
 	void sendWaitingData();
 
+	void receiveFull(RpgEnginePrivate::RpgPeerData *player, RpgStream::EngineDataStream &&stream);
 	void onDataReceived();
 	void sendFull();
+
+	void checkPrepared();
+	void onAllPrepared();
+
+	void receiveState(RpgEnginePrivate::RpgPeerData *player, RpgStream::EngineDataStream &&stream);
+
+	void onSelectFinished();
+	void onAborted();
 
 
 private:
@@ -116,7 +129,11 @@ private:
 	QElapsedTimer m_elapsedTimer;
 	qint64 m_elapsedTimerReference = 0;
 
+	QElapsedTimer m_selectTimer;
+	QDeadlineTimer m_closeTimer;
+
 	qint64 m_dtAcc = 0;
+	quint32 m_deadlineTick = 0;
 
 
 	inline static quint32 m_engineId = 1;

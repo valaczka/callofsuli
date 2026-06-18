@@ -172,6 +172,8 @@ public:
 	virtual bool beforeWorldStep(const qint64 &tick, entt::entity &entity) override;
 	virtual void updateBody(TiledObject *) override;
 
+	static void updateBody(RpgPlayer *player, const RpgStream::PlayerState &state, const bool &isEmplace);
+
 protected:
 	RpgPlayer *const m_player;
 	std::optional<RpgStream::PlayerState> m_current;
@@ -193,6 +195,8 @@ public:
 	virtual void updateBody(TiledObject *) override;
 	virtual bool beforeWorldStep(const qint64 &tick, entt::entity &entity) override;
 	virtual bool afterWorldStep(const qint64 &tick, RpgStream::FullState *state) override;
+
+	const RpgStream::PlayerState *saveCurrentState(const qint64 &tick);
 
 	TiledGame::JoystickState currentJoystickState() const;
 	void setCurrentJoystickState(const TiledGame::JoystickState &newCurrentJoystickState);

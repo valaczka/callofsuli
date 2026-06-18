@@ -71,6 +71,9 @@ struct UdpSpeed {
 	int peerFps = 0;
 
 	std::vector<qint64> received;
+
+	std::array<int, 60> rttPull;
+	quint64 head = 0;
 };
 
 
@@ -136,9 +139,9 @@ public:
 		});
 	}
 
-private:
+protected:
 #ifndef Q_OS_WASM
-	QMutex m_mutex;
+	mutable QMutex m_mutex;
 #endif
 	std::deque<T> m_queue;
 };
@@ -191,7 +194,14 @@ inline void UdpSpeed::addRtt(const int &rtt)
 
 	peerFps = received.size()/10.;
 
-	currentRtt = rtt;
+
+	rttPull[head % rttPull.size()] = rtt;
+	++head;
+
+	currentRtt = std::accumulate(rttPull.cbegin(),
+								 head < rttPull.size() ? rttPull.cbegin() + head : rttPull.cend(),
+								 0) /
+				 std::min(rttPull.size(), (std::size_t) head);
 
 	const auto it = limit.upper_bound(rtt);
 
