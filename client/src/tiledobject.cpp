@@ -532,6 +532,17 @@ void TiledObjectBody::overrideCurrentSpeed(const cpVect &speed)
 }
 
 
+/**
+ * @brief TiledObjectBody::overrideCurrentSpeedSq
+ * @param speedSq
+ */
+
+void TiledObjectBody::overrideCurrentSpeedSq(const float &speedSq)
+{
+	d->m_currentSpeedSq = speedSq;
+}
+
+
 
 
 /**

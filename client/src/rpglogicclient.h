@@ -69,6 +69,7 @@ public:
 	}
 
 	const quint32 &lastAuthDiff() const { return m_lastAuthTickDiff; }
+	const quint32 &jitterDiff() const { return m_jitterDiff; }
 
 	quint32 estimatedServerTick() const;
 

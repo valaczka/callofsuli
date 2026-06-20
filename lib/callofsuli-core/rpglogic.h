@@ -43,6 +43,15 @@
 #define DEFAULT_PULL_SIZE		12
 
 
+#define ELOG_TRACE            CuteMessageLogger(_logger(), Logger::Trace,   __FILE__, __LINE__, Q_FUNC_INFO).write()
+#define ELOG_DEBUG            CuteMessageLogger(_logger(), Logger::Debug,   __FILE__, __LINE__, Q_FUNC_INFO).write()
+#define ELOG_INFO             CuteMessageLogger(_logger(), Logger::Info,    __FILE__, __LINE__, Q_FUNC_INFO).write()
+#define ELOG_WARNING          CuteMessageLogger(_logger(), Logger::Warning, __FILE__, __LINE__, Q_FUNC_INFO).write()
+#define ELOG_ERROR            CuteMessageLogger(_logger(), Logger::Error,   __FILE__, __LINE__, Q_FUNC_INFO).write()
+#define ELOG_FATAL            CuteMessageLogger(_logger(), Logger::Fatal,   __FILE__, __LINE__, Q_FUNC_INFO).write()
+
+
+
 /**************************************************************
  * RPG WORLD
  **************************************************************/
@@ -732,7 +741,7 @@ struct ChunkGrid
 		return isAccessible(pos.x(), pos.y());
 	}
 	bool isAccessible(const Chunk &chunk) const {
-		return isAccessible(chunk.x, chunk.y);
+		return !excludeSet.contains(QPair<qint32, qint32>(chunk.x, chunk.y));
 	}
 
 	cpVect chunkCenter(const int &x, const int &y) const;
@@ -905,6 +914,7 @@ struct EventDefenderAdd {
 struct EventAttackPlayer {
 	entt::entity player;
 	entt::entity target;
+	bool withHurt = false;
 };
 
 
@@ -963,6 +973,10 @@ class RpgLogic
 public:
 	RpgLogic(const quint32 &lastAuthDiff = 0);
 	virtual ~RpgLogic();
+
+	// Logger
+
+	void setLogger(Logger *logger) { m_logger = logger; }
 
 	// Get scope
 
@@ -1092,6 +1106,8 @@ protected:
 	}
 
 
+	Logger *_logger() const { return m_logger; };
+	Logger *m_logger = cuteLoggerInstance();
 
 	mutable QRecursiveMutex m_mutex;
 	entt::registry m_registry;

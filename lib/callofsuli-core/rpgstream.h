@@ -65,6 +65,10 @@
 #define ENTITY_MP_BITS				16						// Max: 65535
 
 
+#define SPEEDSQ_SIZE_TYPE			quint32
+#define SPEEDSQ_SIZE_BITS			20						// Max: 1.000.000
+
+
 #define DEFENDER_TYPE				quint32
 #define DEFENDER_BITS				8						// Max: 256
 
@@ -877,10 +881,20 @@ public:
 
 	enum Type {
 		None = 0,
-		Dummy
+		Dummy,
+		Multiplier1
 	};
 
+	enum PlacementFlag {
+		PlacementNone = 0,
+		PlacementTower = 1,
+		PlacementChunk = 1 << 1
+	};
+
+	Q_DECLARE_FLAGS(PlacementFlags, PlacementFlag)
+
 	static quint32 requiredMp(const Type &type);
+	static PlacementFlags placementFlags(const Type &type);
 
 
 	EngineStream& operator<<(EngineStream &stream);
@@ -901,7 +915,7 @@ public:
 	STREAM_MEMBER(quint32, dummy, Dummy, 8, 0);
 };
 
-
+Q_DECLARE_OPERATORS_FOR_FLAGS(BaseDefenderObject::PlacementFlags)
 
 
 
@@ -1204,8 +1218,7 @@ public:
 			Tick,
 			PosX,
 			PosY,
-			VelX,
-			VelY,
+			Vel,
 			Angle,
 			Facing,
 			SlideX,
@@ -1215,8 +1228,7 @@ public:
 
 	STREAM_DELTA_MEMBER_QUANT(posX, PosX, 0, PosX)
 	STREAM_DELTA_MEMBER_QUANT(posY, PosY, 0, PosY)
-	STREAM_DELTA_MEMBER_QUANT_SIGNED(velX, VelX, 0, VelX)					// current motor velocity
-	STREAM_DELTA_MEMBER_QUANT_SIGNED(velY, VelY, 0, VelY)
+	STREAM_DELTA_MEMBER(SPEEDSQ_SIZE_TYPE, velSq, VelSq, SPEEDSQ_SIZE_BITS, 0, Vel)					// current motor velocity (squared, not quantized)
 	STREAM_DELTA_MEMBER_QUANT_SIGNED(angle, Angle, 0, Angle)
 	STREAM_DELTA_MEMBER(quint32, facing, Facing, 9, 0, Facing)				// degree, max. 360
 	STREAM_DELTA_MEMBER_QUANT_SIGNED(slideX, SlideX, 0, SlideX)				// current knockback velocity
@@ -1224,14 +1236,18 @@ public:
 
 
 	bool operator==(const EntityState &other) const {
-		return other.m_posX == m_posX &&
-				other.m_posY == m_posY &&
-				other.m_velX == m_velX &&
-				other.m_velY == m_velY &&
-				other.m_angle == m_angle &&
-				other.m_facing == m_facing &&
+		return isEqualWithoutSlide(other) &&
 				other.m_slideX == m_slideX &&
 				other.m_slideY == m_slideY
+				;
+	}
+
+	bool isEqualWithoutSlide(const EntityState &other) const {
+		return other.m_posX == m_posX &&
+				other.m_posY == m_posY &&
+				other.m_velSq == m_velSq &&
+				other.m_angle == m_angle &&
+				other.m_facing == m_facing
 				;
 	}
 
@@ -1240,8 +1256,7 @@ public:
 
 	LOAD_FROM_DELTA(posX, PosX)
 	LOAD_FROM_DELTA(posY, PosY)
-	LOAD_FROM_DELTA(velX, VelX)
-	LOAD_FROM_DELTA(velY, VelY)
+	LOAD_FROM_DELTA(velSq, VelSq)
 	LOAD_FROM_DELTA(angle, Angle)
 	LOAD_FROM_DELTA(facing, Facing)
 	LOAD_FROM_DELTA(slideX, SlideX)
@@ -1368,6 +1383,7 @@ public:
 	STREAM_MEMBER(quint32, lockedUntil, LockedUntil, 32, 0)
 	STREAM_MEMBER_CAST(bool, active, Active, quint8, 1, false)
 	STREAM_MEMBER_CAST(bool, hasDefender, HasDefender, quint8, 1, false)
+	STREAM_MEMBER(quint8, multiply, Multiply, 4, 0)							// max. 15
 
 	bool operator==(const TowerState &other) const {
 		return  other.m_team == m_team &&
@@ -1375,7 +1391,8 @@ public:
 				other.m_load == m_load &&
 				other.m_lockedUntil == m_lockedUntil &&
 				other.m_active == m_active &&
-				other.m_hasDefender == m_hasDefender
+				other.m_hasDefender == m_hasDefender &&
+				other.m_multiply == m_multiply;
 				;
 	}
 };
@@ -1399,7 +1416,7 @@ public:
 	EngineStream& operator>>(EngineStream &stream) const;
 
 	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
-	STREAM_MEMBER_CAST(BaseDefenderObject::Type, type, Type, DEFENDER_TYPE, DEFENDER_BITS, BaseDefenderObject::Dummy)
+	STREAM_MEMBER_CAST(BaseDefenderObject::Type, type, Type, DEFENDER_TYPE, DEFENDER_BITS, BaseDefenderObject::None)
 
 	STREAM_MEMBER(ENTITY_HP_TYPE, hp, Hp, ENTITY_HP_BITS, 0)
 
@@ -1661,7 +1678,7 @@ public:
 
 	STREAM_ADD_DELTA_MODE
 
-	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 4, Null)
+	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 5, Null)
 	STREAM_MEMBER(quint32, serverTick, ServerTick, 32, 0)
 
 	STREAM_FIELD(GameState, state, State, {})

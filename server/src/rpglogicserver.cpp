@@ -54,15 +54,13 @@ RpgStream::Full RpgLogicServer::getRenderedState(const bool &requireFull)
 	if (requireFull) {
 		f = getFull(&txt);
 	} else {
-		const RpgStream::FullState &st = getFullState(SEND_STATE_COUNT, &txt);
-		f.setFullState(st);
+		f.setFullState(getFullState(SEND_STATE_COUNT, &txt));
 	}
 #else
 	if (requireFull) {
 		f = getFull();
 	} else {
-		const RpgStream::FullState &st = getFullState(SEND_STATE_COUNT);
-		f.setFullState(st);
+		f.setFullState(getFullState(SEND_STATE_COUNT));
 	}
 #endif
 
@@ -89,7 +87,6 @@ void RpgLogicServer::eventRealized(entt::entity entity)
 	QMutexLocker locker(&m_mutex);
 
 	if (RpgStream::EventStageChanged *ev = m_registry.try_get<RpgStream::EventStageChanged>(entity)) {
-		LOG_CINFO("engine") << "REALIZED STAGE" << ev->config().stage();
 		ELOG_DEBUG << "Stage changed to" << ev->config().stage();
 
 		if (!onStageChanged(ev->config().stage()))

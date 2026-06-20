@@ -248,6 +248,7 @@ protected:
 
 	virtual void onSpaceChanged();
 	void overrideCurrentSpeed(const cpVect &speed);
+	void overrideCurrentSpeedSq(const float &speedSq);
 
 	void setSpace(cpSpace *space);
 

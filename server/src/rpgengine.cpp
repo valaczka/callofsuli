@@ -411,12 +411,9 @@ void RpgEnginePrivate::checkCompleted()
 
 void RpgEnginePrivate::onAllCompleted()
 {
-	LOG_CWARNING("engine") << "ALL COMPLETED";
-
 	Rpg::RpgLogicScope scope = q->m_logic.getScope();
 	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
 	Q_ASSERT(cfg);
-
 
 	for (RpgPeerData &p : m_players) {
 		scope.logic()->playerAdd(p.data, &p.rpgId, &p.playerTag);
@@ -1026,7 +1023,7 @@ quint32 RpgEnginePrivate::changeHost()
 			}
 		}
 
-		LOG_CWARNING("engine") << "Next host" << h;
+		ELOG_INFO << "Set next host:" << h;
 
 		m_host = h;
 
@@ -1336,14 +1333,33 @@ void RpgEngine::setLoggerFile(const QString &fname)
 	appender->setFormat(QString::fromStdString( "%{time}{hh:mm:ss.zzz} [%{TypeOne}] %{message}\n"));
 
 #ifndef QT_NO_DEBUG
-	//appender->setFormat(QString::fromStdString( "%{time}{yyyy-MM-dd hh:mm:ss.zzz} [%{TypeOne}] %{message} <%{function} %{file}:%{line}>\n"));
 	appender->setDetailsLevel(Logger::Trace);
 #else
-	//appender->setFormat(QString::fromStdString( "%{time}{hh:mm:ss.zzz} [%{TypeOne}] %{message}\n"));
 	appender->setDetailsLevel(Logger::Debug);
 #endif
 
 	d->m_logger->registerAppender(appender);
+
+	m_logic.setLogger(d->m_logger.get());
+
+
+
+#ifndef QT_NO_DEBUG
+	LOG_CERROR("engine") << "TEMPORARY APPENDER";
+
+	ColorConsoleAppender *console = new ColorConsoleAppender;
+
+	console->setDetailsLevel(Logger::Debug);
+
+	console->setFormat(QString::fromStdString(
+									 "%{time}{hh:mm:ss} %{category:-10} [%{TypeOne}] %{message} "+
+									 ColorConsoleAppender::reset+ColorConsoleAppender::green+"<%{function} "+
+									 ColorConsoleAppender::magenta+"%{file}:%{line}"+
+									 ColorConsoleAppender::green+">\n"));
+
+	d->m_logger->registerAppender(console);
+
+#endif
 }
 
 

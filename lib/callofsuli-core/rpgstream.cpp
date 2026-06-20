@@ -41,15 +41,37 @@ namespace RpgStream
 
 quint32 BaseDefenderObject::requiredMp(const Type &type) {
 	switch (type) {
-		case Dummy:
-			return 5;
-
-		case None:
-			return 0;
-
+		case Dummy:						return 1;
+		case Multiplier1:				return 1;
+		case None:						return 0;
 	}
 
 	return 0;
+}
+
+
+
+/**
+ * @brief BaseDefenderObject::placementFlags
+ * @param type
+ * @return
+ */
+
+BaseDefenderObject::PlacementFlags BaseDefenderObject::placementFlags(const Type &type)
+{
+	switch (type) {
+		case Dummy:
+			return PlacementTower | PlacementChunk;
+
+		case Multiplier1:
+			return PlacementTower;
+
+		case None:
+			return PlacementNone;
+
+	}
+
+	return PlacementNone;
 }
 
 
@@ -198,8 +220,7 @@ EngineStream &EntityState::operator<<(EngineStream &stream)
 	readDeltaMask(stream);
 	readPosXDelta(stream);
 	readPosYDelta(stream);
-	readVelXDelta(stream);
-	readVelYDelta(stream);
+	readVelSqDelta(stream);
 	readAngleDelta(stream);
 	readFacingDelta(stream);
 	readSlideXDelta(stream);
@@ -220,8 +241,7 @@ EngineStream &EntityState::operator>>(EngineStream &stream) const
 	writeDeltaMask(stream);
 	writePosXDelta(stream);
 	writePosYDelta(stream);
-	writeVelXDelta(stream);
-	writeVelYDelta(stream);
+	writeVelSqDelta(stream);
 	writeAngleDelta(stream);
 	writeFacingDelta(stream);
 	writeSlideXDelta(stream);
@@ -481,6 +501,9 @@ EngineStream &FullState::operator<<(EngineStream &stream)
 	if (m_flags & Tower)
 		readTowers(stream);
 
+	if (m_flags & Defender)
+		readDefenders(stream);
+
 	return stream;
 }
 
@@ -509,6 +532,9 @@ EngineStream &FullState::operator>>(EngineStream &stream) const
 
 	if (m_flags & Tower)
 		writeTowers(stream);
+
+	if (m_flags & Defender)
+		writeDefenders(stream);
 
 	return stream;
 }
@@ -756,6 +782,7 @@ EngineStream &TowerState::operator<<(EngineStream &stream)
 	readLockedUntil(stream);
 	readActive(stream);
 	readHasDefender(stream);
+	readMultiply(stream);
 
 	return stream;
 }
@@ -777,6 +804,7 @@ EngineStream &TowerState::operator>>(EngineStream &stream) const
 	writeLockedUntil(stream);
 	writeActive(stream);
 	writeHasDefender(stream);
+	writeMultiply(stream);
 
 	return stream;
 }
@@ -908,6 +936,7 @@ EngineStream &BaseDefenderObject::operator<<(EngineStream &stream)
 			readDummy(stream);
 			break;
 
+		case BaseDefenderObject::Multiplier1:
 		case BaseDefenderObject::None:
 			break;
 	}
@@ -939,6 +968,7 @@ EngineStream &BaseDefenderObject::operator>>(EngineStream &stream) const
 			writeDummy(stream);
 			break;
 
+		case BaseDefenderObject::Multiplier1:
 		case BaseDefenderObject::None:
 			break;
 	}
@@ -972,6 +1002,7 @@ EngineStream &DefenderState::operator<<(EngineStream &stream)
 			readDummy(stream);
 			break;
 
+		case BaseDefenderObject::Multiplier1:
 		case BaseDefenderObject::None:
 			break;
 	}
@@ -999,6 +1030,7 @@ EngineStream &DefenderState::operator>>(EngineStream &stream) const
 			writeDummy(stream);
 			break;
 
+			case BaseDefenderObject::Multiplier1:
 		case BaseDefenderObject::None:
 			break;
 	}

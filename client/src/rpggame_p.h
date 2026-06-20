@@ -154,14 +154,13 @@ private:
 	void processEvents(const std::vector<RpgStream::Events> &list, const qint64 &tick);
 	void processEvents(const std::vector<RpgStream::EventPlayer> &list);
 	void processEvents(const std::vector<RpgStream::EventStageChanged> &list);
+	void processEvents(const std::vector<RpgStream::EventMpEmitter> &list);
 
 	void onTimeStepped(const std::vector<TiledObjectBody *> &aboutDestruction);
 
 	/// RPG LOGIC LOCAL
 
 	quint32 logicRegisterObject(RpgObject *object);
-
-	void changeControlledPlayer();					// deprecated
 
 
 private:

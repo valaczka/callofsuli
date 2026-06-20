@@ -61,11 +61,8 @@ void RpgUdpEngine::binaryDataReceived(std::vector<UdpPacketRcv> &&list, const in
 	if (list.empty())
 		return;
 
-	if (Rpg::RpgLogicClientMulti *l = logic()) {
-		if (l->serverRtt() != currentRtt)
-			LOG_CDEBUG("game") << "----------------RTT" << currentRtt;
+	if (Rpg::RpgLogicClientMulti *l = logic())
 		l->setServerRtt(currentRtt);
-	}
 
 	for (UdpPacketRcv &p : list)
 		onDataReceived(std::move(p.data));

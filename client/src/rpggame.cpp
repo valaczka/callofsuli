@@ -1713,7 +1713,6 @@ void RpgGamePrivate::deleteMissingObjects(const ObjectSet &objects)
 			found = objects.defender.contains(it.key());
 
 			if (!found) {
-				LOG_CINFO("game") << "______________DEL" << d << d->defenderPoint() << d->tower();
 				if (RpgDefenderPoint *p = d->defenderPoint())
 					p->setDefender(nullptr);
 
@@ -1730,8 +1729,7 @@ void RpgGamePrivate::deleteMissingObjects(const ObjectSet &objects)
 			continue;
 		}
 
-		LOG_CERROR("game") << "DELETE" << it.value() << it.key() <<
-							  q->m_gameItem->removeObject(it.value());
+		q->m_gameItem->removeObject(it.value());
 
 		it = mapper->map.erase(it);
 	}
@@ -1766,10 +1764,8 @@ void RpgGamePrivate::processEvents(const std::vector<RpgStream::Events> &list, c
 
 		// Mp emitted
 
-		if (event.flags().testFlag(RpgStream::Events::Emitter)) {
-			q->m_gameItem->playSfx(QStringLiteral(":/sound/sfx/pick.mp3"), q->m_gameItem->currentScene());
-			LOG_CINFO("game") << "EMITTER EVENT";
-		}
+		if (event.flags().testFlag(RpgStream::Events::Emitter))
+			processEvents(event.emitter());
 
 
 		// Players events
@@ -1812,18 +1808,17 @@ void RpgGamePrivate::processEvents(const std::vector<RpgStream::EventPlayer> &li
 			continue;
 
 		if (event.type() == RpgStream::EventPlayer::EventMpPick) {
-			LOG_CINFO("game") << "**************************************** MP PICKED *****************";
+
 			q->m_gameItem->playSfx(QStringLiteral(":/rpg/common/leather_inventory.mp3"),
 								   player->scene(),
 								   player->bodyPositionF());
 		} else if (event.type() == RpgStream::EventPlayer::EventRespawn) {
-			LOG_CINFO("game") << "**************************************** RESPAWN *****************";
+
 			if (const qint64 delta = q->m_gameItem->tickTimer()->tickTo(event.at()); delta > 0) {
 				int sec = std::ceil(AbstractGame::TickTimer::tickToMsec(delta)/1000.);
-				q->m_gameItem->message(QObject::tr("%1 sec to respawn").arg(sec));
+				q->m_gameItem->message(QObject::tr("Back in %1 sec").arg(sec));
 			}
 		} else if (event.type() == RpgStream::EventPlayer::EventStreak) {
-			LOG_CINFO("game") << "**************************************** STREAK *****************";
 			q->m_gameItem->message(QObject::tr("%1 streak").arg(event.at()));
 		} else if (RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(player->currentMotor())) {
 			motor->processEvent(event);
@@ -1852,6 +1847,42 @@ void RpgGamePrivate::processEvents(const std::vector<RpgStream::EventStageChange
 
 
 
+/**
+ * @brief RpgGamePrivate::processEvents
+ * @param list
+ */
+
+void RpgGamePrivate::processEvents(const std::vector<RpgStream::EventMpEmitter> &list)
+{
+	if (list.empty())
+		return;
+
+	Rpg::RpgLogicScope scope = m_logic->getScope();
+	RpgLogicObjectMapper *mapper = scope.getCtx<RpgLogicObjectMapper>();
+
+	Q_ASSERT(mapper);
+
+	for (const RpgStream::EventMpEmitter &event : list) {
+		RpgObject *obj = mapper->get(event.tagId());
+		QPointF pos;
+
+		if (!obj) {
+			for (const RpgStream::MpEmitter &emitter : m_mapData.mpEmitterList()) {
+				if (emitter.tagId() == event.tagId()) {
+					pos.setX(emitter.posXAsFloat());
+					pos.setY(emitter.posYAsFloat());
+					break;
+				}
+			}
+		}
+
+		if (!pos.isNull())
+			q->m_gameItem->playSfx(QStringLiteral(":/sound/sfx/pick.mp3"), q->m_gameItem->currentScene(), pos);
+	}
+}
+
+
+
 
 
 /**
@@ -1861,8 +1892,6 @@ void RpgGamePrivate::processEvents(const std::vector<RpgStream::EventStageChange
 void RpgGamePrivate::onTimeStepped(const std::vector<TiledObjectBody *> &aboutDestruction)
 {
 	for (TiledObjectBody *b : aboutDestruction) {
-		LOG_CERROR("game") << "ABOUT TO DELETE" << b << b->objectId().id;
-
 		if (q->m_controlledPlayer && q->m_controlledPlayer->targetControl() == b)
 			q->m_controlledPlayer->setTargetControl(nullptr);
 
@@ -1910,73 +1939,6 @@ quint32 RpgGamePrivate::logicRegisterObject(RpgObject *object)
 }
 
 
-
-/**
- * @brief RpgGamePrivate::changeControlledPlayer
- */
-
-void RpgGamePrivate::changeControlledPlayer()
-{
-	Rpg::RpgLogicScope scope = m_logic->getScope();
-
-	RpgLogicObjectMapper *mapper = scope.getCtx<RpgLogicObjectMapper>();
-
-	quint32 current = mapper->getId(q->controlledPlayer()->objectId());
-
-	if (!current) {
-		LOG_CERROR("game") << "ERROR";
-		return;
-	}
-
-	auto view = scope.view<Rpg::Player>();
-
-	entt::entity next = entt::null;
-	bool found = false;
-
-	for (auto e : view) {
-		if (scope.get<Rpg::Player>(e).idTag() == current) {
-			found = true;
-			continue;
-		}
-
-		if (next == e)
-			continue;
-
-		if (found) {
-			next = e;
-			break;
-		}
-	}
-
-	if (next == entt::null && found) {
-		for (auto e : view) {
-			if (scope.get<Rpg::Player>(e).idTag() == current) {
-				continue;
-			}
-
-			if (next == e)
-				continue;
-
-			next = e;
-		}
-	}
-
-	if (next == entt::null) {
-		LOG_CERROR("game") << "NOT FOUND";
-		return;
-	}
-
-	RpgPlayer *p = qobject_cast<RpgPlayer*>(mapper->get(scope.get<Rpg::Player>(next).idTag()));
-
-	if (!p) {
-		LOG_CERROR("game") << "ERROR!!!";
-		return;
-	}
-
-	LOG_CINFO("game") << "CHANGE" << p;
-
-	q->setControlledPlayer(p);
-}
 
 
 /**

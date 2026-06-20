@@ -618,7 +618,7 @@ void RpgGameItem::onStageChanged(const RpgStream::GameConfig::Stage &stage)
 	message(QObject::tr("Next stage: %1").arg(stage));
 
 	if (stage == RpgStream::GameConfig::StageSelect) {
-		m_game->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/prepare_yoursef.mp3"), Sound::VoiceoverChannel);
+		m_game->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/prepare_yourself.mp3"), Sound::VoiceoverChannel);
 	} else if (stage == RpgStream::GameConfig::StageWarmingUp) {
 		m_game->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/begin.mp3"), Sound::VoiceoverChannel);
 		emit stageChanged();					// mark time label
@@ -975,7 +975,7 @@ void RpgGameItem::keyPressEvent(QKeyEvent *event)
 
 
 		case Qt::Key_F10:
-			d->changeControlledPlayer();
+			//d->changeControlledPlayer();
 			break;
 
 		case Qt::Key_F11:

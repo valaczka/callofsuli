@@ -30,6 +30,7 @@
 #include "rpgdefender.h"
 #include "rpgconfig.h"
 #include "gamequestion.h"
+#include "rpgstream.h"
 
 #ifndef Q_OS_WASM
 #include "standaloneclient.h"
@@ -71,7 +72,7 @@ private:
 
 	RpgStream::BaseDefenderObject::Type m_currentDefender = RpgStream::BaseDefenderObject::Dummy;
 
-	cpVect m_knockbackVelocity = cpvzero;
+	cpVect m_currentKnockback = cpvzero;
 
 
 	friend class RpgPlayer;
@@ -105,12 +106,6 @@ RpgPlayer::RpgPlayer(RpgGameItem *gameItem, const cpVect &center)
 
 	m_currentChunk.setX(-1);
 	m_currentChunk.setY(-1);
-
-	/*setSensorPolygon(SENSOR_LENGTH, M_PI * 0.5, RpgGameItem::FixtureSensor,
-					 RpgGameItem::FixtureAll);
-
-	addVirtualCircle(RpgGameItem::FixtureVirtualCircle,
-					 RpgGameItem::FixtureAll, 220.);*/
 
 	addTargetCircle(50, TiledObjectBody::getFilter(RpgGameItem::FixturePlayerTarget,
 												   RpgGameItem::FixtureAll));
@@ -396,9 +391,7 @@ void RpgMotorPlayer::updateBody(RpgPlayer *player, const RpgStream::PlayerState 
 
 	player->rotateBody(state.entityState().angleAsFloat(), true);
 	player->setFacingDirection(TiledObject::Direction(state.entityState().facing()));
-	player->overrideCurrentSpeed(cpv(state.entityState().velXAsFloat(),
-									 state.entityState().velYAsFloat()
-									 ));
+	player->overrideCurrentSpeedSq(state.entityState().velSq());
 }
 
 
@@ -759,8 +752,9 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 
 bool RpgMotorPlayerControlled::beforeWorldStep(const qint64 &tick, entt::entity &entity)
 {
-	if (tick < 0) {
+	d->m_currentKnockback = cpvzero;
 
+	{
 		Rpg::RpgLogicScope scope = m_game->rpgLogicClient()->getScope();
 
 		const Rpg::PlayerStateOutput *out = scope.try_get<Rpg::PlayerStateOutput>(entity);
@@ -771,20 +765,33 @@ bool RpgMotorPlayerControlled::beforeWorldStep(const qint64 &tick, entt::entity 
 		}
 
 
-		const RpgStream::PlayerState *state = out->at(0);
+		if (tick < 0) {
+			const RpgStream::PlayerState *state = out->at(0);
 
-		if (!state) {
-			LOG_CERROR("game") << "Missing tick 0" << this;
-			return false;
+			if (!state) {
+				LOG_CERROR("game") << "Missing tick 0" << this;
+				return false;
+			}
+
+			RpgMotorPlayer::updateBody(m_player, *state, true);
+
+			saveCurrentState(0);
+
+			m_player->synchronize();
+
+			return true;
 		}
 
-		RpgMotorPlayer::updateBody(m_player, *state, true);
+		if (const quint32 diff = m_game->rpgLogicClient()->lastAuthDiff() +
+				m_game->rpgLogicClient()->jitterDiff()/2; tick >= diff)
+		{
+			const quint32 slideTick = tick-diff;
+			const RpgStream::PlayerState *state = out->at(slideTick);
 
-		saveCurrentState(0);
+			if (state && (state->entityState().slideX() != 0 || state->entityState().slideY() != 0))
+				d->m_currentKnockback = cpv(state->entityState().slideXAsFloat(), state->entityState().slideYAsFloat());
+		}
 
-		m_player->synchronize();
-
-		return true;
 	}
 
 
@@ -806,18 +813,16 @@ bool RpgMotorPlayerControlled::beforeWorldStep(const qint64 &tick, entt::entity 
 	} else {
 		bool reqEmplace = true;
 
-		if (sim.empty())
-			LOG_CWARNING("game") << "<>" << latest->tick() << "NO SIM";
-		else {
+		if (!sim.empty()) {
 			// Csak akkor helyezzük vissza, ha a pozíció sem stimmel (pl. ha mp-t vett fel, és emiatt változott a státusz, akkor nem bántjuk
 			// Később (pl. hp == 0) lekezeljük újra
 
-			if (sim.cbegin()->second.entityState() == latest->entityState()) {
+			if (sim.cbegin()->second.entityState().isEqualWithoutSlide(latest->entityState()))
 				reqEmplace = false;
-				LOG_CINFO("game") << "<>" << latest->tick() << sim.cbegin()->first << "-->" << sim.rbegin()->first;
-			} else {
-				LOG_CWARNING("game") << "<>" << latest->tick() << sim.cbegin()->first << "-->" << sim.rbegin()->first;
-			}
+		}
+
+		if (reqEmplace && !cpveql(d->m_currentKnockback, cpvzero)) {
+			reqEmplace = false;
 		}
 
 		state = latest;
@@ -861,12 +866,6 @@ bool RpgMotorPlayerControlled::beforeWorldStep(const qint64 &tick, entt::entity 
 		RpgMotorPlayer::updateBody(m_player, *state, true);
 		//m_player->emplace(state->entityState().posXAsFloat(), state->entityState().posYAsFloat());
 	}
-
-
-	// Knockback
-
-	d->m_knockbackVelocity.x = state->entityState().slideXAsFloat();
-	d->m_knockbackVelocity.y = state->entityState().slideYAsFloat();
 
 
 	d->m_controlActionDisable = nextControlState;
@@ -966,13 +965,17 @@ const RpgStream::PlayerState *RpgMotorPlayerControlled::saveCurrentState(const q
 	st.entityState().setPosYAsFloat(m_player->bodyPosition().y);
 	st.entityState().setAngleAsFloat(m_player->desiredBodyRotation());
 
-	const cpVect velocity = cpBodyGetVelocity(m_player->body());
+
+	static const quint32 streamMaxSpeed = (quint32){1} << SPEEDSQ_SIZE_BITS;
+
+	if (m_player->currentSpeedSq() > streamMaxSpeed) {
+		LOG_CERROR("engine") << "SpeedSq size error" << m_player->currentSpeedSq() << ">" << streamMaxSpeed;
+	}
 
 	st.entityState().setFacing(m_player->facingDirection());
-	st.entityState().setVelXAsFloat(velocity.x);
-	st.entityState().setVelYAsFloat(velocity.y);
-	st.entityState().setSlideXAsFloat(m_player->d->m_knockbackVelocity.x);
-	st.entityState().setSlideYAsFloat(m_player->d->m_knockbackVelocity.y);
+	st.entityState().setVelSq(m_player->currentSpeedSq());
+	//st.entityState().setSlideXAsFloat(m_player->d->m_knockbackVelocity.x);
+	//st.entityState().setSlideYAsFloat(m_player->d->m_knockbackVelocity.y);
 
 
 	st.setHp(m_player->hp());
@@ -1811,12 +1814,12 @@ void RpgPlayerPrivate::resetLock(const RpgStream::EventPlayer &event)
 
 void RpgPlayerPrivate::applyKnockback()
 {
-	if (cpveql(m_knockbackVelocity, cpvzero))
+	if (cpveql(m_currentKnockback, cpvzero))
 		return;
 
 	const cpVect current = cpBodyGetVelocity(q->body());
 
-	q->setSpeed(cpvadd(current, m_knockbackVelocity));
+	q->setSpeed(cpvadd(current, m_currentKnockback));
 
 	q->overrideCurrentSpeed(current);
 }

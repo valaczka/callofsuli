@@ -344,10 +344,8 @@ void RpgLogicClientMulti::loadEvents(const std::vector<RpgStream::Events> &list)
 
 	Q_ASSERT(out);
 
-	for (const RpgStream::Events &event : list) {
-		LOG_CINFO("game") << "LOAD" << event.tick() << event.flags() << event.stage().size();
+	for (const RpgStream::Events &event : list)
 		out->insert(event);
-	}
 }
 
 
@@ -471,6 +469,8 @@ void RpgLogicClientMulti::loadDefenders(const std::vector<RpgStream::DefenderSta
 			LOG_CERROR("game") << "Invalid defender" << s.tagId();
 			continue;
 		}
+
+		LOG_CINFO("game") << "LOAD" << s.tagId() << s.hp();
 
 		out->insert(s);
 	}

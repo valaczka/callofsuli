@@ -30,6 +30,19 @@
 
 /// Config ----------------------------------------------
 
+#define	CFG_GAME_DURATION				5*60*60					// duration in tick
+#define CFG_GAME_STAGE_MAIN				60*60					// start stage main in tick
+#define CFG_GAME_STAGE_LAST				CFG_GAME_DURATION-30*60	// start last stage in tick
+
+#define	CFG_EMITTER_CAPACITY_STAGE_WU	0.75					// mp emitter capacity ratio in stage Warming Up
+#define	CFG_EMITTER_DELAY_STAGE_WU		5*60					// mp emitter delay in tick in stage Warming Up
+
+#define	CFG_EMITTER_CAPACITY_STAGE_M	1.0						// mp emitter capacity ratio in stage Main
+#define	CFG_EMITTER_DELAY_STAGE_M		1*60					// mp emitter delay in tick in stage Main
+
+#define	CFG_EMITTER_CAPACITY_STAGE_L	1.5						// mp emitter capacity ratio in stage Last
+#define	CFG_EMITTER_DELAY_STAGE_L		1						// mp emitter delay in tick in stage Last
+
 #define CFG_PLAYER_RESPAWN				300						// player respawn in tick
 
 #define CFG_PENALTY_TOWER				300						// player question penalty in tick after failed tower attack
@@ -43,8 +56,10 @@
 #define CFG_MAX_KNOCKBACK				1200					// max. knockback velocity limit
 #define CFG_KNOCKBACK_DECAY_PER_SEC		5.0f					// knockback decay
 
+#define CFG_POINT						15						// team points / tower / sec
+#define CFG_POINT_STAGE_L				33						// team points / tower / sec in stage Last
 
-#define CFG_MP_CHANGE_BULLET			8						// mp cost of bullet change
+#define CFG_MP_CHANGE_BULLET			1//8					// mp cost of bullet change
 
 /// -----------------------------------------------------
 
