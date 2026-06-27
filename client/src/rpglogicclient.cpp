@@ -26,6 +26,7 @@
 
 #include "rpglogicclient.h"
 #include "rpggame.h"
+#include "rpggame_p.h"
 #include "rpgobject.h"
 #include "rpgudpengine.h"
 
@@ -143,23 +144,6 @@ quint32 RpgLogicClient::estimatedServerTick() const {
 
 
 
-/**
- * @brief RpgLogicClient::eventRealized
- * @param entity
- */
-
-void RpgLogicClient::eventRealized(entt::entity entity)
-{
-	RpgLogicScope scope = getScope();
-
-	if (!scope.valid(entity))
-		return;
-
-	if (EventTowerActiveChanged *e = scope.try_get<EventTowerActiveChanged>(entity)) {
-		LOG_CINFO("game") << "CHANGED" << e->team << e->active;
-	}
-}
-
 
 
 
@@ -172,7 +156,113 @@ void RpgLogicClient::eventRealized(entt::entity entity)
  * @brief RpgLogicClientSingle::RpgLogicClientSingle
  */
 
-RpgLogicClientSingle::RpgLogicClientSingle() : RpgLogicClient(0, 0) {}
+RpgLogicClientSingle::RpgLogicClientSingle()
+	: RpgLogicClient(0, 0)
+{
+
+}
+
+
+
+
+/**
+ * @brief RpgLogicClientSingle::start
+ */
+
+RpgStream::GameConfig RpgLogicClientSingle::start()
+{
+	Rpg::RpgLogicScope scope = getScope();
+	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
+
+	cfg->flags().setFlag(RpgStream::GameConfig::FlagDataCompleted);
+
+	initialize();
+
+	cfg->flags().setFlag(RpgStream::GameConfig::FlagPlaying);
+
+
+	RpgStream::GameConfig config = *cfg;
+	config.setStage(RpgStream::GameConfig::StageSelect);
+
+	return config;
+}
+
+
+
+/**
+ * @brief RpgLogicClientSingle::startGame
+ * @return
+ */
+
+RpgStream::GameConfig RpgLogicClientSingle::startGame()
+{
+	Rpg::RpgLogicScope scope = getScope();
+
+	// First render
+
+	render();
+
+	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
+	const RpgStream::GameConfig config = *cfg;
+
+	// Rewind stage
+
+	cfg->setStage(RpgStream::GameConfig::StageSelect);
+
+	return config;
+}
+
+
+
+
+
+
+/**
+ * @brief RpgLogicClientSingle::eventRealized
+ * @param entity
+ */
+
+void RpgLogicClientSingle::eventRealized(entt::entity entity)
+{
+	RpgLogicScope scope = getScope();
+
+	if (!scope.valid(entity))
+		return;
+
+	const quint32 tick = lastAuthTick();
+
+	if (RpgStream::EventStageChanged *ev = scope.try_get<RpgStream::EventStageChanged>(entity)) {
+		if (ev->config().stage() == RpgStream::GameConfig::StageWarmingUp) {
+			for (auto e : scope.view<MpEmitter>()) {
+				EventMpCreate evc = EventMpCreate::createMp(RpgStream::GameConfig::StageMain, tick);
+				evc.emitter = e;
+
+				ELOG_DEBUG << "Register WarmingUp MP create event for" << evc.tick();
+
+				eventStore(std::move(evc));
+			}
+		}
+
+		return;
+	}
+
+
+	if (EventMpEmitterEmpty *ev = scope.try_get<EventMpEmitterEmpty>(entity)) {
+		if (!scope.valid(ev->emitter)) {
+			ELOG_ERROR << "Invalid emitter";
+			return;
+		}
+
+		ELOG_DEBUG << "Emitter empty" << scope.get<MpEmitter>(ev->emitter).idTag << "at" << tick;
+
+		EventMpCreate evc = EventMpCreate::createMp(RpgStream::GameConfig::StageMain, tick);
+		evc.emitter = ev->emitter;
+
+		ELOG_DEBUG << "Register MP create event for" << evc.tick();
+
+		eventStore(std::move(evc));
+	}
+}
 
 
 
@@ -469,8 +559,6 @@ void RpgLogicClientMulti::loadDefenders(const std::vector<RpgStream::DefenderSta
 			LOG_CERROR("game") << "Invalid defender" << s.tagId();
 			continue;
 		}
-
-		LOG_CINFO("game") << "LOAD" << s.tagId() << s.hp();
 
 		out->insert(s);
 	}

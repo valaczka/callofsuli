@@ -1053,6 +1053,9 @@ public:
 
 
 protected:
+	template <class T, typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T>::value>::type>
+	void eventStore(T &&event);
+
 	virtual void eventRealized(entt::entity entity) { Q_UNUSED(entity); }
 	void eventRealizedDefault(entt::entity entity);
 
@@ -1060,9 +1063,10 @@ protected:
 	entt::entity entityFromIdTag(const quint32 &tag) const;
 
 
+private:
+	RpgLogicPrivate *d = nullptr;
 
 protected:
-	RpgLogicPrivate *d = nullptr;
 	quint32 m_serverTick = 0;
 	const quint32 m_lastAuthTickDiff = 0;
 
@@ -1123,6 +1127,30 @@ protected:
 
 
 
+
+
+/**
+ * @brief RpgLogic::eventStore
+ * @param event
+ */
+
+template<class T, typename T2>
+inline void RpgLogic::eventStore(T &&event)
+{
+	QMutexLocker locker(&m_mutex);
+
+	auto entity = m_registry.create();
+
+	m_registry.emplace<EventTag>(entity, event.tick());
+	m_registry.emplace<T>(entity, std::move(event));
+}
+
+
+
+
+
+
+
 /**
  * @brief The RpgLogicScope class
  */
@@ -1173,6 +1201,43 @@ private:
 
 
 
+
+
+
+/// Common events
+
+
+// Generate mp
+
+class EventMpCreate : public RpgStream::BaseTickState
+{
+public:
+	EventMpCreate() : RpgStream::BaseTickState() {}
+
+	static EventMpCreate createMp(const RpgStream::GameConfig::Stage &stage, const quint32 &tickNow);
+
+	entt::entity emitter = entt::null;
+	entt::entity player = entt::null;
+
+	float capacityRatio = 1.0;
+	float mpCount = 0;
+	cpVect pos = cpvzero;
+};
+
+
+
+
+
+
+// Emitter empty
+
+class EventMpEmitterEmpty : public RpgStream::BaseTickState
+{
+public:
+	EventMpEmitterEmpty() : RpgStream::BaseTickState() {}
+
+	entt::entity emitter = entt::null;
+};
 
 
 

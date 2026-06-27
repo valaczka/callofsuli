@@ -579,7 +579,7 @@ void RpgGamePrivate::characterSelect(const QVariantMap &data)
 	if (m_engine)
 		m_engine->sendCharacterSelect(m_characterSelect);
 	else
-		updateCharacterSelect();
+		QMetaObject::invokeMethod(this, &RpgGamePrivate::updateCharacterSelect, Qt::QueuedConnection);
 }
 
 
@@ -591,18 +591,38 @@ void RpgGamePrivate::characterSelect(const QVariantMap &data)
 
 void RpgGamePrivate::updateCharacterSelect()
 {
+	if (q->m_gameState != RpgGame::GameStateCharacterSelect)
+		return;
+
+	if (!m_characterSelect.data().flags().testFlag(RpgStream::PlayerData::FlagCompleted))
+		return;
+
+	if (m_characterSelect.gameConfig().terrain() == 0 ||
+			m_characterSelect.data().character() == 0) {
+		LOG_CWARNING("game") << "Missing character or terrain";
+		return;
+	}
+
 	Rpg::RpgLogicScope scope = m_logic->getScope();
 	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
 
 	Q_ASSERT(cfg);
 
-
 	*cfg = m_characterSelect.gameConfig();
 
 	q->setTerrain(cfg->terrainResolved(m_terrainHash));
 
-	/*if (cfg->flags().testFlags(RpgStream::GameConfig::FlagSelected))
-		q->setGameState(RpgGame::GameStatePrepare);*/
+	if (q->m_gameMode == RpgGame::SinglePlayer) {
+		cfg->flags().setFlag(RpgStream::GameConfig::FlagSelected);
+
+		m_characterSelect.data().setTeam(RpgStream::TeamA);
+
+		quint32 id = 0;
+		quint32 tagId = 0;
+		m_logic->playerAdd(m_characterSelect.data(), &id, &tagId);
+
+		q->setGameState(RpgGame::GameStatePrepare);
+	}
 }
 
 
@@ -693,26 +713,36 @@ void RpgGamePrivate::onGameItemPrepared()
 		m_engine->m_gameFlags.setFlag(RpgStream::PlayerData::FlagLoadCompleted);
 
 		return;
-	} else {
-		m_logic->loadMapData(m_mapData);
-		m_isMapLoaded = true;
 	}
 
 
-	/*
-	Rpg::RpgLogicScope scope = m_logic->getScope();
-	m_deadlineTick = scope.getCtx<RpgStream::GameConfig>()->duration();
+	// Single Player
 
+	Rpg::RpgLogicClientSingle *logic = dynamic_cast<Rpg::RpgLogicClientSingle*>(m_logic.get());
 
-	m_logic->emplacePlayers();*/
+	if (!logic) {
+		LOG_CERROR("game") << "Invalid logic";
+		q->setError(tr("Belső hiba"));
+		return;
+	}
+
+	logic->loadMapData(m_mapData);
+	m_isMapLoaded = true;
+
+	RpgStream::GameConfig cfg = logic->start();
 
 	syncObjects();
 	syncGameState();
+	syncGameConfig(cfg, 0);
 
-	/// TODO...
-	///q->setGameState(RpgGame::GameStateInit);
+	QTimer::singleShot(3000, this, [this, logic]() {
+		LOG_CERROR("game") << "REMOVE THIS" << logic->serverTick();
 
-	startGame();
+		syncGameConfig(logic->startGame(), logic->serverTick());
+
+		LOG_CERROR("game") << "REMOVE ...." << logic->serverTick();
+	});
+
 }
 
 
@@ -1281,7 +1311,8 @@ void RpgGamePrivate::onBeforeWorldStep(const qint64 &tick)
 	syncObjects();
 
 	if (q->m_gameMode == RpgGame::SinglePlayer) {
-		m_logic->render();
+		if (tick >= 0)
+			m_logic->render();
 	} else {
 		if (m_engine)
 			m_engine->onBeforeWorldStep(tick);
@@ -1403,12 +1434,12 @@ void RpgGamePrivate::syncGameState()
 	RpgStream::GameState *state = scope.getCtx<RpgStream::GameState>();
 
 	if (!state) {
-		//LOG_CERROR("game") << "Missing GameState";
+		LOG_CTRACE("game") << "Missing GameState";
 		return;
 	}
 
 	if (!q->m_controlledPlayer) {
-		//LOG_CWARNING("game") << "Missing controlled player";
+		LOG_CTRACE("game") << "Missing controlled player";
 		return;
 	}
 
@@ -1433,6 +1464,17 @@ void RpgGamePrivate::syncGameState()
 
 void RpgGamePrivate::syncObjects()
 {
+	Rpg::RpgLogicScope scope = m_logic->getScope();
+	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
+
+	Q_ASSERT(cfg);
+
+	if (!cfg->flags().testFlag(RpgStream::GameConfig::FlagDataCompleted)) {
+		LOG_CTRACE("game") << "Incompleted data";
+		return;
+	}
+
+
 	syncPlayers();
 	syncMp();
 	syncDefenders();
@@ -1507,7 +1549,7 @@ void RpgGamePrivate::syncPlayers()
 
 		LOG_CWARNING("game") << "--- check" << (controlledObjects ? controlledObjects->player : 0) << p.idTag();
 
-		if (controlledObjects && controlledObjects->player == p.idTag()) {
+		if ((controlledObjects && controlledObjects->player == p.idTag()) || q->m_gameMode == RpgGame::SinglePlayer) {
 			obj->setSecondaryMotor(std::make_unique<RpgMotorPlayerControlled>(obj));
 			q->setControlledPlayer(obj);
 
@@ -2116,6 +2158,8 @@ RpgGamePrivate::~RpgGamePrivate()
 
 	m_engine.reset();
 	LOG_CDEBUG("game") << "ENGINE RESET" << this;
+
+	m_logic.reset();
 }
 
 
@@ -2316,14 +2360,10 @@ void RpgGamePrivate::connectionCheck()
 
 void RpgGamePrivate::connectionReady()
 {
-
-	/*Rpg::RpgLogicScope scope = m_logic->getScope();
-scope.getCtx<RpgStream::GameConfig>()->setTerrainResolved("test");
-scope.getCtx<RpgStream::GameConfig>()->setDuration(150*60);
-
-q->setGameState(RpgGame::GameStatePrepare);
-
-return;*/
+	if (q->m_gameMode == RpgGame::SinglePlayer) {
+		q->setGameState(RpgGame::GameStateCharacterSelect);
+		return;
+	}
 
 	LOG_CINFO("game") << "READY TO LOBBY";
 

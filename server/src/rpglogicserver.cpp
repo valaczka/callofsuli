@@ -91,10 +91,12 @@ void RpgLogicServer::eventRealized(entt::entity entity)
 
 		if (!onStageChanged(ev->config().stage()))
 			eventRealizedDefault(entity);
+
+		return;
 	}
 
-
-
+	if (m_registry.try_get<Rpg::EventMpEmitterEmpty>(entity))
+		eventRealizedDefault(entity);
 }
 
 

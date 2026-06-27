@@ -33,7 +33,7 @@
 class RpgObject;
 class RpgTower;
 class RpgUdpEngine;
-
+class RpgGamePrivate;
 
 namespace Rpg {
 
@@ -103,14 +103,13 @@ public:
 
 
 protected:
-	virtual void eventRealized(entt::entity entity) override;
-
-protected:
 	qint64 m_serverRtt = 0;
 	const quint32 m_jitterDiff = 0;
 
 	QElapsedTimer m_lastInputTimer;
 };
+
+
 
 
 
@@ -124,7 +123,16 @@ class RpgLogicClientSingle : public RpgLogicClient
 {
 public:
 	RpgLogicClientSingle();
+
+	virtual RpgStream::GameConfig start();
+	RpgStream::GameConfig startGame();
+
+protected:
+	virtual void eventRealized(entt::entity entity) override;
 };
+
+
+
 
 
 /**

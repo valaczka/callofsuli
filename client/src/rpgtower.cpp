@@ -54,6 +54,13 @@ RpgTower::RpgTower(RpgGameItem *gameItem, Tiled::MapObject *object, Tiled::MapRe
 
 
 
+RpgTower::~RpgTower()
+{
+
+}
+
+
+
 /**
  * @brief RpgTower::initialize
  */

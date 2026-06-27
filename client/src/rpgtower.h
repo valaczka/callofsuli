@@ -88,6 +88,7 @@ class RpgTower : public TiledObject
 
 public:
 	RpgTower(RpgGameItem *gameItem, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
+	virtual ~RpgTower();
 
 	virtual void initialize() override;
 	void worldStep() override;

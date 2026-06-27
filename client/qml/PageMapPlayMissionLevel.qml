@@ -383,13 +383,14 @@ QPageGradient {
 				enabled: _btnPlay.enabled
 				text: qsTr("Multiplayer")
 
-				visible: _btnPlay.visible && _mapPlayCampaign &&
+				visible: _btnPlay.visible && /*_mapPlayCampaign &&*/
 						 _modeGroup.checkedButton && _modeGroup.checkedButton.gameMode === GameMap.Rpg
 
 				outlined: !enabled
 
 				onClicked: {
-					_mapPlayCampaign.playMultiPlayer(missionLevel, _logoutOtherEngine.checked)
+					//_mapPlayCampaign.playMultiPlayer(missionLevel, _logoutOtherEngine.checked)
+					map.play(missionLevel, _modeGroup.checkedButton.gameMode, {}, true)
 				}
 			}
 		}

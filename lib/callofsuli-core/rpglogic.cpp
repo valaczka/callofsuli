@@ -118,9 +118,6 @@ private:
 	void eventInputLoad(const std::vector<RpgStream::Events> &list, EventWindowHash *acceptedInputList);
 	void eventInputLoad(const std::vector<RpgStream::EventPlayer> &list, EventWindowHash *acceptedInputList);
 
-	template <class T, typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T>::value>::type>
-	void eventStore(T &&event);
-
 	template <typename T>
 	entt::entity eventFinalStore(T &&event);
 
@@ -251,24 +248,6 @@ struct PlayerPrivate
 
 
 
-
-
-// Generate mp
-
-class EventMpCreate : public RpgStream::BaseTickState
-{
-public:
-	EventMpCreate() : RpgStream::BaseTickState() {}
-
-	static EventMpCreate createMp(const RpgStream::GameConfig::Stage &stage, const quint32 &tickNow);
-
-	entt::entity emitter = entt::null;
-	entt::entity player = entt::null;
-
-	float capacityRatio = 1.0;
-	float mpCount = 0;
-	cpVect pos = cpvzero;
-};
 
 
 
@@ -692,8 +671,30 @@ void RpgLogic::eventRealizedDefault(entt::entity entity)
 {
 	QMutexLocker locker(&m_mutex);
 
-	if (RpgStream::EventStageChanged *ev = m_registry.try_get<RpgStream::EventStageChanged>(entity))
+	const quint32 tick = lastAuthTick();
+
+	if (RpgStream::EventStageChanged *ev = m_registry.try_get<RpgStream::EventStageChanged>(entity)) {
 		d->onEventStageChanged(*ev);
+		return;
+	}
+
+	if (Rpg::EventMpEmitterEmpty *ev = m_registry.try_get<Rpg::EventMpEmitterEmpty>(entity)) {
+		if (!m_registry.valid(ev->emitter)) {
+			ELOG_ERROR << "Invalid emitter";
+			return;
+		}
+
+		ELOG_DEBUG << "Emitter empty" << m_registry.get<Rpg::MpEmitter>(ev->emitter).idTag << "at" << tick;
+
+		Rpg::EventMpCreate evc = Rpg::EventMpCreate::createMp(m_registry.ctx().get<RpgStream::GameConfig>().stage(), tick);
+		evc.emitter = ev->emitter;
+
+		ELOG_DEBUG << "Register MP create event for" << evc.tick();
+
+		eventStore(std::move(evc));
+
+		return;
+	}
 }
 
 
@@ -900,7 +901,7 @@ quint32 RpgLogicPrivate::playerDecreaseHp(entt::entity player, const quint32 &co
 	ev.setTick(nextTick);
 	ev.player = player;
 
-	eventStore(std::move(ev));
+	q->eventStore(std::move(ev));
 
 
 	// Register mp create event
@@ -919,7 +920,7 @@ quint32 RpgLogicPrivate::playerDecreaseHp(entt::entity player, const quint32 &co
 	evc.pos.x = st.entityState().posXAsFloat();
 	evc.pos.y = st.entityState().posYAsFloat();
 
-	eventStore(std::move(evc));
+	q->eventStore(std::move(evc));
 
 	return nextHp;
 }
@@ -1548,7 +1549,7 @@ void RpgLogicPrivate::eventInputLoad(const std::vector<RpgStream::EventPlayer> &
 			ELOG_TRACE << "Unacceptable event" << l.tagId() << l.type() << l.tick() << l.seq();
 		} else {
 			ELOG_TRACE << "Accept event" << l.tagId() << l.type() << l.tick() << l.seq();
-			eventStore(std::move(l));
+			q->eventStore(std::move(l));
 		}
 	}
 }
@@ -2431,10 +2432,9 @@ void RpgLogicPrivate::renderEvents(entt::entity mpent, const std::vector<EventMp
 		std::erase(emitter->mpList, mpent);
 
 		if (emitter->mpList.empty()) {
-			EventMpCreate e = EventMpCreate::createMp(q->m_registry.ctx().get<RpgStream::GameConfig>().stage(), q->lastAuthTick());
+			EventMpEmitterEmpty e;
 			e.emitter = mp->emitter;
-
-			eventStore(std::move(e));
+			eventRealStore(std::move(e));
 		}
 	}
 
@@ -3168,7 +3168,7 @@ void RpgLogicPrivate::renderFinalDefenders()
 			ev.setTick(q->lastAuthTick()+
 					   (def.defender == entt::null || currentStage == RpgStream::GameConfig::StageLast ? 1 : CFG_DEFENDER_DESTROY));
 
-			eventStore(std::move(ev));
+			q->eventStore(std::move(ev));
 		}
 
 
@@ -3320,7 +3320,7 @@ void RpgLogicPrivate::onEventStageChanged(const RpgStream::EventStageChanged &ev
 
 			ELOG_DEBUG << "Register WarmingUp MP create event for" << ev.tick();
 
-			eventStore(std::move(ev));
+			q->eventStore(std::move(ev));
 		}
 	} else if (event.config().stage() == RpgStream::GameConfig::StageLast) {
 		for (auto e : q->m_registry.view<MpEmitter>()) {
@@ -3329,7 +3329,7 @@ void RpgLogicPrivate::onEventStageChanged(const RpgStream::EventStageChanged &ev
 
 			ELOG_DEBUG << "Register Last MP create event for" << ev.tick();
 
-			eventStore(std::move(ev));
+			q->eventStore(std::move(ev));
 		}
 	}
 }
@@ -3961,7 +3961,7 @@ bool RpgLogic::initialize()
 	ev.setTick(CFG_GAME_STAGE_MAIN);
 	ev.stage = RpgStream::GameConfig::StageMain;
 
-	d->eventStore(std::move(ev));
+	eventStore(std::move(ev));
 
 	// Stage last
 
@@ -3969,7 +3969,7 @@ bool RpgLogic::initialize()
 	ev2.setTick(CFG_GAME_STAGE_LAST);
 	ev2.stage = RpgStream::GameConfig::StageLast;
 
-	d->eventStore(std::move(ev2));
+	eventStore(std::move(ev2));
 
 
 	// Emplace players
@@ -4131,6 +4131,11 @@ void RpgLogicPrivate::preRenderEvents()
 			playerInitialize(ev->player);
 		} else if (EventStageChange *event = q->m_registry.try_get<EventStageChange>(e)) {
 			changeStage(event->stage);
+		} else {
+			ELOG_DEBUG << "Forced event.......................";
+			q->m_registry.emplace<EventProcessingTag>(e);
+
+			continue;			// Nem teszünk DeleteTag-et, majd a renderEvents();
 		}
 
 		q->m_registry.emplace<DeleteTag>(e);
@@ -4293,21 +4298,6 @@ RpgStream::MpEmitter MpEmitter::toRpgStream() const
 
 
 
-/**
- * @brief RpgLogicPrivate::eventStore
- * @param event
- */
-
-template<class T, typename T2>
-void RpgLogicPrivate::eventStore(T &&event)
-{
-	QMutexLocker locker(&q->m_mutex);
-
-	auto entity = q->m_registry.create();
-
-	q->m_registry.emplace<EventTag>(entity, event.tick());
-	q->m_registry.emplace<T>(entity, std::move(event));
-}
 
 
 

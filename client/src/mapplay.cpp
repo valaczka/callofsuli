@@ -302,7 +302,7 @@ AbstractLevelGame *MapPlay::createLevelGame(MapPlayMissionLevel *level, const Ga
 
 	switch (mode) {
 		case GameMap::Rpg:
-			g = new RpgGame(level->missionLevel(), m_client, /*multi*/ true);
+			g = new RpgGame(level->missionLevel(), m_client, multi);
 			break;
 
 		case GameMap::Lite:
