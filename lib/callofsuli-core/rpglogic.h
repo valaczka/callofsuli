@@ -42,6 +42,17 @@
 
 #define DEFAULT_PULL_SIZE		12
 
+#ifdef Q_OS_WASM
+
+#define ELOG_TRACE            qDebug()
+#define ELOG_DEBUG            qDebug()
+#define ELOG_INFO             qInfo()
+#define ELOG_WARNING          qWarning()
+#define ELOG_ERROR            qWarning()
+#define ELOG_FATAL            qCritical()
+
+
+#else
 
 #define ELOG_TRACE            CuteMessageLogger(_logger(), Logger::Trace,   __FILE__, __LINE__, Q_FUNC_INFO).write()
 #define ELOG_DEBUG            CuteMessageLogger(_logger(), Logger::Debug,   __FILE__, __LINE__, Q_FUNC_INFO).write()
@@ -50,7 +61,7 @@
 #define ELOG_ERROR            CuteMessageLogger(_logger(), Logger::Error,   __FILE__, __LINE__, Q_FUNC_INFO).write()
 #define ELOG_FATAL            CuteMessageLogger(_logger(), Logger::Fatal,   __FILE__, __LINE__, Q_FUNC_INFO).write()
 
-
+#endif
 
 /**************************************************************
  * RPG WORLD
@@ -976,7 +987,9 @@ public:
 
 	// Logger
 
+#ifndef Q_OS_WASM
 	void setLogger(Logger *logger) { m_logger = logger; }
+#endif
 
 	// Get scope
 
@@ -1110,8 +1123,10 @@ protected:
 	}
 
 
+#ifndef Q_OS_WASM
 	Logger *_logger() const { return m_logger; };
 	Logger *m_logger = cuteLoggerInstance();
+#endif
 
 	mutable QRecursiveMutex m_mutex;
 	entt::registry m_registry;

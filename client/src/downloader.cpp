@@ -420,9 +420,15 @@ void Downloader::contentDictAdd(const QString &tsx, const QString &res)
 
 void Downloader::contentDictAdd(const QJsonObject &json)
 {
+#if QT_VERSION >= 0x061000
 	for (const auto &[key, value] : json.asKeyValueRange()) {
 		contentDictAdd(key.toString(), value.toString());
 	}
+#else
+	for (auto it = json.constBegin(); it != json.constEnd(); ++it) {
+		contentDictAdd(it.key(), it.value().toString());
+	}
+#endif
 }
 
 

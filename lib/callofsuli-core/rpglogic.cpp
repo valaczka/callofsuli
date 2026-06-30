@@ -55,7 +55,9 @@ private:
 	RpgLogicPrivate(RpgLogic *logic) : q(logic) {}
 	~RpgLogicPrivate() = default;
 
+#ifndef Q_OS_WASM
 	Logger *_logger() const { return q->m_logger; }
+#endif
 
 	quint32 nextIdTag();
 	quint32 nextIdTag(Player *player, PlayerPrivate *p);

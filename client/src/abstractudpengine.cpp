@@ -34,7 +34,7 @@
 #include <QDataStream>
 #include <QIODevice>
 #include <BMLib/BinaryStream.hpp>
-
+#include <QtWebSockets/QWebSocket>
 
 
 /**
@@ -73,7 +73,6 @@ AbstractUdpEngine::AbstractUdpEngine(QObject *parent)
 	d->runWebSocket();
 #endif
 
-	LOG_CDEBUG("client") << "Started udp engine" << m_worker.get() << d;
 }
 
 
@@ -459,10 +458,12 @@ void AbstractUdpEnginePrivate::runWebSocket()
 	});
 
 
+#ifndef Q_OS_WASM
 	connect(m_webSocket.get(), &QWebSocket::sslErrors, this, [this](const QList<QSslError> &errors) {
 		LOG_CWARNING("client") << "Ignore SSL errors" << errors;
 		m_webSocket->ignoreSslErrors();
 	});
+#endif
 
 	connect(m_webSocket.get(), &QWebSocket::binaryMessageReceived, this, &AbstractUdpEnginePrivate::messageReceived);
 	connect(m_webSocket.get(), &QWebSocket::textMessageReceived, this, [](const QString &text) {

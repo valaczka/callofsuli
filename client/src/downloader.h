@@ -30,6 +30,8 @@
 #include "httpconnection.h"
 #include <QObject>
 #include <QSerializer>
+#include <QDir>
+#include <QCryptographicHash>
 
 #ifndef Q_OS_WASM
 #include "qlambdathreadworker.h"

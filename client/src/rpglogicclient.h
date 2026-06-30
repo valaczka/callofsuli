@@ -29,6 +29,7 @@
 
 #include "chipmunk/chipmunk_types.h"
 #include <rpglogic.h>
+#include <QElapsedTimer>
 
 class RpgObject;
 class RpgTower;

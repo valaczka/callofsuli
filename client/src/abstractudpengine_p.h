@@ -121,12 +121,16 @@ private:
 		UdpCacheQueueSnd() = default;
 
 		bool hasEvent() const {
+#ifndef Q_OS_WASM
 			QMutexLocker l(&m_mutex);
+#endif
 			return m_hasEvent;
 		}
 
 		void setEvent(const bool &hasEvent = true) {
+#ifndef Q_OS_WASM
 			QMutexLocker l(&m_mutex);
+#endif
 			m_hasEvent = hasEvent;
 		}
 

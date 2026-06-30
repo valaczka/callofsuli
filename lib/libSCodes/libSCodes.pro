@@ -1,4 +1,4 @@
-CONFIG += c++17 static
+CONFIG += c++2a static
 CONFIG += separate_debug_info
 
 QT += gui quick

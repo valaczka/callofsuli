@@ -38,6 +38,7 @@
 #include "rpggame_p.h"
 #include "rpggameitem.h"
 #include "rpgmp.h"
+#include "server.h"
 #include "Logger.h"
 #include "client.h"
 #include "downloader.h"

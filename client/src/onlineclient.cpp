@@ -190,8 +190,8 @@ void OnlineClient::onResourceDownloaded()
 			m_httpConnection->setServer(s);
 			s->setUrl(url);
 
-			if (m_demoMode)
-				s->setIsStatic(true);
+			/*if (m_demoMode)
+				s->setIsStatic(true);*/
 
 			QSettings settings;
 
