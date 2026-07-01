@@ -1109,6 +1109,34 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(PlayerData::Flags)
 
 
 
+/**
+ * @brief The NpcData class
+ */
+
+class NpcData
+{
+public:
+	NpcData() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	enum Type {
+		None = 0,
+		Dummy,
+	};
+
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
+	STREAM_MEMBER_CAST(Type, type, Type, quint32, 12, None)						// max. 4096 types
+	STREAM_FIELD(EntityConfig, entity, Entity, {})
+	STREAM_MEMBER_RESOLVED(character, Character)
+	STREAM_MEMBER_CAST(Team, team, Team, quint8, 2, TeamNone)
+
+	// Dummy...
+};
+
+
+
 
 
 
@@ -1364,6 +1392,81 @@ public:
 
 
 
+
+/**
+ * @brief The NpcState class
+ */
+
+class NpcState : public BaseTickState
+{
+public:
+	NpcState() : BaseTickState() {}
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_DELTA_MASK (
+			quint32, 2,
+
+			Hp,
+			Target,
+
+			)
+
+	STREAM_FIELD(EntityState, entityState, EntityState, {})
+
+	STREAM_DELTA_MEMBER(ENTITY_HP_TYPE, hp, Hp, ENTITY_HP_BITS, 0, Hp)
+	STREAM_DELTA_MEMBER(TAG_ID_TYPE, target, Target, TAG_ID_BITS, 0, Target);
+
+	bool operator==(const NpcState &other) const {
+		return other.m_entityState == m_entityState &&
+				other.m_hp == m_hp &&
+				other.m_target == m_target
+				;
+	}
+
+
+	LOAD_FROM_DELTA_START(NpcState)
+
+	LOAD_WITHOUT_DELTA(tick, Tick)
+	LOAD_FROM_DELTA(hp, Hp)
+	LOAD_FROM_DELTA(target, Target)
+
+	LOAD_FROM_DELTA_MEMBER(entityState)
+
+	LOAD_FROM_DELTA_END
+};
+
+
+
+
+
+
+
+/**
+ * @brief The NpcStateList class
+ */
+
+class NpcStateList
+{
+public:
+	NpcStateList() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_ADD_DELTA_MODE
+
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
+	STREAM_DELTA_MEMBER_VECTOR(NpcState, state, State, STATE_LIST_TYPE, STATE_LIST_BITS)
+};
+
+
+
+
+
+
+
 /**
  * @brief The TowerState class
  */
@@ -1548,6 +1651,30 @@ public:
 
 
 /**
+ * @brief The EventNpc class
+ */
+
+class EventNpc : public BaseTickState
+{
+public:
+	EventNpc() : BaseTickState() {}
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	enum Type {
+		EventNone = 0,
+		EventCreated,											// NPC létrejött
+	};
+
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
+	STREAM_MEMBER_CAST(Type, type, Type, quint32, 4, EventNone)
+};
+
+
+
+
+/**
  * @brief The EventList class
  */
 
@@ -1566,6 +1693,7 @@ public:
 		Player			= 1 << 0,
 		Emitter			= 1 << 1,
 		Stage			= 1 << 2,
+		Npc				= 1 << 3,
 	};
 
 	Q_DECLARE_FLAGS(Flags, Flag)
@@ -1574,6 +1702,7 @@ public:
 	STREAM_MEMBER_VECTOR(EventPlayer, player, Player, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 	STREAM_MEMBER_VECTOR(EventMpEmitter, emitter, Emitter, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 	STREAM_MEMBER_VECTOR(EventStageChanged, stage, Stage, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
+	STREAM_MEMBER_VECTOR(EventNpc, npc, Npc, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 };
 
 
@@ -1672,13 +1801,14 @@ public:
 		Mp				= 1 << 2,
 		Tower			= 1 << 3,
 		Defender		= 1 << 4,
+		Npc				= 1 << 5,
 	};
 
 	Q_DECLARE_FLAGS(Flags, Flag)
 
 	STREAM_ADD_DELTA_MODE
 
-	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 5, Null)
+	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 6, Null)					// Flag bits!
 	STREAM_MEMBER(quint32, serverTick, ServerTick, 32, 0)
 
 	STREAM_FIELD(GameState, state, State, {})
@@ -1688,6 +1818,7 @@ public:
 	STREAM_MEMBER_VECTOR(MpData, mps, Mps, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 	STREAM_MEMBER_VECTOR(TowerState, towers, Towers, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 	STREAM_MEMBER_VECTOR(DefenderState, defenders, Defenders, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
+	STREAM_MEMBER_VECTOR(NpcStateList, npcs, Npcs, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(FullState::Flags)
@@ -1716,6 +1847,7 @@ public:
 	STREAM_MEMBER_VECTOR(MpEmitter, mpEmitters, MpEmitters, quint8, 8);
 	STREAM_MEMBER_VECTOR(Tower, towers, Towers, quint8, 8);
 	STREAM_MEMBER_VECTOR(BaseDefenderObject, defenders, Defenders, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
+	STREAM_MEMBER_VECTOR(NpcData, npcs, Npcs, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 
 	STREAM_MEMBER_VECTOR(FullPlayerMap, map, Map, quint32, PEER_INDEX_BITS)
 	STREAM_FIELD(FullState, fullState, FullState, {})

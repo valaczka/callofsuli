@@ -236,9 +236,6 @@ protected:
 
 
 private:
-	RpgEntity* findNearestTarget(const cpBitmask &category);
-	RpgEntity* findNearestTarget(const cpVect &rayDest, const cpBitmask &category);
-
 	TiledObjectBody* findNearestControl(const float &maxDist,
 										const cpBitmask &category = RpgGameItem::FixtureControl | RpgGameItem::FixtureDefender);
 	TiledObjectBody* findNearestControl(const cpVect &rayDest,

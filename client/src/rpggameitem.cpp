@@ -30,6 +30,7 @@
 #include "grouplayer.h"
 #include "rpggame.h"
 #include "rpggame_p.h"
+#include "rpgnpc.h"
 #include "rpgobject.h"
 #include "rpgplayer.h"
 #include "rpgtower.h"
@@ -349,15 +350,22 @@ void RpgGameItem::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *sce
 	} */
 
 	iterateOverBodies([debugDraw, this](TiledObjectBody *body) {
-		RpgPlayer *p = dynamic_cast<RpgPlayer*>(body);
-
-		if (p) {
+		if (RpgPlayer *p = dynamic_cast<RpgPlayer*>(body)) {
 			if (RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(p->currentMotor())) {
 
 				if (const auto &ptr = motor->destination()) {
 					debugDraw->drawPolygon(ptr.value(),
-										   p == m_game->controlledPlayer() ? QColor::fromRgb(0, 230, 0) : QColor::fromRgb(230, 150, 0),
+										   p == m_game->controlledPlayer() ? QColorConstants::Svg::lightgreen : QColorConstants::Svg::orange,
 										   4.);
+				}
+			}
+		} else if (RpgNpc *p = dynamic_cast<RpgNpc*>(body)) {
+			if (RpgMotorNpcControlled *motor = dynamic_cast<RpgMotorNpcControlled*>(p->currentMotor())) {
+
+				if (const auto &ptr = motor->destination()) {
+					debugDraw->drawPolygon(ptr.value(),
+										   p->targetEntity() ? QColorConstants::Svg::red : QColorConstants::Svg::lightblue,
+										   3.);
 				}
 			}
 		}
@@ -1232,6 +1240,122 @@ QRect RpgGameItem::loadTextureSprites(TiledSpriteHandler *handler, const QString
 
 
 
+
+/**
+ * @brief RpgGameItem::loadTextureSprites
+ * @param handler
+ * @param mapper
+ * @param path
+ * @return
+ */
+
+bool RpgGameItem::loadTextureSprites(TiledSpriteHandler *handler, const QVector<TextureSpriteMapper> &mapper,
+									 const QString &path)
+{
+	Q_ASSERT(handler);
+
+	LOG_CTRACE("game") << "Load base texture sprites" << path;
+
+	const auto &ptr = Utils::fileToJsonObject(
+						  path.endsWith('/') ?
+							  path+QStringLiteral("/texture.json") :
+							  path+QStringLiteral(".json"));
+
+	if (!ptr)
+		return false;
+
+	TextureSpriteDef def;
+	def.fromJson(*ptr);
+
+	auto sprites = spritesFromMapper(mapper, def);
+
+
+	// Add hurt virtual sprites
+
+	if (const QStringList list = spriteNamesFromMapper(mapper);
+			list.contains(QStringLiteral("death")) && !list.contains(QStringLiteral("hurt"))) {
+
+		const QVector<TiledObject::Direction> directions = directionsFromMapper(mapper, QStringLiteral("death"));
+
+		for (const auto &d : directions) {
+			TextureSpriteDirection data;
+			data.sprite = spriteFromMapper(mapper, def, QStringLiteral("death"), d, 4);
+			data.sprite.name = QStringLiteral("hurt");
+			data.direction = d;
+			sprites.append(data);
+		}
+	}
+
+	static const QString layer = "default";
+
+	return appendToSpriteHandler(handler, sprites,
+								 path.endsWith('/') ?
+									 path+QStringLiteral("/texture.png") :
+									 path+QStringLiteral(".png"),
+								 layer);
+}
+
+
+
+/**
+ * @brief RpgGameItem::baseSpriteMapper
+ * @return
+ */
+
+const QVector<TiledGame::TextureSpriteMapper> &RpgGameItem::baseSpriteMapper()
+{
+	static std::unique_ptr<QVector<TiledGame::TextureSpriteMapper>> mapper;
+
+	if (mapper)
+		return *(mapper.get());
+
+	mapper.reset(new QVector<TiledGame::TextureSpriteMapper>);
+
+	struct BaseMapper {
+		QString name;
+		int count = 0;
+		int duration = 0;
+		int loops = 0;
+	};
+
+	static const QVector<TiledObject::Direction> directions = {
+		TiledObject::SouthWest, TiledObject::West, TiledObject::NorthWest, TiledObject::North, TiledObject::NorthEast,
+		TiledObject::East, TiledObject::SouthEast, TiledObject::South
+	};
+
+
+	static const QVector<BaseMapper> baseMapper = {
+		{ QStringLiteral("idle"), 4, 250, 0 },
+		{ QStringLiteral("attack"), 10, 40, 1 },
+		{ QStringLiteral("bow"), 9, 40, 1 },
+		{ QStringLiteral("cast"), 9, 60, 1 },
+		{ QStringLiteral("walk"), 11, 60, 0 },
+		{ QStringLiteral("run"), 10, 60, 0 },
+		{ QStringLiteral("death"), 8, 60, 1 },
+	};
+
+
+	for (const auto &d : directions) {
+		for (const auto &m : baseMapper) {
+			TiledGame::TextureSpriteMapper dst;
+			dst.name = m.name;
+			dst.direction = d;
+			dst.width = 148;
+			dst.height = 130;
+			dst.duration = m.duration;
+			dst.loops = m.loops;
+
+			for (int i=0; i<m.count; ++i)
+				mapper->append(dst);
+		}
+	}
+
+	return *(mapper.get());
+}
+
+
+
+
 /**
  * @brief RpgGameItem::loadGround
  * @param scene
@@ -1274,8 +1398,6 @@ void RpgGameItem::setIsContentReady(bool newIsContentReady)
 	m_isContentReady = newIsContentReady;
 	emit isContentReadyChanged();
 }
-
-
 
 
 

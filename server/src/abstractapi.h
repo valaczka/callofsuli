@@ -62,10 +62,20 @@ public:
 	static QHttpServerResponse responseError(const char *errorStr, const QHttpServerResponse::StatusCode &code = QHttpServerResponse::StatusCode::Ok);
 	static QHttpServerResponse responseErrorSql();
 
+	static void responderResponseError(std::shared_ptr<QHttpServerResponder> responder, const QHttpServerResponse::StatusCode &code);
+	static void responderResponseError(std::shared_ptr<QHttpServerResponder> responder,
+									   const char *errorStr, const QHttpServerResponse::StatusCode &code);
+
+	static void responderResponseError(QHttpServerResponder &&responder, const QHttpServerResponse::StatusCode &code);
+	static void responderResponseError(QHttpServerResponder &&responder,
+									   const char *errorStr, const QHttpServerResponse::StatusCode &code);
+
 	static const char *apiPath();
 
 	DatabaseMain *databaseMain() const;
 	QLambdaThreadWorker *databaseMainWorker() const;
+
+	void responseProxy(const QUrl &url, QHttpServerResponder &&responder) const;
 
 protected:
 
@@ -98,6 +108,16 @@ protected:
 		if (!credential || !(credential->roles() & (role)))\
 			return responseError("unauthorized request", QHttpServerResponse::StatusCode::Unauthorized);\
 	}
+
+#define AUTHORIZE_API_RESPONDER() \
+	const auto &credential = m_handler->authorizeRequestLog(request); \
+	if (m_validateRole != Credential::None) { \
+		if (!m_handler->verifyPeer(request, credential.value_or(Credential()))) \
+			return responderResponseError(std::move(responder), "unverified client", QHttpServerResponse::StatusCode::Unauthorized); \
+		if (!credential || !(credential->roles() & m_validateRole)) \
+			return responderResponseError(std::move(responder), "unverified request", QHttpServerResponse::StatusCode::Unauthorized); \
+	}
+
 
 
 // CONTENT

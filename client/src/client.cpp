@@ -938,50 +938,6 @@ void Client::initializeDynamicResources()
 			->error(this, [](const QNetworkReply::NetworkError &err){
 		LOG_CERROR("client") << "Rpg content download error:" << err;
 	});
-
-
-	connect(m_downloader.get(), &Downloader::stateChanged, this, [this]() {
-		LOG_CINFO("client") << "**************************************" << m_downloader->state();
-	});
-
-
-	//m_downloader->contentClear();
-	//m_downloader->setServer(server());
-
-
-	/*
-	server()->setAvailableContent({});
-	send(HttpConnection::ApiGeneral, QStringLiteral("content"))
-			->done(this, [this](const QJsonObject &json)
-	{
-		if (!server())
-			return;
-
-		const QJsonArray &list = json.value(QStringLiteral("list")).toArray();
-
-		QList<Server::DynamicContent> contentList;
-		contentList.reserve(list.size());
-
-		for (const QJsonValue &v : list) {
-			const QJsonObject &o = v.toObject();
-
-			Server::DynamicContent content;
-			content.name = o.value(QStringLiteral("file")).toString();
-			content.md5 = o.value(QStringLiteral("md5")).toString();
-			content.size = o.value(QStringLiteral("size")).toInteger();
-
-			//m_downloader->contentAdd(content);
-
-			contentList.append(content);
-		}
-
-		server()->setAvailableContent(contentList);
-
-	})
-			->fail(this, [this](const QString &err){
-		messageError(tr("Dynamic content download failed:\n").append(err));
-	});*/
-
 }
 
 
@@ -1526,7 +1482,7 @@ QString Client::getSystemInfo() const
 
 	text += tr("Qt: **%1**\n\n").arg(QT_VERSION_STR);
 	text += tr("Képernyő mérete: **%1x%2**\n\n").arg(screen->geometry().width()).arg(screen->geometry().height());
-	text += tr("Logical DPI: **%1**\n\n").arg(screen->logicalDotsPerInch());
+	//text += tr("Logical DPI: **%1**\n\n").arg(screen->logicalDotsPerInch());
 
 	return text;
 }

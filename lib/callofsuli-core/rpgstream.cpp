@@ -504,6 +504,9 @@ EngineStream &FullState::operator<<(EngineStream &stream)
 	if (m_flags & Defender)
 		readDefenders(stream);
 
+	if (m_flags & Npc)
+		readNpcs(stream);
+
 	return stream;
 }
 
@@ -536,6 +539,9 @@ EngineStream &FullState::operator>>(EngineStream &stream) const
 	if (m_flags & Defender)
 		writeDefenders(stream);
 
+	if (m_flags & Npc)
+		writeNpcs(stream);
+
 	return stream;
 }
 
@@ -560,6 +566,9 @@ EngineStream &Events::operator<<(EngineStream &stream)
 	if (m_flags & Stage)
 		readStage(stream);
 
+	if (m_flags & Npc)
+		readNpc(stream);
+
 	return stream;
 }
 
@@ -583,6 +592,9 @@ EngineStream &Events::operator>>(EngineStream &stream) const
 
 	if (m_flags & Stage)
 		writeStage(stream);
+
+	if (m_flags & Npc)
+		writeNpc(stream);
 
 	return stream;
 }
@@ -1265,6 +1277,7 @@ EngineStream &Full::operator<<(EngineStream &stream)
 	readMpEmitters(stream);
 	readTowers(stream);
 	readDefenders(stream);
+	readNpcs(stream);
 
 	readMap(stream);
 	m_fullState << stream;
@@ -1289,6 +1302,7 @@ EngineStream &Full::operator>>(EngineStream &stream) const
 	writeMpEmitters(stream);
 	writeTowers(stream);
 	writeDefenders(stream);
+	writeNpcs(stream);
 
 	writeMap(stream);
 	m_fullState >> stream;
@@ -1380,6 +1394,147 @@ EngineStream &EventStageChanged::operator<<(EngineStream &stream)
 EngineStream &EventStageChanged::operator>>(EngineStream &stream) const
 {
 	m_config >> stream;
+
+	return stream;
+}
+
+
+/**
+ * @brief NpcData::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &NpcData::operator<<(EngineStream &stream)
+{
+	readTagId(stream);
+	readType(stream);
+	m_entity << stream;
+	readCharacter(stream);
+	readTeam(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief NpcData::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &NpcData::operator>>(EngineStream &stream) const
+{
+	writeTagId(stream);
+	writeType(stream);
+	m_entity >> stream;
+	writeCharacter(stream);
+	writeTeam(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief NpcState::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &NpcState::operator<<(EngineStream &stream)
+{
+	readTick(stream);
+	readDeltaMask(stream);
+	m_entityState.setIsDeltaMode(m_isDeltaMode);
+	m_entityState << stream;
+
+	readHpDelta(stream);
+	readTargetDelta(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief NpcState::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &NpcState::operator>>(EngineStream &stream) const
+{
+	writeTick(stream);
+	writeDeltaMask(stream);
+	m_entityState.setIsDeltaMode(m_isDeltaMode);
+	m_entityState >> stream;
+
+	writeHpDelta(stream);
+	writeTargetDelta(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief NpcStateList::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &NpcStateList::operator<<(EngineStream &stream)
+{
+	readTagId(stream);
+	readStateVectorDelta(stream, m_isDeltaMode);
+
+	return stream;
+}
+
+
+/**
+ * @brief NpcStateList::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &NpcStateList::operator>>(EngineStream &stream) const
+{
+	writeTagId(stream);
+	writeStateVectorDelta(stream, m_isDeltaMode);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief EventNpc::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &EventNpc::operator<<(EngineStream &stream)
+{
+	readTick(stream);
+	readTagId(stream);
+	readType(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief EventNpc::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &EventNpc::operator>>(EngineStream &stream) const
+{
+	writeTick(stream);
+	writeTagId(stream);
+	writeType(stream);
 
 	return stream;
 }

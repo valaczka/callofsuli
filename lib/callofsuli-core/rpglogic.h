@@ -33,6 +33,7 @@
 #include <QIODevice>
 #include <QColor>
 #include <entt/entt.hpp>
+#include <random>
 #include "qmutex.h"
 #include "qpaintdevice.h"
 #include "qpoint.h"
@@ -587,6 +588,17 @@ struct Player
 
 
 
+// Npc
+
+struct Npc
+{
+	quint32 idTag = 0;
+	RpgStream::NpcData data;
+};
+
+
+
+
 // A játékos kérdésre válaszol
 
 struct LockTag {
@@ -726,6 +738,9 @@ struct ChunkGrid
 	QSet<QPair<qint32, qint32> > excludeSet;
 	QSizeF chunkSize;
 
+	qint32 gridWidth = 0;
+	qint32 gridHeight = 0;
+
 	static ChunkGrid fromRpgStream(const RpgStream::ChunkGrid &grid);
 	RpgStream::ChunkGrid toRpgStream() const;
 
@@ -776,6 +791,24 @@ struct ChunkGrid
 		return accessibleChunkCenter(chunk.x, chunk.y);
 	}
 
+	std::optional<Chunk> getRandomChunk(std::mt19937 &rnd) const {
+		if (gridWidth == 0 && gridHeight == 0)
+			return std::nullopt;
+
+		Chunk c;
+		std::uniform_int_distribution<int> dx(0, gridWidth);
+		std::uniform_int_distribution<int> dy(0, gridHeight);
+
+		for (int i=0; i<100; ++i) {
+			c.x = dx(rnd);
+			c.y = dy(rnd);
+
+			if (isAccessible(c))
+				return c;
+		}
+
+		return std::nullopt;
+	}
 };
 
 
@@ -790,6 +823,9 @@ typedef BaseStatePull<RpgStream::TowerState> TowerStateOutput;
 typedef BaseStatePull<RpgStream::DefenderState> DefenderStateOutput;
 
 typedef BaseStatePull<RpgStream::Events> EventsOutput;
+
+typedef BaseStateMap<RpgStream::NpcState> NpcStateInput;
+typedef BaseStatePull<RpgStream::NpcState> NpcStateOutput;
 
 
 
@@ -1053,7 +1089,6 @@ public:
 
 	entt::entity playerAdd(const RpgStream::PlayerData &data, quint32 *idPtr = nullptr, quint32 *tagIdPtr = nullptr);
 
-
 	// Common entity
 
 	static cpVect addKnockbackImpulse(RpgStream::EntityState *targetState,
@@ -1065,6 +1100,8 @@ public:
 	static cpVect decayKnockback(cpVect &knockback);
 
 
+	std::mt19937 &rnd() { return m_rnd; }
+
 protected:
 	template <class T, typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T>::value>::type>
 	void eventStore(T &&event);
@@ -1075,6 +1112,8 @@ protected:
 	void entitySetIdTag(entt::entity &entity, const quint32 &tag);
 	entt::entity entityFromIdTag(const quint32 &tag) const;
 
+
+	entt::entity npcAdd(const RpgStream::NpcData &data, entt::entity owner, const cpVect &pos = cpvzero, quint32 *tagIdPtr = nullptr);
 
 private:
 	RpgLogicPrivate *d = nullptr;
@@ -1131,6 +1170,8 @@ protected:
 	mutable QRecursiveMutex m_mutex;
 	entt::registry m_registry;
 	quint32 m_lastObjectId = 0;
+
+	std::mt19937 m_rnd;
 
 	friend class RpgLogicPrivate;
 	friend class RpgLogicScope;
@@ -1254,6 +1295,22 @@ public:
 	entt::entity emitter = entt::null;
 };
 
+
+
+
+
+// Create Npc
+
+class EventNpcCreate : public RpgStream::BaseTickState
+{
+public:
+	EventNpcCreate() : RpgStream::BaseTickState() {}
+
+	entt::entity owner = entt::null;
+
+	RpgStream::NpcData data;
+	cpVect pos = cpvzero;
+};
 
 
 

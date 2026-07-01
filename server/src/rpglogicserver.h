@@ -46,6 +46,8 @@ public:
 
 	RpgStream::Full getRenderedState(const bool &isStageSelect);
 
+	entt::entity npcAdd(const RpgStream::NpcData &data, entt::entity owner, quint32 *tagIdPtr = nullptr);
+
 protected:
 	virtual void eventRealized(entt::entity entity) override;
 

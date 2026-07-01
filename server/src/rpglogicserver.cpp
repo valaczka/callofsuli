@@ -76,6 +76,20 @@ RpgStream::Full RpgLogicServer::getRenderedState(const bool &requireFull)
 }
 
 
+/**
+ * @brief RpgLogicServer::npcAdd
+ * @param data
+ * @param owner
+ * @param tagIdPtr
+ * @return
+ */
+
+entt::entity RpgLogicServer::npcAdd(const RpgStream::NpcData &data, entt::entity owner, quint32 *tagIdPtr)
+{
+	return RpgLogic::npcAdd(data, owner, cpvzero, tagIdPtr);
+}
+
+
 
 /**
  * @brief RpgLogicServer::eventRealized

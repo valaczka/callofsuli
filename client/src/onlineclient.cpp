@@ -331,7 +331,7 @@ void OnlineClient::setFullScreenHelper(bool newFullScreenHelper)
 
 QUrl OnlineClient::rpgServerUrl(const QString &path) const
 {
-	return QUrl(path);
+	return QUrl(QStringLiteral("content/").append(path));
 }
 
 

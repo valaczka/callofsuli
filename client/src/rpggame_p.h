@@ -137,6 +137,7 @@ private:
 	void syncPlayers();
 	void syncMp();
 	void syncDefenders();
+	void syncNpc();
 
 	std::optional<ScatterPoint> addToScatter(const int &scatter);
 
@@ -161,7 +162,6 @@ private:
 	/// RPG LOGIC LOCAL
 
 	quint32 logicRegisterObject(RpgObject *object);
-
 
 private:
 	RpgGame *const q;
@@ -189,6 +189,8 @@ private:
 
 	inline static RpgStream::HashFnv1A64 m_terrainHash = {};
 	inline static RpgStream::HashFnv1A64 m_characterHash = {};
+	inline static RpgStream::HashFnv1A64 m_npcHash = {};
+	inline static QHash<QString, RpgNpcDefinition> m_npcDefinitions = {};
 
 
 #ifdef WITH_GAMEPAD

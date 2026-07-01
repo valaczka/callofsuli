@@ -232,7 +232,6 @@ SOURCES += \
 	gamequestioncomponent.cpp \
 	grade.cpp \
 	httpconnection.cpp \
-	isometricbullet.cpp \
 	isometricobject.cpp \
 	litegame.cpp \
 	main.cpp \
@@ -256,6 +255,7 @@ SOURCES += \
 	rpggameitem.cpp \
 	rpglogicclient.cpp \
 	rpgmp.cpp \
+	rpgnpc.cpp \
 	rpgobject.cpp \
 	rpgplayer.cpp \
 	rpgtower.cpp \
@@ -290,7 +290,6 @@ SOURCES += \
 	tiledscene.cpp \
 	tiledspritehandler.cpp \
 	tiledvisualitem.cpp \
-	tiledweapon.cpp \
 	updater.cpp \
 	user.cpp \
 	userimporter.cpp \
@@ -327,7 +326,6 @@ HEADERS += \
 	gamequestioncomponent.h \
 	grade.h \
 	httpconnection.h \
-	isometricbullet.h \
 	isometricobject.h \
 	litegame.h \
 	mapeditor.h \
@@ -351,6 +349,7 @@ HEADERS += \
 	rpggameitem.h \
 	rpglogicclient.h \
 	rpgmp.h \
+	rpgnpc.h \
 	rpgobject.h \
 	rpgplayer.h \
 	rpgtower.h \
@@ -387,7 +386,6 @@ HEADERS += \
 	tiledscene.h \
 	tiledspritehandler.h \
 	tiledvisualitem.h \
-	tiledweapon.h \
 	updater.h \
 	user.h \
 	userimporter.h \

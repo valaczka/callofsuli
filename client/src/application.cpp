@@ -49,6 +49,7 @@
 #include "qsjsonlistmodel.h"
 #include "rpggame.h"
 #include "rpggameitem.h"
+#include "rpgnpc.h"
 #include "rpgplayer.h"
 #include "rpgtower.h"
 #include "rpguserwallet.h"
@@ -69,7 +70,6 @@
 #include "tiledscene.h"
 #include "tiledspritehandler.h"
 #include "tiledvisualitem.h"
-#include "tiledweapon.h"
 #include "userimporter.h"
 #include "userloglist.h"
 #include "utils_.h"
@@ -383,6 +383,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<OfflineClientEngine>("CallOfSuli", 1, 0, "OfflineClientEngine", "OfflineClientEngine is uncreatable");
 	qmlRegisterUncreatableType<RpgEntity>("CallOfSuli", 1, 0, "RpgEntity", "RpgEntity is uncreatable");
 	qmlRegisterUncreatableType<RpgGame>("CallOfSuli", 1, 0, "RpgGame", "RpgGame is uncreatable");
+	qmlRegisterUncreatableType<RpgNpc>("CallOfSuli", 1, 0, "RpgNpc", "RpgNpc is uncreatable");
 	qmlRegisterUncreatableType<RpgPlayer>("CallOfSuli", 1, 0, "RpgPlayer", "RpgPlayer is uncreatable");
 	qmlRegisterUncreatableType<RpgTower>("CallOfSuli", 1, 0, "RpgTower", "RpgTower is uncreatable");
 	qmlRegisterUncreatableType<RpgUserWallet>("CallOfSuli", 1, 0, "RpgUserWallet", "RpgUserWallet is uncreatable");
@@ -393,7 +394,6 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<TiledGame>("CallOfSuli", 1, 0, "TiledGame", "TiledGame is uncreatable");
 	qmlRegisterUncreatableType<TiledGameDefinition>("CallOfSuli", 1, 0, "TiledGameDefinition", "TiledGameDefinition is uncreatable");
 	qmlRegisterUncreatableType<TiledSceneDefinition>("CallOfSuli", 1, 0, "TiledSceneDefinition", "TiledGameDefinition is uncreatable");
-	qmlRegisterUncreatableType<TiledWeapon>("CallOfSuli", 1, 0, "TiledWeapon", "TiledWeapon is uncreatable");
 	qmlRegisterUncreatableType<Updater>("CallOfSuli", 1, 0, "Updater", "Updater is uncreatable");
 	qmlRegisterUncreatableType<Utils>("CallOfSuli", 1, 1, "Utils", "Utils is uncreatable");
 
@@ -622,9 +622,7 @@ QByteArray Application::userAgentSign(const QByteArray &content, const QByteArra
 	PublicKeySigner signer;
 
 	{
-#ifndef Q_OS_WASM
 		QMutexLocker locker(&m_device.mutex);
-#endif
 
 		if (sodium_is_zero(m_device.privateKey.data(), m_device.privateKey.size())) {
 			LOG_CERROR("app") << "Device private key missing";
@@ -663,9 +661,7 @@ QCborMap Application::signToMap(const QByteArray &message) const
 	PublicKeySigner signer;
 
 	{
-#ifndef Q_OS_WASM
 		QMutexLocker locker(&m_device.mutex);
-#endif
 
 		if (sodium_is_zero(m_device.privateKey.data(), m_device.privateKey.size())) {
 			LOG_CERROR("app") << "Device private key missing";
@@ -691,9 +687,7 @@ QByteArray Application::signToRaw(const QByteArray &message) const
 	PublicKeySigner signer;
 
 	{
-#ifndef Q_OS_WASM
 		QMutexLocker locker(&m_device.mutex);
-#endif
 
 		if (sodium_is_zero(m_device.privateKey.data(), m_device.privateKey.size())) {
 			LOG_CERROR("app") << "Device private key missing";
@@ -719,9 +713,7 @@ QByteArray Application::sign(const QByteArray &message) const
 	PublicKeySigner signer;
 
 	{
-#ifndef Q_OS_WASM
 		QMutexLocker locker(&m_device.mutex);
-#endif
 
 		if (sodium_is_zero(m_device.privateKey.data(), m_device.privateKey.size())) {
 			LOG_CERROR("app") << "Device private key missing";
@@ -744,9 +736,7 @@ QByteArray Application::sign(const QByteArray &message) const
 
 std::optional<PublicKeySigner> Application::getSigner() const
 {
-#ifndef Q_OS_WASM
 	QMutexLocker locker(&m_device.mutex);
-#endif
 	PublicKeySigner signer;
 
 	if (sodium_is_zero(m_device.privateKey.data(), m_device.privateKey.size())) {
@@ -772,9 +762,7 @@ std::optional<std::pair<QByteArray, QByteArray> > Application::deviceIdentity() 
 	QByteArray publicKey;
 
 	{
-#ifndef Q_OS_WASM
 		QMutexLocker locker(&m_device.mutex);
-#endif
 
 		if (sodium_is_zero(m_device.privateKey.data(), m_device.privateKey.size())) {
 			//LOG_CERROR("app") << "Device private key missing";
@@ -847,9 +835,7 @@ std::optional<std::pair<QByteArray, QByteArray> > Application::deviceIdentity() 
 
 
 	{
-#ifndef Q_OS_WASM
 		QMutexLocker locker(&m_device.mutex);
-#endif
 
 		m_device.identity = msg;
 		m_device.identitySignature = sig;

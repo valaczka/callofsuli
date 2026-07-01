@@ -35,9 +35,9 @@
 #include <deque>
 #include <map>
 #include <vector>
+#include "qmutex.h"
 
 #ifndef Q_OS_WASM
-#include "qmutex.h"
 #include <enet/enet.h>
 #endif
 
@@ -90,16 +90,12 @@ public:
 	UdpCacheQueue() = default;
 
 	void push(T &&value) {
-#ifndef Q_OS_WASM
 		QMutexLocker locker(&m_mutex);
-#endif
 		m_queue.emplace_back(std::move(value));
 	}
 
 	std::vector<T> take() {
-#ifndef Q_OS_WASM
 		QMutexLocker locker(&m_mutex);
-#endif
 		std::vector<T> out;
 
 		out.reserve(m_queue.size());
@@ -130,9 +126,7 @@ public:
 		if (!socket)
 			return;
 
-#ifndef Q_OS_WASM
 		QMutexLocker locker(&m_mutex);
-#endif
 
 		std::erase_if(m_queue, [socket](const T &data) {
 			return data.getWebSocket() == socket;
@@ -140,9 +134,7 @@ public:
 	}
 
 protected:
-#ifndef Q_OS_WASM
 	mutable QMutex m_mutex;
-#endif
 	std::deque<T> m_queue;
 };
 

@@ -276,6 +276,71 @@ QMultiMap<float, TiledObjectBody *> RpgMotorEntity::sort(TiledObjectBody *body, 
 
 
 
+
+
+/**
+ * @brief RpgMotorEntity::findNearestTarget
+ * @param category
+ * @return
+ */
+
+RpgEntity *RpgMotorEntity::findNearestTarget(const cpBitmask &category)
+{
+	QSet<TiledObjectBody*> list;
+
+	RpgMotorEntity::queryContactedVisibleBodies(m_entity, &list, category, RpgGameItem::FixtureGround);
+
+	QMultiMap<float, TiledObjectBody *> bds = RpgMotorEntity::sort(m_entity, list);
+
+	for (TiledObjectBody *b : std::as_const(bds)) {
+		RpgEntity *e = dynamic_cast<RpgEntity*>(b);
+
+		if (!e || !e->isAlive())
+			continue;
+
+		if (e->team() == m_entity->team())
+			continue;
+
+		return e;
+	}
+
+	return nullptr;
+}
+
+
+
+
+/**
+ * @brief RpgMotorEntity::findNearestTarget
+ * @param rayDest
+ * @param category
+ * @return
+ */
+
+RpgEntity *RpgMotorEntity::findNearestTarget(const cpVect &rayDest, const cpBitmask &category)
+{
+	RayCastInfo ray = m_entity->rayCast(rayDest, RpgGameItem::FixtureGround, category, 2.);
+
+	for (const RayCastInfoItem &i : ray) {
+		if (!i.visible)
+			continue;
+
+		RpgEntity *e = dynamic_cast<RpgEntity*>(TiledObjectBody::fromShapeRef(i.shape));
+
+		if (!e || !e->isAlive())
+			continue;
+
+		if (e->team() == m_entity->team())
+			continue;
+
+		return e;
+	}
+
+	return nullptr;
+}
+
+
+
 /**
  * @brief RpgDestinationMotor::RpgDestinationMotor
  * @param entity

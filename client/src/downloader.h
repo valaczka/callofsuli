@@ -56,16 +56,16 @@ public:
 
 	bool operator== (const DynamicContent &other) const {
 		return other.file == file &&
-				other.md5 == md5 &&
+				other.sha1 == sha1 &&
 				other.size == size;
 	}
 
-	QByteArray md5AsByteArray() const { return QByteArray::fromHex(md5.toLatin1()); }
+	QByteArray sha1AsByteArray() const { return QByteArray::fromHex(sha1.toLatin1()); }
 
 	QS_SERIALIZABLE
 
 	QS_FIELD(QString, file)
-	QS_FIELD(QString, md5)
+	QS_FIELD(QString, sha1)
 	QS_FIELD(qint64, size)
 };
 
@@ -143,7 +143,7 @@ public:
 	void unloadDynamicContents();
 
 	void loadDynamicContent();
-	void loadDynamicContent(const QString &filename);
+	bool loadDynamicContent(const QString &filename);
 	bool dynamicContentSave(const QString &name, const QByteArray &data);
 
 	qint64 fullSize() const;

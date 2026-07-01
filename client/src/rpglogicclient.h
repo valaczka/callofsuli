@@ -46,6 +46,7 @@ namespace Rpg {
 
 
 typedef BaseStatePull<RpgStream::PlayerState, 10> RpgPlayerStatePull;
+typedef BaseStatePull<RpgStream::NpcState, 10> RpgNpcStatePull;
 
 
 
@@ -76,6 +77,10 @@ public:
 
 	qint64 serverRtt() const { return m_serverRtt; }
 	void setServerRtt(qint64 newServerRtt) { m_serverRtt = newServerRtt; }
+
+
+	entt::entity addNpc(const RpgStream::NpcData &data, entt::entity owner);
+
 
 	template <typename T, std::size_t PULL_SIZE = DEFAULT_PULL_SIZE,
 			  typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T>::value>::type>
@@ -157,6 +162,7 @@ private:
 	void loadTowers(const std::vector<RpgStream::TowerState> &list);
 	void loadMp(const std::vector<RpgStream::MpData> &list);
 	void loadDefenders(const std::vector<RpgStream::DefenderState> &list);
+	void loadNpc(const std::vector<RpgStream::NpcStateList> &list);
 
 	RpgUdpEngine *m_engine = nullptr;
 };

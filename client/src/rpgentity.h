@@ -127,6 +127,9 @@ public:
 
 	static QMultiMap<float, TiledObjectBody *> sort(TiledObjectBody *body, const QSet<TiledObjectBody *> &dst);
 
+	RpgEntity* findNearestTarget(const cpBitmask &category);
+	RpgEntity* findNearestTarget(const cpVect &rayDest, const cpBitmask &category);
+
 protected:
 	RpgEntity *const m_entity;
 };

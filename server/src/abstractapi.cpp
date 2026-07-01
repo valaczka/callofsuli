@@ -86,6 +86,41 @@ QLambdaThreadWorker *AbstractAPI::databaseMainWorker() const
 }
 
 
+
+
+/**
+ * @brief AbstractAPI::responseProxy
+ * @param url
+ * @param responder
+ */
+
+void AbstractAPI::responseProxy(const QUrl &url, QHttpServerResponder &&responder) const
+{
+	std::shared_ptr<QHttpServerResponder> responderPtr = std::make_shared<QHttpServerResponder>(std::move(responder));
+
+	QNetworkRequest req(url);
+	QNetworkReply *reply = m_service->networkManager()->get(req);
+
+	QObject::connect(reply, &QNetworkReply::finished, reply, [reply, responderPtr]() {
+		if (reply->error() != QNetworkReply::NoError) {
+			LOG_CWARNING("service") << "Network error" << reply->error() << reply->url();
+			QHttpServerResponse r(QHttpServerResponder::StatusCode::BadGateway);
+			responderPtr->sendResponse(std::move(r));
+			reply->deleteLater();
+			return;
+		}
+
+		QByteArray data = reply->readAll();
+
+		QByteArray contentType = reply->header(QNetworkRequest::ContentTypeHeader).toByteArray();
+
+		QHttpServerResponse r(contentType, data);
+		responderPtr->sendResponse(std::move(r));
+		reply->deleteLater();
+	});
+}
+
+
 /**
  * @brief AbstractAPI::apiPath
  * @return
@@ -123,6 +158,64 @@ QHttpServerResponse AbstractAPI::responseErrorSql()
 	return QHttpServerResponse(QJsonObject{
 								   { QStringLiteral("error"), QStringLiteral("sql error") }
 							   }, QHttpServerResponse::StatusCode::InternalServerError);
+}
+
+
+/**
+ * @brief AbstractAPI::responderResponseError
+ * @param responder
+ * @param code
+ */
+
+void AbstractAPI::responderResponseError(std::shared_ptr<QHttpServerResponder> responder, const QHttpServerResponse::StatusCode &code)
+{
+	Q_ASSERT(responder);
+
+	QHttpServerResponse r(code);
+	responder->sendResponse(std::move(r));
+}
+
+
+/**
+ * @brief AbstractAPI::responderResponseError
+ * @param responder
+ * @param errorStr
+ * @param code
+ */
+
+void AbstractAPI::responderResponseError(std::shared_ptr<QHttpServerResponder> responder, const char *errorStr, const QHttpServerResponse::StatusCode &code)
+{
+	Q_ASSERT(responder);
+
+	QHttpServerResponse r(errorStr, code);
+	responder->sendResponse(std::move(r));
+}
+
+
+/**
+ * @brief AbstractAPI::responderResponseError
+ * @param responder
+ * @param code
+ */
+
+void AbstractAPI::responderResponseError(QHttpServerResponder &&responder, const QHttpServerResponse::StatusCode &code)
+{
+	QHttpServerResponse r(code);
+	responder.sendResponse(std::move(r));
+}
+
+
+/**
+ * @brief AbstractAPI::responderResponseError
+ * @param responder
+ * @param errorStr
+ * @param code
+ */
+
+void AbstractAPI::responderResponseError(QHttpServerResponder &&responder, const char *errorStr, const QHttpServerResponse::StatusCode &code)
+{
+	QHttpServerResponse r(errorStr, code);
+	responder.sendResponse(std::move(r));
 }
 
 

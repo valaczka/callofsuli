@@ -153,6 +153,15 @@ void UdpServer::send(UdpServerPeer *peer, const std::vector<std::uint8_t> &data,
 				d->sendPacket(peer->peer(), data, reliable);
 			});
 	}
+
+	if (peer->socket()) {
+		if (m_worker->getThread() == QThread::currentThread())
+			d->sendPacket(peer->socket(), data);
+		else
+			m_worker->execInThread([this, peer, data]() {
+				d->sendPacket(peer->socket(), data);
+			});
+	}
 }
 
 
@@ -939,8 +948,8 @@ void UdpServerPrivate::websocketRemove(QWebSocket *socket)
 
 	UdpServerPeer *p = (it == q->m_peerList.cend() ? nullptr : it->get());
 
-	/*if (p && p->engine())
-		p->engine()->udpPeerRemove(p);*/
+	if (p && p->room())
+		p->room()->peerRemove(p);
 
 	m_cacheSnd.clearSocket(socket);
 	m_cacheRcv.clearSocket(socket);
@@ -959,7 +968,6 @@ void UdpServerPrivate::websocketRemove(QWebSocket *socket)
 	if (it != q->m_peerList.cend()) {
 		q->m_peerList.erase(it);
 	}
-
 }
 
 
@@ -1101,8 +1109,6 @@ void UdpServerPrivate::packetConnectReceived(std::unique_ptr<UdpBitStream> &&dat
 	sendPacket(socket, s->data());
 
 
-	LOG_CDEBUG("engine") << "???" << socket;
-
 	auto itP = std::find_if(m_pendingSocket.begin(),
 							m_pendingSocket.end(),
 							[socket](const auto &ptr) {
@@ -1217,8 +1223,6 @@ void UdpServerPrivate::packetUserReceived(std::unique_ptr<UdpBitStream> &&data, 
 	}
 
 	data->setAuthLastPosition(*lastPos);
-
-	LOG_CDEBUG("engine") << "---" << data.get();
 
 	if (!peer->room() || !peer->room()->engine()) {
 		peerWithoutRoomHandle(std::move(data), peer);

@@ -162,6 +162,50 @@ public:
 
 
 
+/**
+ * @brief The RpgNpcDefinition class
+ */
+
+class RpgNpcDefinition : public QSerializer
+{
+	Q_GADGET
+
+public:
+	RpgNpcDefinition() : QSerializer()
+	  , hp(5)
+	  , walk(90)
+	  , run(200)
+
+	  , push(350)
+	  , pushDistance(1000)
+	  , resist(100)
+	{}
+
+
+	void updateSfxPath(const QString &prefix);
+	QString prefixPath;
+
+	RpgStream::EntityConfig toEntityConfig() const;
+
+	QS_SERIALIZABLE
+
+	// Sfx sounds
+
+	QS_FIELD(QString, sfxDead)
+	QS_COLLECTION(QList, QString, sfxPain)
+	QS_COLLECTION(QList, QString, sfxFootStep)
+
+	// Config
+
+	QS_FIELD(int, hp)
+
+	QS_FIELD(int, walk)				// walk speed
+	QS_FIELD(int, run)				// run speed
+
+	QS_FIELD(int, push)				// push power
+	QS_FIELD(int, pushDistance)		// max. push distance
+	QS_FIELD(int, resist)			// slide resist
+};
 
 
 
@@ -280,6 +324,8 @@ public:
 	static const QHash<QString, RpgPlayerDefinition> &characters() { return m_characters; }
 	static void reloadCharacters();
 
+	static std::optional<RpgNpcDefinition> readNpcDefinition(const QString &name);
+
 	static void reloadWorld();
 
 	Rpg::RpgLogicClient* rpgLogicClient();
@@ -369,6 +415,7 @@ private:
 
 	static QHash<QString, RpgGameDefinition> m_terrains;
 	static QHash<QString, RpgPlayerDefinition> m_characters;
+
 
 	friend class RpgGamePrivate;
 	friend class RpgGameItem;

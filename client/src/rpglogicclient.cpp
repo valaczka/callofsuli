@@ -145,6 +145,21 @@ quint32 RpgLogicClient::estimatedServerTick() const {
 
 
 
+/**
+ * @brief RpgLogicClient::addNpc
+ * @param data
+ * @param owner
+ * @return
+ */
+
+entt::entity RpgLogicClient::addNpc(const RpgStream::NpcData &data, entt::entity owner)
+{
+	return npcAdd(data, owner);
+}
+
+
+
+
 
 
 
@@ -365,6 +380,9 @@ void RpgLogicClientMulti::loadFullState(const RpgStream::FullState &full)
 
 	if (full.flags().testFlag(RpgStream::FullState::Defender))
 		loadDefenders(full.defenders());
+
+	if (full.flags().testFlag(RpgStream::FullState::Npc))
+		loadNpc(full.npcs());
 }
 
 
@@ -561,6 +579,43 @@ void RpgLogicClientMulti::loadDefenders(const std::vector<RpgStream::DefenderSta
 		}
 
 		out->insert(s);
+	}
+}
+
+
+
+
+/**
+ * @brief RpgLogicClientMulti::loadNpc
+ * @param list
+ */
+
+void RpgLogicClientMulti::loadNpc(const std::vector<RpgStream::NpcStateList> &list)
+{
+	Rpg::RpgLogicScope scope = getScope();
+
+	IdTagMapper *mapper = scope.getCtx<IdTagMapper>();
+
+	Q_ASSERT(mapper);
+
+	for (const RpgStream::NpcStateList &s : list) {
+		entt::entity npc = mapper->get(s.tagId());
+
+		if (!scope.valid(npc)) {
+			LOG_CERROR("game") << "Invalid NPC" << s.tagId();
+			continue;
+		}
+
+		NpcStateOutput *out = scope.try_get<NpcStateOutput>(npc);
+
+		if (!out) {
+			LOG_CERROR("game") << "Invalid NPC" << s.tagId();
+			continue;
+		}
+
+		for (const RpgStream::NpcState &state : s.state()) {
+			out->insert(state);
+		}
 	}
 }
 

@@ -48,6 +48,7 @@ public:
 	QHttpServerResponse userLog(const QString &username);
 	QHttpServerResponse userXpLog(const QString &username, const QJsonObject &json);
 	QHttpServerResponse userGameLog(const QString &username);
+	void userImage(const QString &username, QHttpServerResponder &&responder);
 
 	QHttpServerResponse me(const std::optional<Credential> &credential);
 

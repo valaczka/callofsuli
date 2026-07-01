@@ -2701,7 +2701,7 @@ TiledGame::TcodMapData* TiledGamePrivate::Scene::reloadTcodMap(const cpBitmask &
 		return nullptr;
 	}
 
-	static const qreal defaultChunkSize = 30.;
+	static const qreal defaultChunkSize = 35.;
 
 	tcodMap.chunkSize = chunkSize > 0 ? chunkSize : defaultChunkSize;
 

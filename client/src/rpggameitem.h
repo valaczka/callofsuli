@@ -85,6 +85,8 @@ public:
 		FixtureVirtualCircle	= 1 << 5,
 		FixtureControl			= 1 << 6,
 		FixtureDefender			= 1 << 7,
+		FixtureNpcBody			= 1 << 8,
+		FixtureNpcTarget		= 1 << 9,
 
 
 		FixtureAll =
@@ -95,7 +97,9 @@ public:
 		FixtureSensor |
 		FixtureVirtualCircle |
 		FixtureControl |
-		FixtureDefender
+		FixtureDefender |
+		FixtureNpcBody |
+		FixtureNpcTarget
 
 	};
 
@@ -110,6 +114,10 @@ public:
 	bool load(const RpgGameDefinition &def);
 
 	static QRect loadTextureSprites(TiledSpriteHandler *handler, const QString &path);
+	static bool loadTextureSprites(TiledSpriteHandler *handler, const QVector<TextureSpriteMapper> &mapper,
+									const QString &path);
+	static const QVector<TiledGame::TextureSpriteMapper> &baseSpriteMapper();
+
 
 	virtual TiledObjectBody *loadGround(TiledScene *scene, Tiled::MapObject *object, Tiled::MapRenderer *renderer) override;
 	Q_INVOKABLE virtual void onMouseClick(const qreal &x, const qreal &y, const int &buttons, const int &modifiers) override;

@@ -401,10 +401,21 @@ QString User::picture() const
 {
 #ifdef Q_OS_WASM
 	if (!m_picture.isEmpty()) {
-		LOG_CTRACE("client") << "URL override:" << m_picture;
+		HttpConnection *http = Application::instance()->client()->httpConnection();
+
+		if (!http->server()) {
+			LOG_CERROR("client") << "Missing server";
+			return QString();
+		}
+
+		const QString img = http->getUrl(HttpConnection::ApiGeneral, QStringLiteral("user/image/").append(m_username)).toString();
+
+		LOG_CDEBUG("client") << "Image URL override:" << img;
+
+		return img;
 	}
-	return QString();
 #endif
+
 	return m_picture;
 }
 

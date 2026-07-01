@@ -622,6 +622,7 @@ void StorageSeedPrivate::clear(const QString &map, const int &storage, const int
 SeedHelper::SeedHelper(const int &main, StorageSeed *seed)
 	: m_seed(seed)
 	, m_main(main)
+	, m_rnd(std::random_device{}())
 {
 
 }
@@ -706,10 +707,8 @@ SeedHelper &SeedHelper::append(const QVariantMap &map, const int &sub, const int
 
 QVariantList SeedHelper::getVariantList(const bool &autoClean)
 {
-	std::random_device rd;
-	std::mt19937 g(rd());
-	std::shuffle(m_itemReady.begin(), m_itemReady.end(), g);
-	std::shuffle(m_itemUsed.begin(), m_itemUsed.end(), g);
+	std::shuffle(m_itemReady.begin(), m_itemReady.end(), m_rnd);
+	std::shuffle(m_itemUsed.begin(), m_itemUsed.end(), m_rnd);
 
 	QVariantList list;
 
@@ -756,6 +755,7 @@ SeedDuplexHelper::SeedDuplexHelper(const int &mainA, const int &mainB, StorageSe
 	: m_seed(seed)
 	, m_mainA(mainA)
 	, m_mainB(mainB)
+	, m_rnd(std::random_device{}())
 {
 }
 
@@ -949,12 +949,10 @@ QList<int> SeedDuplexHelper::getAllSubB(const int &from, const int &to) const
 
 QVariantList SeedDuplexHelper::getVariantList(const bool &autoClean)
 {
-	std::random_device rd;
-	std::mt19937 g(rd());
-	std::shuffle(m_itemReady.begin(), m_itemReady.end(), g);
-	std::shuffle(m_itemUsedA.begin(), m_itemUsedA.end(), g);
-	std::shuffle(m_itemUsedB.begin(), m_itemUsedB.end(), g);
-	std::shuffle(m_itemUsedDouble.begin(), m_itemUsedDouble.end(), g);
+	std::shuffle(m_itemReady.begin(), m_itemReady.end(), m_rnd);
+	std::shuffle(m_itemUsedA.begin(), m_itemUsedA.end(), m_rnd);
+	std::shuffle(m_itemUsedB.begin(), m_itemUsedB.end(), m_rnd);
+	std::shuffle(m_itemUsedDouble.begin(), m_itemUsedDouble.end(), m_rnd);
 
 	QVariantList list;
 

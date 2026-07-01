@@ -30,7 +30,7 @@
 #include "Logger.h"
 
 
-const int AbstractGame::TickTimer::m_interval = 100;
+const int AbstractGame::TickTimer::m_interval = 100;				// Ez nem a TiledGame frissítése, hanem tkp. csak az msecLeft-é
 
 /**
  * @brief Game::Game

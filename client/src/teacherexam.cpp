@@ -747,6 +747,9 @@ void TeacherExam::generateExamContent(const QList<ExamUser*> &list, const bool &
 		return;
 	}
 
+	std::random_device rd;
+	std::mt19937 g(rd());
+
 	QJsonArray data;
 
 	for (const ExamUser *u : list) {
@@ -758,7 +761,7 @@ void TeacherExam::generateExamContent(const QList<ExamUser*> &list, const bool &
 		userdata[QStringLiteral("username")] = u->username();
 
 		QJsonArray commonList;
-		QJsonArray qList = ExamGame::generatePaperQuestions(ml, &seed, noShuffle);
+		QJsonArray qList = ExamGame::generatePaperQuestions(ml, &seed, g, noShuffle);
 		QJsonArray numberedList;
 
 		// Numbering questions from PDF

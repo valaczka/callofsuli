@@ -416,10 +416,32 @@ void RpgEnginePrivate::onAllCompleted()
 	Q_ASSERT(cfg);
 
 	for (RpgPeerData &p : m_players) {
-		scope.logic()->playerAdd(p.data, &p.rpgId, &p.playerTag);
+		auto player = scope.logic()->playerAdd(p.data, &p.rpgId, &p.playerTag);
 		p.acceptedTags.insert(p.playerTag, {});
 
 		ELOG_DEBUG << "Add player" << p.rpgId << p.peerId << p.playerTag << p.data.userName() << p.token.mapUuid << p.token.missionUuid << p.token.missionLevel;
+
+
+
+		////////////////////////////////////////////////////////////////////////
+		LOG_CERROR("game") << "REMOVE<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
+
+		const QString character = "soldier04";
+
+		RpgStream::NpcData d;
+		d.setCharacterResolved(character);
+		d.setTeam(RpgStream::TeamNone);
+		d.setType(RpgStream::NpcData::Dummy);
+		d.entity().setMaxHp(7);
+
+		quint32 idTag = 0;
+
+		q->m_logic.npcAdd(d, player, &idTag);
+		p.acceptedTags.insert(idTag, {});
+
+		ELOG_DEBUG << "Add NPC" << idTag;
+
+		////////////////////////////////////////////////////////////////////////
 	}
 
 	ELOG_INFO << "All completed";
@@ -663,7 +685,13 @@ void RpgEnginePrivate::sendFull()
 
 		m.setPeerId(p.peerId);
 		m.setPlayer(p.playerTag);
-		// TODO: set entities
+		for (const quint32 &k : p.acceptedTags.keys()) {
+			if (p.playerTag != k) {
+				RpgStream::FullMapTag t;
+				t.setTagId(k);
+				m.entities().emplace_back(std::move(t));
+			}
+		}
 
 		stream.map().emplace_back(std::move(m));
 	}

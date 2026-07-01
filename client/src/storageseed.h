@@ -30,6 +30,7 @@
 #include "qdebug.h"
 #include <QString>
 #include <QList>
+#include <random>
 
 
 typedef QHash<int, QList<int>> StorageSeedData;
@@ -115,6 +116,8 @@ private:
 	QList<int> m_data;
 	std::vector<QVariantMap> m_itemUsed;
 	std::vector<QVariantMap> m_itemReady;
+
+	std::mt19937 m_rnd;
 };
 
 
@@ -159,6 +162,8 @@ private:
 	std::vector<QVariantMap> m_itemUsedA;
 	std::vector<QVariantMap> m_itemUsedB;
 	std::vector<QVariantMap> m_itemReady;
+
+	std::mt19937 m_rnd;
 };
 
 

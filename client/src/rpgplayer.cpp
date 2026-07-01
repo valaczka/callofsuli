@@ -420,66 +420,6 @@ RpgMotorPlayerControlled::RpgMotorPlayerControlled(RpgPlayer *player)
 
 
 
-/**
- * @brief RpgMotorPlayerControlled::findNearestTarget
- * @return
- */
-
-RpgEntity * RpgMotorPlayerControlled::findNearestTarget(const cpBitmask &category)
-{
-	QSet<TiledObjectBody*> list;
-
-	RpgMotorEntity::queryContactedVisibleBodies(m_player, &list, category, RpgGameItem::FixtureGround);
-
-	QMultiMap<float, TiledObjectBody *> bds = RpgMotorEntity::sort(m_player, list);
-
-	for (TiledObjectBody *b : std::as_const(bds)) {
-		RpgEntity *e = dynamic_cast<RpgEntity*>(b);
-
-		if (!e || !e->isAlive())
-			continue;
-
-		if (e->team() == m_player->team())
-			continue;
-
-		return e;
-	}
-
-	return nullptr;
-}
-
-
-
-
-
-/**
- * @brief RpgMotorPlayerControlled::findNearestTarget
- * @param rayDest
- * @param category
- * @return
- */
-
-RpgEntity *RpgMotorPlayerControlled::findNearestTarget(const cpVect &rayDest, const cpBitmask &category)
-{
-	RayCastInfo ray = m_player->rayCast(rayDest, RpgGameItem::FixtureGround, category, 2.);
-
-	for (const RayCastInfoItem &i : ray) {
-		if (!i.visible)
-			continue;
-
-		RpgEntity *e = dynamic_cast<RpgEntity*>(TiledObjectBody::fromShapeRef(i.shape));
-
-		if (!e || !e->isAlive())
-			continue;
-
-		if (e->team() == m_player->team())
-			continue;
-
-		return e;
-	}
-
-	return nullptr;
-}
 
 
 

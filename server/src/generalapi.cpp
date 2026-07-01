@@ -110,6 +110,13 @@ GeneralAPI::GeneralAPI(Handler *handler, ServerService *service)
 		return user(username, Credential::None);
 	});
 
+	server->route(path+"user/image/", QHttpServerRequest::Method::Get|QHttpServerRequest::Method::Post, [this](const QString &user,
+				  const QHttpServerRequest &request, QHttpServerResponder &&responder) -> void {
+		AUTHORIZE_API_RESPONDER();
+		userImage(user, std::move(responder));
+	});
+
+
 	server->route(path+"me", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		AUTHORIZE_API_X(Credential::Student|Credential::Admin);
 		return me(credential);
@@ -224,8 +231,8 @@ QHttpServerResponse GeneralAPI::grade()
 	LAMBDA_THREAD_BEGIN_NOVAR();
 
 	const auto &list = QueryBuilder::q(db)
-			.addQuery("SELECT id, shortname, longname, value FROM grade")
-			.execToJsonArray();
+					   .addQuery("SELECT id, shortname, longname, value FROM grade")
+					   .execToJsonArray();
 
 	LAMBDA_SQL_ASSERT(list);
 
@@ -352,8 +359,8 @@ QHttpServerResponse GeneralAPI::userLog(const QString &username)
 	QJsonObject obj;
 
 	const auto &rankList = QueryBuilder::q(db)
-			.addQuery("SELECT rankid, CAST(strftime('%s', timestamp) AS INTEGER) AS timestamp, xp FROM ranklog WHERE username=").addValue(username)
-			.execToJsonArray();
+						   .addQuery("SELECT rankid, CAST(strftime('%s', timestamp) AS INTEGER) AS timestamp, xp FROM ranklog WHERE username=").addValue(username)
+						   .execToJsonArray();
 
 	LAMBDA_SQL_ASSERT(rankList);
 
@@ -361,23 +368,23 @@ QHttpServerResponse GeneralAPI::userLog(const QString &username)
 
 
 	const auto &streakList = QueryBuilder::q(db)
-			.addQuery("SELECT streak, CAST(strftime('%s', started_on) AS INTEGER) AS started_on, "
-					  "CAST(strftime('%s', ended_on) AS INTEGER) AS ended_on FROM streak "
-					  "WHERE streak > 1 AND username=").addValue(username)
-			.execToJsonArray();
+							 .addQuery("SELECT streak, CAST(strftime('%s', started_on) AS INTEGER) AS started_on, "
+									   "CAST(strftime('%s', ended_on) AS INTEGER) AS ended_on FROM streak "
+									   "WHERE streak > 1 AND username=").addValue(username)
+							 .execToJsonArray();
 
 	LAMBDA_SQL_ASSERT(streakList);
 
 	obj[QStringLiteral("streaklog")] = *streakList;
 
 	const auto &durationList = QueryBuilder::q(db)
-			.addQuery("WITH modes(mode) AS (SELECT DISTINCT mode FROM game), "
-					  "usermodes(username, mode) AS (SELECT DISTINCT username, modes.mode FROM game LEFT JOIN modes) "
-					  "SELECT usermodes.mode AS mode, SUM(duration) AS duration FROM usermodes "
-					  "LEFT JOIN game ON (game.username = usermodes.username AND game.mode = usermodes.mode) "
-					  "WHERE usermodes.username=").addValue(username)
-			.addQuery(" GROUP BY usermodes.username, usermodes.mode")
-			.execToJsonArray();
+							   .addQuery("WITH modes(mode) AS (SELECT DISTINCT mode FROM game), "
+										 "usermodes(username, mode) AS (SELECT DISTINCT username, modes.mode FROM game LEFT JOIN modes) "
+										 "SELECT usermodes.mode AS mode, SUM(duration) AS duration FROM usermodes "
+										 "LEFT JOIN game ON (game.username = usermodes.username AND game.mode = usermodes.mode) "
+										 "WHERE usermodes.username=").addValue(username)
+							   .addQuery(" GROUP BY usermodes.username, usermodes.mode")
+							   .execToJsonArray();
 
 	LAMBDA_SQL_ASSERT(durationList);
 
@@ -385,13 +392,13 @@ QHttpServerResponse GeneralAPI::userLog(const QString &username)
 
 
 	const auto &trophyList = QueryBuilder::q(db)
-			.addQuery("WITH modes(mode) AS (SELECT DISTINCT mode FROM game), "
-					  "usermodes(username, mode) AS (SELECT DISTINCT username, modes.mode FROM game LEFT JOIN modes) "
-					  "SELECT usermodes.mode AS mode, COUNT(success) AS trophy FROM usermodes "
-					  "LEFT JOIN game ON (game.username = usermodes.username AND game.mode = usermodes.mode AND success=true) "
-					  "WHERE usermodes.username=").addValue(username)
-			.addQuery(" GROUP BY usermodes.username, usermodes.mode")
-			.execToJsonArray();
+							 .addQuery("WITH modes(mode) AS (SELECT DISTINCT mode FROM game), "
+									   "usermodes(username, mode) AS (SELECT DISTINCT username, modes.mode FROM game LEFT JOIN modes) "
+									   "SELECT usermodes.mode AS mode, COUNT(success) AS trophy FROM usermodes "
+									   "LEFT JOIN game ON (game.username = usermodes.username AND game.mode = usermodes.mode AND success=true) "
+									   "WHERE usermodes.username=").addValue(username)
+							 .addQuery(" GROUP BY usermodes.username, usermodes.mode")
+							 .execToJsonArray();
 
 	LAMBDA_SQL_ASSERT(trophyList);
 
@@ -423,18 +430,18 @@ QHttpServerResponse GeneralAPI::userXpLog(const QString &username, const QJsonOb
 
 	if (json.value(QStringLiteral("cummulate")).toBool()) {
 		list = QueryBuilder::q(db)
-				.addQuery("WITH cte AS (SELECT username, date(timestamp) AS day FROM score GROUP BY username, date(timestamp)) "
-						  "SELECT day, CAST(JULIANDAY(date('now'))-JULIANDAY(day) AS INTEGER) AS diff, "
-						  "SUM(xp) AS xp FROM cte LEFT JOIN score ON (score.username=cte.username AND score.timestamp<=cte.day) "
-						  "WHERE cte.username=").addValue(username)
-				.addQuery(" GROUP BY day").execToJsonArray();
+			   .addQuery("WITH cte AS (SELECT username, date(timestamp) AS day FROM score GROUP BY username, date(timestamp)) "
+						 "SELECT day, CAST(JULIANDAY(date('now'))-JULIANDAY(day) AS INTEGER) AS diff, "
+						 "SUM(xp) AS xp FROM cte LEFT JOIN score ON (score.username=cte.username AND score.timestamp<=cte.day) "
+						 "WHERE cte.username=").addValue(username)
+			   .addQuery(" GROUP BY day").execToJsonArray();
 	} else {
 		list = QueryBuilder::q(db)
-				.addQuery("WITH cte AS (SELECT username, date(timestamp) AS day FROM score GROUP BY username, date(timestamp)) "
-						  "SELECT day, CAST(JULIANDAY(date('now'))-JULIANDAY(day) AS INTEGER) AS diff, "
-						  "SUM(xp) AS xp FROM cte LEFT JOIN score ON (score.username=cte.username AND date(score.timestamp)=cte.day) "
-						  "WHERE cte.username=").addValue(username)
-				.addQuery(" GROUP BY day").execToJsonArray();
+			   .addQuery("WITH cte AS (SELECT username, date(timestamp) AS day FROM score GROUP BY username, date(timestamp)) "
+						 "SELECT day, CAST(JULIANDAY(date('now'))-JULIANDAY(day) AS INTEGER) AS diff, "
+						 "SUM(xp) AS xp FROM cte LEFT JOIN score ON (score.username=cte.username AND date(score.timestamp)=cte.day) "
+						 "WHERE cte.username=").addValue(username)
+			   .addQuery(" GROUP BY day").execToJsonArray();
 	}
 
 	LAMBDA_SQL_ASSERT(list);
@@ -462,10 +469,10 @@ QHttpServerResponse GeneralAPI::userGameLog(const QString &username)
 	LAMBDA_THREAD_BEGIN(username);
 
 	const auto &list = QueryBuilder::q(db)
-			.addQuery("SELECT date(timestamp) AS day, CAST(JULIANDAY(date('now'))-JULIANDAY(date(timestamp)) AS INTEGER) AS diff, "
-					  "SUM(CASE WHEN success THEN 1 ELSE 0 END) AS success, COUNT(*) AS full FROM game "
-					  "WHERE username=").addValue(username)
-			.addQuery(" GROUP BY username, date(timestamp)").execToJsonArray();
+					   .addQuery("SELECT date(timestamp) AS day, CAST(JULIANDAY(date('now'))-JULIANDAY(date(timestamp)) AS INTEGER) AS diff, "
+								 "SUM(CASE WHEN success THEN 1 ELSE 0 END) AS success, COUNT(*) AS full FROM game "
+								 "WHERE username=").addValue(username)
+					   .addQuery(" GROUP BY username, date(timestamp)").execToJsonArray();
 
 	LAMBDA_SQL_ASSERT(list);
 
@@ -473,6 +480,50 @@ QHttpServerResponse GeneralAPI::userGameLog(const QString &username)
 
 	LAMBDA_THREAD_END;
 
+}
+
+
+/**
+ * @brief GeneralAPI::userImage
+ * @param username
+ * @return
+ */
+
+void GeneralAPI::userImage(const QString &username, QHttpServerResponder &&responder)
+{
+	LOG_CDEBUG("service") << "Get user image" << username;
+
+
+	if (username.isEmpty())
+		return responderResponseError(std::move(responder), QHttpServerResponder::StatusCode::BadGateway);
+
+	QDefer ret;
+
+	QString url;
+
+	databaseMainWorker()->execInThread([&url, ret, this, username]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+		QMutexLocker _locker(databaseMain()->mutex());
+
+		const auto &ptr = QueryBuilder::q(db)
+						  .addQuery("SELECT picture FROM user WHERE username=").addValue(username)
+						  .execToJsonObject();
+
+		if (!ptr)
+			return ret.reject();
+
+		url = ptr->value(QStringLiteral("picture")).toString();
+
+		return ret.resolve();
+	});
+
+	QDefer::await(ret);
+
+
+	if (url.isEmpty())
+		return responderResponseError(std::move(responder), QHttpServerResponder::StatusCode::NotFound);
+
+	responseProxy(url, std::move(responder));
 }
 
 

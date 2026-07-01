@@ -76,7 +76,8 @@ QVector<Question> ExamGame::createQuestions(GameMapMissionLevel *missionLevel, S
  * @return
  */
 
-QJsonArray ExamGame::generatePaperQuestions(GameMapMissionLevel *missionLevel, StorageSeed *seed, const bool &noShuffle)
+QJsonArray ExamGame::generatePaperQuestions(GameMapMissionLevel *missionLevel, StorageSeed *seed, std::mt19937 &rnd,
+											const bool &noShuffle)
 {
 	LOG_CDEBUG("game") << "Generate paper questions";
 
@@ -116,10 +117,8 @@ QJsonArray ExamGame::generatePaperQuestions(GameMapMissionLevel *missionLevel, S
 
 
 	if (!noShuffle) {
-		std::random_device rd;
-		std::mt19937 g(rd());
-		std::shuffle(easyList.begin(), easyList.end(), g);
-		std::shuffle(complexList.begin(), complexList.end(), g);
+		std::shuffle(easyList.begin(), easyList.end(), rnd);
+		std::shuffle(complexList.begin(), complexList.end(), rnd);
 	}
 
 	QHash<QString, QJsonObject> commonData;

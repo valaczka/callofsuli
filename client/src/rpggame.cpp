@@ -29,6 +29,7 @@
 #include "application.h"
 #include "gamequestion.h"
 #include "litegame.h"
+#include "rpgnpc.h"
 #include "rpgplayer.h"
 #include "rpgstream.h"
 #include "rpguserwallet.h"
@@ -620,7 +621,25 @@ void RpgGamePrivate::updateCharacterSelect()
 
 		quint32 id = 0;
 		quint32 tagId = 0;
-		m_logic->playerAdd(m_characterSelect.data(), &id, &tagId);
+		auto p = m_logic->playerAdd(m_characterSelect.data(), &id, &tagId);
+
+		////////////////////////////////////////////////////////////////////////
+		LOG_CERROR("game") << "REMOVE<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
+
+		const QString character = "soldier04";
+
+		RpgNpcDefinition def = q->readNpcDefinition(character).value_or(RpgNpcDefinition{});
+
+		RpgStream::NpcData d;
+		d.setCharacterResolved(character);
+		d.setTeam(RpgStream::TeamB);
+		d.setType(RpgStream::NpcData::Dummy);
+		d.setEntity(def.toEntityConfig());
+
+		m_logic->addNpc(d, p);
+
+		////////////////////////////////////////////////////////////////////////
+
 
 		q->setGameState(RpgGame::GameStatePrepare);
 	}
@@ -668,13 +687,39 @@ void RpgGamePrivate::prepareGameItem()
 			return;
 		}
 
-		q->m_client->downloader()->loadDynamicContent(res);
+		if (!q->m_client->downloader()->loadDynamicContent(res)) {
+			q->setError(tr("Nem sikerült betölteni a terepet"));
+			return;
+		}
+	}
+
+	///////////////////////
+	LOG_CERROR("game") << "REMOVE<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
+	QStringList l = def.required;
+	l << "soldier01" << "soldier02" << "soldier04";
+
+	//for (const QString &s : def.required) {
+
+	////////////////////////
+	for (const QString &s : l) {
+		if (!q->m_client->downloader()->loadDynamicContent(s+QStringLiteral(".dres"))) {
+			q->setError(tr("Nem sikerült betölteni a terepet"));
+			return;
+		}
+
+		if (!q->readNpcDefinition(s)) {
+			q->setError(tr("Nem sikerült betölteni a terepet"));
+			return;
+		}
 	}
 
 	LOG_CDEBUG("game") << "LOAD" << cfg->terrain() << terrain << def.name;
 
 	if (q->load(def)) {
 		q->m_gameItem->setIsContentReady(true);
+	} else {
+		q->setError(tr("Nem sikerült betölteni a terepet"));
+		return;
 	}
 }
 
@@ -1082,11 +1127,12 @@ void RpgGamePrivate::joystickClickedD(const bool &clicked)
 
 void RpgGamePrivate::reloadQuestions()
 {
+	if (!m_logic)
+		return;
+
 	m_questionList = q->createQuestions();
 
-	std::random_device rd;
-	std::mt19937 g(rd());
-	std::shuffle(m_questionList.begin(), m_questionList.end(), g);
+	std::shuffle(m_questionList.begin(), m_questionList.end(), m_logic->rnd());
 
 	m_questionIterator = m_questionList.constBegin();
 }
@@ -1479,6 +1525,7 @@ void RpgGamePrivate::syncObjects()
 	syncPlayers();
 	syncMp();
 	syncDefenders();
+	syncNpc();
 }
 
 
@@ -1671,6 +1718,83 @@ void RpgGamePrivate::syncDefenders()
 
 		if (obj->defenderPoint())
 			obj->defenderPoint()->visualItem()->setVisible(false);
+	}
+}
+
+
+
+
+/**
+ * @brief RpgGamePrivate::syncNpc
+ */
+
+void RpgGamePrivate::syncNpc()
+{
+	Rpg::RpgLogicScope scope = m_logic->getScope();
+
+	Rpg::RpgLogicControlledObjects *controlledObjects = scope.getCtx<Rpg::RpgLogicControlledObjects>();
+
+	auto view = scope.view<Rpg::Npc>(entt::exclude<Rpg::LocalIdTag>);
+
+	for (auto entity : view) {
+		const RpgStream::NpcState *state = scope.getCurrentState<RpgStream::NpcState>(entity);
+
+		const Rpg::Npc &p = scope.get<Rpg::Npc>(entity);
+
+		TiledScene *scene = q->m_gameItem->currentScene();
+
+		Q_ASSERT(scene);
+
+		LOG_CWARNING("game") << "CREATE NPC" << p.idTag << p.data.character()
+							 << p.data.characterResolved(m_npcHash);
+
+		const auto ptr = q->readNpcDefinition(p.data.characterResolved(m_npcHash));
+
+		if (!ptr) {
+			LOG_CERROR("game") << "Invalid NPC" << p.data.character();
+			continue;
+		}
+
+		const RpgNpcDefinition &def = ptr.value();
+
+		cpVect pos;
+
+		if (state) {
+			pos.x = state->entityState().posXAsFloat();
+			pos.y = state->entityState().posYAsFloat();
+		}
+
+		RpgNpc *obj = q->m_gameItem->createObject<RpgNpc>(RpgLogicObjectMapper::toObjectId(p.idTag), scene,
+														  q->m_gameItem, pos);
+
+		Q_ASSERT(obj);
+
+		obj->setDisplayName(QString("NPC #%1").arg(p.idTag));
+		obj->load(def);
+
+		if (state) {
+			obj->setHp(state->hp());
+			obj->setTeam(p.data.team());
+
+			if (auto ptr = addToScatter(2)) {
+				obj->setScatterPoint(ptr.value());
+				ptr->scatter->setPointConfiguration(ptr->index, QXYSeries::PointConfiguration::Color,
+													RpgGameItem::teamColor().value(p.data.team()));
+			}
+		}
+
+		const quint32 pid = logicRegisterObject(obj);
+		m_logic->addLocalIdTag(entity);
+
+		LOG_CINFO("game") << "ADDED" << pid << "==" << obj->hp() << "HP" << "/" << obj->maxHp() << "MaxHp";
+
+		LOG_CWARNING("game") << "--- check" << (controlledObjects ? controlledObjects->entities.size() : 0) << p.idTag;
+
+		if ((controlledObjects && controlledObjects->entities.contains(p.idTag)) || q->m_gameMode == RpgGame::SinglePlayer) {
+			obj->setSecondaryMotor(std::make_unique<RpgMotorNpcControlled>(obj));
+
+			LOG_CWARNING("game") << "***** CONTROLLED NPC" << obj;
+		}
 	}
 }
 
@@ -1980,6 +2104,10 @@ quint32 RpgGamePrivate::logicRegisterObject(RpgObject *object)
 
 	return mapper->set(object);
 }
+
+
+
+
 
 
 
@@ -2626,6 +2754,54 @@ void RpgGame::reloadCharacters()
 
 
 
+
+/**
+ * @brief RpgGame::readNpcDefinition
+ * @param name
+ * @return
+ */
+
+std::optional<RpgNpcDefinition> RpgGame::readNpcDefinition(const QString &name)
+{
+	if (name.isEmpty())
+		return std::nullopt;
+
+	if (RpgGamePrivate::m_npcDefinitions.contains(name))
+		return RpgGamePrivate::m_npcDefinitions.value(name);
+
+	Downloader *downloader = Application::instance()->client()->downloader();
+
+	Q_ASSERT(downloader);
+
+	if (!downloader->loadDynamicContent(name+QStringLiteral(".dres")))
+		return std::nullopt;
+
+	RpgNpcDefinition config;
+
+	config.prefixPath = QStringLiteral(":/enemy/").append(name).append('/');
+
+	const auto &ptr = Utils::fileToJsonObject(QStringLiteral(":/enemy/%1/config.json").arg(name));
+
+	if (ptr) {
+		LOG_CINFO("game") << "Load config json:" << name;
+
+		config.fromJson(ptr.value());
+
+		config.updateSfxPath(config.prefixPath);
+	}
+
+
+	RpgGamePrivate::m_npcDefinitions.insert(name, config);
+	RpgGamePrivate::m_npcHash.insert(name);
+
+	return config;
+}
+
+
+
+
+
+
 /**
  * @brief RpgPlayerDefinition::updateSfxPath
  * @param prefix
@@ -2763,4 +2939,51 @@ void RpgGame::setTerrain(const QString &newTerrain)
 		return;
 	m_terrain = newTerrain;
 	emit terrainChanged();
+}
+
+
+
+
+
+/**
+ * @brief RpgNpcDefinition::toEntityConfig
+ * @return
+ */
+
+void RpgNpcDefinition::updateSfxPath(const QString &prefix)
+{
+	for (QList<QString> *ptr : std::vector<QList<QString>*>{
+		 &sfxFootStep,
+		 &sfxPain,
+}) {
+		for (QString &s : *ptr) {
+			if (!s.isEmpty() && !s.startsWith(QStringLiteral(":/")))
+				s.prepend(prefix);
+		}
+	}
+
+	if (!sfxDead.isEmpty() && !sfxDead.startsWith(QStringLiteral(":/")))
+		sfxDead.prepend(prefix);
+}
+
+
+
+
+
+/**
+ * @brief RpgNpcDefinition::toEntityConfig
+ * @return
+ */
+
+RpgStream::EntityConfig RpgNpcDefinition::toEntityConfig() const
+{
+	RpgStream::EntityConfig cfg;
+
+	cfg.setMaxHp(hp);
+
+	cfg.setPush(push);
+	cfg.setPushDist(pushDistance);
+	cfg.setResist(resist);
+
+	return cfg;
 }

@@ -420,7 +420,7 @@ void Downloader::contentDictAdd(const QString &tsx, const QString &res)
 
 void Downloader::contentDictAdd(const QJsonObject &json)
 {
-#if QT_VERSION >= 0x061000
+#if QT_VERSION >= QT_VERSION_CHECK(6, 10, 0)
 	for (const auto &[key, value] : json.asKeyValueRange()) {
 		contentDictAdd(key.toString(), value.toString());
 	}
@@ -604,14 +604,14 @@ bool Downloader::dynamicContentCheck(QVector<DynamicContent> *listPtr)
 			}
 
 			qint64 size = 0;
-			const auto &hash = fileChecksum(filename, QCryptographicHash::Md5, &size);
+			const auto &hash = fileChecksum(filename, QCryptographicHash::Sha1, &size);
 
 			if (!hash) {
 				++it;
 				continue;
 			}
 
-			if (it->md5AsByteArray() == hash.value() && it->size == size) {
+			if (it->sha1AsByteArray() == hash.value() && it->size == size) {
 				LOG_CTRACE("client") << "Check success:" << qPrintable(filename);
 
 				if (m_loadedContent.contains(filename)) {
@@ -754,14 +754,14 @@ void Downloader::loadDynamicContent()
  * @param filename
  */
 
-void Downloader::loadDynamicContent(const QString &filename)
+bool Downloader::loadDynamicContent(const QString &filename)
 {
 	const auto dir = sharedContentDir();
 
 	if (!dir) {
 		LOG_CERROR("client") << "Invalid shared content directory";
 		setState(StateError);
-		return;
+		return false;
 	}
 
 	const QString full = dir->absoluteFilePath(filename);
@@ -770,7 +770,7 @@ void Downloader::loadDynamicContent(const QString &filename)
 
 	if (m_loadedContent.contains(full)) {
 		LOG_CTRACE("client") << "Content already loaded" << qPrintable(full);
-		return;
+		return true;
 	}
 
 #ifndef Q_OS_WASM
@@ -780,16 +780,29 @@ void Downloader::loadDynamicContent(const QString &filename)
 #endif
 		if (!QResource::registerResource(full)) {
 			LOG_CERROR("client") << "Register resource failed:" << qPrintable(full);
-		} else {
-			m_loadedContent.insert(full);
+
+#ifndef Q_OS_WASM
+			ret.reject();
+			return;
+#else
+			return false;
+#endif
 		}
+
+		m_loadedContent.insert(full);
 
 #ifndef Q_OS_WASM
 		ret.resolve();
 	});
 
 	QDefer::await(ret);
+
+	return ret.state() == RESOLVED;
+
+#else
+	return true;
 #endif
+
 }
 
 
