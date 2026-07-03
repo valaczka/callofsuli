@@ -758,6 +758,8 @@ EngineStream &Tower::operator<<(EngineStream &stream)
 {
 	readTagId(stream);
 	readDefenders(stream);
+	readPosX(stream);
+	readPosY(stream);
 
 	return stream;
 }
@@ -773,6 +775,8 @@ EngineStream &Tower::operator>>(EngineStream &stream) const
 {
 	writeTagId(stream);
 	writeDefenders(stream);
+	writePosX(stream);
+	writePosY(stream);
 
 	return stream;
 }
@@ -1042,7 +1046,7 @@ EngineStream &DefenderState::operator>>(EngineStream &stream) const
 			writeDummy(stream);
 			break;
 
-			case BaseDefenderObject::Multiplier1:
+		case BaseDefenderObject::Multiplier1:
 		case BaseDefenderObject::None:
 			break;
 	}
@@ -1413,6 +1417,9 @@ EngineStream &NpcData::operator<<(EngineStream &stream)
 	readCharacter(stream);
 	readTeam(stream);
 
+	if (m_type == TowerAttacker)
+		readForce(stream);
+
 	return stream;
 }
 
@@ -1431,6 +1438,9 @@ EngineStream &NpcData::operator>>(EngineStream &stream) const
 	writeCharacter(stream);
 	writeTeam(stream);
 
+	if (m_type == TowerAttacker)
+		writeForce(stream);
+
 	return stream;
 }
 
@@ -1445,12 +1455,20 @@ EngineStream &NpcData::operator>>(EngineStream &stream) const
 EngineStream &NpcState::operator<<(EngineStream &stream)
 {
 	readTick(stream);
+	readType(stream);
 	readDeltaMask(stream);
-	m_entityState.setIsDeltaMode(m_isDeltaMode);
-	m_entityState << stream;
 
 	readHpDelta(stream);
 	readTargetDelta(stream);
+
+	m_entityState.setIsDeltaMode(m_isDeltaMode);
+	m_entityState << stream;
+
+	if (m_type == NpcData::TowerAttacker) {
+		readDestinationTowerDelta(stream);
+		readDestinationXDelta(stream);
+		readDestinationYDelta(stream);
+	}
 
 	return stream;
 }
@@ -1466,12 +1484,21 @@ EngineStream &NpcState::operator<<(EngineStream &stream)
 EngineStream &NpcState::operator>>(EngineStream &stream) const
 {
 	writeTick(stream);
+	writeType(stream);
+
 	writeDeltaMask(stream);
-	m_entityState.setIsDeltaMode(m_isDeltaMode);
-	m_entityState >> stream;
 
 	writeHpDelta(stream);
 	writeTargetDelta(stream);
+
+	m_entityState.setIsDeltaMode(m_isDeltaMode);
+	m_entityState >> stream;
+
+	if (m_type == NpcData::TowerAttacker) {
+		writeDestinationTowerDelta(stream);
+		writeDestinationXDelta(stream);
+		writeDestinationYDelta(stream);
+	}
 
 	return stream;
 }
@@ -1517,8 +1544,12 @@ EngineStream &NpcStateList::operator>>(EngineStream &stream) const
 EngineStream &EventNpc::operator<<(EngineStream &stream)
 {
 	readTick(stream);
+	readSeq(stream);
 	readTagId(stream);
 	readType(stream);
+
+	if (m_type == EventAttack)
+		readTargetId(stream);
 
 	return stream;
 }
@@ -1533,8 +1564,12 @@ EngineStream &EventNpc::operator<<(EngineStream &stream)
 EngineStream &EventNpc::operator>>(EngineStream &stream) const
 {
 	writeTick(stream);
+	writeSeq(stream);
 	writeTagId(stream);
 	writeType(stream);
+
+	if (m_type == EventAttack)
+		writeTargetId(stream);
 
 	return stream;
 }

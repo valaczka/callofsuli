@@ -135,6 +135,7 @@ public:
 
 protected:
 	virtual void eventRealized(entt::entity entity) override;
+	virtual void rewindStage(const RpgStream::GameConfig::Stage &oldStage) override;
 };
 
 

@@ -50,6 +50,10 @@
 #include "standaloneclient.h"
 #endif
 
+#ifdef WITH_FTXUI
+#include "desktopapplication.h"
+#endif
+
 
 QHash<QString, RpgGameDefinition> RpgGame::m_terrains = {};
 QHash<QString, RpgPlayerDefinition> RpgGame::m_characters = {};
@@ -632,8 +636,8 @@ void RpgGamePrivate::updateCharacterSelect()
 
 		RpgStream::NpcData d;
 		d.setCharacterResolved(character);
-		d.setTeam(RpgStream::TeamB);
-		d.setType(RpgStream::NpcData::Dummy);
+		d.setTeam(RpgStream::TeamNone);
+		d.setType(RpgStream::NpcData::TowerAttacker);
 		d.setEntity(def.toEntityConfig());
 
 		m_logic->addNpc(d, p);
@@ -772,6 +776,9 @@ void RpgGamePrivate::onGameItemPrepared()
 		return;
 	}
 
+	LOG_CERROR("game") << "#####xLOAD" << m_mapData.chunkGrid().excludeList().size()
+					   << m_mapData.towerList().size();
+
 	logic->loadMapData(m_mapData);
 	m_isMapLoaded = true;
 
@@ -881,6 +888,8 @@ void RpgGamePrivate::towerAdd(RpgTower *tower)
 
 	RpgStream::Tower t;
 	t.setTagId(id);
+	t.setPosXAsFloat(tower->bodyPosition().x);
+	t.setPosYAsFloat(tower->bodyPosition().y);
 
 	for (RpgDefenderPoint *p : tower->defenderPoints()) {
 		Q_ASSERT(p);
@@ -1367,12 +1376,24 @@ void RpgGamePrivate::onBeforeWorldStep(const qint64 &tick)
 		m_logic->renderUpdate();				// delete tags
 	}
 
-	RpgStream::FullState full = m_logic->getFullState(1);
+	QString txt;
+
+	RpgStream::FullState full = m_logic->getFullState(1, &txt);
 
 	if (full.flags().testFlag(RpgStream::FullState::Event))
 		processEvents(full.events(), tick);
 
 	deleteMissingObjects(extractObjects(full));
+
+#ifdef WITH_FTXUI
+	if (DesktopApplication *app = dynamic_cast<DesktopApplication*>(Application::instance())) {
+		QCborMap m;
+		m.insert(QStringLiteral("mode"), QStringLiteral("SND"));
+		m.insert(QStringLiteral("txt"), txt);
+		app->writeToSocket(m);
+	}
+#endif
+
 }
 
 
@@ -1400,7 +1421,7 @@ void RpgGamePrivate::onAfterWorldStep(const RpgStream::FullState &full)
 
 void RpgGamePrivate::finishGame()
 {
-	if (q->gameState() != RpgGame::GameStateFinished) {
+	if (q->gameState() != RpgGame::GameStatePlay) {
 		LOG_CERROR("game") << "Invalid state" << q->gameState();
 		return;
 	}
@@ -1447,8 +1468,6 @@ void RpgGamePrivate::syncGameConfig(const RpgStream::GameConfig &config, const q
 		q->m_gameItem->message(QObject::tr("FINISHED"));
 
 		cfg->flags().setFlag(RpgStream::GameConfig::FlagFinished);
-
-		finishGame();
 	}
 
 	if (config.stage() > cfg->stage()) {
@@ -1463,6 +1482,13 @@ void RpgGamePrivate::syncGameConfig(const RpgStream::GameConfig &config, const q
 			startGame(serverTick);
 			q->m_gameItem->overrideCurrentFrame(serverTick);
 			m_deadlineTick = cfg->duration();
+		}
+
+		if (config.stage() == RpgStream::GameConfig::StageFinished) {
+			LOG_CINFO("game") << "STOP******:" << cfg->stage() << "->" << config.stage();
+			q->m_gameItem->message(QObject::tr("FINISHED****"));
+
+			finishGame();
 		}
 
 		cfg->setStage(config.stage());
@@ -1764,8 +1790,7 @@ void RpgGamePrivate::syncNpc()
 			pos.y = state->entityState().posYAsFloat();
 		}
 
-		RpgNpc *obj = q->m_gameItem->createObject<RpgNpc>(RpgLogicObjectMapper::toObjectId(p.idTag), scene,
-														  q->m_gameItem, pos);
+		RpgNpc *obj = RpgNpc::createNpc(p, q->m_gameItem, scene, pos);
 
 		Q_ASSERT(obj);
 
@@ -1791,9 +1816,9 @@ void RpgGamePrivate::syncNpc()
 		LOG_CWARNING("game") << "--- check" << (controlledObjects ? controlledObjects->entities.size() : 0) << p.idTag;
 
 		if ((controlledObjects && controlledObjects->entities.contains(p.idTag)) || q->m_gameMode == RpgGame::SinglePlayer) {
-			obj->setSecondaryMotor(std::make_unique<RpgMotorNpcControlled>(obj));
+			obj->setSecondaryMotor(obj->getControlledMotor());
 
-			LOG_CWARNING("game") << "***** CONTROLLED NPC" << obj;
+			LOG_CWARNING("game") << "***** CONTROLLED NPC" << obj << obj->secondaryMotor();
 		}
 	}
 }
@@ -1941,6 +1966,13 @@ void RpgGamePrivate::processEvents(const std::vector<RpgStream::Events> &list, c
 			processEvents(event.player());
 
 
+		// Npc events
+
+		if (event.flags().testFlag(RpgStream::Events::Npc))
+			processEvents(event.npc());
+
+
+
 		m_lastProcessedEventTick = event.tick();
 	}
 }
@@ -1971,6 +2003,10 @@ void RpgGamePrivate::processEvents(const std::vector<RpgStream::EventPlayer> &li
 		}
 
 
+		if (RpgMotorPlayerEventIface *motor = dynamic_cast<RpgMotorPlayerEventIface*>(player->currentMotor()))
+			motor->processEvent(event);
+
+
 		if (player != q->m_controlledPlayer)
 			continue;
 
@@ -1987,8 +2023,6 @@ void RpgGamePrivate::processEvents(const std::vector<RpgStream::EventPlayer> &li
 			}
 		} else if (event.type() == RpgStream::EventPlayer::EventStreak) {
 			q->m_gameItem->message(QObject::tr("%1 streak").arg(event.at()));
-		} else if (RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(player->currentMotor())) {
-			motor->processEvent(event);
 		}
 
 	}
@@ -2045,6 +2079,37 @@ void RpgGamePrivate::processEvents(const std::vector<RpgStream::EventMpEmitter> 
 
 		if (!pos.isNull())
 			q->m_gameItem->playSfx(QStringLiteral(":/sound/sfx/pick.mp3"), q->m_gameItem->currentScene(), pos);
+	}
+}
+
+
+
+/**
+ * @brief RpgGamePrivate::processEvents
+ * @param list
+ */
+
+void RpgGamePrivate::processEvents(const std::vector<RpgStream::EventNpc> &list)
+{
+	if (list.empty())
+		return;
+
+	Rpg::RpgLogicScope scope = m_logic->getScope();
+
+	RpgLogicObjectMapper *mapper = scope.getCtx<RpgLogicObjectMapper>();
+
+	Q_ASSERT(mapper);
+
+	for (const RpgStream::EventNpc &event : list) {
+		RpgNpc *npc = mapper->get<RpgNpc>(event.tagId());
+
+		if (!npc) {
+			LOG_CERROR("game") << "Invalid NPC id" << event.tagId();
+			continue;
+		}
+
+		if (RpgMotorNpcEventIface *motor = dynamic_cast<RpgMotorNpcEventIface*>(npc->currentMotor()))
+			motor->processEvent(event);
 	}
 }
 

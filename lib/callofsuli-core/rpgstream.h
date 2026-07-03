@@ -69,8 +69,8 @@
 #define SPEEDSQ_SIZE_BITS			20						// Max: 1.000.000
 
 
-#define DEFENDER_TYPE				quint32
-#define DEFENDER_BITS				8						// Max: 256
+#define OBJECT_TYPE					quint32
+#define OBJECT_BITS					8						// Max: 256
 
 
 namespace RpgStream
@@ -940,6 +940,8 @@ public:
 
 	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
 	STREAM_MEMBER_VECTOR(Defender, defenders, Defenders, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
+	STREAM_MEMBER_QUANT(posX, PosX, 0);
+	STREAM_MEMBER_QUANT(posY, PosY, 0);
 };
 
 
@@ -1059,7 +1061,7 @@ public:
 	STREAM_MEMBER(ENTITY_MP_TYPE, maxMp, MaxMp, ENTITY_MP_BITS, 0)
 	STREAM_MEMBER(ENTITY_MP_TYPE, maxBullet, MaxBullet, ENTITY_HP_BITS, 0)
 
-	STREAM_MEMBER_VECTOR_CAST(BaseDefenderObject::Type, DEFENDER_TYPE, DEFENDER_BITS, defenders, Defenders, quint8, 8, BaseDefenderObject::None)
+	STREAM_MEMBER_VECTOR_CAST(BaseDefenderObject::Type, OBJECT_TYPE, OBJECT_BITS, defenders, Defenders, quint8, 8, BaseDefenderObject::None)
 
 };
 
@@ -1124,6 +1126,7 @@ public:
 	enum Type {
 		None = 0,
 		Dummy,
+		TowerAttacker
 	};
 
 	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
@@ -1133,6 +1136,10 @@ public:
 	STREAM_MEMBER_CAST(Team, team, Team, quint8, 2, TeamNone)
 
 	// Dummy...
+
+	// TowerAttacker
+
+	STREAM_MEMBER(quint32, force, Force, 32, 0);
 };
 
 
@@ -1331,7 +1338,7 @@ public:
 	STREAM_DELTA_MEMBER(quint32, lock, Lock, 32, 0, Lock);
 	STREAM_DELTA_MEMBER(quint32, penalty, Penalty, 32, 0, Penalty);
 
-	STREAM_DELTA_MEMBER_CAST(BaseDefenderObject::Type, defender, Defender, DEFENDER_TYPE, DEFENDER_BITS, BaseDefenderObject::None, Defender)
+	STREAM_DELTA_MEMBER_CAST(BaseDefenderObject::Type, defender, Defender, OBJECT_TYPE, OBJECT_BITS, BaseDefenderObject::None, Defender)
 	STREAM_DELTA_MEMBER_CAST(bool, hasDefender, HasDefender, quint8, 1, false, HasDefender);
 
 	bool operator==(const PlayerState &other) const {
@@ -1406,22 +1413,39 @@ public:
 	EngineStream& operator>>(EngineStream &stream) const;
 
 	STREAM_DELTA_MASK (
-			quint32, 2,
+			quint32, 5,
 
 			Hp,
 			Target,
 
+			DestinationTower,
+			DestinationX,
+			DestinationY
+
 			)
 
+	STREAM_MEMBER_CAST(NpcData::Type, type, Type, OBJECT_TYPE, OBJECT_BITS, NpcData::None)
 	STREAM_FIELD(EntityState, entityState, EntityState, {})
 
 	STREAM_DELTA_MEMBER(ENTITY_HP_TYPE, hp, Hp, ENTITY_HP_BITS, 0, Hp)
 	STREAM_DELTA_MEMBER(TAG_ID_TYPE, target, Target, TAG_ID_BITS, 0, Target);
 
+	// Dummy
+
+	// TowerAttacker
+
+	STREAM_DELTA_MEMBER(TAG_ID_TYPE, destinationTower, DestinationTower, TAG_ID_BITS, 0, DestinationTower);
+	STREAM_DELTA_MEMBER_QUANT(destinationX, DestinationX, 0, DestinationX)
+	STREAM_DELTA_MEMBER_QUANT(destinationY, DestinationY, 0, DestinationY)
+
 	bool operator==(const NpcState &other) const {
-		return other.m_entityState == m_entityState &&
+		return other.m_type == m_type &&
+				other.m_entityState == m_entityState &&
 				other.m_hp == m_hp &&
-				other.m_target == m_target
+				other.m_target == m_target &&
+				other.m_destinationTower == m_destinationTower &&
+				other.m_destinationX == m_destinationX &&
+				other.m_destinationY == m_destinationY
 				;
 	}
 
@@ -1429,6 +1453,7 @@ public:
 	LOAD_FROM_DELTA_START(NpcState)
 
 	LOAD_WITHOUT_DELTA(tick, Tick)
+	LOAD_WITHOUT_DELTA(type, Type)
 	LOAD_FROM_DELTA(hp, Hp)
 	LOAD_FROM_DELTA(target, Target)
 
@@ -1519,7 +1544,7 @@ public:
 	EngineStream& operator>>(EngineStream &stream) const;
 
 	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
-	STREAM_MEMBER_CAST(BaseDefenderObject::Type, type, Type, DEFENDER_TYPE, DEFENDER_BITS, BaseDefenderObject::None)
+	STREAM_MEMBER_CAST(BaseDefenderObject::Type, type, Type, OBJECT_TYPE, OBJECT_BITS, BaseDefenderObject::None)
 
 	STREAM_MEMBER(ENTITY_HP_TYPE, hp, Hp, ENTITY_HP_BITS, 0)
 
@@ -1654,21 +1679,29 @@ public:
  * @brief The EventNpc class
  */
 
-class EventNpc : public BaseTickState
+class EventNpc : public BaseEventState
 {
 public:
-	EventNpc() : BaseTickState() {}
+	enum Type {
+		EventNone = 0,
+		EventCreated,											// NPC létrejött
+		EventAttack
+	};
+
+	EventNpc() : BaseEventState() {}
+	EventNpc(const Type &type, const quint32 &seq = 0)
+		: BaseEventState(seq)
+		, m_type(type)
+	{}
 
 	EngineStream& operator<<(EngineStream &stream);
 	EngineStream& operator>>(EngineStream &stream) const;
 
-	enum Type {
-		EventNone = 0,
-		EventCreated,											// NPC létrejött
-	};
 
 	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
 	STREAM_MEMBER_CAST(Type, type, Type, quint32, 4, EventNone)
+
+	STREAM_MEMBER(TAG_ID_TYPE, targetId, TargetId, TAG_ID_BITS, 0);
 };
 
 

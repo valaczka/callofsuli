@@ -431,7 +431,7 @@ void RpgEnginePrivate::onAllCompleted()
 		RpgStream::NpcData d;
 		d.setCharacterResolved(character);
 		d.setTeam(RpgStream::TeamNone);
-		d.setType(RpgStream::NpcData::Dummy);
+		d.setType(RpgStream::NpcData::TowerAttacker);
 		d.entity().setMaxHp(7);
 
 		quint32 idTag = 0;

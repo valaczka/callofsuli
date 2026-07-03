@@ -906,9 +906,11 @@ void Client::initializeDynamicResources()
 	if (!http)
 		return;
 
+#ifdef QT_NO_DEBUG
 	if (QNetworkInformation::instance() &&
 			QNetworkInformation::instance()->reachability() != QNetworkInformation::Reachability::Online)
 		return;
+#endif
 
 	LOG_CDEBUG("client") << "Initialize dynamic resources";
 

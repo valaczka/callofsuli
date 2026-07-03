@@ -156,6 +156,7 @@ private:
 	void processEvents(const std::vector<RpgStream::EventPlayer> &list);
 	void processEvents(const std::vector<RpgStream::EventStageChanged> &list);
 	void processEvents(const std::vector<RpgStream::EventMpEmitter> &list);
+	void processEvents(const std::vector<RpgStream::EventNpc> &list);
 
 	void onTimeStepped(const std::vector<TiledObjectBody *> &aboutDestruction);
 

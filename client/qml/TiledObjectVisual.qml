@@ -18,7 +18,8 @@ Item {
 	property real ellipseSize: 0
 	property real ellipseWidth: 75
 
-	property point ellipseOffset: Qt.point(0,0)
+	property point ellipseTarget: Qt.point(0,0)
+	property real ellipseZ: 0
 
 	parent: baseObject ? baseObject.scene : null
 
@@ -41,32 +42,68 @@ Item {
 	Shape {
 		id: _ellipse
 
-		visible: false // ellipseSize > 0
+		visible: ellipseSize > 0
 
-		anchors.horizontalCenter: parent.horizontalCenter
-		anchors.verticalCenter: parent.verticalCenter
-		anchors.horizontalCenterOffset: offsetX + (baseObject ? baseObject.bodyOffset.x : 0)
-		anchors.verticalCenterOffset: offsetY + (baseObject ? baseObject.bodyOffset.y : 0)
+		parent: baseObject ? baseObject.scene : null
+
+		x: root.x + root.width/2 + (baseObject ? baseObject.bodyOffset.x : 0) - width/2
+		y: root.y + root.height/2 + (baseObject ? baseObject.bodyOffset.y : 0) - height/2
+		z: ellipseZ > 0 ? ellipseZ : root.z
 
 		width: ellipseWidth
 		height: ellipseWidth
 
-		property real offsetX: root.ellipseOffset.x
-		property real offsetY: root.ellipseOffset.y
+		states: State {
+			name: "hasTarget"
+			when: ellipseZ > 0
 
-		Behavior on offsetX {
-			NumberAnimation {
-				duration: 125
-				easing.type: root.ellipseOffset.x == 0. ? Easing.OutBack : Easing.OutQuad
+			PropertyChanges {
+				_ellipse.x: root.ellipseTarget.x - _ellipse.width/2
+				_ellipse.y: root.ellipseTarget.y - _ellipse.height/2
 			}
 		}
 
-		Behavior on offsetY {
-			NumberAnimation {
-				duration: 125
-				easing.type: root.ellipseOffset.y == 0. ? Easing.OutBack : Easing.OutQuad
+		transitions: [
+			Transition {
+				from: "*"
+				to: "hasTarget"
+
+				ParallelAnimation {
+					SmoothedAnimation {
+						target: _ellipse
+						property: "x"
+						duration: 125
+						easing.type: Easing.OutQuad
+					}
+					SmoothedAnimation {
+						target: _ellipse
+						property: "y"
+						duration: 125
+						easing.type: Easing.OutQuad
+					}
+				}
+			},
+			Transition {
+				from: "hasTarget"
+				to: "*"
+
+				ParallelAnimation {
+					SmoothedAnimation {
+						target: _ellipse
+						property: "x"
+						duration: 125
+						easing.type: Easing.OutBack
+					}
+					SmoothedAnimation {
+						target: _ellipse
+						property: "y"
+						duration: 125
+						easing.type: Easing.OutBack
+					}
+				}
+
 			}
-		}
+		]
 
 		Behavior on width {
 			NumberAnimation {
@@ -109,6 +146,9 @@ Item {
 
 	Glow {
 		id: _ellipseGlow
+
+		parent: _ellipse.parent
+		z: _ellipse.z
 
 		visible: ellipseSize > 0
 

@@ -32,6 +32,8 @@
 #include <QQmlEngine>
 
 
+class RpgMotorNpcControlled;
+
 /**
  * @brief The RpgNpc class
  */
@@ -49,11 +51,16 @@ public:
 	RpgNpc(RpgGameItem *gameItem, const cpVect &center = cpvzero);
 	virtual ~RpgNpc();
 
+	static RpgNpc* createNpc(const Rpg::Npc &npc, RpgGameItem *gameItem, TiledScene *scene, const cpVect &pos);
+
 	virtual void initialize() override;
 	virtual void updateSprite() override;
 
+	virtual std::unique_ptr<RpgMotorNpcControlled> getControlledMotor();
+
 	void load(const RpgNpcDefinition &config);
 
+	const RpgNpcDefinition &config() const { return m_config; }
 	void setConfig(const RpgNpcDefinition &config);
 
 	RpgEntity *targetEntity() const;
@@ -73,6 +80,7 @@ private:
 
 private:
 	TiledGameSfx m_sfxPain;
+	TiledGameSfx m_sfxDead;
 	TiledGameSfx m_sfxFootStep;
 
 	RpgNpcDefinition m_config;
@@ -91,10 +99,27 @@ private:
 
 
 /**
+ * @brief The RpgMotorNpcEventIface class
+ */
+
+class RpgMotorNpcEventIface
+{
+public:
+	RpgMotorNpcEventIface() = default;
+
+	virtual void processEvent(const RpgStream::EventNpc &event) = 0;
+};
+
+
+
+
+
+
+/**
  * @brief The RpgMotorNpc class
  */
 
-class RpgMotorNpc : public RpgMotorEntity
+class RpgMotorNpc : public RpgMotorEntity, public RpgMotorNpcEventIface
 {
 public:
 	RpgMotorNpc(RpgNpc *npc);
@@ -102,11 +127,17 @@ public:
 	virtual bool beforeWorldStep(const qint64 &tick, entt::entity &entity) override;
 	virtual void updateBody(TiledObject *) override;
 
+	virtual void processEvent(const RpgStream::EventNpc &event) override;
+
 	static void updateBody(RpgNpc *npc, const RpgStream::NpcState &state, const bool &isEmplace);
+
+protected:
+	virtual void processEventAt(const qint64 &tick) { Q_UNUSED(tick); }
 
 protected:
 	RpgNpc *const m_npc;
 	std::optional<RpgStream::NpcState> m_current;
+	std::vector<RpgStream::EventNpc> m_incomingEventList;
 };
 
 
@@ -122,7 +153,7 @@ protected:
  * @brief The RpgMotorNpcControlled class
  */
 
-class RpgMotorNpcControlled : public RpgDestinationMotor
+class RpgMotorNpcControlled : public RpgDestinationMotor, public RpgMotorNpcEventIface
 {
 public:
 	RpgMotorNpcControlled(RpgNpc *npc);
@@ -133,6 +164,8 @@ public:
 
 	const RpgStream::NpcState *saveCurrentState(const qint64 &tick);
 
+	virtual void processEvent(const RpgStream::EventNpc &event) override;
+
 protected:
 	virtual void onShapeContactBegin(cpShape *self, cpShape *other) override;
 	virtual void onShapeContactEnd(cpShape *self, cpShape *other) override;
@@ -141,8 +174,11 @@ protected:
 	virtual int getMovementSpeed();
 	virtual void updateMovement(const float &speed);
 	virtual void updateMotor();
+	virtual void onGroundCollision();
 
 	virtual void saveState(RpgStream::NpcState &dest) { Q_UNUSED(dest); }
+
+	virtual void processEventAt(const qint64 &tick) { Q_UNUSED(tick); }
 
 	void applyKnockback();
 
@@ -150,9 +186,14 @@ protected:
 	RpgNpc *const m_npc;
 	Rpg::RpgNpcStatePull m_statePull;
 
+	std::vector<RpgStream::EventNpc> m_incomingEventList;
 	std::vector<RpgStream::EventNpc> m_eventList;
 
 	cpVect m_currentKnockback = cpvzero;
+	QSet<cpShape*> m_groundCollision;
+	int m_groundCollisionCounter = 0;
+
+	qint64 m_currentTick = 0;
 
 	friend class RpgNpc;
 };

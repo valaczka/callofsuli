@@ -82,7 +82,6 @@ void RpgTower::worldStep()
 {
 	TiledObjectBody::worldStep();
 
-
 	Rpg::RpgLogicScope scope = m_gameItem->game()->rpgLogicClient()->getScope();
 	auto entity = scope.entityFromIdTag(RpgLogicObjectMapper::getId(objectId()));
 

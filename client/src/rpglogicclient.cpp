@@ -218,13 +218,14 @@ RpgStream::GameConfig RpgLogicClientSingle::startGame()
 	render();
 
 	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
-	const RpgStream::GameConfig config = *cfg;
 
-	// Rewind stage
+	// Rewind stage (workaround)
+
+	RpgStream::GameConfig real = *cfg;
 
 	cfg->setStage(RpgStream::GameConfig::StageSelect);
 
-	return config;
+	return real;
 }
 
 
@@ -256,7 +257,46 @@ void RpgLogicClientSingle::eventRealized(entt::entity entity)
 
 				eventStore(std::move(evc));
 			}
+
+			for (int i=1; i<4; ++i) {
+				EventNpcCreate evc;
+				evc.setTick(tick + i*60);
+
+				evc.data.setCharacterResolved("soldier04");
+				evc.data.setTeam(RpgStream::TeamB);
+				evc.data.setType(RpgStream::NpcData::Dummy);
+				evc.data.entity().setMaxHp(4);
+				//evc.data.setEntity(def.toEntityConfig());
+
+
+				ELOG_DEBUG << "Register NPC event for" << evc.tick();
+
+				eventStore(std::move(evc));
+			}
+
+
+			/*for (int i=0; i<3; ++i) {
+				for (int j=0; j<5; ++j) {
+					EventNpcCreate evc;
+					evc.setTick(tick + 600 + i);
+
+					evc.data.setCharacterResolved("soldier04");
+					evc.data.setTeam(RpgStream::TeamB);
+					evc.data.setType(RpgStream::NpcData::Dummy);
+					evc.data.entity().setMaxHp(4);
+					//evc.data.setEntity(def.toEntityConfig());
+
+
+					ELOG_DEBUG << "Register NPC event for" << evc.tick();
+
+					eventStore(std::move(evc));
+				}
+			}*/
+
+		} else if (ev->config().stage() == RpgStream::GameConfig::StageMain) {
+
 		}
+
 
 		return;
 	}
@@ -277,6 +317,25 @@ void RpgLogicClientSingle::eventRealized(entt::entity entity)
 
 		eventStore(std::move(evc));
 	}
+}
+
+
+
+/**
+ * @brief RpgLogicClientSingle::rewindStage
+ * @param oldStage
+ */
+
+void RpgLogicClientSingle::rewindStage(const RpgStream::GameConfig::Stage &oldStage)
+{
+	if (oldStage <= RpgStream::GameConfig::StageSelect)
+		return;
+
+	LOG_CWARNING("game") << "###############REWIND" << oldStage;
+
+	RpgLogicScope scope = getScope();
+
+	scope.getCtx<RpgStream::GameConfig>()->setStage(oldStage);
 }
 
 

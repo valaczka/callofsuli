@@ -256,6 +256,7 @@ SOURCES += \
 	rpglogicclient.cpp \
 	rpgmp.cpp \
 	rpgnpc.cpp \
+	rpgnpctowerattacker.cpp \
 	rpgobject.cpp \
 	rpgplayer.cpp \
 	rpgtower.cpp \
@@ -350,6 +351,7 @@ HEADERS += \
 	rpglogicclient.h \
 	rpgmp.h \
 	rpgnpc.h \
+	rpgnpctowerattacker.h \
 	rpgobject.h \
 	rpgplayer.h \
 	rpgtower.h \

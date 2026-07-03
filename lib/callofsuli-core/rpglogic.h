@@ -597,6 +597,14 @@ struct Npc
 };
 
 
+// Npc (TowerAttacker)
+
+struct NpcTowerAttacker
+{
+	quint32 destinationTower = 0;					// Ez nem itt kell...
+	cpVect destination = cpvzero;
+};
+
 
 
 // A játékos kérdésre válaszol
@@ -663,20 +671,7 @@ struct Defender
 };
 
 
-
-// Tower
-
-struct Tower
-{
-	quint32 idTag = 0;
-
-	std::vector<entt::entity> defenderList;
-
-	static Tower fromRpgStream(const RpgStream::Tower &stream);
-	RpgStream::Tower toRpgStream() const;
-};
-
-
+// Chunk
 
 struct Chunk
 {
@@ -690,6 +685,24 @@ struct Chunk
 	static Chunk fromRpgStream(const RpgStream::Chunk &stream);
 	RpgStream::Chunk toRpgStream() const;
 };
+
+
+
+// Tower
+
+struct Tower
+{
+	quint32 idTag = 0;
+
+	cpVect pos = cpvzero;
+	std::vector<entt::entity> defenderList;
+	std::vector<Chunk> adjacentChunks;
+
+	static Tower fromRpgStream(const RpgStream::Tower &stream);
+	RpgStream::Tower toRpgStream() const;
+};
+
+
 
 
 
@@ -966,6 +979,15 @@ struct EventAttackPlayer {
 
 
 
+// Player target NPC
+
+struct EventAttackNpc {
+	entt::entity player;
+	entt::entity target;
+};
+
+
+
 // Player target defender
 
 struct EventAttackDefender {
@@ -975,6 +997,24 @@ struct EventAttackDefender {
 	bool skipLock = false;
 };
 
+
+
+
+// Npc target defender
+
+struct EventNpcAttackDefender {
+	entt::entity npc;
+	entt::entity target;
+};
+
+
+
+// Npc target tower
+
+struct EventNpcAttackTower {
+	entt::entity npc;
+	entt::entity target;
+};
 
 
 // Tower activated
@@ -1112,6 +1152,7 @@ protected:
 	void entitySetIdTag(entt::entity &entity, const quint32 &tag);
 	entt::entity entityFromIdTag(const quint32 &tag) const;
 
+	virtual void rewindStage(const RpgStream::GameConfig::Stage &oldStage);
 
 	entt::entity npcAdd(const RpgStream::NpcData &data, entt::entity owner, const cpVect &pos = cpvzero, quint32 *tagIdPtr = nullptr);
 
@@ -1169,7 +1210,6 @@ protected:
 
 	mutable QRecursiveMutex m_mutex;
 	entt::registry m_registry;
-	quint32 m_lastObjectId = 0;
 
 	std::mt19937 m_rnd;
 

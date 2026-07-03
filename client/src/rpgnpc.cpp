@@ -25,6 +25,7 @@
  */
 
 #include "rpgnpc.h"
+#include "rpgnpctowerattacker.h"
 #include "tiledspritehandler.h"
 
 
@@ -61,6 +62,38 @@ RpgNpc::RpgNpc(RpgGameItem *gameItem, const cpVect &center)
 RpgNpc::~RpgNpc()
 {
 
+}
+
+
+
+
+/**
+ * @brief RpgNpc::createNpc
+ * @param npc
+ * @param gameItem
+ * @param scene
+ * @param pos
+ * @return
+ */
+
+RpgNpc *RpgNpc::createNpc(const Rpg::Npc &npc, RpgGameItem *gameItem, TiledScene *scene, const cpVect &pos)
+{
+	Q_ASSERT(gameItem);
+	Q_ASSERT(scene);
+
+
+	switch (npc.data.type()) {
+		case RpgStream::NpcData::TowerAttacker:
+			return gameItem->createObject<RpgNpcTowerAttacker>(RpgLogicObjectMapper::toObjectId(npc.idTag),
+															   scene, gameItem, pos);
+
+		case RpgStream::NpcData::Dummy:
+		case RpgStream::NpcData::None:
+			return gameItem->createObject<RpgNpc>(RpgLogicObjectMapper::toObjectId(npc.idTag),
+												  scene, gameItem, pos);
+	}
+
+	return nullptr;
 }
 
 
@@ -113,6 +146,19 @@ void RpgNpc::updateSprite()
 		jumpToSprite("idle", m_facingDirection);
 	else if (m_facingDirection != m_spriteHandler->currentDirection())
 		jumpToSprite(sprite.toLatin1(), m_facingDirection);
+}
+
+
+
+
+/**
+ * @brief RpgNpc::getControlledMotor
+ * @return
+ */
+
+std::unique_ptr<RpgMotorNpcControlled> RpgNpc::getControlledMotor()
+{
+	return std::make_unique<RpgMotorNpcControlled>(this);
 }
 
 
@@ -270,6 +316,10 @@ void RpgNpc::loadSfx()
 	}
 
 	m_sfxFootStep.setInterval(350);
+
+	if (!m_config.sfxDead.isEmpty()) {
+		m_sfxDead.setSoundList({m_config.sfxDead});
+	}
 }
 
 
@@ -283,6 +333,7 @@ void RpgNpc::loadSfx()
 
 RpgMotorNpc::RpgMotorNpc(RpgNpc *npc)
 	: RpgMotorEntity(npc)
+	, RpgMotorNpcEventIface()
 	, m_npc(npc)
 {
 	Q_ASSERT(m_npc);
@@ -332,6 +383,15 @@ bool RpgMotorNpc::beforeWorldStep(const qint64 &tick, entt::entity &entity)
 	if (jittered == 0)
 		return false;
 
+	if (!m_incomingEventList.empty()) {
+		processEventAt(jittered);
+
+		std::erase_if(m_incomingEventList,
+					  [&jittered](const RpgStream::EventNpc &e) {
+			return e.tick() <= jittered;
+		});
+	}
+
 
 	const RpgStream::NpcState *state = out->at(jittered);
 
@@ -351,6 +411,7 @@ bool RpgMotorNpc::beforeWorldStep(const qint64 &tick, entt::entity &entity)
 
 
 
+
 /**
  * @brief RpgMotorNpc::updateBody
  */
@@ -365,6 +426,19 @@ void RpgMotorNpc::updateBody(TiledObject *)
 	updateBody(m_npc, m_current.value(), false);
 
 	m_current.reset();
+}
+
+
+
+
+/**
+ * @brief RpgMotorNpc::processEvent
+ * @param event
+ */
+
+void RpgMotorNpc::processEvent(const RpgStream::EventNpc &event)
+{
+	m_incomingEventList.push_back(event);
 }
 
 
@@ -406,6 +480,7 @@ void RpgMotorNpc::updateBody(RpgNpc *npc, const RpgStream::NpcState &state, cons
 
 RpgMotorNpcControlled::RpgMotorNpcControlled(RpgNpc *npc)
 	: RpgDestinationMotor(npc)
+	, RpgMotorNpcEventIface()
 	, m_npc(npc)
 {
 	Q_ASSERT(m_npc);
@@ -428,6 +503,9 @@ void RpgMotorNpcControlled::updateBody(TiledObject *)
 		m_npc->setTargetEntity(nullptr);
 		return;
 	}
+
+	if (!m_groundCollision.isEmpty())
+		onGroundCollision();
 
 	updateTarget();
 	const int speed = getMovementSpeed();
@@ -543,6 +621,8 @@ void RpgMotorNpcControlled::updateBody(TiledObject *)
 
 bool RpgMotorNpcControlled::beforeWorldStep(const qint64 &tick, entt::entity &entity)
 {
+	m_currentTick = tick;
+
 	m_currentKnockback = cpvzero;
 
 	{
@@ -629,6 +709,16 @@ bool RpgMotorNpcControlled::beforeWorldStep(const qint64 &tick, entt::entity &en
 	}
 
 	m_npc->setHp(state->hp());
+
+
+	if (!m_incomingEventList.empty()) {
+		processEventAt(state->tick());
+
+		std::erase_if(m_incomingEventList,
+					  [jittered = state->tick()](const RpgStream::EventNpc &e) {
+			return e.tick() <= jittered;
+		});
+	}
 
 	return true;
 }
@@ -734,6 +824,19 @@ const RpgStream::NpcState *RpgMotorNpcControlled::saveCurrentState(const qint64 
 
 
 /**
+ * @brief RpgMotorNpcControlled::processEvent
+ * @param event
+ */
+
+void RpgMotorNpcControlled::processEvent(const RpgStream::EventNpc &event)
+{
+	m_incomingEventList.push_back(event);
+}
+
+
+
+
+/**
  * @brief RpgMotorNpcControlled::onShapeContactBegin
  * @param self
  * @param other
@@ -748,13 +851,10 @@ void RpgMotorNpcControlled::onShapeContactBegin(cpShape *self, cpShape *other)
 		return;
 	}
 
+	const cpShapeFilter &filter = cpShapeGetFilter(other);
 
-	if (m_npc->isBodyShape(self) || self == m_npc->targetCircle()) {
-		/*if (RpgMp *mp = dynamic_cast<RpgMp*>(otherBody)) {
-			LOG_CINFO("game") << "CONTACT MP" << RpgLogicObjectMapper::getId(mp->objectId());
-			eventMpPick(mp);
-			return;
-		}*/
+	if (m_npc->isBodyShape(self) && (filter.categories & RpgGameItem::FixtureGround)) {
+		m_groundCollision.insert(other);
 	}
 }
 
@@ -767,7 +867,18 @@ void RpgMotorNpcControlled::onShapeContactBegin(cpShape *self, cpShape *other)
 
 void RpgMotorNpcControlled::onShapeContactEnd(cpShape *self, cpShape *other)
 {
+	TiledObjectBody *otherBody = TiledObjectBody::fromShapeRef(other);
 
+	if (!otherBody) {
+		LOG_CERROR("game") << "****ERR";
+		return;
+	}
+
+	const cpShapeFilter &filter = cpShapeGetFilter(other);
+
+	if (m_npc->isBodyShape(self) && (filter.categories & RpgGameItem::FixtureGround)) {
+		m_groundCollision.remove(other);
+	}
 }
 
 
@@ -805,6 +916,23 @@ int RpgMotorNpcControlled::getMovementSpeed()
 
 void RpgMotorNpcControlled::updateMovement(const float &speed)
 {
+	const QString &sprite = m_npc->m_spriteHandler->currentSprite();
+
+	static const QStringList disabledList = {
+							   QStringLiteral("attack"),
+							   QStringLiteral("bow"),
+							   QStringLiteral("cast"),
+							   //QStringLiteral("hurt"),
+							   QStringLiteral("death")
+	};
+
+	if (disabledList.contains(sprite)) {
+		LOG_CDEBUG("game") << "DISABLE MOVING" << m_npc;
+		m_npc->stop();
+		return;
+	}
+
+
 	if (m_destinationPoint) {
 		if (!m_npc->moveTowards(m_destinationPoint.value(), speed)) {
 			m_npc->stop();
@@ -860,8 +988,6 @@ void RpgMotorNpcControlled::updateMotor()
 		return;
 	}
 
-	LOG_CINFO("game") << "--------GO TO CHUNK" << ptr->x << ptr->y;
-
 	const auto path = m_gameItem->findShortestPath(m_npc, grid->chunkCenter(ptr.value()));
 
 	if (!path) {
@@ -870,6 +996,37 @@ void RpgMotorNpcControlled::updateMotor()
 	}
 
 	setDestination(path.value());
+}
+
+
+
+/**
+ * @brief RpgMotorNpcControlled::onGroundCollision
+ */
+
+void RpgMotorNpcControlled::onGroundCollision()
+{
+	auto ptr = destination();
+
+	if (!ptr)
+		return;
+
+	if (m_groundCollisionCounter > 0) {
+		--m_groundCollisionCounter;
+		return;
+	}
+
+	const auto path = m_gameItem->findShortestPath(m_npc, ptr->last().x(), ptr->last().y());
+
+	if (!path) {
+		LOG_CERROR("game") << "No available path";
+		clearDestination();
+		return;
+	}
+
+	setDestination(path.value());
+
+	m_groundCollisionCounter = 5;
 }
 
 

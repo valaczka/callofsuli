@@ -135,6 +135,7 @@ private:
 
 
 	TiledGameSfx m_sfxPain;
+	TiledGameSfx m_sfxDead;
 	TiledGameSfx m_sfxFootStep;
 	TiledGameSfx m_sfxAccept;
 	TiledGameSfx m_sfxDecline;
@@ -161,10 +162,25 @@ private:
 
 
 /**
+ * @brief The RpgMotorPlayerEventIface class
+ */
+
+class RpgMotorPlayerEventIface
+{
+public:
+	RpgMotorPlayerEventIface() = default;
+
+	virtual void processEvent(const RpgStream::EventPlayer &event) = 0;
+};
+
+
+
+
+/**
  * @brief The RpgMotorPlayer class - not controlled
  */
 
-class RpgMotorPlayer : public RpgMotorEntity
+class RpgMotorPlayer : public RpgMotorEntity, public RpgMotorPlayerEventIface
 {
 public:
 	RpgMotorPlayer(RpgPlayer *player);
@@ -172,11 +188,17 @@ public:
 	virtual bool beforeWorldStep(const qint64 &tick, entt::entity &entity) override;
 	virtual void updateBody(TiledObject *) override;
 
+	virtual void processEvent(const RpgStream::EventPlayer &event) override;
+
 	static void updateBody(RpgPlayer *player, const RpgStream::PlayerState &state, const bool &isEmplace);
+	static void onAttack(RpgPlayer *player);
 
 protected:
+	virtual void processEventAt(const qint64 &tick);
+
 	RpgPlayer *const m_player;
 	std::optional<RpgStream::PlayerState> m_current;
+	std::vector<RpgStream::EventPlayer> m_incomingEventList;
 };
 
 
@@ -187,7 +209,7 @@ protected:
  * @brief The RpgMotorPlayer class
  */
 
-class RpgMotorPlayerControlled : public RpgDestinationMotor
+class RpgMotorPlayerControlled : public RpgDestinationMotor, public RpgMotorPlayerEventIface
 {
 public:
 	RpgMotorPlayerControlled(RpgPlayer *player);
@@ -217,18 +239,23 @@ public:
 	void changeMpToDefender();
 	void changeMpToSuper();
 
-	void processEvent(const RpgStream::EventPlayer &event);
+	virtual void processEvent(const RpgStream::EventPlayer &event) override;
 
 protected:
 	virtual void onShapeContactBegin(cpShape *self, cpShape *other) override;
 	virtual void onShapeContactEnd(cpShape *self, cpShape *other) override;
 
+	virtual void processEventAt(const qint64 &tick) { Q_UNUSED(tick); }
+
 	void eventMpPick(RpgMp *mp);
+
 
 protected:
 	RpgPlayer *const m_player;
 	RpgPlayerPrivate *const d;
 	Rpg::RpgPlayerStatePull m_statePull;
+
+	std::vector<RpgStream::EventPlayer> m_incomingEventList;
 
 	TiledGame::JoystickState m_currentJoystickState;
 	TiledGame::JoystickState m_controlJoystickState;

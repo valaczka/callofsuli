@@ -205,6 +205,10 @@ public:
 	QS_FIELD(int, push)				// push power
 	QS_FIELD(int, pushDistance)		// max. push distance
 	QS_FIELD(int, resist)			// slide resist
+
+	// Details
+
+	QS_FIELD(QJsonObject, data)
 };
 
 

@@ -30,7 +30,7 @@
 
 /// Config ----------------------------------------------
 
-#define	CFG_GAME_DURATION				5*60*60					// duration in tick
+#define	CFG_GAME_DURATION				3*60*60					// duration in tick
 #define CFG_GAME_STAGE_MAIN				60*60					// start stage main in tick
 #define CFG_GAME_STAGE_LAST				CFG_GAME_DURATION-30*60	// start last stage in tick
 

@@ -74,6 +74,8 @@ private:
 
 	cpVect m_currentKnockback = cpvzero;
 
+	bool m_joystickC_hasTouch = false;
+
 
 	friend class RpgPlayer;
 	friend class RpgMotorPlayerControlled;
@@ -92,6 +94,7 @@ RpgPlayer::RpgPlayer(RpgGameItem *gameItem, const cpVect &center)
 	: RpgEntity(gameItem, center, 25., CP_BODY_TYPE_DYNAMIC)
 	, d(new RpgPlayerPrivate(this))
 	, m_sfxPain(this)
+	, m_sfxDead(this)
 	, m_sfxFootStep(this)
 	, m_sfxAccept(this)
 	, m_sfxDecline(this)
@@ -119,19 +122,8 @@ RpgPlayer::RpgPlayer(RpgGameItem *gameItem, const cpVect &center)
 
 
 	connect(this, &RpgPlayer::healed, this, [this](){ m_effectHealed.play(); });
-
-	/*
-	m_speedLength = 108;
-	m_speedRunLength = 210;
-	m_moveDisabledSpriteList = QStringList{
-							   QStringLiteral("attack"),
-							   QStringLiteral("bow"),
-							   QStringLiteral("cast"),
-							   //QStringLiteral("hurt"),
-							   QStringLiteral("death")
-};
-
-	*/
+	connect(this, &RpgPlayer::hurt, this, [this]() { if (m_rpgGame->controlledPlayer() == this) m_sfxPain.playOne(); });
+	connect(this, &RpgPlayer::becameDead, this, [this]() { if (m_rpgGame->controlledPlayer() == this) m_sfxDead.playOne(); });
 }
 
 
@@ -186,6 +178,11 @@ void RpgPlayer::load(const RpgPlayerDefinition &config)
 		m_spriteHandler->setVisibleLayers({"default"});
 	}
 
+
+	// Default sound
+	m_sfxDead.setSoundList({QStringLiteral(":/sound/sfx/dead.mp3")});
+
+	// Can be overwritten here
 	loadSfx();
 
 	connect(m_spriteHandler, &TiledSpriteHandler::currentSpriteChanged, this, &RpgPlayer::onCurrentSpriteChanged);
@@ -281,6 +278,7 @@ void RpgPlayer::setCurrentChunkCenter(QPointF newCurrentChunkCenter)
 
 RpgMotorPlayer::RpgMotorPlayer(RpgPlayer *player)
 	: RpgMotorEntity(player)
+	, RpgMotorPlayerEventIface()
 	, m_player(player)
 {
 	Q_ASSERT(m_player);
@@ -329,6 +327,16 @@ bool RpgMotorPlayer::beforeWorldStep(const qint64 &tick, entt::entity &entity)
 		return false;
 
 
+	if (!m_incomingEventList.empty()) {
+		processEventAt(jittered);
+
+		std::erase_if(m_incomingEventList,
+					  [&jittered](const RpgStream::EventPlayer &e) {
+			return e.tick() <= jittered;
+		});
+	}
+
+
 	const RpgStream::PlayerState *state = out->at(jittered);
 
 	if (!state) {
@@ -372,6 +380,18 @@ void RpgMotorPlayer::updateBody(TiledObject *)
 
 
 /**
+ * @brief RpgMotorPlayer::processEvent
+ * @param event
+ */
+
+void RpgMotorPlayer::processEvent(const RpgStream::EventPlayer &event)
+{
+	m_incomingEventList.push_back(event);
+}
+
+
+
+/**
  * @brief RpgMotorPlayer::updateBody
  * @param player
  * @param state
@@ -397,12 +417,48 @@ void RpgMotorPlayer::updateBody(RpgPlayer *player, const RpgStream::PlayerState 
 
 
 /**
+ * @brief RpgMotorPlayer::onAttack
+ * @param player
+ */
+
+void RpgMotorPlayer::onAttack(RpgPlayer *player)
+{
+	Q_ASSERT(player);
+
+	player->jumpToSprite("attack", player->facingDirection());
+
+	player->game()->playSfx(QStringLiteral(":/rpg/hammer/hammer2.mp3"),
+							player->scene(), player->bodyPositionF());
+
+}
+
+
+
+/**
+ * @brief RpgMotorPlayer::processEventAt
+ * @param tick
+ */
+
+void RpgMotorPlayer::processEventAt(const qint64 &/*tick*/)
+{
+	for (const RpgStream::EventPlayer &e : m_incomingEventList) {
+		if (e.type() == RpgStream::EventPlayer::EventAttackPlayer) {
+			LOG_CWARNING("game") << "ATTACK >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
+			onAttack(m_player);
+		}
+	}
+}
+
+
+
+/**
  * @brief RpgMotorPlayerControlled::RpgMotorPlayerControlled
  * @param player
  */
 
 RpgMotorPlayerControlled::RpgMotorPlayerControlled(RpgPlayer *player)
 	: RpgDestinationMotor(player)
+	, RpgMotorPlayerEventIface()
 	, m_player(player)
 	, d(m_player->d)
 {
@@ -521,6 +577,23 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 		d->applyKnockback();
 		m_player->setCurrentChunk({-1,-1});
 		m_player->setCurrentChunkCenter({-1,-1});
+		return;
+	}
+
+
+	const QString &sprite = m_player->m_spriteHandler->currentSprite();
+
+	static const QStringList disabledList = {
+		QStringLiteral("attack"),
+		QStringLiteral("bow"),
+		QStringLiteral("cast"),
+		//QStringLiteral("hurt"),
+		QStringLiteral("death")
+	};
+
+	if (disabledList.contains(sprite)) {
+		m_player->stop();
+		d->applyKnockback();
 		return;
 	}
 
@@ -645,25 +718,44 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 	const float dist = std::max(SENSOR_LENGTH, 450.);			// TODO: weapon length
 
 	if (m_targetJoystickState.hasTouch) {
-		if (m_targetJoystickState.distance > 0.1)
+		if (m_targetJoystickState.distance > 0.2) {
 			m_targetAngle = m_targetJoystickState.angle;
-		else if (!m_player->targetEntity() && !m_targetAngle.has_value())
-			m_targetAngle = m_player->desiredBodyRotation();
+			d->m_joystickC_hasTouch = true;
+		} else {
+			m_targetAngle = std::nullopt;
+
+			if (d->m_joystickC_hasTouch) {
+				m_player->setTargetEntity(nullptr);
+			}
+		}
 
 
 		if (m_targetAngle.has_value()) {
 			cpVect ahead = m_player->bodyPosition()+TiledObjectBody::vectorFromAngle(m_targetAngle.value(), dist);
 
-			m_player->setTargetEntity(findNearestTarget(ahead, RpgGameItem::FixturePlayerBody | RpgGameItem::FixturePlayerTarget));
+			RpgEntity *next = findNearestTarget(ahead,
+											   RpgGameItem::FixturePlayerBody | RpgGameItem::FixturePlayerTarget |
+											   RpgGameItem::FixtureNpcBody | RpgGameItem::FixtureNpcTarget
+											   );
+
+			if (!m_player->targetEntity() || next)
+				m_player->setTargetEntity(next);
+
+			return;
 		}
 
-	} else if (m_player->targetEntity()) {
+	} else {
+		d->m_joystickC_hasTouch = false;
+	}
+
+	if (m_player->targetEntity()) {
 		if (!m_player->targetEntity()->isAlive()) {
 			m_player->setTargetEntity(nullptr);
 		} else {
 			RayCastInfo ray = m_player->rayCast(m_player->targetEntity()->bodyPosition(),
 												RpgGameItem::FixtureGround,
-												RpgGameItem::FixturePlayerBody | RpgGameItem::FixturePlayerTarget,
+												RpgGameItem::FixturePlayerBody | RpgGameItem::FixturePlayerTarget |
+												RpgGameItem::FixtureNpcBody | RpgGameItem::FixtureNpcTarget,
 												2.);
 
 
@@ -820,6 +912,15 @@ bool RpgMotorPlayerControlled::beforeWorldStep(const qint64 &tick, entt::entity 
 	}
 
 
+	if (!m_incomingEventList.empty()) {
+		processEventAt(state->tick());
+
+		std::erase_if(m_incomingEventList,
+					  [jittered = state->tick()](const RpgStream::EventPlayer &e) {
+			return e.tick() <= jittered;
+		});
+	}
+
 	return true;
 }
 
@@ -848,11 +949,6 @@ bool RpgMotorPlayerControlled::afterWorldStep(const qint64 &tick, RpgStream::Ful
 									   m_game->gameMode() == RpgGame::MultiPlayer ? 6 : 1);			// SINGLE PLAYER: 1
 
 
-	/*if (!list.empty()) {
-		const RpgStream::PlayerState &s = list.back();
-		LOG_CDEBUG("game") << ">>>>>>>>>>>>>>" << s.tick() << "POS" << s.entityState().posXAsFloat() << s.entityState().posYAsFloat();
-	}*/
-
 
 	RpgStream::PlayerStateList sl;
 	sl.setTagId(tagId);
@@ -867,7 +963,6 @@ bool RpgMotorPlayerControlled::afterWorldStep(const qint64 &tick, RpgStream::Ful
 
 
 	if (!d->m_eventList.empty()) {
-
 		for (RpgStream::EventPlayer &e : d->m_eventList) {
 			e.setTagId(tagId);
 			e.setTick(tick);
@@ -877,8 +972,6 @@ bool RpgMotorPlayerControlled::afterWorldStep(const qint64 &tick, RpgStream::Ful
 		events.setTick(tick);
 		events.flags().setFlag(RpgStream::Events::Player);
 		events.setPlayer(d->m_eventList);
-
-		LOG_CINFO("game") << "EVENT" << tick << events.player().size();
 
 		state->flags().setFlag(RpgStream::FullState::Event);
 		state->events().emplace_back(std::move(events));
@@ -960,19 +1053,19 @@ void RpgMotorPlayerControlled::setCurrentJoystickState(const TiledGame::Joystick
 
 void RpgMotorPlayerControlled::attackCurrentTarget()
 {
-	if (RpgPlayer *player = qobject_cast<RpgPlayer*>(m_player->targetEntity())) {
-		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventAttackPlayer);
-		e.setSeq(m_player->nextEventId());
-		e.setTarget(RpgLogicObjectMapper::getId(player->objectId()));
-
-		LOG_CWARNING("game") << "ATTACK PLAYER" << e.target();
-
-		d->m_eventList.emplace_back(std::move(e));
-
+	if (!m_player->targetEntity() || !m_player->targetEntity()->isAlive()) {
+		LOG_CWARNING("game") << "Invalid target";
 		return;
 	}
 
-	LOG_CWARNING("game") << "Invalid target";
+	RpgStream::EventPlayer e(RpgStream::EventPlayer::EventAttackPlayer);
+	e.setSeq(m_player->nextEventId());
+	e.setTarget(RpgLogicObjectMapper::getId(m_player->targetEntity()->objectId()));
+
+	RpgMotorPlayer::onAttack(m_player);
+
+	d->m_eventList.emplace_back(std::move(e));
+
 }
 
 
@@ -990,8 +1083,6 @@ void RpgMotorPlayerControlled::useCurrentControl()
 		e.setSeq(m_player->nextEventId());
 		e.setTarget(RpgLogicObjectMapper::getId(tower->objectId()));
 
-		LOG_CWARNING("game") << "ATTACK TOWER" << e.target() << d->m_lockId;
-
 		d->m_lockedEvent = e;
 		d->m_waitForLock = m_gameItem->tickTimer()->currentTick() + 5*60;			// Wait for lockId from server
 
@@ -1005,8 +1096,6 @@ void RpgMotorPlayerControlled::useCurrentControl()
 		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventAttackDefender);
 		e.setSeq(m_player->nextEventId());
 		e.setTarget(RpgLogicObjectMapper::getId(p->objectId()));
-
-		LOG_CWARNING("game") << "ATTACK DEFENDER" << e.target() << d->m_lockId;
 
 		d->m_lockedEvent = e;
 		d->m_waitForLock = m_gameItem->tickTimer()->currentTick() + 5*60;			// Wait for lockId from server
@@ -1035,8 +1124,6 @@ void RpgMotorPlayerControlled::putDefender(const bool &click)
 		e.setSeq(m_player->nextEventId());
 		e.setTarget(RpgLogicObjectMapper::getId(p->objectId()));
 
-		LOG_CWARNING("game") << "PUT DEFENDER" << e.target();
-
 		d->m_eventList.emplace_back(std::move(e));
 
 		return;
@@ -1053,8 +1140,6 @@ void RpgMotorPlayerControlled::putDefender(const bool &click)
 		e.setSeq(m_player->nextEventId());
 		e.chunk().setX(ch.x());
 		e.chunk().setY(ch.y());
-
-		LOG_CWARNING("game") << "PUT DEFENDER ON CHUNK" << ch;
 
 		d->m_eventList.emplace_back(std::move(e));
 	}
@@ -1080,8 +1165,6 @@ void RpgMotorPlayerControlled::changeMpToBullet()
 	RpgStream::EventPlayer e(RpgStream::EventPlayer::EventChangeBullet);
 
 	e.setSeq(m_player->nextEventId());
-
-	LOG_CWARNING("game") << "CHANGE BULLET" << e.target() << d->m_lockId;
 
 	d->m_lockedEvent = e;
 	d->m_waitForLock = m_gameItem->tickTimer()->currentTick() + 5*60;			// Wait for lockId from server
@@ -1119,7 +1202,6 @@ void RpgMotorPlayerControlled::changeMpToDefender()
 
 	e.setSeq(m_player->nextEventId());
 
-	LOG_CWARNING("game") << "CHANGE DEFENDER" << e.target() << d->m_lockId << "->" << d->m_currentDefender;
 
 	d->m_lockedEvent = e;
 	d->m_waitForLock = m_gameItem->tickTimer()->currentTick() + 5*60;			// Wait for lockId from server
@@ -1136,6 +1218,8 @@ void RpgMotorPlayerControlled::changeMpToDefender()
 
 void RpgMotorPlayerControlled::processEvent(const RpgStream::EventPlayer &event)
 {
+	m_incomingEventList.push_back(event);
+
 	if (event.lockId() == 0)
 		d->resetLock(event);
 }
@@ -1178,7 +1262,6 @@ void RpgMotorPlayerControlled::onShapeContactBegin(cpShape *self, cpShape *other
 
 	if (m_player->isBodyShape(self)) {
 		if (RpgMp *mp = dynamic_cast<RpgMp*>(otherBody)) {
-			LOG_CINFO("game") << "CONTACT MP" << RpgLogicObjectMapper::getId(mp->objectId());
 			eventMpPick(mp);
 			return;
 		}
@@ -1252,6 +1335,11 @@ void RpgMotorPlayerControlled::eventMpPick(RpgMp *mp)
 
 
 
+
+
+
+
+
 /**
  * @brief RpgMotorPlayerControlled::targetJoystickState
  * @return
@@ -1293,16 +1381,12 @@ void RpgMotorPlayerControlled::questionFinished(const bool &success)
 		e.setSeq(m_player->nextEventId());
 		e.setLockId(d->m_lockId);
 
-		LOG_CWARNING("game") << "RESEND ATTACK" << e.target() << d->m_lockId;
-
 		d->m_eventList.emplace_back(std::move(e));
 	} else {
 		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventFailed);
 		e.setSeq(m_player->nextEventId());
 		e.setLockId(d->m_lockId);
 		e.setTarget(d->m_lockedEvent->target());
-
-		LOG_CWARNING("game") << "***FAIL****" << e.tagId() << "--->" << e.target() << d->m_lockId;
 
 		d->m_eventList.emplace_back(std::move(e));
 	}
@@ -1400,8 +1484,6 @@ void RpgPlayer::onCurrentSpriteChanged()
 {
 	const QString &sprite = m_spriteHandler->currentSprite();
 	const QString &proxy = m_spriteHandler->proxySprite();
-
-	LOG_CDEBUG("game") << "CURRENT" << sprite;
 
 	if (sprite == QStringLiteral("run"))
 		m_sfxFootStep.startFromBegin();
@@ -1523,8 +1605,6 @@ void RpgPlayer::setTargetEntity(RpgEntity *newTargetEntity)
 		return;
 	m_targetEntity = newTargetEntity;
 	emit targetEntityChanged();
-
-	LOG_CINFO("game") << "TARGET" << m_targetEntity;
 }
 
 
@@ -1548,6 +1628,14 @@ void RpgPlayer::loadSfx()
 	}
 
 	m_sfxPain.setPlayOneDeadline(600);
+
+
+	if (!m_config.sfxDead.isEmpty()) {
+		if (m_config.sfxDead == QStringLiteral("-"))
+			m_sfxDead.setSoundList({});
+		else
+			m_sfxDead.setSoundList({m_config.sfxDead});
+	}
 
 
 	if (m_config.sfxFootStep.isEmpty()) {
@@ -1627,10 +1715,17 @@ void RpgPlayer::synchronize()
 	if (RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(currentMotor())) {
 		stroke = 1.;
 
-		if (m_targetControl) {
+		if (m_targetEntity) {
+			QRectF rect = m_targetEntity->bodyAABB();
+
+			offset = rect.center();
+			width = std::max(rect.width(), rect.height()) * 1.5;
+			color = QColorConstants::Svg::red;
+
+		} else if (m_targetControl) {
 			QRectF rect = m_targetControl->bodyAABB();
 
-			offset = rect.center() - bodyPositionF();
+			offset = rect.center();
 			width = std::max(rect.width(), rect.height());			// = *0.5*2
 
 			if (dynamic_cast<RpgDefenderPoint*>(m_targetControl))
@@ -1640,18 +1735,11 @@ void RpgPlayer::synchronize()
 			else
 				color = QColorConstants::Svg::lightgreen;
 
-		} else if (m_targetEntity) {
-			QRectF rect = m_targetEntity->bodyAABB();
-
-			offset = rect.center() - bodyPositionF();
-			width = std::max(rect.width(), rect.height()) * 1.5;
-			color = QColorConstants::Svg::red;
-
 		} else if (motor->controlJoystickState().distance > 0.1) {
 			const QPointF p = currentChunkCenter();
 
 			if (p.x() >= 0 && p.y() >= 0) {
-				offset = p - bodyPositionF();
+				offset = p;
 				width = 25.;
 				stroke = 2.;
 				color = QColorConstants::Svg::green;
@@ -1690,7 +1778,15 @@ void RpgPlayer::synchronize()
 	if (!isAlive())
 		stroke = 0;
 
-	m_visualItem->setProperty("ellipseOffset", offset);
+
+	if (!offset.isNull()) {
+		m_visualItem->setProperty("ellipseTarget", offset);
+		m_visualItem->setProperty("ellipseZ", scene()->getDynamicZ(offset));
+	} else {
+		// Nem vesszük le a targetet, mert glitchel az animation
+		m_visualItem->setProperty("ellipseZ", 0);
+	}
+
 	m_visualItem->setProperty("ellipseWidth", width);
 	m_visualItem->setProperty("ellipseColor", color);
 	m_visualItem->setProperty("ellipseSize", stroke);
@@ -1779,3 +1875,4 @@ void RpgPlayerPrivate::vibrate()
 #endif
 
 }
+
