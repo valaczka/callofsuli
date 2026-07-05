@@ -121,5 +121,8 @@ bool RpgDefenderMotor::beforeWorldStep(const qint64 &/*tick*/, entt::entity &ent
 
 	m_defender->setHp(state->hp());
 
+	if (!m_defender->isAlive())
+		m_defender->visualItem()->setOpacity(0.3);
+
 	return true;
 }

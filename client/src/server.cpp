@@ -31,6 +31,7 @@
 #include "qjsonobject.h"
 #include "utils_.h"
 #include "offlineclientengine.h"
+#include "rpggame.h"
 
 Server::Server(QObject *parent)
 	: SelectableObject{parent}
@@ -418,7 +419,7 @@ void Server::checkNotification()
 	QStringList newMapList;
 
 
-	/*for (const auto &[id, config] : RpgGame::characters().asKeyValueRange()) {
+	for (const auto &[id, config] : RpgGame::characters().asKeyValueRange()) {
 		if (!characterList.contains(id)) {
 			characterList.append(id);
 			newCharacterList.append(config.name);
@@ -430,7 +431,7 @@ void Server::checkNotification()
 			mapList.append(id);
 			newMapList.append(config.name);
 		}
-	}*/
+	}
 
 	if (!newMapList.isEmpty()) {
 		m_notificationContent.insert(qMakePair(NotificationMap, 1), mapList);

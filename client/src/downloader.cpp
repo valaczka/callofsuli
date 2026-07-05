@@ -583,6 +583,8 @@ bool Downloader::dynamicContentCheck(QVector<DynamicContent> *listPtr)
 		return false;
 	}
 
+	QCoreApplication::processEvents();
+
 #ifndef Q_OS_WASM
 	QDefer ret;
 	m_worker.execInThread([this, dir, ret, listPtr]() mutable {
@@ -626,6 +628,8 @@ bool Downloader::dynamicContentCheck(QVector<DynamicContent> *listPtr)
 			} else {
 				++it;
 			}
+
+			QCoreApplication::processEvents();
 		}
 
 #ifndef Q_OS_WASM

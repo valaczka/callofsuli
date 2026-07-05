@@ -100,6 +100,8 @@ public:
 	void setDefenderLayersVisible(const bool visible = true);
 	void reloadDefenderLayersVisibility();
 
+	void setVisible(const bool &visible = true);
+
 	QQuickItem *markerItem() const;
 
 	int load() const;
@@ -129,6 +131,7 @@ protected:
 
 private:
 	RpgGameItem *m_gameItem = nullptr;
+	bool m_visible = false;
 
 	RpgStream::TowerState m_state;
 

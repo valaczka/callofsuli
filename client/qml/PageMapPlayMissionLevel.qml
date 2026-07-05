@@ -383,7 +383,7 @@ QPageGradient {
 				enabled: _btnPlay.enabled
 				text: qsTr("Multiplayer")
 
-				visible: _btnPlay.visible && /*_mapPlayCampaign &&*/
+				visible: _btnPlay.visible && Client.server && /*_mapPlayCampaign &&*/
 						 _modeGroup.checkedButton && _modeGroup.checkedButton.gameMode === GameMap.Rpg
 
 				outlined: !enabled

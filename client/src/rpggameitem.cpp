@@ -433,6 +433,12 @@ bool RpgGameItem::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, 
 			const QPointF pos = renderer->pixelToScreenCoords(object->position() + group->totalOffset());
 
 			d->playerPositionAdd(pos, RpgStream::TeamB);
+		} else if (group->className() == QStringLiteral("chest") || group->name() == QStringLiteral("chest")) {
+			LOG_CINFO("game") << "REGISTER CHEST" << object->className();
+
+			const QPointF pos = renderer->pixelToScreenCoords(object->position() + group->totalOffset());
+
+			d->chestPositionAdd(pos);
 		}
 	}
 
@@ -556,8 +562,10 @@ void RpgGameItem::loadTower(TiledScene *scene, Tiled::GroupLayer *group, Tiled::
 
 	LOG_CINFO("game") << "**************" << tower->scene() << "visual" << visualItem;
 
-	if (visualItem)
+	if (visualItem) {
 		tower->setVisualItem(visualItem);
+		visualItem->setVisible(false);
+	}
 
 	tower->addLayers(layers);
 	tower->addDefenderPoints(defenders);
@@ -651,17 +659,15 @@ void RpgGameItem::onStageChanged(const RpgStream::GameConfig::Stage &stage)
 
 void RpgGameItem::loadMp(Tiled::GroupLayer *group, TiledScene *scene, Tiled::MapRenderer *renderer)
 {
-	LOG_CDEBUG("game") << "LOAD MP" << group->name();
+	QQuickItem *visual = nullptr;
 
 	for (Tiled::Layer *layer : std::as_const(*group)) {
 		if (Tiled::TileLayer *tl = layer->asTileLayer()) {
-			LOG_CDEBUG("game") << "LOAD MP TILE" << group->name() << layer->name();
-			scene->addTileLayer(tl, renderer);
+			visual = scene->addTileLayer(tl, renderer);
+			visual->setVisible(false);
 		} else if (Tiled::ObjectGroup *gr = layer->asObjectGroup()) {
-			LOG_CDEBUG("game") << "LOAD MP OBJECT" << group->name() << gr->name() << gr->className();
 			for (Tiled::MapObject *object : std::as_const(gr->objects())) {
 				if (object->className() == QStringLiteral("exclude")) {
-					LOG_CDEBUG("game") << "LOAD MP EXCLUED" << group->name() << layer->name();
 					RpgObjectExclude *mapObject = createObject<RpgObjectExclude>(TiledObjectBody::ObjectId{.ownerId = 0,
 																										   .sceneId = scene->sceneId(),
 																										   .id = static_cast<quint32>(object->id())
@@ -671,9 +677,8 @@ void RpgGameItem::loadMp(Tiled::GroupLayer *group, TiledScene *scene, Tiled::Map
 					if (mapObject)
 						mapObject->filterSet(FixtureExcluded, FixtureAll);
 				} else {
-					const QPointF pos = renderer->pixelToScreenCoords(object->position() + gr->totalOffset());
-					LOG_CWARNING("game") << "LOAD MP POINT" << pos;
-					d->mpEmitterAdd(pos, Rpg::RpgLogic::packId(scene->sceneId(), 0, object->id()));
+					const QPointF pos = renderer->pixelToScreenCoords(object->position()) + gr->totalOffset();
+					d->mpEmitterAdd(pos, Rpg::RpgLogic::packId(scene->sceneId(), 0, object->id()), visual);
 				}
 
 			}

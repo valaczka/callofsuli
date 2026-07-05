@@ -74,6 +74,8 @@ private:
 
 	cpVect m_currentKnockback = cpvzero;
 
+	QSet<cpShape*> m_groundCollision;
+
 	bool m_joystickC_hasTouch = false;
 
 
@@ -112,8 +114,6 @@ RpgPlayer::RpgPlayer(RpgGameItem *gameItem, const cpVect &center)
 
 	addTargetCircle(50, TiledObjectBody::getFilter(RpgGameItem::FixturePlayerTarget,
 												   RpgGameItem::FixtureAll));
-
-
 
 
 	m_sfxPain.setFollowPosition(false);
@@ -369,12 +369,20 @@ void RpgMotorPlayer::updateBody(TiledObject *)
 {
 	if (!m_current) {
 		m_player->stop();
+
+		if (m_player->m_sfxFootStep.isActive())
+			m_player->m_sfxFootStep.stop();
 		return;
 	}
 
 	updateBody(m_player, m_current.value(), false);
 
 	m_current.reset();
+
+	if (m_player->isRunning())
+		m_player->m_sfxFootStep.startFromBegin();
+	else if (m_player->m_sfxFootStep.isActive())
+		m_player->m_sfxFootStep.stop();
 }
 
 
@@ -469,6 +477,7 @@ RpgMotorPlayerControlled::RpgMotorPlayerControlled(RpgPlayer *player)
 
 	m_player->addVirtualCircle(RpgGameItem::FixtureVirtualCircle,
 							   RpgGameItem::FixtureAll, 220.);
+
 }
 
 
@@ -550,6 +559,12 @@ bool RpgMotorPlayerControlled::checkControl(TiledObjectBody *control) const
 
 	return false;
 }
+
+const std::optional<cpVect> &RpgMotorPlayerControlled::targetAhead() const
+{
+	return m_targetAhead;
+}
+
 
 
 
@@ -652,6 +667,26 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 	}
 
 
+	// Manage ground collision
+
+	if (auto ptr = destination(); ptr && !d->m_groundCollision.empty()) {
+		const auto path = m_gameItem->findShortestPath(m_player, ptr->last().x(), ptr->last().y());
+
+		if (!path) {
+			LOG_CERROR("game") << "No available path";
+		} else {
+			setDestination(path.value());
+		}
+	}
+
+
+	/// Workaround
+	///
+	/// a worldStep() még az updateBody() előtt frissíti a currentSpeedSq-t,	az updateBody() után viszont nem
+	/// a saveState() emiatt az első ticknél nem mutat különbséget az előzővel (mivel a sebesség 0), ezért nem küldi el
+	/// itt elvégezzük ezt a műveletet a saveState() előtt
+
+	m_player->overrideCurrentSpeedSq(cpvlengthsq(cpBodyGetVelocity(m_player->body())));
 
 	d->applyKnockback();
 
@@ -724,9 +759,8 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 		} else {
 			m_targetAngle = std::nullopt;
 
-			if (d->m_joystickC_hasTouch) {
+			if (d->m_joystickC_hasTouch)
 				m_player->setTargetEntity(nullptr);
-			}
 		}
 
 
@@ -741,12 +775,16 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 			if (!m_player->targetEntity() || next)
 				m_player->setTargetEntity(next);
 
+			m_targetAhead = ahead;
+
 			return;
 		}
 
 	} else {
 		d->m_joystickC_hasTouch = false;
 	}
+
+	m_targetAhead = std::nullopt;
 
 	if (m_player->targetEntity()) {
 		if (!m_player->targetEntity()->isAlive()) {
@@ -849,7 +887,10 @@ bool RpgMotorPlayerControlled::beforeWorldStep(const qint64 &tick, entt::entity 
 			// Csak akkor helyezzük vissza, ha a pozíció sem stimmel (pl. ha mp-t vett fel, és emiatt változott a státusz, akkor nem bántjuk
 			// Később (pl. hp == 0) lekezeljük újra
 
-			if (sim.cbegin()->second.entityState().isEqualWithoutSlide(latest->entityState()))
+			if (sim.cbegin()->first > latest->tick()) {
+				LOG_CWARNING("game") << "State gap" << latest->tick() << sim.cbegin()->first;
+				reqEmplace = false;
+			} else if (sim.cbegin()->second.entityState().isEqualWithoutSlide(latest->entityState()))
 				reqEmplace = false;
 		}
 
@@ -937,10 +978,16 @@ bool RpgMotorPlayerControlled::beforeWorldStep(const qint64 &tick, entt::entity 
 
 bool RpgMotorPlayerControlled::afterWorldStep(const qint64 &tick, RpgStream::FullState *state)
 {
+	if (m_player->isRunning())
+		m_player->m_sfxFootStep.startFromBegin();
+	else if (m_player->m_sfxFootStep.isActive())
+		m_player->m_sfxFootStep.stop();
+
 	if (!state)
 		return false;
 
 	const quint32 tagId = RpgLogicObjectMapper::getId(m_player->objectId());
+
 
 	saveCurrentState(tick);
 
@@ -965,11 +1012,11 @@ bool RpgMotorPlayerControlled::afterWorldStep(const qint64 &tick, RpgStream::Ful
 	if (!d->m_eventList.empty()) {
 		for (RpgStream::EventPlayer &e : d->m_eventList) {
 			e.setTagId(tagId);
-			e.setTick(tick);
+			// Nem kell tick, a szerver az RpgStream::Events-ét nézi
 		}
 
 		RpgStream::Events events;
-		events.setTick(tick);
+		events.setTick(m_gameItem->tickTimer()->currentTick());					// Ide a render lag miatt nem a <tick>-et tesszük!
 		events.flags().setFlag(RpgStream::Events::Player);
 		events.setPlayer(d->m_eventList);
 
@@ -1078,13 +1125,15 @@ void RpgMotorPlayerControlled::attackCurrentTarget()
 
 void RpgMotorPlayerControlled::useCurrentControl()
 {
+	const qint64 tick = m_gameItem->tickTimer()->currentTick();
+
 	if (RpgTower *tower = dynamic_cast<RpgTower*>(m_player->targetControl())) {
 		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventTower);
 		e.setSeq(m_player->nextEventId());
 		e.setTarget(RpgLogicObjectMapper::getId(tower->objectId()));
 
 		d->m_lockedEvent = e;
-		d->m_waitForLock = m_gameItem->tickTimer()->currentTick() + 5*60;			// Wait for lockId from server
+		d->m_waitForLock = tick + 5*60;			// Wait for lockId from server
 
 		d->m_eventList.emplace_back(std::move(e));
 
@@ -1098,7 +1147,7 @@ void RpgMotorPlayerControlled::useCurrentControl()
 		e.setTarget(RpgLogicObjectMapper::getId(p->objectId()));
 
 		d->m_lockedEvent = e;
-		d->m_waitForLock = m_gameItem->tickTimer()->currentTick() + 5*60;			// Wait for lockId from server
+		d->m_waitForLock = tick + 5*60;			// Wait for lockId from server
 
 		d->m_eventList.emplace_back(std::move(e));
 
@@ -1162,12 +1211,14 @@ void RpgMotorPlayerControlled::changeMpToBullet()
 		return;
 	}
 
+	const qint64 tick = m_gameItem->tickTimer()->currentTick();
+
 	RpgStream::EventPlayer e(RpgStream::EventPlayer::EventChangeBullet);
 
 	e.setSeq(m_player->nextEventId());
 
 	d->m_lockedEvent = e;
-	d->m_waitForLock = m_gameItem->tickTimer()->currentTick() + 5*60;			// Wait for lockId from server
+	d->m_waitForLock = tick + 5*60;			// Wait for lockId from server
 
 	d->m_eventList.emplace_back(std::move(e));
 }
@@ -1198,13 +1249,14 @@ void RpgMotorPlayerControlled::changeMpToDefender()
 		return;
 	}
 
+	const qint64 tick = m_gameItem->tickTimer()->currentTick();
+
 	RpgStream::EventPlayer e(RpgStream::EventPlayer::EventChangeDefender);
 
 	e.setSeq(m_player->nextEventId());
 
-
 	d->m_lockedEvent = e;
-	d->m_waitForLock = m_gameItem->tickTimer()->currentTick() + 5*60;			// Wait for lockId from server
+	d->m_waitForLock = tick + 5*60;			// Wait for lockId from server
 
 	d->m_eventList.emplace_back(std::move(e));
 }
@@ -1242,6 +1294,8 @@ void RpgMotorPlayerControlled::onShapeContactBegin(cpShape *self, cpShape *other
 		return;
 	}
 
+	const cpShapeFilter &filter = cpShapeGetFilter(other);
+
 	if (self == m_player->virtualCircle()) {
 		TiledVisualItem *item = nullptr;
 
@@ -1261,6 +1315,10 @@ void RpgMotorPlayerControlled::onShapeContactBegin(cpShape *self, cpShape *other
 	}
 
 	if (m_player->isBodyShape(self)) {
+		if (filter.categories & RpgGameItem::FixtureGround) {
+			d->m_groundCollision.insert(other);
+		}
+
 		if (RpgMp *mp = dynamic_cast<RpgMp*>(otherBody)) {
 			eventMpPick(mp);
 			return;
@@ -1287,6 +1345,8 @@ void RpgMotorPlayerControlled::onShapeContactEnd(cpShape *self, cpShape *other)
 		return;
 	}
 
+	const cpShapeFilter &filter = cpShapeGetFilter(other);
+
 	if (self == m_player->virtualCircle()) {
 		TiledVisualItem *item = nullptr;
 
@@ -1302,6 +1362,11 @@ void RpgMotorPlayerControlled::onShapeContactEnd(cpShape *self, cpShape *other)
 
 		if (item)
 			item->setGlowEnabled(false);
+	}
+
+
+	if (m_player->isBodyShape(self) && (filter.categories & RpgGameItem::FixtureGround)) {
+		d->m_groundCollision.remove(other);
 	}
 
 	/*if (m_player->isBodyShape(self)) {
@@ -1482,13 +1547,13 @@ void RpgPlayer::onDead()
 
 void RpgPlayer::onCurrentSpriteChanged()
 {
-	const QString &sprite = m_spriteHandler->currentSprite();
+	/*const QString &sprite = m_spriteHandler->currentSprite();
 	const QString &proxy = m_spriteHandler->proxySprite();
 
 	if (sprite == QStringLiteral("run"))
 		m_sfxFootStep.startFromBegin();
 	else if (sprite != QStringLiteral("run"))
-		m_sfxFootStep.stop();
+		m_sfxFootStep.stop();*/
 
 	/*if (!m_specialState.isEmpty() && m_specialState != proxy)
 		setSpecialState(QString());
@@ -1573,7 +1638,10 @@ TiledObjectBody *RpgPlayer::targetControl() const
 
 void RpgPlayer::setTargetControl(TiledObjectBody *newTargetControl)
 {
-	m_targetControl = newTargetControl;
+	if (m_targetControl== newTargetControl)
+		return;
+	m_targetControl= newTargetControl;
+	emit targetControlChanged();
 }
 
 
@@ -1747,6 +1815,9 @@ void RpgPlayer::synchronize()
 
 		}
 
+
+
+		///////motor->targetAhead()
 
 		/*else {
 			const QPointF p = currentChunkCenter();

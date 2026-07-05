@@ -422,7 +422,8 @@ EngineStream &MapData::operator<<(EngineStream &stream)
 	m_chunkGrid << stream;
 	readPlayerPositionList(stream);
 	readMpEmitterList(stream);
-	readtowerList(stream);
+	readTowerList(stream);
+	readChestPositionList(stream);
 
 	return stream;
 }
@@ -439,7 +440,8 @@ EngineStream &MapData::operator>>(EngineStream &stream) const
 	m_chunkGrid >> stream;
 	writePlayerPositionList(stream);
 	writeMpEmitterList(stream);
-	writetowerList(stream);
+	writeTowerList(stream);
+	writeChestPositionList(stream);
 
 	return stream;
 }
@@ -507,6 +509,9 @@ EngineStream &FullState::operator<<(EngineStream &stream)
 	if (m_flags & Npc)
 		readNpcs(stream);
 
+	if (m_flags & Control)
+		readControls(stream);
+
 	return stream;
 }
 
@@ -541,6 +546,9 @@ EngineStream &FullState::operator>>(EngineStream &stream) const
 
 	if (m_flags & Npc)
 		writeNpcs(stream);
+
+	if (m_flags & Control)
+		writeControls(stream);
 
 	return stream;
 }
@@ -686,6 +694,7 @@ EngineStream &MpEmitter::operator<<(EngineStream &stream)
 	readPosY(stream);
 	readRadius(stream);
 	readCapacity(stream);
+	readActive(stream);
 
 	return stream;
 }
@@ -704,6 +713,7 @@ EngineStream &MpEmitter::operator>>(EngineStream &stream) const
 	writePosY(stream);
 	writeRadius(stream);
 	writeCapacity(stream);
+	writeActive(stream);
 
 	return stream;
 }
@@ -760,6 +770,7 @@ EngineStream &Tower::operator<<(EngineStream &stream)
 	readDefenders(stream);
 	readPosX(stream);
 	readPosY(stream);
+	readActive(stream);
 
 	return stream;
 }
@@ -777,6 +788,7 @@ EngineStream &Tower::operator>>(EngineStream &stream) const
 	writeDefenders(stream);
 	writePosX(stream);
 	writePosY(stream);
+	writeActive(stream);
 
 	return stream;
 }
@@ -1282,6 +1294,7 @@ EngineStream &Full::operator<<(EngineStream &stream)
 	readTowers(stream);
 	readDefenders(stream);
 	readNpcs(stream);
+	readControls(stream);
 
 	readMap(stream);
 	m_fullState << stream;
@@ -1307,6 +1320,7 @@ EngineStream &Full::operator>>(EngineStream &stream) const
 	writeTowers(stream);
 	writeDefenders(stream);
 	writeNpcs(stream);
+	writeControls(stream);
 
 	writeMap(stream);
 	m_fullState >> stream;
@@ -1570,6 +1584,144 @@ EngineStream &EventNpc::operator>>(EngineStream &stream) const
 
 	if (m_type == EventAttack)
 		writeTargetId(stream);
+
+	return stream;
+}
+
+
+
+
+/**
+ * @brief ControlData::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &ControlData::operator<<(EngineStream &stream)
+{
+	readTagId(stream);
+	readType(stream);
+	readPosX(stream);
+	readPosY(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief ControlData::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &ControlData::operator>>(EngineStream &stream) const
+{
+	writeTagId(stream);
+	writeType(stream);
+	writePosX(stream);
+	writePosY(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief ControlState::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &ControlState::operator<<(EngineStream &stream)
+{
+	readTick(stream);
+	readType(stream);
+	readActive(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief ControlState::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &ControlState::operator>>(EngineStream &stream) const
+{
+	writeTick(stream);
+	writeType(stream);
+	writeActive(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief ControlEvent::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &EventControl::operator<<(EngineStream &stream)
+{
+	readTick(stream);
+	readTagId(stream);
+	readType(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief ControlEvent::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &EventControl::operator>>(EngineStream &stream) const
+{
+	writeTick(stream);
+	writeTagId(stream);
+	writeType(stream);
+
+	return stream;
+}
+
+
+
+
+/**
+ * @brief ControlStateList::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &ControlStateList::operator<<(EngineStream &stream)
+{
+	readTagId(stream);
+	readState(stream);
+
+	return stream;
+}
+
+
+
+
+/**
+ * @brief ControlStateList::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &ControlStateList::operator>>(EngineStream &stream) const
+{
+	writeTagId(stream);
+	writeState(stream);
 
 	return stream;
 }

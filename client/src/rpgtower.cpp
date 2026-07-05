@@ -106,7 +106,7 @@ void RpgTower::worldStep()
 	}
 
 	setCanAttack(!state->hasDefender() && state->lockedUntil() < m_gameItem->tickTimer()->currentTick() /*&&
-				 state->lockId() == 0*/);
+							  state->lockId() == 0*/);
 }
 
 
@@ -172,8 +172,38 @@ void RpgTower::reloadDefenderLayersVisibility()
 {
 	for (RpgDefenderPoint *p : std::as_const(m_defenderPoints)) {
 		if (QQuickItem *item = p->visualItem())
-			item->setVisible(m_defenderLayers && m_state.active() && !p->defender());
+			item->setVisible(m_visible && m_defenderLayers && m_state.active() && !p->defender());
 	}
+}
+
+
+
+/**
+ * @brief RpgTower::setVisible
+ * @param visible
+ */
+
+void RpgTower::setVisible(const bool &visible)
+{
+	m_visible = visible;
+
+	if (m_visualItem)
+		m_visualItem->setVisible(m_visible);
+
+	if (!m_visible) {
+		m_visual.setState(RpgStream::TeamNone);
+		m_markerItem->setVisible(false);
+		reloadDefenderLayersVisibility();
+
+		filterSet(RpgGameItem::FixtureInvalid, RpgGameItem::FixtureInvalid);
+	} else {
+		filterSet(RpgGameItem::FixtureControl, RpgGameItem::FixtureAll);
+	}
+
+	if (m_scatterPoint.isValid())
+		m_scatterPoint.scatter->setPointConfiguration(m_scatterPoint.index, QXYSeries::PointConfiguration::Visibility,
+													  m_visible);
+
 }
 
 
@@ -185,6 +215,9 @@ void RpgTower::reloadDefenderLayersVisibility()
 
 void RpgTower::synchronize()
 {
+	if (!m_visible)
+		return;
+
 	const RpgStream::Team team = m_state.active() ? m_state.team() : RpgStream::TeamNone;
 
 	if (m_visual.state() != team)

@@ -26,9 +26,10 @@
 
 #include "rpglogicclient.h"
 #include "rpggame.h"
-#include "rpggame_p.h"
 #include "rpgobject.h"
 #include "rpgudpengine.h"
+#include "rpgplayer.h"
+#include "tiledobject.h"
 
 namespace Rpg {
 
@@ -120,9 +121,9 @@ QPoint RpgLogicClient::getChunkFromVector(const cpVect &point, const float &angl
 	ChunkGrid *grid = scope.getCtx<ChunkGrid>();
 
 	return getChunkFromVector(cpvadd(point,
-									 TiledObjectBody::vectorFromAngle(angle,
-																	  std::max(grid->chunkSize.width(),
-																			   grid->chunkSize.height())*1.1)),
+									 ::TiledObjectBody::vectorFromAngle(angle,
+																		std::max(grid->chunkSize.width(),
+																				 grid->chunkSize.height())*1.1)),
 							  centerPtr);
 }
 
@@ -250,6 +251,9 @@ void RpgLogicClientSingle::eventRealized(entt::entity entity)
 	if (RpgStream::EventStageChanged *ev = scope.try_get<RpgStream::EventStageChanged>(entity)) {
 		if (ev->config().stage() == RpgStream::GameConfig::StageWarmingUp) {
 			for (auto e : scope.view<MpEmitter>()) {
+				if (!scope.get<MpEmitter>(e).active)
+					continue;
+
 				EventMpCreate evc = EventMpCreate::createMp(RpgStream::GameConfig::StageMain, tick);
 				evc.emitter = e;
 
@@ -331,8 +335,6 @@ void RpgLogicClientSingle::rewindStage(const RpgStream::GameConfig::Stage &oldSt
 	if (oldStage <= RpgStream::GameConfig::StageSelect)
 		return;
 
-	LOG_CWARNING("game") << "###############REWIND" << oldStage;
-
 	RpgLogicScope scope = getScope();
 
 	scope.getCtx<RpgStream::GameConfig>()->setStage(oldStage);
@@ -360,7 +362,7 @@ RpgLogicClientMulti::RpgLogicClientMulti()
 void RpgLogicClientMulti::loadFull(const RpgStream::Full &full)
 {
 	if (!m_engine) {
-		LOG_CERROR("game") << "Missing engine";
+		ELOG_ERROR << "Missing engine";
 		return;
 	}
 
@@ -403,7 +405,7 @@ void RpgLogicClientMulti::loadFull(const RpgStream::Full &full)
 void RpgLogicClientMulti::loadFullState(const RpgStream::FullState &full)
 {
 	if (!m_engine) {
-		LOG_CERROR("game") << "Missing engine";
+		ELOG_ERROR << "Missing engine";
 		return;
 	}
 
@@ -442,6 +444,9 @@ void RpgLogicClientMulti::loadFullState(const RpgStream::FullState &full)
 
 	if (full.flags().testFlag(RpgStream::FullState::Npc))
 		loadNpc(full.npcs());
+
+	if (full.flags().testFlag(RpgStream::FullState::Control))
+		loadControls(full.controls());
 }
 
 
@@ -479,14 +484,14 @@ void RpgLogicClientMulti::loadPlayers(const std::vector<RpgStream::PlayerStateLi
 		entt::entity player = mapper->get(s.tagId());
 
 		if (!scope.valid(player)) {
-			LOG_CERROR("game") << "Invalid player" << s.tagId();
+			ELOG_ERROR << "Invalid player" << s.tagId();
 			continue;
 		}
 
 		PlayerStateOutput *out = scope.try_get<PlayerStateOutput>(player);
 
 		if (!out) {
-			LOG_CERROR("game") << "Invalid player" << s.tagId();
+			ELOG_ERROR << "Invalid player" << s.tagId();
 			continue;
 		}
 
@@ -536,14 +541,14 @@ void RpgLogicClientMulti::loadTowers(const std::vector<RpgStream::TowerState> &l
 		entt::entity tower = mapper->get(s.tagId());
 
 		if (!scope.valid(tower)) {
-			LOG_CERROR("game") << "Invalid tower" << s.tagId();
+			ELOG_ERROR << "Invalid tower" << s.tagId();
 			continue;
 		}
 
 		TowerStateOutput *out = scope.try_get<TowerStateOutput>(tower) ;
 
 		if (!out) {
-			LOG_CERROR("game") << "Invalid tower" << s.tagId();
+			ELOG_ERROR << "Invalid tower" << s.tagId();
 			continue;
 		}
 
@@ -591,8 +596,6 @@ void RpgLogicClientMulti::loadMp(const std::vector<RpgStream::MpData> &list)
 			mp.origin = cpv(p.origXAsFloat(), p.origYAsFloat());
 
 			entitySetIdTag(entity, mp.idTag);
-
-			LOG_CDEBUG("game") << "ADD MP" << mp.idTag << mp.pos.x << mp.pos.y ;
 		}
 	}
 
@@ -626,14 +629,14 @@ void RpgLogicClientMulti::loadDefenders(const std::vector<RpgStream::DefenderSta
 		entt::entity defender = mapper->get(s.tagId());
 
 		if (!scope.valid(defender)) {
-			LOG_CERROR("game") << "Invalid defender" << s.tagId();
+			ELOG_ERROR << "Invalid defender" << s.tagId();
 			continue;
 		}
 
 		DefenderStateOutput *out = scope.try_get<DefenderStateOutput>(defender);
 
 		if (!out) {
-			LOG_CERROR("game") << "Invalid defender" << s.tagId();
+			ELOG_ERROR << "Invalid defender" << s.tagId();
 			continue;
 		}
 
@@ -661,14 +664,14 @@ void RpgLogicClientMulti::loadNpc(const std::vector<RpgStream::NpcStateList> &li
 		entt::entity npc = mapper->get(s.tagId());
 
 		if (!scope.valid(npc)) {
-			LOG_CERROR("game") << "Invalid NPC" << s.tagId();
+			ELOG_ERROR << "Invalid NPC" << s.tagId();
 			continue;
 		}
 
 		NpcStateOutput *out = scope.try_get<NpcStateOutput>(npc);
 
 		if (!out) {
-			LOG_CERROR("game") << "Invalid NPC" << s.tagId();
+			ELOG_ERROR << "Invalid NPC" << s.tagId();
 			continue;
 		}
 
@@ -676,6 +679,481 @@ void RpgLogicClientMulti::loadNpc(const std::vector<RpgStream::NpcStateList> &li
 			out->insert(state);
 		}
 	}
+}
+
+
+
+
+/**
+ * @brief RpgLogicClientMulti::loadControls
+ * @param list
+ */
+
+void RpgLogicClientMulti::loadControls(const std::vector<RpgStream::ControlStateList> &list)
+{
+	Rpg::RpgLogicScope scope = getScope();
+
+	IdTagMapper *mapper = scope.getCtx<IdTagMapper>();
+
+	Q_ASSERT(mapper);
+
+	for (const RpgStream::ControlStateList &s : list) {
+		entt::entity control = mapper->get(s.tagId());
+
+		if (!scope.valid(control)) {
+			ELOG_ERROR << "Invalid control" << s.tagId();
+			continue;
+		}
+
+		ControlStateOutput *out = scope.try_get<ControlStateOutput>(control);
+
+		if (!out) {
+			ELOG_ERROR << "Invalid control" << s.tagId();
+			continue;
+		}
+
+		for (const RpgStream::ControlState &state : s.state()) {
+			out->insert(state);
+		}
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/////////////////////////////////////////////
+/// TUTORIAL
+/////////////////////////////////////////////
+
+
+template<typename T, typename T2>
+bool RpgLogicClientTutorial::compareEvent(const RpgLogicScope &scope, entt::entity entity, const RpgStream::BaseTickState *state) {
+	const T* ev = scope.try_get<T>(entity);
+	if (!ev)
+		return false;
+
+	const T* s = dynamic_cast<const T*>(state);
+
+	if (!s)
+		return false;
+
+	return compareEvent(*s, *ev);
+}
+
+
+
+
+template<typename T, typename T2>
+bool RpgLogicClientTutorial::compareEvent(const T &, const T &) {
+	ELOG_WARNING << "Missing implementation";
+	return false;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @brief RpgLogicClientTutorial::RpgLogicClientTutorial
+ */
+
+RpgLogicClientTutorial::RpgLogicClientTutorial(RpgGame *game, std::unique_ptr<Tutorial> tutorial)
+	: RpgLogicClientSingle()
+	, m_game(game)
+	, m_tutorial(std::move(tutorial))
+{
+	Q_ASSERT(game);
+
+	m_messageTimer.setInterval(15000);
+	QObject::connect(&m_messageTimer, &QTimer::timeout, game, [this]() { onTimerTimeout(); });
+	QObject::connect(game, &RpgGame::controlledPlayerChanged, game, [this]() { onControlledPlayerChanged(); });
+}
+
+
+/**
+ * @brief RpgLogicClientTutorial::~RpgLogicClientTutorial
+ */
+
+RpgLogicClientTutorial::~RpgLogicClientTutorial()
+{
+
+}
+
+
+
+/**
+ * @brief RpgLogicClientTutorial::loadGameData
+ * @param dest
+ * @return
+ */
+
+bool RpgLogicClientTutorial::loadGameData(RpgStream::CharacterSelectClient *dest)
+{
+	Q_ASSERT(dest);
+
+	if (!m_tutorial) {
+		ELOG_ERROR << "Missing tutorial";
+		return false;
+	}
+
+	RpgPlayerDefinition def = RpgGame::characters().value(m_tutorial->character);
+
+	if (def.name.isEmpty()) {
+		ELOG_ERROR << "Invalid character" << m_tutorial->character;
+		return false;
+	}
+
+	dest->data().setConfig(def.toPlayerConfig());
+	dest->data().setCharacterResolved(m_tutorial->character);
+
+	//m_characterSelect.data().setNickName(data.value(QStringLiteral("nickname")).toString().toUtf8());
+
+	dest->gameConfig().setTerrainResolved(m_tutorial->terrain);
+
+	return true;
+}
+
+
+
+
+/**
+ * @brief RpgLogicClientTutorial::initialize
+ * @return
+ */
+
+void RpgLogicClientTutorial::initialize()
+{
+	if (m_tutorial->fnInit)
+		m_tutorial->fnInit(this);
+}
+
+
+/**
+ * @brief RpgLogicClientTutorial::player
+ * @return
+ */
+
+RpgPlayer *RpgLogicClientTutorial::player() const
+{
+	return m_game->controlledPlayer();
+}
+
+
+/**
+ * @brief RpgLogicClientTutorial::eventRealized
+ * @param entity
+ */
+
+void RpgLogicClientTutorial::eventRealized(entt::entity entity)
+{
+	RpgLogicScope scope = getScope();
+
+	if (!scope.valid(entity))
+		return;
+
+	if (RpgStream::EventStageChanged *ev = scope.try_get<RpgStream::EventStageChanged>(entity)) {
+		if (ev->config().stage() == RpgStream::GameConfig::StageWarmingUp) {
+			stepForward();
+		}
+	}
+
+	if (!m_currentStep)
+		return;
+
+	checkEvent(entity);
+}
+
+
+
+/**
+ * @brief RpgLogicClientTutorial::onTargetEntityChanged
+ */
+
+void RpgLogicClientTutorial::onTargetEntityChanged()
+{
+
+}
+
+
+/**
+ * @brief RpgLogicClientTutorial::onTargetControlChanged
+ */
+
+void RpgLogicClientTutorial::onTargetControlChanged()
+{
+	TiledObjectBody *obj = m_game->controlledPlayer()->targetControl();
+
+	if (!m_currentStep)
+		return;
+
+	if (m_currentStep->inputEvents.empty()) {
+		ELOG_DEBUG << "All input completed";
+		stepForward();
+		return;
+	}
+
+	for (auto it = m_currentStep->inputEvents.cbegin(); it != m_currentStep->inputEvents.cend(); ) {
+		const EventTargetControlChanged *t = dynamic_cast<const EventTargetControlChanged*>(it->get());
+
+		if (t && t->fnCmp && t->fnCmp(obj)) {
+			it = m_currentStep->inputEvents.erase(it);
+			continue;
+		}
+
+		++it;
+	}
+
+	if (m_currentStep->inputEvents.empty()) {
+		ELOG_DEBUG << "All input completed";
+		stepForward();
+	}
+}
+
+
+
+/**
+ * @brief RpgLogicClientTutorial::initializeTowers
+ * @return
+ */
+
+std::unordered_set<entt::entity> RpgLogicClientTutorial::initializeTowers()
+{
+	if (!m_tutorial || !m_tutorial->towers)
+		return RpgLogic::initializeTowers();
+
+	std::unordered_set<entt::entity> r;
+
+	if (m_tutorial->towers->empty())
+		return r;
+
+	RpgLogicScope scope = getScope();
+
+	for (entt::entity e : scope.view<Tower>()) {
+		if (m_tutorial->towers->contains(scope.get<Tower>(e).idTag))
+			r.insert(e);
+	}
+
+	return r;
+}
+
+
+/**
+ * @brief RpgLogicClientTutorial::initializeChests
+ * @return
+ */
+
+std::vector<Chest> RpgLogicClientTutorial::initializeChests()
+{
+	return RpgLogic::initializeChests();
+}
+
+
+/**
+ * @brief RpgLogicClientTutorial::initializeEmitters
+ * @return
+ */
+
+std::unordered_set<entt::entity> RpgLogicClientTutorial::initializeEmitters()
+{
+	if (!m_tutorial || !m_tutorial->emitters)
+		return RpgLogic::initializeEmitters();
+
+	std::unordered_set<entt::entity> r;
+
+	if (m_tutorial->emitters->empty())
+		return r;
+
+	RpgLogicScope scope = getScope();
+
+	for (entt::entity e : scope.view<MpEmitter>()) {
+		if (m_tutorial->emitters->contains(scope.get<MpEmitter>(e).idTag))
+			r.insert(e);
+	}
+
+	return r;
+}
+
+
+/**
+ * @brief RpgLogicClientTutorial::stepForward
+ * @return
+ */
+
+int RpgLogicClientTutorial::stepForward()
+{
+	if (!m_tutorial)
+		return -1;
+
+	if (m_currentStep) {
+		if (m_currentStep->fnNext)
+			m_currentStep->fnNext(this, lastAuthTick()+1);
+	}
+
+	++m_tutorial->currentStep;
+
+	ELOG_DEBUG << "Tutorial next step:" << m_tutorial->currentStep;
+
+	if (m_tutorial->currentStep >= (int) m_tutorial->steps.size()) {
+		ELOG_INFO << "Tutorial finished";
+		m_currentStep = nullptr;
+		onTutorialFinished();
+		return -1;
+	}
+
+	m_currentStep = &m_tutorial->steps[m_tutorial->currentStep];
+
+	m_messageTimer.start();
+	onTimerTimeout();
+
+	return m_tutorial->currentStep;
+}
+
+
+
+/**
+ * @brief RpgLogicClientTutorial::onTimerTimeout
+ */
+
+void RpgLogicClientTutorial::onTimerTimeout()
+{
+	if (!m_currentStep || m_currentStep->message.isEmpty())
+		return;
+
+	m_game->gameItem()->message(m_currentStep->message, true);
+
+}
+
+
+
+/**
+ * @brief RpgLogicClientTutorial::onTutorialFinished
+ */
+
+void RpgLogicClientTutorial::onTutorialFinished()
+{
+
+}
+
+
+
+/**
+ * @brief RpgLogicClientTutorial::onControlledPlayerChanged
+ */
+
+void RpgLogicClientTutorial::onControlledPlayerChanged()
+{
+	if (!m_game->controlledPlayer())
+		return;
+
+	QObject::connect(m_game->controlledPlayer(), &RpgPlayer::targetEntityChanged, m_game, [this]() { onTargetEntityChanged(); });
+	QObject::connect(m_game->controlledPlayer(), &RpgPlayer::targetControlChanged, m_game, [this]() { onTargetControlChanged(); });
+}
+
+
+
+
+
+
+
+/**
+ * @brief RpgLogicClientTutorial::checkEvent
+ * @param entity
+ */
+
+void RpgLogicClientTutorial::checkEvent(entt::entity entity)
+{
+	if (!m_currentStep)
+		return;
+
+	if (m_currentStep->inputEvents.empty()) {
+		ELOG_INFO << "All input completed";
+		stepForward();
+		return;
+	}
+
+	RpgLogicScope scope = getScope();
+
+	if (!scope.valid(entity))
+		return;
+
+	for (auto it = m_currentStep->inputEvents.cbegin(); it != m_currentStep->inputEvents.cend(); ) {
+		if (
+				compareEvent<RpgStream::EventStageChanged>(scope, entity, it->get())
+				) {
+			it = m_currentStep->inputEvents.erase(it);
+			continue;
+		}
+
+		++it;
+	}
+
+	if (m_currentStep->inputEvents.empty()) {
+		ELOG_INFO << "All input completed";
+		stepForward();
+	}
+}
+
+
+/**
+ * @brief RpgLogicClientTutorial::compareEvent
+ * @param step
+ * @param event
+ * @return
+ */
+
+bool RpgLogicClientTutorial::compareEvent(const RpgStream::EventStageChanged &step, const RpgStream::EventStageChanged &event)
+{
+	return step.config().stage() == event.config().stage();
+}
+
+
+
+/**
+ * @brief RpgLogicClientTutorial::Tutorial::Step::addTargetEntityEvent
+ * @param fn
+ */
+
+void RpgLogicClientTutorial::Tutorial::Step::addTargetEntityEvent(const std::function<bool (RpgEntity *)> &fn)
+{
+	auto ev = std::make_unique<EventTargetEntityChanged>();
+	ev->fnCmp = fn;
+	inputEvents.emplace_back(std::move(ev));
+}
+
+
+
+/**
+ * @brief RpgLogicClientTutorial::Tutorial::Step::addTargetControlEvent
+ * @param fn
+ */
+
+void RpgLogicClientTutorial::Tutorial::Step::addTargetControlEvent(const std::function<bool (TiledObjectBody *)> &fn)
+{
+	auto ev = std::make_unique<EventTargetControlChanged>();
+	ev->fnCmp = fn;
+	inputEvents.emplace_back(std::move(ev));
 }
 
 

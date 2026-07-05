@@ -53,7 +53,7 @@ class RpgGamePrivate : public QObject
 	Q_OBJECT
 
 private:
-	RpgGamePrivate(RpgGame *game, const bool &multi);
+	RpgGamePrivate(RpgGame *game, const bool &multi, std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> tutorial);
 	virtual ~RpgGamePrivate();
 
 	static QString toReadableRoomId(const RpgStream::Room &room);
@@ -90,8 +90,9 @@ private:
 	void onGameItemPrepared();
 	void loadChunkGrid();
 	void playerPositionAdd(const QPointF &pos, const RpgStream::Team &team);
-	void mpEmitterAdd(const QPointF &pos, const quint32 &tagId);
+	void mpEmitterAdd(const QPointF &pos, const quint32 &tagId, QQuickItem *visualItem);
 	void towerAdd(RpgTower *tower);
+	void chestPositionAdd(const QPointF &pos);
 
 	void addLocationSound(TiledObjectBody *object, const QString &sound,
 						  const qreal &baseVolume = 1.,
@@ -133,6 +134,7 @@ private:
 
 	void syncGameState();
 
+	void syncTowersAndEmitters();
 	void syncObjects();
 	void syncPlayers();
 	void syncMp();
@@ -157,6 +159,7 @@ private:
 	void processEvents(const std::vector<RpgStream::EventStageChanged> &list);
 	void processEvents(const std::vector<RpgStream::EventMpEmitter> &list);
 	void processEvents(const std::vector<RpgStream::EventNpc> &list);
+	void processEvents(const std::vector<RpgStream::EventControl> &list);
 
 	void onTimeStepped(const std::vector<TiledObjectBody *> &aboutDestruction);
 
@@ -183,7 +186,8 @@ private:
 
 
 	RpgStream::MapData m_mapData;
-	QList<QPointer<RpgTower> > m_towerList;
+	QHash<quint32, QPointer<RpgTower> > m_towerList;
+	QHash<quint32, QPointer<QQuickItem> > m_emitters;
 	std::vector<std::unique_ptr<TiledGameSfxLocation>> m_sfxLocations;
 	QList<QScatterSeries*> m_scatters;
 

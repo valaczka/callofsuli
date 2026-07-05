@@ -43,17 +43,13 @@
 
 #define DEFAULT_PULL_SIZE		12
 
-#ifdef Q_OS_WASM
 
-#define ELOG_TRACE            qDebug()
-#define ELOG_DEBUG            qDebug()
-#define ELOG_INFO             qInfo()
-#define ELOG_WARNING          qWarning()
-#define ELOG_ERROR            qWarning()
-#define ELOG_FATAL            qCritical()
+#if (defined(Q_OS_LINUX) && !defined(Q_OS_ANDROID)) || defined(Q_OS_WIN) || defined(Q_OS_MACOS)
+#define USE_LOGGER
+#endif
 
 
-#else
+#ifdef USE_LOGGER
 
 #define ELOG_TRACE            CuteMessageLogger(_logger(), Logger::Trace,   __FILE__, __LINE__, Q_FUNC_INFO).write()
 #define ELOG_DEBUG            CuteMessageLogger(_logger(), Logger::Debug,   __FILE__, __LINE__, Q_FUNC_INFO).write()
@@ -61,6 +57,16 @@
 #define ELOG_WARNING          CuteMessageLogger(_logger(), Logger::Warning, __FILE__, __LINE__, Q_FUNC_INFO).write()
 #define ELOG_ERROR            CuteMessageLogger(_logger(), Logger::Error,   __FILE__, __LINE__, Q_FUNC_INFO).write()
 #define ELOG_FATAL            CuteMessageLogger(_logger(), Logger::Fatal,   __FILE__, __LINE__, Q_FUNC_INFO).write()
+
+
+#else
+
+#define ELOG_TRACE            qDebug()
+#define ELOG_DEBUG            qDebug()
+#define ELOG_INFO             qInfo()
+#define ELOG_WARNING          qWarning()
+#define ELOG_ERROR            qWarning()
+#define ELOG_FATAL            qCritical()
 
 #endif
 
@@ -630,6 +636,8 @@ struct MpEmitter
 	quint32 idTag = 0;
 	cpVect pos = cpvzero;
 
+	bool active = false;
+
 	float radius = 0.;
 	quint32 capacity = 0;
 
@@ -693,6 +701,7 @@ struct Chunk
 struct Tower
 {
 	quint32 idTag = 0;
+	bool active = false;
 
 	cpVect pos = cpvzero;
 	std::vector<entt::entity> defenderList;
@@ -701,6 +710,9 @@ struct Tower
 	static Tower fromRpgStream(const RpgStream::Tower &stream);
 	RpgStream::Tower toRpgStream() const;
 };
+
+
+
 
 
 
@@ -739,6 +751,9 @@ struct DefenderDummyObject
 	static DefenderDummyObject fromRpgStream(const RpgStream::BaseDefenderObject &stream);
 	void toRpgStream(RpgStream::BaseDefenderObject &stream) const;
 };
+
+
+
 
 
 
@@ -827,6 +842,36 @@ struct ChunkGrid
 
 
 
+
+
+
+
+// Control
+
+struct Control
+{
+	quint32 idTag = 0;
+	RpgStream::ControlData::Type type = RpgStream::ControlData::None;
+	cpVect pos = cpvzero;
+};
+
+
+
+
+// Chest
+
+struct Chest
+{
+	cpVect pos = cpvzero;
+};
+
+
+
+
+
+
+
+
 typedef std::vector<RpgStream::PlayerPosition> PlayerPositionList;
 
 typedef BaseStateMap<RpgStream::PlayerState> PlayerStateInput;
@@ -840,7 +885,9 @@ typedef BaseStatePull<RpgStream::Events> EventsOutput;
 typedef BaseStateMap<RpgStream::NpcState> NpcStateInput;
 typedef BaseStatePull<RpgStream::NpcState> NpcStateOutput;
 
+typedef BaseStatePull<RpgStream::ControlState> ControlStateOutput;
 
+typedef std::vector<Chest> ChestList;
 
 
 
@@ -1063,7 +1110,7 @@ public:
 
 	// Logger
 
-#ifndef Q_OS_WASM
+#ifdef USE_LOGGER
 	void setLogger(Logger *logger) { m_logger = logger; }
 #endif
 
@@ -1142,9 +1189,10 @@ public:
 
 	std::mt19937 &rnd() { return m_rnd; }
 
-protected:
 	template <class T, typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T>::value>::type>
 	void eventStore(T &&event);
+
+protected:
 
 	virtual void eventRealized(entt::entity entity) { Q_UNUSED(entity); }
 	void eventRealizedDefault(entt::entity entity);
@@ -1153,6 +1201,9 @@ protected:
 	entt::entity entityFromIdTag(const quint32 &tag) const;
 
 	virtual void rewindStage(const RpgStream::GameConfig::Stage &oldStage);
+	virtual std::unordered_set<entt::entity> initializeTowers();
+	virtual std::unordered_set<entt::entity> initializeEmitters();
+	virtual std::vector<Chest> initializeChests();
 
 	entt::entity npcAdd(const RpgStream::NpcData &data, entt::entity owner, const cpVect &pos = cpvzero, quint32 *tagIdPtr = nullptr);
 
@@ -1203,7 +1254,7 @@ protected:
 	}
 
 
-#ifndef Q_OS_WASM
+#ifdef USE_LOGGER
 	Logger *_logger() const { return m_logger; };
 	Logger *m_logger = cuteLoggerInstance();
 #endif

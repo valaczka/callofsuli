@@ -790,6 +790,7 @@ class BaseTickState
 {
 public:
 	BaseTickState() = default;
+	virtual ~BaseTickState() = default;
 
 	STREAM_MEMBER(quint32, tick, Tick, 32, 0)
 };
@@ -843,6 +844,7 @@ public:
 	STREAM_MEMBER_QUANT(posY, PosY, 0);
 	STREAM_MEMBER_QUANT(radius, Radius, 0);
 	STREAM_MEMBER(quint32, capacity, Capacity, 13, 0);				// Max. 8192
+	STREAM_MEMBER_CAST(bool, active, Active, quint8, 1, false)
 };
 
 
@@ -942,6 +944,7 @@ public:
 	STREAM_MEMBER_VECTOR(Defender, defenders, Defenders, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 	STREAM_MEMBER_QUANT(posX, PosX, 0);
 	STREAM_MEMBER_QUANT(posY, PosY, 0);
+	STREAM_MEMBER_CAST(bool, active, Active, quint8, 1, false)
 };
 
 
@@ -966,7 +969,8 @@ public:
 	STREAM_MEMBER_VECTOR(PlayerPosition, playerPositionList, PlayerPositionList, quint8, 8);
 	STREAM_FIELD(ChunkGrid, chunkGrid, ChunkGrid, {})
 	STREAM_MEMBER_VECTOR(MpEmitter, mpEmitterList, MpEmitterList, quint8, 8);
-	STREAM_MEMBER_VECTOR(Tower, towerList, towerList, quint8, 8);
+	STREAM_MEMBER_VECTOR(Tower, towerList, TowerList, quint8, 8);
+	STREAM_MEMBER_VECTOR(PlayerPosition, chestPositionList, ChestPositionList, quint8, 8);
 };
 
 
@@ -1707,6 +1711,60 @@ public:
 
 
 
+
+
+/**
+ * @brief The BaseControlData class
+ */
+
+class ControlData
+{
+public:
+	enum Type {
+		None = 0,
+		Chest
+	};
+
+	ControlData() = default;
+
+	ControlData(const Type &type)
+		: m_type(type)
+	{}
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
+	STREAM_MEMBER_CAST(Type, type, Type, quint32, 12, None)						// max. 4096 types
+	STREAM_MEMBER_QUANT(posX, PosX, 0);
+	STREAM_MEMBER_QUANT(posY, PosY, 0);
+};
+
+
+
+
+
+/**
+ * @brief The BaseControlEvent class
+ */
+
+class EventControl : public BaseTickState
+{
+public:
+	EventControl() : BaseTickState() {}
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
+	STREAM_MEMBER_CAST(ControlData::Type, type, Type, OBJECT_TYPE, OBJECT_BITS, ControlData::None)
+};
+
+
+
+
+
+
 /**
  * @brief The EventList class
  */
@@ -1727,6 +1785,7 @@ public:
 		Emitter			= 1 << 1,
 		Stage			= 1 << 2,
 		Npc				= 1 << 3,
+		Control			= 1 << 4,
 	};
 
 	Q_DECLARE_FLAGS(Flags, Flag)
@@ -1736,6 +1795,7 @@ public:
 	STREAM_MEMBER_VECTOR(EventMpEmitter, emitter, Emitter, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 	STREAM_MEMBER_VECTOR(EventStageChanged, stage, Stage, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 	STREAM_MEMBER_VECTOR(EventNpc, npc, Npc, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
+	STREAM_MEMBER_VECTOR(EventControl, control, Control, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 };
 
 
@@ -1813,6 +1873,66 @@ public:
 
 
 
+
+
+
+
+/**
+ * @brief The BaseControlState class
+ */
+
+class ControlState : public BaseTickState
+{
+public:
+	ControlState() : BaseTickState() {}
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	bool operator==(const ControlState &other) const {
+		return other.m_type == m_type &&
+				other.m_active == m_active
+				;
+	}
+
+	STREAM_MEMBER_CAST(ControlData::Type, type, Type, OBJECT_TYPE, OBJECT_BITS, ControlData::None)
+	STREAM_MEMBER_CAST(bool, active, Active, quint8, 1, false)
+};
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @brief The ControlStateList class
+ */
+
+class ControlStateList
+{
+public:
+	ControlStateList() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
+	STREAM_MEMBER_VECTOR(ControlState, state, State, STATE_LIST_TYPE, STATE_LIST_BITS)
+};
+
+
+
+
+
+
+
+
+
 /**
  * @brief The FullState class
  */
@@ -1835,13 +1955,14 @@ public:
 		Tower			= 1 << 3,
 		Defender		= 1 << 4,
 		Npc				= 1 << 5,
+		Control			= 1 << 6,
 	};
 
 	Q_DECLARE_FLAGS(Flags, Flag)
 
 	STREAM_ADD_DELTA_MODE
 
-	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 6, Null)					// Flag bits!
+	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 7, Null)					// Flag bits!
 	STREAM_MEMBER(quint32, serverTick, ServerTick, 32, 0)
 
 	STREAM_FIELD(GameState, state, State, {})
@@ -1852,6 +1973,7 @@ public:
 	STREAM_MEMBER_VECTOR(TowerState, towers, Towers, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 	STREAM_MEMBER_VECTOR(DefenderState, defenders, Defenders, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 	STREAM_MEMBER_VECTOR(NpcStateList, npcs, Npcs, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
+	STREAM_MEMBER_VECTOR(ControlStateList, controls, Controls, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(FullState::Flags)
@@ -1881,6 +2003,7 @@ public:
 	STREAM_MEMBER_VECTOR(Tower, towers, Towers, quint8, 8);
 	STREAM_MEMBER_VECTOR(BaseDefenderObject, defenders, Defenders, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 	STREAM_MEMBER_VECTOR(NpcData, npcs, Npcs, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
+	STREAM_MEMBER_VECTOR(ControlData, controls, Controls, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 
 	STREAM_MEMBER_VECTOR(FullPlayerMap, map, Map, quint32, PEER_INDEX_BITS)
 	STREAM_FIELD(FullState, fullState, FullState, {})

@@ -31,7 +31,6 @@
 RpgNpcTowerAttacker::RpgNpcTowerAttacker(RpgGameItem *gameItem, const cpVect &center)
 	: RpgNpc(gameItem, center)
 {
-	LOG_CINFO("game") << "*********************TWER" << this;
 	m_defaultMotor.reset(new Motor(this));
 }
 
@@ -67,8 +66,6 @@ std::unique_ptr<RpgMotorNpcControlled> RpgNpcTowerAttacker::getControlledMotor()
 RpgMotorNpcTowerAttacker::RpgMotorNpcTowerAttacker(RpgNpc *npc)
 	: RpgMotorNpcControlled(npc)
 {
-	LOG_CINFO("game") << "*********************TWER MOTOR" << this << npc;
-
 	loadTowers();
 
 	m_config.fromJson(npc->config().data);
@@ -88,7 +85,6 @@ void RpgMotorNpcTowerAttacker::updateTarget()
 		return;
 
 	if (m_targetTower && !m_targetTower->state().active()) {
-		LOG_CINFO("game") << "INACTIVE TOWER";
 		m_targetTower = nullptr;
 		m_targetDefender = nullptr;
 		return;
@@ -103,8 +99,6 @@ void RpgMotorNpcTowerAttacker::updateTarget()
 				return attackTarget();
 
 			} else if (!m_targetDefender->isAlive()) {
-				LOG_CERROR("game") << "**** END OF DEFENDER";
-
 				m_targetDefender = findNextDefender(m_targetTower);
 				m_targetTowerReached = 0;
 			}
@@ -114,8 +108,6 @@ void RpgMotorNpcTowerAttacker::updateTarget()
 			return attackTarget();
 
 		} else {
-			LOG_CERROR("game") << "**** END OF TOWER";
-
 			m_targetTower = nullptr;
 			m_targetDefender = nullptr;
 			m_targetTowerReached = 0;
@@ -128,7 +120,6 @@ void RpgMotorNpcTowerAttacker::updateTarget()
 	if (m_targetDefender) {
 		if (m_npc->distanceToPointSq(m_targetDefender->bodyPosition()) < POW2(25)) {
 			m_targetTowerReached = m_currentTick;
-			LOG_CDEBUG("game") << "OVERRIDE DEF";
 			return;
 		}
 
@@ -138,7 +129,6 @@ void RpgMotorNpcTowerAttacker::updateTarget()
 
 	if (m_npc->distanceToPointSq(m_targetTower->bodyPosition()) < POW2(25)) {
 		m_targetTowerReached = m_currentTick;
-		LOG_CDEBUG("game") << "OVERRIDE TOWER";
 		return;
 	}
 
@@ -153,8 +143,6 @@ void RpgMotorNpcTowerAttacker::updateTarget()
 		LOG_CERROR("game") << "No available path";
 		return;
 	}
-
-	LOG_CINFO("game") << "NEW PATH" << m_targetTower->bodyPositionF();
 
 	setDestination(path.value());
 }
@@ -212,8 +200,6 @@ void RpgMotorNpcTowerAttacker::updateMotor()
 		dest = grid->chunkCenter(t.adjacentChunks.at(dist(m_game->rpgLogicClient()->rnd())));
 	}
 
-	LOG_CINFO("game") << "--------GO TO POS" << m_currentIdx << dest.x << dest.y << this;
-
 	const auto path = m_gameItem->findShortestPath(m_npc, dest);
 
 	if (!path) {
@@ -232,6 +218,8 @@ void RpgMotorNpcTowerAttacker::updateMotor()
 
 void RpgMotorNpcTowerAttacker::saveState(RpgStream::NpcState &dest)
 {
+	dest.setType(RpgStream::NpcData::TowerAttacker);
+
 	const auto ptr = destination();
 
 	if (m_currentIdx >= 0 && m_currentIdx < (int) m_towers.size())
@@ -283,14 +271,12 @@ void RpgMotorNpcTowerAttacker::onShapeContactBegin(cpShape *self, cpShape *other
 	if (self == m_npc->sensorPolygon()) {
 		if (RpgTower *tower = dynamic_cast<RpgTower*>(otherBody)) {
 			if (!m_targetTower && tower->state().active()) {
-				LOG_CINFO("game") << "ACTIVE TOWER FOUND" << tower << m_currentTick;
 				m_targetTower = tower;
 				m_targetTowerReached = 0;
 				m_lastAttack = 0;
 				m_targetDefender = findNextDefender(m_targetTower);
 
 				if (!m_targetDefender && !tower->canAttack()) {
-					LOG_CINFO("game") << "ACTIVE TOWER SKIP" << tower << m_currentTick;
 					m_targetTower = nullptr;
 					m_targetTowerReached = 0;
 					m_lastAttack = 0;
@@ -303,7 +289,6 @@ void RpgMotorNpcTowerAttacker::onShapeContactBegin(cpShape *self, cpShape *other
 	if (self == m_npc->targetCircle() || m_npc->isBodyShape(self)) {
 		if (RpgTower *tower = dynamic_cast<RpgTower*>(otherBody)) {
 			if (!m_targetDefender && tower->canAttack() && tower->state().active()) {
-				LOG_CINFO("game") << "ACTIVE AND REACHED TOWER FOUND" << tower << m_currentTick;
 				m_targetTower = tower;
 				m_targetTowerReached = m_currentTick;
 			}
@@ -312,7 +297,6 @@ void RpgMotorNpcTowerAttacker::onShapeContactBegin(cpShape *self, cpShape *other
 		if (RpgDefender *defender = dynamic_cast<RpgDefender*>(otherBody)) {
 			RpgTower *tower = defender->tower();
 			if (tower && tower->state().active() && defender->isAlive()) {
-				LOG_CINFO("game") << "ACTIVE AND REACHED TOWER DEFENDER FOUND" << tower << defender << m_currentTick;
 				m_targetTower = tower;
 				m_targetTowerReached = m_currentTick;
 				m_targetDefender = defender;
@@ -398,8 +382,6 @@ void RpgMotorNpcTowerAttacker::attackTarget()
 
 	e.setSeq(m_npc->nextEventId());
 
-	LOG_CWARNING("game") << "ATTACK NPC" << e.tagId() << "->" << e.targetId() << e.seq();
-
 	m_npc->jumpToSprite("attack", m_npc->facingDirection());
 
 	m_eventList.emplace_back(std::move(e));
@@ -422,7 +404,6 @@ RpgDefender *RpgMotorNpcTowerAttacker::findNextDefender(RpgTower *tower) const
 
 	for (RpgDefenderPoint *p : tower->defenderPoints()) {
 		if (RpgDefender *def = p->defender(); def && def->isAlive()) {
-			LOG_CDEBUG("game") << "******DEF" << def;
 			return def;
 		}
 	}

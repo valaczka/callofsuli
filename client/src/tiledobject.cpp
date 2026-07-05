@@ -1642,8 +1642,8 @@ void TiledObjectBody::setSpeedFromAngle(const float &angle, const float &radius)
 	CHECK_LOCK();
 
 	if (radius <= 0) {
-		return;
 		stop();
+		return;
 	}
 
 	d->setVelocity(vectorFromAngle(angle, radius));

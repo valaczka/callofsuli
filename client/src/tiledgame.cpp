@@ -340,7 +340,7 @@ std::optional<QStringList> TiledGame::getDynamicTilesets(const TiledGameDefiniti
 
 					xml.skipCurrentElement();
 
-				} else if (xml.name() == QStringLiteral("objectgroup") &&
+				} /*else if (xml.name() == QStringLiteral("objectgroup") &&
 						   xml.attributes().value(QStringLiteral("name")).toString().startsWith(QStringLiteral("enemy"))) {
 
 					while (xml.readNextStartElement()) {
@@ -349,13 +349,13 @@ std::optional<QStringList> TiledGame::getDynamicTilesets(const TiledGameDefiniti
 							const QString type = atts.value(QStringLiteral("type")).toString();
 							const QString name = atts.value(QStringLiteral("name")).toString();
 
-							/*list.append(RpgEnemyIface::directoryBaseName(RpgEnemyIface::typeFromString(type),
-																		 name) + QStringLiteral(".dres"));*/
+							list.append(RpgEnemyIface::directoryBaseName(RpgEnemyIface::typeFromString(type),
+																		 name) + QStringLiteral(".dres"));
 						}
 
 						xml.skipCurrentElement();
 					}
-				} else {
+				}*/ else {
 					xml.skipCurrentElement();
 				}
 

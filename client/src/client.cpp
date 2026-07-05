@@ -34,6 +34,7 @@
 #include "mapplaydemo.h"
 #include "pass.h"
 #include "qquickwindow.h"
+#include "rpgmapplaytutorial.h"
 #include "rpguserwallet.h"
 #include "studentgroup.h"
 #include "teachergroup.h"
@@ -680,7 +681,7 @@ void Client::onUserLoggedIn()
 		//	server()->offlineEngine()->loadSyncMode(QStringLiteral("PageStudentDashboard.qml"));
 		else
 			/////stackPushPage(QStringLiteral("PageStudentDashboard.qml"));
-			loadDemoMap();
+			loadDemoMap(QUrl("tutorial://test_tutorial1"));
 	});
 }
 
@@ -1887,6 +1888,30 @@ QQuickItem* Client::loadDemoMap(const QUrl &url)
 		LOG_CERROR("client") << "Game already exists";
 		return nullptr;
 	}
+
+	// Tutorial
+
+	if (url.scheme() == QStringLiteral("tutorial")) {
+		LOG_CINFO("client") << "Load tutorial" << url.toString();
+
+		std::unique_ptr<RpgMapPlayTutorial> tutorial(new RpgMapPlayTutorial(this));
+		QQuickItem *page = tutorial->load(url);
+
+		if (!page) {
+			messageError(tr("Nem lehet betölteni a tutorialt!"));
+			return nullptr;
+		}
+
+		connect(page, &QQuickItem::destroyed, tutorial.get(), &MapPlay::deleteLater);
+		connect(page, &QQuickItem::destroyed, this, &Client::onDemoMapDestroyed);
+
+		tutorial.release();
+
+		return page;
+	}
+
+
+	// Demo
 
 	std::unique_ptr<MapPlayDemo> mapPlay(new MapPlayDemo(this));
 

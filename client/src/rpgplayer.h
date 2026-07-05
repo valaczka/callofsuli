@@ -107,6 +107,7 @@ signals:
 	void currentChunkCenterChanged();
 	void mpChanged();
 	void maxMpChanged();
+	void targetControlChanged();
 	void targetEntityChanged();
 	void bulletChanged();
 	void maxBulletChanged();
@@ -241,6 +242,8 @@ public:
 
 	virtual void processEvent(const RpgStream::EventPlayer &event) override;
 
+	const std::optional<cpVect> &targetAhead() const;
+
 protected:
 	virtual void onShapeContactBegin(cpShape *self, cpShape *other) override;
 	virtual void onShapeContactEnd(cpShape *self, cpShape *other) override;
@@ -270,6 +273,7 @@ private:
 	bool checkControl(TiledObjectBody *control) const;
 
 	std::optional<float> m_targetAngle;
+	std::optional<cpVect> m_targetAhead;
 
 	friend class RpgPlayerPrivate;
 };

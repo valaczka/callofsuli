@@ -28,6 +28,7 @@
 #define RPGLOGICCLIENT_H
 
 #include "chipmunk/chipmunk_types.h"
+#include "rpgmapplaytutorial.h"
 #include <rpglogic.h>
 #include <QElapsedTimer>
 
@@ -35,6 +36,10 @@ class RpgObject;
 class RpgTower;
 class RpgUdpEngine;
 class RpgGamePrivate;
+class RpgEntity;
+class RpgPlayer;
+class TiledObjectBody;
+
 
 namespace Rpg {
 
@@ -142,6 +147,136 @@ protected:
 
 
 
+
+
+/**
+ * @brief The RpgLogicClientTutorial class
+ */
+
+class RpgLogicClientTutorial : public RpgLogicClientSingle
+{
+public:
+	struct Tutorial {
+		QString character;
+		QString terrain;
+
+		std::function<void(RpgLogicClientTutorial *)> fnInit;
+
+		std::optional<std::unordered_set<quint32> > towers;			// nullopt: default
+		std::optional<std::unordered_set<quint32> > emitters;		// nullopt: default
+		int chests = -1;											// -1: default
+
+		struct Step {
+			QString message;
+			std::vector<std::unique_ptr<RpgStream::BaseTickState> > inputEvents;
+
+			std::function<void(RpgLogicClientTutorial *, const quint32 &)> fnNext;
+
+			void addTargetEntityEvent(const std::function<bool(RpgEntity*)> &fn);
+			void addTargetControlEvent(const std::function<bool(TiledObjectBody*)> &fn);
+		};
+
+		std::vector<Step> steps;
+
+		int currentStep = -1;
+
+		void addTower(const quint32 &tmxId) {
+			if (!towers) towers = std::unordered_set<quint32>{};
+			towers->insert(getId(tmxId));
+		}
+
+		void noTowers() { towers = std::unordered_set<quint32>{}; }
+
+		void addEmitter(const quint32 &tmxId) {
+			if (!emitters) emitters = std::unordered_set<quint32>{};
+			emitters->insert(getId(tmxId));
+		}
+
+		void noEmitters() { emitters = std::unordered_set<quint32>{}; }
+	};
+
+	RpgLogicClientTutorial(RpgGame *game, std::unique_ptr<Tutorial> tutorial);
+	virtual ~RpgLogicClientTutorial();
+
+	bool loadGameData(RpgStream::CharacterSelectClient *dest);
+
+	void initialize();
+
+	static quint32 getId(const quint32 &tmxId) { return RpgLogic::packId(1, 0, tmxId); }
+
+	RpgPlayer *player() const;
+
+protected:
+	virtual void eventRealized(entt::entity entity) override;
+	virtual void onTargetEntityChanged();
+	virtual void onTargetControlChanged();
+
+	virtual std::unordered_set<entt::entity> initializeTowers() override;
+	virtual std::unordered_set<entt::entity> initializeEmitters()override;
+	virtual std::vector<Chest> initializeChests() override;
+
+	int stepForward();
+
+	void onTimerTimeout();
+	void onTutorialFinished();
+
+
+
+	class EventTargetEntityChanged : public RpgStream::BaseTickState
+	{
+	public:
+		EventTargetEntityChanged() : RpgStream::BaseTickState() {  }
+
+		std::function<bool(RpgEntity*)> fnCmp;
+
+		RpgEntity *m_target = nullptr;
+	};
+
+
+	class EventTargetControlChanged : public RpgStream::BaseTickState
+	{
+	public:
+		EventTargetControlChanged() : RpgStream::BaseTickState() { }
+
+		std::function<bool(TiledObjectBody*)> fnCmp;
+
+		TiledObjectBody *m_target = nullptr;
+	};
+
+
+private:
+	void onControlledPlayerChanged();
+	void checkEvent(entt::entity entity);
+
+	template <typename T,
+			  typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T>::value>::type>
+	bool compareEvent(const T &, const T &);
+
+
+	bool compareEvent(const RpgStream::EventStageChanged &step, const RpgStream::EventStageChanged &event);
+
+
+	template <typename T,
+			  typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T>::value>::type>
+	bool compareEvent(const RpgLogicScope &scope, entt::entity entity, const RpgStream::BaseTickState *state);
+
+
+protected:
+	RpgGame *const m_game;
+	std::unique_ptr<Tutorial> m_tutorial;
+	Tutorial::Step *m_currentStep = nullptr;
+
+	QTimer m_messageTimer;
+
+	friend struct Tutorial;
+	friend struct Tutorial::Step;
+};
+
+
+
+
+
+
 /**
  * @brief The RpgLogicClientMulti class
  */
@@ -164,6 +299,7 @@ private:
 	void loadMp(const std::vector<RpgStream::MpData> &list);
 	void loadDefenders(const std::vector<RpgStream::DefenderState> &list);
 	void loadNpc(const std::vector<RpgStream::NpcStateList> &list);
+	void loadControls(const std::vector<RpgStream::ControlStateList> &list);
 
 	RpgUdpEngine *m_engine = nullptr;
 };

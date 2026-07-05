@@ -65,9 +65,9 @@ QHash<QString, RpgPlayerDefinition> RpgGame::m_characters = {};
  * @param client
  */
 
-RpgGame::RpgGame(GameMapMissionLevel *missionLevel, Client *client, const bool &multiplayer)
+RpgGame::RpgGame(GameMapMissionLevel *missionLevel, Client *client, const bool &multiplayer, std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> tutorial)
 	: AbstractLevelGame(GameMap::Rpg, missionLevel, client)
-	, d(new RpgGamePrivate(this, multiplayer))
+	, d(new RpgGamePrivate(this, multiplayer, std::move(tutorial)))
 	, m_gameMode(multiplayer ? MultiPlayer : SinglePlayer)
 	, m_modelLobby(new QSListModel)
 	, m_modelPlayer(new QSListModel)
@@ -597,9 +597,6 @@ void RpgGamePrivate::characterSelect(const QVariantMap &data)
 
 void RpgGamePrivate::updateCharacterSelect()
 {
-	if (q->m_gameState != RpgGame::GameStateCharacterSelect)
-		return;
-
 	if (!m_characterSelect.data().flags().testFlag(RpgStream::PlayerData::FlagCompleted))
 		return;
 
@@ -627,23 +624,29 @@ void RpgGamePrivate::updateCharacterSelect()
 		quint32 tagId = 0;
 		auto p = m_logic->playerAdd(m_characterSelect.data(), &id, &tagId);
 
-		////////////////////////////////////////////////////////////////////////
-		LOG_CERROR("game") << "REMOVE<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
 
-		const QString character = "soldier04";
+		if (Rpg::RpgLogicClientTutorial *tutorial = dynamic_cast<Rpg::RpgLogicClientTutorial*>(m_logic.get())) {
+			LOG_CINFO("game") << "INIT TUTORIAL";
 
-		RpgNpcDefinition def = q->readNpcDefinition(character).value_or(RpgNpcDefinition{});
+			tutorial->initialize();
+		} else {
+			////////////////////////////////////////////////////////////////////////
+			LOG_CERROR("game") << "REMOVE<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
 
-		RpgStream::NpcData d;
-		d.setCharacterResolved(character);
-		d.setTeam(RpgStream::TeamNone);
-		d.setType(RpgStream::NpcData::TowerAttacker);
-		d.setEntity(def.toEntityConfig());
+			const QString character = "soldier04";
 
-		m_logic->addNpc(d, p);
+			RpgNpcDefinition def = q->readNpcDefinition(character).value_or(RpgNpcDefinition{});
 
-		////////////////////////////////////////////////////////////////////////
+			RpgStream::NpcData d;
+			d.setCharacterResolved(character);
+			d.setTeam(RpgStream::TeamNone);
+			d.setType(RpgStream::NpcData::TowerAttacker);
+			d.setEntity(def.toEntityConfig());
 
+			m_logic->addNpc(d, p);
+
+			////////////////////////////////////////////////////////////////////////
+		}
 
 		q->setGameState(RpgGame::GameStatePrepare);
 	}
@@ -863,7 +866,7 @@ void RpgGamePrivate::playerPositionAdd(const QPointF &pos, const RpgStream::Team
  * @param pos
  */
 
-void RpgGamePrivate::mpEmitterAdd(const QPointF &pos, const quint32 &tagId)
+void RpgGamePrivate::mpEmitterAdd(const QPointF &pos, const quint32 &tagId, QQuickItem *visualItem)
 {
 	RpgStream::MpEmitter p;
 	p.setTagId(tagId);
@@ -871,6 +874,9 @@ void RpgGamePrivate::mpEmitterAdd(const QPointF &pos, const quint32 &tagId)
 	p.setPosYAsFloat(pos.y());
 
 	m_mapData.mpEmitterList().emplace_back(std::move(p));
+
+	if (visualItem)
+		m_emitters[tagId] = visualItem;
 }
 
 
@@ -906,7 +912,23 @@ void RpgGamePrivate::towerAdd(RpgTower *tower)
 
 	m_mapData.towerList().emplace_back(std::move(t));
 
-	m_towerList.append(tower);
+	m_towerList[id] = tower;
+}
+
+
+
+/**
+ * @brief RpgGamePrivate::chestPositionAdd
+ * @param pos
+ */
+
+void RpgGamePrivate::chestPositionAdd(const QPointF &pos)
+{
+	RpgStream::PlayerPosition p;
+	p.setPosXAsFloat(pos.x());
+	p.setPosYAsFloat(pos.y());
+
+	m_mapData.chestPositionList().emplace_back(std::move(p));
 }
 
 
@@ -1530,6 +1552,35 @@ void RpgGamePrivate::syncGameState()
 
 
 
+/**
+ * @brief RpgGamePrivate::syncTowersAndEmitters
+ */
+
+void RpgGamePrivate::syncTowersAndEmitters()
+{
+	Rpg::RpgLogicScope scope = m_logic->getScope();
+
+	for (auto entity : scope.view<Rpg::Tower>()) {
+		const Rpg::Tower &t = scope.get<Rpg::Tower>(entity);
+
+		if (RpgTower *tower = m_towerList.value(t.idTag)) {
+			if (QQuickItem *v = tower->visualItem())
+				v->setVisible(t.active);
+		}
+	}
+
+
+	for (auto entity : scope.view<Rpg::MpEmitter>()) {
+		const Rpg::MpEmitter &t = scope.get<Rpg::MpEmitter>(entity);
+
+		if (QQuickItem *v = m_emitters.value(t.idTag)) {
+			v->setVisible(t.active);
+		}
+	}
+}
+
+
+
 
 /**
  * @brief RpgGamePrivate::syncObjects
@@ -1548,6 +1599,7 @@ void RpgGamePrivate::syncObjects()
 	}
 
 
+	syncTowersAndEmitters();
 	syncPlayers();
 	syncMp();
 	syncDefenders();
@@ -1971,6 +2023,11 @@ void RpgGamePrivate::processEvents(const std::vector<RpgStream::Events> &list, c
 		if (event.flags().testFlag(RpgStream::Events::Npc))
 			processEvents(event.npc());
 
+		// Npc events
+
+		if (event.flags().testFlag(RpgStream::Events::Control))
+			processEvents(event.control());
+
 
 
 		m_lastProcessedEventTick = event.tick();
@@ -2115,6 +2172,37 @@ void RpgGamePrivate::processEvents(const std::vector<RpgStream::EventNpc> &list)
 
 
 
+/**
+ * @brief RpgGamePrivate::processEvents
+ * @param list
+ */
+
+void RpgGamePrivate::processEvents(const std::vector<RpgStream::EventControl> &list)
+{
+	if (list.empty())
+		return;
+
+	/*Rpg::RpgLogicScope scope = m_logic->getScope();
+
+	RpgLogicObjectMapper *mapper = scope.getCtx<RpgLogicObjectMapper>();
+
+	Q_ASSERT(mapper);
+
+	for (const RpgStream::EventControl &event : list) {
+		RpgNpc *npc = mapper->get<RpgNpc>(event.tagId());
+
+		if (!npc) {
+			LOG_CERROR("game") << "Invalid NPC id" << event.tagId();
+			continue;
+		}
+
+		if (RpgMotorNpcEventIface *motor = dynamic_cast<RpgMotorNpcEventIface*>(npc->currentMotor()))
+			motor->processEvent(event);
+	}*/
+}
+
+
+
 
 
 /**
@@ -2174,7 +2262,7 @@ quint32 RpgGamePrivate::logicRegisterObject(RpgObject *object)
 
 
 
-
+#ifdef WITH_GAMEPAD
 
 
 /**
@@ -2239,7 +2327,7 @@ void RpgGamePrivate::onGamePadButtonR1Changed(const bool &pressed)
 }
 
 
-
+#endif
 
 
 
@@ -2291,11 +2379,13 @@ void RpgGame::setErrorString(const QString &newErrorString)
  * @brief RpgGamePrivate::clearSharedTextures
  */
 
-RpgGamePrivate::RpgGamePrivate(RpgGame *game, const bool &multi)
+RpgGamePrivate::RpgGamePrivate(RpgGame *game, const bool &multi, std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> tutorial)
 	: QObject()
 	, q(game)
 {
-	if (multi)
+	if (tutorial)
+		m_logic = std::make_unique<Rpg::RpgLogicClientTutorial>(q, std::move(tutorial));
+	else if (multi)
 		m_logic = std::make_unique<Rpg::RpgLogicClientMulti>();
 	else
 		m_logic = std::make_unique<Rpg::RpgLogicClientSingle>();
@@ -2554,6 +2644,22 @@ void RpgGamePrivate::connectionCheck()
 
 void RpgGamePrivate::connectionReady()
 {
+	if (Rpg::RpgLogicClientTutorial *tutorial = dynamic_cast<Rpg::RpgLogicClientTutorial*>(m_logic.get())) {
+		LOG_CINFO("game") << "READY TUTORIAL";
+
+		if (!tutorial->loadGameData(&m_characterSelect)) {
+			q->setError(tr("Hibás tutorial"));
+			return;
+		}
+
+		m_characterSelect.data().flags().setFlag(RpgStream::PlayerData::FlagCompleted);
+
+		LOG_CINFO("game") << "*****" << m_characterSelect.gameConfig().terrain();
+		QMetaObject::invokeMethod(this, &RpgGamePrivate::updateCharacterSelect, Qt::QueuedConnection);
+
+		return;
+	}
+
 	if (q->m_gameMode == RpgGame::SinglePlayer) {
 		q->setGameState(RpgGame::GameStateCharacterSelect);
 		return;

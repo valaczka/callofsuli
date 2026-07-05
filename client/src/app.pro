@@ -254,6 +254,7 @@ SOURCES += \
 	rpggame.cpp \
 	rpggameitem.cpp \
 	rpglogicclient.cpp \
+	rpgmapplaytutorial.cpp \
 	rpgmp.cpp \
 	rpgnpc.cpp \
 	rpgnpctowerattacker.cpp \
@@ -349,6 +350,7 @@ HEADERS += \
 	rpggame_p.h \
 	rpggameitem.h \
 	rpglogicclient.h \
+	rpgmapplaytutorial.h \
 	rpgmp.h \
 	rpgnpc.h \
 	rpgnpctowerattacker.h \

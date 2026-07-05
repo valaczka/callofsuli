@@ -195,7 +195,8 @@ if ($$BackwardCpp) {
 # CppBinaryStream
 
 INCLUDEPATH += $$PWD/CppBinaryStream/include
-LIBS += -lcppbinarystream
+android: LIBS += -lcppbinarystream_$${QT_ARCH}
+else: LIBS += -lcppbinarystream
 
 
 # EnTT

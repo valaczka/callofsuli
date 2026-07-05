@@ -688,7 +688,10 @@ bool RpgMotorNpcControlled::beforeWorldStep(const qint64 &tick, entt::entity &en
 			// Csak akkor helyezzük vissza, ha a pozíció sem stimmel (pl. ha mp-t vett fel, és emiatt változott a státusz, akkor nem bántjuk
 			// Később (pl. hp == 0) lekezeljük újra
 
-			if (sim.cbegin()->second.entityState().isEqualWithoutSlide(latest->entityState()))
+			if (sim.cbegin()->first > latest->tick()) {
+				LOG_CWARNING("game") << "State gap" << latest->tick() << sim.cbegin()->first;
+				reqEmplace = false;
+			} else if (sim.cbegin()->second.entityState().isEqualWithoutSlide(latest->entityState()))
 				reqEmplace = false;
 		}
 
@@ -748,16 +751,18 @@ bool RpgMotorNpcControlled::afterWorldStep(const qint64 &tick, RpgStream::FullSt
 									   m_game->gameMode() == RpgGame::MultiPlayer ? 6 : 1);			// SINGLE PLAYER: 1
 
 
-	RpgStream::NpcStateList sl;
-	sl.setTagId(tagId);
-	sl.setIsDeltaMode(state->isDeltaMode());
-	if (state->isDeltaMode())
-		sl.compressStateVector(std::move(list));
-	else
-		sl.setState(std::move(list));
+	if (!list.empty()) {
+		RpgStream::NpcStateList sl;
+		sl.setTagId(tagId);
+		sl.setIsDeltaMode(state->isDeltaMode());
+		if (state->isDeltaMode())
+			sl.compressStateVector(std::move(list));
+		else
+			sl.setState(std::move(list));
 
-	state->flags().setFlag(RpgStream::FullState::Npc);
-	state->npcs().push_back(std::move(sl));
+		state->flags().setFlag(RpgStream::FullState::Npc);
+		state->npcs().push_back(std::move(sl));
+	}
 
 	if (!m_eventList.empty()) {
 		for (RpgStream::EventNpc &e : m_eventList) {
@@ -766,7 +771,7 @@ bool RpgMotorNpcControlled::afterWorldStep(const qint64 &tick, RpgStream::FullSt
 		}
 
 		RpgStream::Events events;
-		events.setTick(tick);
+		events.setTick(m_gameItem->tickTimer()->currentTick());					// Ide a render lag miatt nem a <tick>-et tesszük!
 		events.flags().setFlag(RpgStream::Events::Npc);
 		events.setNpc(m_eventList);
 
@@ -919,15 +924,14 @@ void RpgMotorNpcControlled::updateMovement(const float &speed)
 	const QString &sprite = m_npc->m_spriteHandler->currentSprite();
 
 	static const QStringList disabledList = {
-							   QStringLiteral("attack"),
-							   QStringLiteral("bow"),
-							   QStringLiteral("cast"),
-							   //QStringLiteral("hurt"),
-							   QStringLiteral("death")
+		QStringLiteral("attack"),
+		QStringLiteral("bow"),
+		QStringLiteral("cast"),
+		//QStringLiteral("hurt"),
+		QStringLiteral("death")
 	};
 
 	if (disabledList.contains(sprite)) {
-		LOG_CDEBUG("game") << "DISABLE MOVING" << m_npc;
 		m_npc->stop();
 		return;
 	}
@@ -953,6 +957,14 @@ void RpgMotorNpcControlled::updateMovement(const float &speed)
 	} else {
 		m_npc->stop();
 	}
+
+	/// Workaround
+	///
+	/// a worldStep() még az updateBody() előtt frissíti a currentSpeedSq-t,	az updateBody() után viszont nem
+	/// a saveState() emiatt az első ticknél nem mutat különbséget az előzővel (mivel a sebesség 0), ezért nem küldi el
+	/// itt elvégezzük ezt a műveletet a saveState() előtt
+
+	m_npc->overrideCurrentSpeedSq(cpvlengthsq(cpBodyGetVelocity(m_npc->body())));
 }
 
 

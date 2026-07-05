@@ -32,6 +32,7 @@
 #include "rpglogicclient.h"
 #include "tiledgame.h"
 #include "rpgstream.h"
+#include "rpgmapplaytutorial.h"
 
 
 class RpgGamePrivate;
@@ -280,7 +281,8 @@ class RpgGame : public AbstractLevelGame
 	Q_PROPERTY(QString terrain READ terrain WRITE setTerrain NOTIFY terrainChanged FINAL)
 
 public:
-	RpgGame(GameMapMissionLevel *missionLevel, Client *client, const bool &multiplayer);
+	RpgGame(GameMapMissionLevel *missionLevel, Client *client, const bool &multiplayer,
+			std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> tutorial = nullptr);
 	virtual ~RpgGame();
 
 	enum GameState {
