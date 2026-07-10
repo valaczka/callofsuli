@@ -11,18 +11,13 @@ TiledPlayerMarker {
 
 	progressBar.visible: true
 	progressBar.from: 0
-	progressBar.to: 100
-	progressBar.value: tower ? tower.load : 0
+	progressBar.to: tower && tower.lockTime > 0 ? tower.maxLockTime : 100
+	progressBar.value: tower ? (tower.lockTime > 0 ? tower.lockTime : tower.load) : 0
 
 	entityHeight: 150
 
 	progressBarColor: tower ? tower.color : Qaterial.Colors.white
 	labelColor: tower ? tower.color : Qaterial.Colors.white
-
-	/*visible: tower && tower.gameItem && tower.gameItem.game &&
-			 tower.gameItem.game.controlledPlayer &&
-			 tower.gameItem.game.controlledPlayer.tower == tower &&
-			 tower.gameItem.game.controlledPlayer.hp > 0*/
 }
 
 

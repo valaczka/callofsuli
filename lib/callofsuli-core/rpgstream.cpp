@@ -43,6 +43,8 @@ quint32 BaseDefenderObject::requiredMp(const Type &type) {
 	switch (type) {
 		case Dummy:						return 1;
 		case Multiplier1:				return 1;
+		case Fog:						return 1;
+		case Pulse:						return 1;
 		case None:						return 0;
 	}
 
@@ -61,6 +63,8 @@ BaseDefenderObject::PlacementFlags BaseDefenderObject::placementFlags(const Type
 {
 	switch (type) {
 		case Dummy:
+		case Fog:
+		case Pulse:
 			return PlacementTower | PlacementChunk;
 
 		case Multiplier1:
@@ -577,6 +581,9 @@ EngineStream &Events::operator<<(EngineStream &stream)
 	if (m_flags & Npc)
 		readNpc(stream);
 
+	if (m_flags & Defender)
+		readDefender(stream);
+
 	return stream;
 }
 
@@ -603,6 +610,9 @@ EngineStream &Events::operator>>(EngineStream &stream) const
 
 	if (m_flags & Npc)
 		writeNpc(stream);
+
+	if (m_flags & Defender)
+		writeDefender(stream);
 
 	return stream;
 }
@@ -965,6 +975,8 @@ EngineStream &BaseDefenderObject::operator<<(EngineStream &stream)
 			break;
 
 		case BaseDefenderObject::Multiplier1:
+		case BaseDefenderObject::Fog:
+		case BaseDefenderObject::Pulse:
 		case BaseDefenderObject::None:
 			break;
 	}
@@ -997,6 +1009,8 @@ EngineStream &BaseDefenderObject::operator>>(EngineStream &stream) const
 			break;
 
 		case BaseDefenderObject::Multiplier1:
+		case BaseDefenderObject::Fog:
+		case BaseDefenderObject::Pulse:
 		case BaseDefenderObject::None:
 			break;
 	}
@@ -1023,6 +1037,8 @@ EngineStream &DefenderState::operator<<(EngineStream &stream)
 	readTagId(stream);
 	readType(stream);
 	readHp(stream);
+	readVisible(stream);
+	readTargetId(stream);
 
 
 	switch (m_type) {
@@ -1031,6 +1047,8 @@ EngineStream &DefenderState::operator<<(EngineStream &stream)
 			break;
 
 		case BaseDefenderObject::Multiplier1:
+		case BaseDefenderObject::Fog:
+		case BaseDefenderObject::Pulse:
 		case BaseDefenderObject::None:
 			break;
 	}
@@ -1052,6 +1070,8 @@ EngineStream &DefenderState::operator>>(EngineStream &stream) const
 	writeTagId(stream);
 	writeType(stream);
 	writeHp(stream);
+	writeVisible(stream);
+	writeTargetId(stream);
 
 	switch (m_type) {
 		case BaseDefenderObject::Dummy:
@@ -1059,6 +1079,8 @@ EngineStream &DefenderState::operator>>(EngineStream &stream) const
 			break;
 
 		case BaseDefenderObject::Multiplier1:
+		case BaseDefenderObject::Fog:
+		case BaseDefenderObject::Pulse:
 		case BaseDefenderObject::None:
 			break;
 	}
@@ -1722,6 +1744,40 @@ EngineStream &ControlStateList::operator>>(EngineStream &stream) const
 {
 	writeTagId(stream);
 	writeState(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief EventDefender::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &EventDefender::operator<<(EngineStream &stream)
+{
+	readTick(stream);
+	readTagId(stream);
+	readType(stream);
+	readTargetId(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief EventDefender::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &EventDefender::operator>>(EngineStream &stream) const
+{
+	writeTick(stream);
+	writeTagId(stream);
+	writeType(stream);
+	writeTargetId(stream);
 
 	return stream;
 }

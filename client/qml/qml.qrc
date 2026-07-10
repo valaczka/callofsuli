@@ -216,7 +216,6 @@
         <file>TiledVisualLight.qml</file>
         <file>TiledVisualOutline.qml</file>
         <file>TiledImageFromLayer.qml</file>
-        <file>RpgReconnect.qml</file>
         <file>RpgGameUserDialog.qml</file>
         <file>RpgQuestHeader.qml</file>
         <file>RpgQuestDelegate.qml</file>

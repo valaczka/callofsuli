@@ -24,7 +24,14 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include <libtiled/map.h>
+#include <libtiled/objectgroup.h>
 #include "rpgdefender.h"
+#include "rpgdefenderfog.h"
+#include "rpgplayer.h"
+
+
+
 
 
 
@@ -36,31 +43,113 @@
  * @param pos
  */
 
-RpgDefender::RpgDefender(RpgGameItem *gameItem, const cpVect &pos)
-	: RpgEntity(gameItem, pos, 20., CP_BODY_TYPE_STATIC)
+RpgDefender::RpgDefender(RpgGameItem *gameItem, const Rpg::DefenderObject &config)
+	: RpgEntity(gameItem, config.pos, 20., CP_BODY_TYPE_STATIC)
+	, m_config(config)
+	, m_visual(StateHidden)
 {
 	m_defaultMotor = std::make_unique<RpgDefenderMotor>(this);
 
 	filterSet(RpgGameItem::FixtureDefender, RpgGameItem::FixtureAll);
 	setSensor(true);
 
+	m_visual.setBasePosition(TiledObjectBody::toPointF(config.pos));
 }
 
 
 /**
- * @brief RpgDefender::initialize
+ * @brief RpgDefender::~RpgDefender
  */
 
-void RpgDefender::initialize()
+RpgDefender::~RpgDefender()
 {
-	Q_ASSERT(scene());
+	m_visual.clear();
 
-	TiledVisualItem *item = scene()->addVisualItem();
-	m_visualItem = item;
+	if (!m_scene) {
+		LOG_CERROR("game") << "Missing scene" << this;
+		return;
+	}
 
-	item->setSource(QUrl::fromLocalFile(QStringLiteral(":/rpg/time/pickable.png")));
-	item->setVisible(true);
+	for (TiledQuick::TileLayerItem *layer : std::as_const(m_layerItems)) {
+		m_scene->removeVisualItem(layer);
+		layer->deleteLater();
+	}
+
+	m_layerItems.clear();
 }
+
+
+
+/**
+ * @brief RpgDefender::createDefender
+ * @param npc
+ * @param gameItem
+ * @param scene
+ * @param pos
+ * @return
+ */
+
+RpgDefender *RpgDefender::createDefender(const Rpg::DefenderObject &defender, RpgGameItem *gameItem, TiledScene *scene)
+{
+	Q_ASSERT(gameItem);
+	Q_ASSERT(scene);
+
+	QString common;
+
+	switch (defender.type) {
+		case RpgStream::BaseDefenderObject::Fog:
+			common = QStringLiteral("test_defender.tmx");
+			break;
+			/*return gameItem->createObject<RpgDefenderFog>(RpgLogicObjectMapper::toObjectId(defender.idTag),
+														  scene, gameItem,
+														  defender);*/
+
+		case RpgStream::BaseDefenderObject::Pulse:
+			common = QStringLiteral("def_pulse.tmx");
+			break;
+
+		case RpgStream::BaseDefenderObject::Multiplier1:
+
+
+		case RpgStream::BaseDefenderObject::Dummy:
+		case RpgStream::BaseDefenderObject::None:
+			LOG_CERROR("game") << "Invalid defender type" << defender.type;
+			break;
+	}
+
+	if (!common.isEmpty())
+		return gameItem->createObject<RpgDefenderCommon>(RpgLogicObjectMapper::toObjectId(defender.idTag),
+														 scene,
+														 common, gameItem, defender);
+
+	return nullptr;
+}
+
+
+
+
+
+/**
+ * @brief RpgDefender::updateVisibility
+ */
+
+void RpgDefender::updateVisibility()
+{
+	if (!m_rpgGame || !m_rpgGame->controlledPlayer()) {
+		LOG_CERROR("game") << "Invalid game or player";
+		return;
+	}
+
+	if (m_visibleToAll || m_team == m_rpgGame->controlledPlayer()->team())
+		m_visual.setState(isAlive() ? (m_hasTarget ? StateActive : StateNormal) : StateDestroyed);
+	else
+		m_visual.setState(StateHidden);
+
+	if (TiledVisualItem *item = m_visual.imageItem())
+		item->setVisible(m_visual.state() != StateHidden);
+}
+
+
 
 
 /**
@@ -96,7 +185,151 @@ RpgStream::Team RpgDefender::team() const
 void RpgDefender::setTeam(RpgStream::Team newTeam)
 {
 	m_team = newTeam;
+
+	updateVisibility();
 }
+
+const Rpg::DefenderObject &RpgDefender::config() const
+{
+	return m_config;
+}
+
+bool RpgDefender::visibleToAll() const
+{
+	return m_visibleToAll;
+}
+
+void RpgDefender::setVisibleToAll(bool newVisibleToAll)
+{
+	if (m_visibleToAll == newVisibleToAll)
+		return;
+	m_visibleToAll = newVisibleToAll;
+	emit visibleToAllChanged();
+	updateVisibility();
+}
+
+bool RpgDefender::hasTarget() const
+{
+	return m_hasTarget;
+}
+
+void RpgDefender::setHasTarget(bool newHasTarget)
+{
+	if (m_hasTarget == newHasTarget)
+		return;
+	m_hasTarget = newHasTarget;
+	emit hasTargetChanged();
+
+	updateVisibility();
+}
+
+
+/**
+ * @brief RpgDefender::onAlive
+ */
+
+void RpgDefender::onAlive()
+{
+	updateVisibility();
+}
+
+
+/**
+ * @brief RpgDefender::onDead
+ */
+
+void RpgDefender::onDead()
+{
+	updateVisibility();
+}
+
+
+
+/**
+ * @brief RpgDefender::loadFromCommonMap
+ * @param name
+ * @return
+ */
+
+bool RpgDefender::loadFromCommonMap(const QString &name)
+{
+	m_scene = scene();
+
+	Q_ASSERT(m_scene);
+
+	const Tiled::Map *map = m_rpgGame->commonMap(name);
+	Tiled::MapRenderer *renderer = m_rpgGame->commonRenderer(name);
+
+	if (!map) {
+		LOG_CERROR("game") << "Invalid map";
+		return false;
+	}
+
+	if (!renderer) {
+		LOG_CERROR("game") << "Invalid renderer";
+		return false;
+	}
+
+	static const QHash<QString, State> stateHash = {
+		{ "active", StateActive },
+		{ "destroyed", StateDestroyed },
+		{ "normal", StateNormal }
+	};
+
+	std::optional<QPointF> ref;
+
+	for (Tiled::Layer *layer : map->layers()) {
+		if (Tiled::ObjectGroup *gr = layer->asObjectGroup()) {
+			for (Tiled::MapObject *object : std::as_const(gr->objects())) {
+				if (object->className() == QStringLiteral("base")) {
+					ref = renderer->pixelToScreenCoords(object->position())+gr->totalOffset();
+				}
+			}
+		}
+	}
+
+	TiledQuick::TileLayerItem *layerNormal = nullptr;
+	TiledQuick::TileLayerItem *layerActive = nullptr;
+
+	for (Tiled::Layer *layer : map->layers()) {
+		if (Tiled::TileLayer *tl = layer->asTileLayer()) {
+			TiledQuick::TileLayerItem *layerItem = m_scene->addTileLayer(tl, renderer);
+
+			const State st = stateHash.value(tl->className(), StateNormal);
+
+			if (st == StateNormal)
+				layerNormal = layerItem;
+			else if (st == StateActive)
+				layerActive = layerItem;
+
+			QPointF r;
+			if (ref.has_value())
+				r = ref.value();
+			else {
+				r.setX(layerItem->width()/2);
+				r.setY(layerItem->height()/2);
+			}
+
+			layerItem->setZ(scene()->getDynamicZ(layerItem->position() + m_visual.basePosition()));
+			layerItem->setPosition(layerItem->position() + m_visual.basePosition() - r);
+
+			m_layerItems.append(layerItem);
+			m_visual.addLayer(st, layerItem);
+		}
+	}
+
+	// Duplicate Active and Normal state if missing
+
+	if (layerNormal && !layerActive)
+		m_visual.addLayer(StateActive, layerNormal);
+	else if (!layerNormal && layerActive)
+		m_visual.addLayer(StateNormal, layerActive);
+
+	updateVisibility();
+
+	return true;
+}
+
 
 
 
@@ -115,14 +348,13 @@ bool RpgDefenderMotor::beforeWorldStep(const qint64 &/*tick*/, entt::entity &ent
 	const RpgStream::DefenderState *state = scope.getCurrentState<RpgStream::DefenderState>(entity);
 
 	if (!state) {
-		LOG_CERROR("game") << "!!!";
+		LOG_CERROR("game") << "Invalid defender state";
 		return false;
 	}
 
 	m_defender->setHp(state->hp());
-
-	if (!m_defender->isAlive())
-		m_defender->visualItem()->setOpacity(0.3);
+	m_defender->setHasTarget(state->targetId() > 0);
+	m_defender->setVisibleToAll(state->visible());
 
 	return true;
 }

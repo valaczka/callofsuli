@@ -262,14 +262,17 @@ void RpgLogicClientSingle::eventRealized(entt::entity entity)
 				eventStore(std::move(evc));
 			}
 
+
+			LOG_CERROR("game") << "REMOVE<<<<<<<<<<<<<<<<<<<<<";
+
 			for (int i=1; i<4; ++i) {
 				EventNpcCreate evc;
 				evc.setTick(tick + i*60);
 
 				evc.data.setCharacterResolved("soldier04");
 				evc.data.setTeam(RpgStream::TeamB);
-				evc.data.setType(RpgStream::NpcData::Dummy);
-				evc.data.entity().setMaxHp(4);
+				evc.data.setType(RpgStream::NpcData::TowerAttacker);
+				evc.data.entity().setMaxHp(50);
 				//evc.data.setEntity(def.toEntityConfig());
 
 

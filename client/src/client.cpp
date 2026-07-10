@@ -681,7 +681,7 @@ void Client::onUserLoggedIn()
 		//	server()->offlineEngine()->loadSyncMode(QStringLiteral("PageStudentDashboard.qml"));
 		else
 			/////stackPushPage(QStringLiteral("PageStudentDashboard.qml"));
-			loadDemoMap(QUrl("tutorial://test_tutorial1"));
+			loadDemoMap(/*QUrl("tutorial://test_tutorial1")*/);
 	});
 }
 

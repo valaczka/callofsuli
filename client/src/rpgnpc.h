@@ -46,6 +46,7 @@ class RpgNpc : public RpgEntity
 	ADD_SCATTER_POINT
 
 	Q_PROPERTY(RpgEntity *targetEntity READ targetEntity WRITE setTargetEntity NOTIFY targetEntityChanged FINAL)
+	Q_PROPERTY(bool isFriend READ isFriend WRITE setIsFriend NOTIFY isFriendChanged FINAL)
 
 public:
 	RpgNpc(RpgGameItem *gameItem, const cpVect &center = cpvzero);
@@ -66,8 +67,15 @@ public:
 	RpgEntity *targetEntity() const;
 	void setTargetEntity(RpgEntity *newTargetEntity);
 
+	bool isFriend() const;
+	void setIsFriend(bool newIsFriend);
+
+	QColor getColor() const;
+
 signals:
 	void targetEntityChanged();
+
+	void isFriendChanged();
 
 protected:
 	void synchronize() override;
@@ -87,6 +95,8 @@ private:
 	RpgEntity *m_targetEntity = nullptr;
 
 	QQuickItem *m_markerItem = nullptr;
+
+	bool m_isFriend = false;
 
 	friend class RpgMotorNpc;
 	friend class RpgMotorNpcControlled;

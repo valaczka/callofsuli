@@ -57,6 +57,7 @@ void RpgMp::initialize()
 
 	item->setSource(QUrl::fromLocalFile(QStringLiteral(":/rpg/mp/pickable.png")));
 	item->setVisible(true);
+	item->setGlowColor(RpgGame::colorGlow());
 }
 
 
@@ -72,7 +73,7 @@ void RpgMp::onMotorStepped()
 
 	if (m && m->finished() && !m_activated) {
 		cpBodySetType(body(), CP_BODY_TYPE_STATIC);
-		filterSet(RpgGameItem::FixtureControl, RpgGameItem::FixturePlayerBody | RpgGameItem::FixtureSensor | RpgGameItem::FixturePlayerTarget);
+		filterSet(RpgGameItem::FixtureControl, RpgGameItem::FixturePlayerBody | RpgGameItem::FixtureVirtualCircle | RpgGameItem::FixturePlayerTarget);
 
 		m_activated = true;
 	}

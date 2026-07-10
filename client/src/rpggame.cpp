@@ -26,12 +26,15 @@
 
 #include <libtiledquick/tilelayeritem.h>
 #include <libtiled/imagecache.h>
+#include <libtiled/map.h>
+#include <libtiled/mapreader.h>
 #include "application.h"
 #include "gamequestion.h"
 #include "litegame.h"
 #include "rpgnpc.h"
 #include "rpgplayer.h"
 #include "rpgstream.h"
+#include "rpgconfig.h"
 #include "rpguserwallet.h"
 #include "tiledgame.h"
 #include "rpgdefender.h"
@@ -57,6 +60,11 @@
 
 QHash<QString, RpgGameDefinition> RpgGame::m_terrains = {};
 QHash<QString, RpgPlayerDefinition> RpgGame::m_characters = {};
+
+const QColor RpgGame::m_colorTeam = QColorConstants::Svg::royalblue;
+const QColor RpgGame::m_colorOpponent = QColorConstants::Svg::red;
+const QColor RpgGame::m_colorNeutral = QColorConstants::Svg::whitesmoke;
+const QColor RpgGame::m_colorGlow = QColorConstants::Svg::wheat;
 
 
 /**
@@ -269,6 +277,14 @@ bool RpgGame::load(const RpgGameDefinition &def)
 
 
 
+QColor RpgGame::colorGlow()
+{
+	return m_colorGlow;
+}
+
+
+
+
 /**
  * @brief RpgGame::modelPlayer
  * @return
@@ -403,6 +419,46 @@ void RpgGame::reloadWorld()
 
 
 /**
+ * @brief RpgGame::commonMap
+ * @param scene
+ * @return
+ */
+
+const Tiled::Map* RpgGame::commonMap(const QString &scene) const
+{
+	const auto it = d->m_commonMaps.find(scene);
+
+	if (it == d->m_commonMaps.cend()) {
+		LOG_CERROR("game") << "Invalid common map" << scene;
+		return nullptr;
+	}
+
+	return it->second.first.get();
+}
+
+
+
+/**
+ * @brief RpgGame::commonRenderer
+ * @param scene
+ * @return
+ */
+
+Tiled::MapRenderer *RpgGame::commonRenderer(const QString &scene) const
+{
+	const auto it = d->m_commonMaps.find(scene);
+
+	if (it == d->m_commonMaps.cend()) {
+		LOG_CERROR("game") << "Invalid common map" << scene;
+		return nullptr;
+	}
+
+	return it->second.second.get();
+}
+
+
+
+/**
  * @brief RpgGame::rpgLogic
  * @return
  */
@@ -472,6 +528,20 @@ void RpgGame::connectGameQuestion()
 	connect(m_gameQuestion, &GameQuestion::failed, d, &RpgGamePrivate::onQuestionFailed);
 	connect(m_gameQuestion, &GameQuestion::finished, d, &RpgGamePrivate::onQuestionFinished);
 	connect(m_gameQuestion, &GameQuestion::started, d, &RpgGamePrivate::onQuestionStarted);
+}
+
+
+
+/**
+ * @brief RpgGame::gameFinishEvent
+ * @return
+ */
+
+bool RpgGame::gameFinishEvent()
+{
+	LOG_CWARNING("game") << "GAME FINISH EVENT*****************************";
+
+	return true;
 }
 
 
@@ -642,6 +712,7 @@ void RpgGamePrivate::updateCharacterSelect()
 			d.setTeam(RpgStream::TeamNone);
 			d.setType(RpgStream::NpcData::TowerAttacker);
 			d.setEntity(def.toEntityConfig());
+			d.entity().setMaxHp(50);
 
 			m_logic->addNpc(d, p);
 
@@ -679,12 +750,23 @@ void RpgGamePrivate::prepareGameItem()
 
 	const RpgGameDefinition def = RpgGame::terrains().value(terrain);
 
-	const auto &ptr = TiledGame::getDynamicTilesets(def);
+	auto ptr = TiledGame::getDynamicTilesets(def);
 
 	if (!ptr) {
 		q->setError(tr("Nem sikerült betölteni a terepet"));
 		return;
 	}
+
+	const auto &common = TiledGame::getDynamicTilesets(m_commonGameDefinition);
+
+	if (!common) {
+		q->setError(tr("Nem sikerült betölteni a terepet"));
+		return;
+	}
+
+	LOG_CINFO("game") << "**********************" << common.value();
+
+	ptr->append(common.value());
 
 	for (const QString &s : ptr.value()) {
 		const QString res = q->m_client->downloader()->contentDict().value(s);
@@ -721,6 +803,11 @@ void RpgGamePrivate::prepareGameItem()
 	}
 
 	LOG_CDEBUG("game") << "LOAD" << cfg->terrain() << terrain << def.name;
+
+	if (!loadCommonMaps()) {
+		q->setError(tr("Nem sikerült betölteni a terepet"));
+		return;
+	}
 
 	if (q->load(def)) {
 		q->m_gameItem->setIsContentReady(true);
@@ -791,7 +878,7 @@ void RpgGamePrivate::onGameItemPrepared()
 	syncGameState();
 	syncGameConfig(cfg, 0);
 
-	QTimer::singleShot(3000, this, [this, logic]() {
+	QTimer::singleShot(750, this, [this, logic]() {
 		LOG_CERROR("game") << "REMOVE THIS" << logic->serverTick();
 
 		syncGameConfig(logic->startGame(), logic->serverTick());
@@ -1277,7 +1364,6 @@ void RpgGamePrivate::onQuestionSuccess(const QVariantMap &answer)
 
 	gq->answerReveal(answer);
 	gq->setMsecBeforeHide(0);
-	///gq->finish();			- finish by motor
 
 	if (!q->controlledPlayer()) {
 		LOG_CERROR("game") << "Missing RpgPlayer";
@@ -1360,6 +1446,13 @@ void RpgGamePrivate::onQuestionStarted()
 void RpgGamePrivate::onQuestionFinished()
 {
 	q->m_gameItem->forceActiveFocus(Qt::OtherFocusReason);
+
+	GameQuestion *gq = q->gameQuestion();
+
+	if (!gq) {
+		LOG_CERROR("game") << "Missing GameQuestion";
+		return;
+	}
 }
 
 
@@ -1544,10 +1637,6 @@ void RpgGamePrivate::syncGameState()
 	q->setPtsOpponent(q->m_controlledPlayer->team() == RpgStream::TeamA ?
 						  state->ptsB() : state->ptsA());
 
-	q->setColorTeam(RpgGameItem::teamColor().value(q->m_controlledPlayer->team()));
-	q->setColorOpponent(RpgGameItem::teamColor().value(q->m_controlledPlayer->team() == RpgStream::TeamA ?
-														   RpgStream::TeamB : RpgStream::TeamA));
-
 }
 
 
@@ -1564,8 +1653,7 @@ void RpgGamePrivate::syncTowersAndEmitters()
 		const Rpg::Tower &t = scope.get<Rpg::Tower>(entity);
 
 		if (RpgTower *tower = m_towerList.value(t.idTag)) {
-			if (QQuickItem *v = tower->visualItem())
-				v->setVisible(t.active);
+			tower->setVisible(t.active);
 		}
 	}
 
@@ -1618,9 +1706,9 @@ void RpgGamePrivate::syncPlayers()
 
 	Rpg::RpgLogicControlledObjects *controlledObjects = scope.getCtx<Rpg::RpgLogicControlledObjects>();
 
-	auto view = scope.view<Rpg::Player>(entt::exclude<Rpg::LocalIdTag>);
+	bool recolor = false;
 
-	for (auto entity : view) {
+	for (auto entity : scope.view<Rpg::Player>(entt::exclude<Rpg::LocalIdTag>)) {
 		const RpgStream::PlayerState *state = scope.getCurrentState<RpgStream::PlayerState>(entity);
 
 		const Rpg::Player &p = scope.get<Rpg::Player>(entity);
@@ -1654,19 +1742,6 @@ void RpgGamePrivate::syncPlayers()
 		obj->setDisplayName(QString("Player #%1").arg(p.playerData.playerId()));
 		obj->load(def);
 
-		if (state) {
-			obj->setHp(state->hp());
-			obj->setMp(state->mp());
-			obj->setBullet(state->bullet());
-			obj->setDefender(state->defender(), state->hasDefender());
-			obj->setTeam(p.team);
-
-			if (auto ptr = addToScatter(0)) {
-				obj->setScatterPoint(ptr.value());
-				ptr->scatter->setPointConfiguration(ptr->index, QXYSeries::PointConfiguration::Color,
-													RpgGameItem::teamColor().value(p.team));
-			}
-		}
 
 		const quint32 pid = logicRegisterObject(obj);
 		m_logic->addLocalIdTag(entity);
@@ -1680,7 +1755,46 @@ void RpgGamePrivate::syncPlayers()
 			q->setControlledPlayer(obj);
 
 			LOG_CWARNING("game") << "***** CONTROLLED" << obj;
+
+			recolor = true;
 		}
+
+
+		if (state) {
+			obj->setHp(state->hp());
+			obj->setMp(state->mp());
+			obj->setBullet(state->bullet());
+			obj->setDefender(state->defender(), state->hasDefender());
+			obj->setTeam(p.team);
+
+			if (auto ptr = addToScatter(0)) {
+				obj->setScatterPoint(ptr.value());
+				ptr->scatter->setPointConfiguration(ptr->index, QXYSeries::PointConfiguration::Color,
+													q->getColor(p.team));
+			}
+		}
+	}
+
+
+	if (!recolor)
+		return;
+
+
+	for (auto entity : scope.view<Rpg::Player>()) {
+		const Rpg::Player &p = scope.get<Rpg::Player>(entity);
+
+		RpgPlayer *obj = qobject_cast<RpgPlayer*>(scope.getCtx<RpgLogicObjectMapper>()->get(p.idTag()));
+
+		if (!obj)
+			continue;
+
+		const auto &ptr = obj->scatterPoint();
+
+		if (!ptr.isValid())
+			continue;
+
+		ptr.scatter->setPointConfiguration(ptr.index, QXYSeries::PointConfiguration::Color,
+										   q->getColor(obj->team()));
 	}
 }
 
@@ -1750,9 +1864,8 @@ void RpgGamePrivate::syncDefenders()
 		LOG_CWARNING("game") << "CREATE DEFENDER" << def.idTag << def.pos.x << def.pos.y;
 
 
-		RpgDefender *obj = q->m_gameItem->createObject<RpgDefender>(RpgLogicObjectMapper::toObjectId(def.idTag),
-																	scene, q->m_gameItem,
-																	def.pos);
+		RpgDefender *obj = RpgDefender::createDefender(def, q->m_gameItem, scene);
+
 
 		Q_ASSERT(obj);
 
@@ -1846,7 +1959,7 @@ void RpgGamePrivate::syncNpc()
 
 		Q_ASSERT(obj);
 
-		obj->setDisplayName(QString("NPC #%1").arg(p.idTag));
+		//obj->setDisplayName(QString("NPC #%1").arg(p.idTag));
 		obj->load(def);
 
 		if (state) {
@@ -1856,7 +1969,7 @@ void RpgGamePrivate::syncNpc()
 			if (auto ptr = addToScatter(2)) {
 				obj->setScatterPoint(ptr.value());
 				ptr->scatter->setPointConfiguration(ptr->index, QXYSeries::PointConfiguration::Color,
-													RpgGameItem::teamColor().value(p.data.team()));
+													obj->getColor());
 			}
 		}
 
@@ -2023,11 +2136,15 @@ void RpgGamePrivate::processEvents(const std::vector<RpgStream::Events> &list, c
 		if (event.flags().testFlag(RpgStream::Events::Npc))
 			processEvents(event.npc());
 
-		// Npc events
+		// Control events
 
 		if (event.flags().testFlag(RpgStream::Events::Control))
 			processEvents(event.control());
 
+		// Defender events
+
+		if (event.flags().testFlag(RpgStream::Events::Defender))
+			processEvents(event.defender());
 
 
 		m_lastProcessedEventTick = event.tick();
@@ -2077,6 +2194,12 @@ void RpgGamePrivate::processEvents(const std::vector<RpgStream::EventPlayer> &li
 			if (const qint64 delta = q->m_gameItem->tickTimer()->tickTo(event.at()); delta > 0) {
 				int sec = std::ceil(AbstractGame::TickTimer::tickToMsec(delta)/1000.);
 				q->m_gameItem->message(QObject::tr("Back in %1 sec").arg(sec));
+
+				if (GameQuestion *gq = q->gameQuestion()) {
+					gq->setProperty("progressColor", QColorConstants::Svg::red);
+					gq->setProperty("msecLeft", q->msecLeft()
+									-AbstractGame::TickTimer::tickToMsec(delta));
+				}
 			}
 		} else if (event.type() == RpgStream::EventPlayer::EventStreak) {
 			q->m_gameItem->message(QObject::tr("%1 streak").arg(event.at()));
@@ -2199,6 +2322,20 @@ void RpgGamePrivate::processEvents(const std::vector<RpgStream::EventControl> &l
 		if (RpgMotorNpcEventIface *motor = dynamic_cast<RpgMotorNpcEventIface*>(npc->currentMotor()))
 			motor->processEvent(event);
 	}*/
+}
+
+
+
+
+/**
+ * @brief RpgGamePrivate::processEvents
+ * @param list
+ */
+
+void RpgGamePrivate::processEvents(const std::vector<RpgStream::EventDefender> &list)
+{
+	if (list.empty())
+		return;
 }
 
 
@@ -2495,6 +2632,42 @@ void RpgGamePrivate::vibrate()
 #endif
 
 }
+
+
+/**
+ * @brief RpgGamePrivate::loadCommonMaps
+ */
+
+bool RpgGamePrivate::loadCommonMaps()
+{
+	if (!m_commonMaps.empty())
+		return false;
+
+
+	LOG_CDEBUG("game") << "Load common maps...";
+
+
+	for (const TiledSceneDefinition &def : m_commonGameDefinition.scenes) {
+		Tiled::MapReader mapReader;
+
+		const QString file = m_commonGameDefinition.basePath+def.file;
+
+		auto ptr = mapReader.readMap(Tiled::urlToLocalFileOrQrc(file));
+
+		if (!ptr) {
+			LOG_CERROR("game") << "Map can't loaded" << file;
+			m_commonMaps.clear();
+			return false;
+		} else {
+			LOG_CDEBUG("game") << "Map loaded" << file;
+			auto renderer = Tiled::MapRenderer::create(ptr.get());
+			m_commonMaps[def.file] = std::make_pair(std::move(ptr), std::move(renderer));
+		}
+	}
+
+	return true;
+}
+
 
 
 /**
@@ -3056,31 +3229,8 @@ void RpgGame::setPtsOpponent(int newPtsOpponent)
 	emit ptsOpponentChanged();
 }
 
-QColor RpgGame::colorTeam() const
-{
-	return m_colorTeam;
-}
 
-void RpgGame::setColorTeam(const QColor &newColorTeam)
-{
-	if (m_colorTeam == newColorTeam)
-		return;
-	m_colorTeam = newColorTeam;
-	emit colorTeamChanged();
-}
 
-QColor RpgGame::colorOpponent() const
-{
-	return m_colorOpponent;
-}
-
-void RpgGame::setColorOpponent(const QColor &newColorOpponent)
-{
-	if (m_colorOpponent == newColorOpponent)
-		return;
-	m_colorOpponent = newColorOpponent;
-	emit colorOpponentChanged();
-}
 
 
 /**
@@ -3157,4 +3307,38 @@ RpgStream::EntityConfig RpgNpcDefinition::toEntityConfig() const
 	cfg.setResist(resist);
 
 	return cfg;
+}
+
+QColor RpgGame::colorTeam()
+{
+	return m_colorTeam;
+}
+
+QColor RpgGame::colorOpponent()
+{
+	return m_colorOpponent;
+}
+
+QColor RpgGame::colorNeutral()
+{
+	return m_colorNeutral;
+}
+
+
+
+/**
+ * @brief RpgGame::getColor
+ * @param team
+ * @param neutral
+ * @return
+ */
+
+QColor RpgGame::getColor(const RpgStream::Team &team, const QColor &neutral) const
+{
+	if (!m_controlledPlayer || team == RpgStream::TeamNone)
+		return neutral;
+	else if (m_controlledPlayer->team() == team)
+		return m_colorTeam;
+	else
+		return m_colorOpponent;
 }

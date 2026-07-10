@@ -255,6 +255,8 @@ void RpgNpc::synchronize()
 		QPointF p = bodyPositionF();
 		p.setY(scene()->height() - p.y());
 		m_scatterPoint.scatter->replace(m_scatterPoint.index, p);
+		m_scatterPoint.scatter->setPointConfiguration(m_scatterPoint.index,
+													  QXYSeries::PointConfiguration::Visibility, isAlive());
 	}
 }
 
@@ -291,9 +293,17 @@ void RpgNpc::updateColor()
 {
 	LOG_CDEBUG("game") << "Update colors" << this << m_team;
 
+	const QColor color = getColor();
+
 	if (m_markerItem) {
-		m_markerItem->setProperty("progressBarColor", RpgGameItem::teamColor().value(m_team));
-		m_markerItem->setProperty("labelColor", RpgGameItem::teamColor().value(m_team));
+		m_markerItem->setProperty("progressBarColor", color);
+		m_markerItem->setProperty("labelColor", color);
+	}
+
+	if (m_scatterPoint.isValid()) {
+		m_scatterPoint.scatter->setPointConfiguration(m_scatterPoint.index,
+													  QXYSeries::PointConfiguration::Color,
+													  color);
 	}
 }
 
@@ -497,7 +507,7 @@ RpgMotorNpcControlled::RpgMotorNpcControlled(RpgNpc *npc)
 
 void RpgMotorNpcControlled::updateBody(TiledObject *)
 {
-	if (!m_npc->isAlive()) {
+	if (!m_npc->isAlive() || m_game->gameState() != RpgGame::GameStatePlay) {
 		m_npc->stop();
 
 		m_npc->setTargetEntity(nullptr);
@@ -1060,3 +1070,32 @@ void RpgMotorNpcControlled::applyKnockback()
 }
 
 
+
+bool RpgNpc::isFriend() const
+{
+	return m_isFriend;
+}
+
+void RpgNpc::setIsFriend(bool newIsFriend)
+{
+	if (m_isFriend == newIsFriend)
+		return;
+	m_isFriend = newIsFriend;
+	emit isFriendChanged();
+
+	updateColor();
+}
+
+
+
+/**
+ * @brief RpgNpc::getColor
+ * @return
+ */
+
+QColor RpgNpc::getColor() const
+{
+	return m_rpgGame->getColor(m_team,
+							   m_isFriend ? RpgGame::colorNeutral() :
+											RpgGame::colorOpponent());
+}

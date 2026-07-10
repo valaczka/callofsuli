@@ -106,8 +106,6 @@ public:
 	Q_ENUM(Fixture)
 	Q_DECLARE_FLAGS(Fixtures, Fixture)
 
-	static const QHash<RpgStream::Team, QColor> &teamColor() { return m_teamColor; }
-
 	RpgGame *game() const;
 	void setGame(RpgGame *newGame);
 
@@ -165,8 +163,6 @@ private:
 	RpgGame *m_game = nullptr;
 	bool m_isContentReady = false;
 
-	static const QHash<RpgStream::Team, QColor> m_teamColor;
-
 	friend class RpgGame;
 	friend class RpgGamePrivate;
 };
@@ -197,6 +193,8 @@ public:
 
 	void refresh() { updateState(); }
 
+	void clear() { m_layers.clear(); m_sources.clear(); m_imageItem = nullptr; }
+
 	void addLayer(const T &state, QQuickItem *layer) {
 		if (!layer)
 			return;
@@ -209,7 +207,7 @@ public:
 	void setImageItem(TiledVisualItem *newImageItem) { m_imageItem = newImageItem; }
 
 	void addSource(const T &state, const QUrl &source, const QPointF &offset = {}) {
-		m_sources[state].append({.url = source, .offset = offset});
+		m_sources[state] = SourceData{.url = source, .offset = offset};
 	}
 
 	const QPointF &basePosition() const { return m_basePosition; }

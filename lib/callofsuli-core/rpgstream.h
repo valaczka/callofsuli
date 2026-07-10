@@ -884,7 +884,9 @@ public:
 	enum Type {
 		None = 0,
 		Dummy,
-		Multiplier1
+		Multiplier1,
+		Fog,
+		Pulse
 	};
 
 	enum PlacementFlag {
@@ -1549,6 +1551,8 @@ public:
 
 	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
 	STREAM_MEMBER_CAST(BaseDefenderObject::Type, type, Type, OBJECT_TYPE, OBJECT_BITS, BaseDefenderObject::None)
+	STREAM_MEMBER_CAST(bool, visible, Visible, quint8, 1, false)
+	STREAM_MEMBER(TAG_ID_TYPE, targetId, TargetId, TAG_ID_BITS, 0);
 
 	STREAM_MEMBER(ENTITY_HP_TYPE, hp, Hp, ENTITY_HP_BITS, 0)
 
@@ -1560,6 +1564,8 @@ public:
 		return other.m_tagId == m_tagId &&
 				other.m_type == m_type &&
 				other.m_hp == m_hp &&
+				other.m_visible == m_visible &&
+				other.m_targetId == m_targetId &&
 				other.m_dummy == m_dummy
 				;
 	}
@@ -1713,6 +1719,28 @@ public:
 
 
 
+
+/**
+ * @brief The EventDefender class
+ */
+
+class EventDefender : public BaseEventState
+{
+public:
+	EventDefender() : BaseEventState() {}
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
+	STREAM_MEMBER_CAST(BaseDefenderObject::Type, type, Type, OBJECT_TYPE, OBJECT_BITS, BaseDefenderObject::None)
+	STREAM_MEMBER(TAG_ID_TYPE, targetId, TargetId, TAG_ID_BITS, 0);
+};
+
+
+
+
 /**
  * @brief The BaseControlData class
  */
@@ -1786,6 +1814,7 @@ public:
 		Stage			= 1 << 2,
 		Npc				= 1 << 3,
 		Control			= 1 << 4,
+		Defender		= 1 << 5,
 	};
 
 	Q_DECLARE_FLAGS(Flags, Flag)
@@ -1796,6 +1825,7 @@ public:
 	STREAM_MEMBER_VECTOR(EventStageChanged, stage, Stage, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 	STREAM_MEMBER_VECTOR(EventNpc, npc, Npc, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 	STREAM_MEMBER_VECTOR(EventControl, control, Control, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
+	STREAM_MEMBER_VECTOR(EventDefender, defender, Defender, ENTITY_LIST_TYPE, ENTITY_LIST_BITS)
 };
 
 

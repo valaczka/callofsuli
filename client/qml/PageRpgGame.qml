@@ -26,21 +26,22 @@ Page {
 			}
 		}
 
-		/*if (game && game.config.gameState == RpgConfig.StateError)
-			return true
+		if (game) {
+			if (game.gameState == RpgGame.GameStateError)
+				return true
 
 
-		if (game && game.rpgGame && game.rpgGame.gameQuestion && game.rpgGame.gameQuestion.objectiveUuid != "")
-			return true
+			if (game.gameQuestion && game.gameQuestion.objectiveUuid != "")
+				return true
 
-		if (_multiplayer)
-			return true
+			if (game.gameMode == RpgGame.MultiPlayer)
+				return true
 
-		*/
 
-		if (_rpgVisible && !game.gameItem.paused && !_forceExit) {
-			game.gameItem.paused = true
-			return false
+			if (_rpgVisible && !game.gameItem.paused && !_forceExit) {
+				game.gameItem.paused = true
+				return false
+			}
 		}
 
 		return true
@@ -125,23 +126,6 @@ Page {
 		}
 	}
 
-	Component {
-		id: _cmpFirstConnect
-
-		RpgReconnect {
-			firstConnect: true
-			//game: root.game
-		}
-	}
-
-	Component {
-		id: _cmpReconnect
-
-		RpgReconnect {
-			//game: root.game
-		}
-	}
-
 
 	Component {
 		id: _cmpStaticDownload
@@ -150,15 +134,6 @@ Page {
 			downloader: Client.downloader
 		}
 	}
-
-
-	/*RpgReconnect {
-		id: _reconnect
-
-		anchors.fill: parent
-
-		visible: game && game.isReconnecting
-	}*/
 
 
 	StudentDashboardNotification {
@@ -185,12 +160,6 @@ Page {
 	Connections {
 		target: game
 
-		/*function onGameModeChanged() {
-			if (game.gameMode == ActionRpgGame.MultiPlayerHost)
-				Client.snack(qsTr("You are the host now"))
-		}*/
-
-
 		function onDownloadRequest(size) {
 			JS.questionDialog({
 								  onAccepted: function()
@@ -209,14 +178,6 @@ Page {
 
 
 		function onGameStateChanged() {
-			/*if (game.isReconnecting && game.config.gameState != RpgConfig.StateError)
-				return*/
-
-			/*if (game.isReconnecting && game.config.gameState != RpgConfig.StateError) {
-				_stack.activeComponent = _cmpReconnect
-				return
-			}*/
-
 			switch (game.gameState) {
 			case RpgGame.GameStatePrepare:
 			case RpgGame.GameStateInit:
@@ -234,7 +195,8 @@ Page {
 
 			case RpgGame.GameStateFinished:
 				//if (!_multiplayer)
-				Client.stackPop(root)
+				//Client.stackPop(root)
+				console.info("QML change to Finish state.....")
 				return
 
 			case RpgGame.GameStateDownloadContent:
@@ -246,7 +208,7 @@ Page {
 				break
 
 			default:
-				_stack.activeComponent = _cmpFirstConnect
+				_stack.activeComponent = _cmpStaticDownload
 				break
 			}
 		}

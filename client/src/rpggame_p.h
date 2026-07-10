@@ -44,6 +44,34 @@
 #endif
 
 
+
+/**
+ * @brief The CommonGameDefinition class
+ */
+
+class CommonGameDefinition : public TiledGameDefinition {
+	Q_GADGET
+
+public:
+	CommonGameDefinition() : TiledGameDefinition() {
+		basePath = QStringLiteral("qrc:/map/map_common/");
+
+		{
+			TiledSceneDefinition sc;
+			sc.file = QStringLiteral("test_defender.tmx");
+			scenes.emplace_back(std::move(sc));
+		}
+
+		{
+			TiledSceneDefinition sc;
+			sc.file = QStringLiteral("def_pulse.tmx");
+			scenes.emplace_back(std::move(sc));
+		}
+	}
+
+};
+
+
 /**
  * @brief The RpgGamePrivate class
  */
@@ -60,6 +88,7 @@ private:
 
 	void clearSharedTextures();
 	void vibrate();
+	bool loadCommonMaps();
 
 
 	// Connect
@@ -160,6 +189,7 @@ private:
 	void processEvents(const std::vector<RpgStream::EventMpEmitter> &list);
 	void processEvents(const std::vector<RpgStream::EventNpc> &list);
 	void processEvents(const std::vector<RpgStream::EventControl> &list);
+	void processEvents(const std::vector<RpgStream::EventDefender> &list);
 
 	void onTimeStepped(const std::vector<TiledObjectBody *> &aboutDestruction);
 
@@ -192,10 +222,14 @@ private:
 	QList<QScatterSeries*> m_scatters;
 
 
+
 	inline static RpgStream::HashFnv1A64 m_terrainHash = {};
 	inline static RpgStream::HashFnv1A64 m_characterHash = {};
 	inline static RpgStream::HashFnv1A64 m_npcHash = {};
 	inline static QHash<QString, RpgNpcDefinition> m_npcDefinitions = {};
+	inline static CommonGameDefinition m_commonGameDefinition = {};
+
+	std::unordered_map<QString, std::pair< std::unique_ptr<Tiled::Map>, std::unique_ptr<Tiled::MapRenderer> > > m_commonMaps;
 
 
 #ifdef WITH_GAMEPAD

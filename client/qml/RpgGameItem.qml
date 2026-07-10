@@ -492,9 +492,40 @@ FocusScope {
 		game: root.game
 
 		z: 5
+
+		property int msecLeft: 0
+		property color progressColor: Qaterial.Style.iconColor()
+
+		onMsecLeftChanged: {
+			if (msecLeft > 0) {
+				_questionProgress.from = msecLeft
+				_questionProgress.to = root.game.msecLeft
+			} else {
+				_questionProgress.from = 0
+				_questionProgress.to = 0
+			}
+		}
 	}
 
 
+	ProgressBar {
+		id: _questionProgress
+		visible: to > 0
+		anchors.bottom: parent.bottom
+		width: parent.width
+
+		z: 5
+
+		from: 0
+		to: 0
+		value: to > 0 ? game.msecLeft : 0
+
+		Material.accent: _gameQuestion.progressColor
+
+		/*Behavior on value {
+			NumberAnimation { duration: 100; easing.type: Easing.Linear }
+		}*/
+	}
 
 
 

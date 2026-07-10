@@ -39,14 +39,6 @@
 
 
 
-const QHash<RpgStream::Team, QColor> RpgGameItem::m_teamColor = {
-	{ RpgStream::TeamNone, QColorConstants::Svg::white },
-	{ RpgStream::TeamA, QColorConstants::Svg::cyan },
-	{ RpgStream::TeamB, QColorConstants::Svg::yellow },
-};
-
-
-
 /**
  * @brief The RpgObjectExclude class
  */
@@ -384,16 +376,6 @@ void RpgGameItem::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *sce
 
 void RpgGameItem::loadTileLayer(TiledScene *scene, Tiled::TileLayer *layer, Tiled::MapRenderer *renderer)
 {
-	/*if (layer->className() == QStringLiteral("chunkMarker")) {
-		LOG_CERROR("game") << "LOAD CHUNK LAYER";
-
-		d->m_chunkMarkerLayer = scene->addTileLayer(layer, renderer);
-		d->m_chunkMarkerBaseOffset = -renderer->tileToScreenCoords(0, 0) + layer->totalOffset();
-
-		LOG_CINFO("game") << "BASE OFFSET" << d->m_chunkMarkerBaseOffset;
-
-		return;
-	}*/
 	TiledGame::loadTileLayer(scene, layer, renderer);
 }
 
@@ -422,20 +404,14 @@ bool RpgGameItem::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, 
 		}*/
 
 		if (group->className() == QStringLiteral("teamA") || group->name() == QStringLiteral("teamA")) {
-			LOG_CINFO("game") << "REGISTER A" << object->className();
-
 			const QPointF pos = renderer->pixelToScreenCoords(object->position() + group->totalOffset());
 
 			d->playerPositionAdd(pos, RpgStream::TeamA);
 		} else if (group->className() == QStringLiteral("teamB") || group->name() == QStringLiteral("teamB")) {
-			LOG_CINFO("game") << "REGISTER B" << object->className();
-
 			const QPointF pos = renderer->pixelToScreenCoords(object->position() + group->totalOffset());
 
 			d->playerPositionAdd(pos, RpgStream::TeamB);
 		} else if (group->className() == QStringLiteral("chest") || group->name() == QStringLiteral("chest")) {
-			LOG_CINFO("game") << "REGISTER CHEST" << object->className();
-
 			const QPointF pos = renderer->pixelToScreenCoords(object->position() + group->totalOffset());
 
 			d->chestPositionAdd(pos);
@@ -477,8 +453,6 @@ void RpgGameItem::loadObjectLayer(TiledScene *scene, Tiled::MapObject *object, c
 
 void RpgGameItem::loadTower(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer)
 {
-	LOG_CDEBUG("game") << "LOAD TOWER" << group->name();
-
 	QMultiMap<RpgStream::Team, TiledQuick::TileLayerItem *> layers;
 	RpgTower *tower = nullptr;
 	QList<RpgDefenderPoint*> defenders;
@@ -498,13 +472,11 @@ void RpgGameItem::loadTower(TiledScene *scene, Tiled::GroupLayer *group, Tiled::
 				visualItem = scene->addVisualItem(tl, renderer);
 				visualItem->setGlowColor(QColorConstants::Svg::gold);
 
-				LOG_CDEBUG("game") << "Load tower TileLayer" << tl->name() << "in" << group->name() << visualItem->position();
 				continue;
 			}
 
 			tl->setName(group->name());							// Name override for dynamicZ
 
-			LOG_CDEBUG("game") << "LOAD TOWER TILE" << group->name() << tl->name() << team;
 			TiledQuick::TileLayerItem *item = scene->addTileLayer(tl, renderer);
 			item->setVisible(false);
 
@@ -520,7 +492,6 @@ void RpgGameItem::loadTower(TiledScene *scene, Tiled::GroupLayer *group, Tiled::
 						continue;
 
 					}
-					LOG_CDEBUG("game") << "LOAD TOWER OBJECT" << group->name() << gr->name() << gr->className();
 
 					tower = createObject<RpgTower>(TiledObjectBody::ObjectId{.ownerId = 0,
 																			 .sceneId = scene->sceneId(),
@@ -533,7 +504,6 @@ void RpgGameItem::loadTower(TiledScene *scene, Tiled::GroupLayer *group, Tiled::
 					loadDynamicZ(scene, object, renderer);
 
 				} else if (object->className() == QStringLiteral("exclude")) {
-					LOG_CDEBUG("game") << "LOAD TOWER EXCLUED" << group->name() << layer->name();
 					RpgObjectExclude *mapObject = createObject<RpgObjectExclude>(TiledObjectBody::ObjectId{.ownerId = 0,
 																										   .sceneId = scene->sceneId(),
 																										   .id = static_cast<quint32>(object->id())
@@ -559,8 +529,6 @@ void RpgGameItem::loadTower(TiledScene *scene, Tiled::GroupLayer *group, Tiled::
 		LOG_CERROR("game") << "Load tower error" << group->name();
 		return;
 	}
-
-	LOG_CINFO("game") << "**************" << tower->scene() << "visual" << visualItem;
 
 	if (visualItem) {
 		tower->setVisualItem(visualItem);
@@ -589,18 +557,14 @@ void RpgGameItem::loadTower(TiledScene *scene, Tiled::GroupLayer *group, Tiled::
 
 RpgDefenderPoint *RpgGameItem::loadDefender(TiledScene *scene, Tiled::GroupLayer *group, Tiled::MapRenderer *renderer)
 {
-	LOG_CDEBUG("game") << "LOAD DEFENDER" << group->name();
-
 	TiledQuick::TileLayerItem *item = nullptr;
 	RpgDefenderPoint *defender = nullptr;
 
 	for (Tiled::Layer *layer : std::as_const(*group)) {
 		if (Tiled::TileLayer *tl = layer->asTileLayer()) {
-			LOG_CDEBUG("game") << "LOAD DEFENDER TILE" << group->name() << layer->name();
 			item = scene->addTileLayer(tl, renderer);
 			item->setVisible(false);
 		} else if (Tiled::ObjectGroup *gr = layer->asObjectGroup()) {
-			LOG_CDEBUG("game") << "LOAD DEFENDER OBJECT" << group->name() << gr->name() << gr->className();
 			for (Tiled::MapObject *object : std::as_const(gr->objects())) {
 				if (object->className() == QStringLiteral("defender")) {
 					defender = createObject<RpgDefenderPoint>(TiledObjectBody::ObjectId{.ownerId = 0,
@@ -647,6 +611,9 @@ void RpgGameItem::onStageChanged(const RpgStream::GameConfig::Stage &stage)
 	}
 
 }
+
+
+
 
 
 
@@ -782,6 +749,9 @@ void RpgGameItem::timeStepPrepareEvent()
 
 void RpgGameItem::timeBeforeWorldStepEvent(const qint64 &tick)
 {
+	if (m_game->gameState() == RpgGame::GameStateFinished)
+		return;
+
 	d->onBeforeWorldStep(tick);
 
 

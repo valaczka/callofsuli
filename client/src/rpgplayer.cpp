@@ -70,13 +70,14 @@ private:
 	bool m_controlActionDisable = false;
 	quint32 m_controlActionDisableLastNotification = 0;
 
-	RpgStream::BaseDefenderObject::Type m_currentDefender = RpgStream::BaseDefenderObject::Dummy;
+	RpgStream::BaseDefenderObject::Type m_currentDefender = RpgStream::BaseDefenderObject::None;
 
 	cpVect m_currentKnockback = cpvzero;
 
 	QSet<cpShape*> m_groundCollision;
 
 	bool m_joystickC_hasTouch = false;
+	bool m_isTargetAuto = false;
 
 
 	friend class RpgPlayer;
@@ -575,8 +576,9 @@ const std::optional<cpVect> &RpgMotorPlayerControlled::targetAhead() const
 
 void RpgMotorPlayerControlled::updateBody(TiledObject *)
 {
-	if (!m_player->isAlive()) {
+	if (!m_player->isAlive() || m_game->gameState() != RpgGame::GameStatePlay) {
 		m_player->stop();
+		d->applyKnockback();
 		m_player->setCurrentChunk({-1,-1});
 		m_player->setCurrentChunkCenter({-1,-1});
 
@@ -749,6 +751,11 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 		return;
 	}
 
+	if (!m_targetJoystickState.hasTouch && m_player->targetControl() && d->m_isTargetAuto) {
+		m_player->setTargetEntity(nullptr);
+		return;
+	}
+
 
 	const float dist = std::max(SENSOR_LENGTH, 450.);			// TODO: weapon length
 
@@ -768,12 +775,14 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 			cpVect ahead = m_player->bodyPosition()+TiledObjectBody::vectorFromAngle(m_targetAngle.value(), dist);
 
 			RpgEntity *next = findNearestTarget(ahead,
-											   RpgGameItem::FixturePlayerBody | RpgGameItem::FixturePlayerTarget |
-											   RpgGameItem::FixtureNpcBody | RpgGameItem::FixtureNpcTarget
-											   );
+												RpgGameItem::FixturePlayerBody | RpgGameItem::FixturePlayerTarget |
+												RpgGameItem::FixtureNpcBody | RpgGameItem::FixtureNpcTarget
+												);
 
-			if (!m_player->targetEntity() || next)
+			if (!m_player->targetEntity() || next) {
 				m_player->setTargetEntity(next);
+				d->m_isTargetAuto = false;
+			}
 
 			m_targetAhead = ahead;
 
@@ -800,6 +809,17 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 			if (!ray.isVisible(m_player->targetEntity()) ||
 					m_player->distanceToPointSq(m_player->targetEntity()->bodyPosition()) > POW2(dist))
 				m_player->setTargetEntity(nullptr);
+		}
+	} else if (!m_targetJoystickState.hasTouch && !m_controlJoystickState.hasTouch && !m_player->targetControl()) {
+		RpgEntity *next = findNearestTarget(
+							  RpgGameItem::FixturePlayerBody | RpgGameItem::FixturePlayerTarget |
+							  RpgGameItem::FixtureNpcBody | RpgGameItem::FixtureNpcTarget
+							  );
+
+		if (next) {
+			LOG_CINFO("game") << "OVERRIDE TARGET" << next;
+			m_player->setTargetEntity(next);
+			d->m_isTargetAuto = true;
 		}
 	}
 
@@ -946,7 +966,14 @@ bool RpgMotorPlayerControlled::beforeWorldStep(const qint64 &tick, entt::entity 
 	if (d->m_controlActionDisable) {
 		if (state->penalty() > d->m_controlActionDisableLastNotification && m_player->isAlive()) {
 			int sec = std::ceil(AbstractGame::TickTimer::tickToMsec(state->penalty() - tick)/1000.);
-			m_game->gameItem()->message(QObject::tr("%1 sec penalty").arg(sec));
+			m_game->gameItem()->messageColor(QObject::tr("%1 sec penalty").arg(sec),
+											 QColorConstants::Svg::red);
+
+			if (GameQuestion *gq = m_game->gameQuestion()) {
+				gq->setProperty("progressColor", QColorConstants::Svg::red);
+				gq->setProperty("msecLeft", m_game->msecLeft()
+								-AbstractGame::TickTimer::tickToMsec(state->penalty() - tick));
+			}
 		}
 
 		d->m_controlActionDisableLastNotification = state->penalty();
@@ -1297,22 +1324,20 @@ void RpgMotorPlayerControlled::onShapeContactBegin(cpShape *self, cpShape *other
 	const cpShapeFilter &filter = cpShapeGetFilter(other);
 
 	if (self == m_player->virtualCircle()) {
-		TiledVisualItem *item = nullptr;
+		TiledVisualItem *item = qobject_cast<TiledVisualItem*>(otherBody->visualItem());
 
-		if (RpgTower *o = dynamic_cast<RpgTower*>(otherBody)) {
-			item = qobject_cast<TiledVisualItem*>(o->visualItem());
-			o->markerItem()->setVisible(true);
-			if (o->state().team() == m_player->team() || o->state().team() == RpgStream::TeamNone)
-				o->setDefenderLayersVisible(true);
-		} else if (RpgMp *o = dynamic_cast<RpgMp*>(otherBody))
-			item = qobject_cast<TiledVisualItem*>(o->visualItem());
-		else if (RpgDefender *o = dynamic_cast<RpgDefender*>(otherBody))
-			item = qobject_cast<TiledVisualItem*>(o->visualItem());
-
+		if (RpgTower *o = dynamic_cast<RpgTower*>(otherBody))
+			o->setDefenderLayersVisible(m_player->team());
 
 		if (item)
 			item->setGlowEnabled(true);
 	}
+
+	/*if (self == m_player->targetCircle() || m_player->isBodyShape(self) ||
+			self == m_player->sensorPolygon()) {
+
+		addContactedTarget(self);
+	}*/
 
 	if (m_player->isBodyShape(self)) {
 		if (filter.categories & RpgGameItem::FixtureGround) {
@@ -1348,17 +1373,10 @@ void RpgMotorPlayerControlled::onShapeContactEnd(cpShape *self, cpShape *other)
 	const cpShapeFilter &filter = cpShapeGetFilter(other);
 
 	if (self == m_player->virtualCircle()) {
-		TiledVisualItem *item = nullptr;
+		TiledVisualItem *item = qobject_cast<TiledVisualItem*>(otherBody->visualItem());
 
-		if (RpgTower *o = dynamic_cast<RpgTower*>(otherBody)) {
-			item = qobject_cast<TiledVisualItem*>(o->visualItem());
-			o->markerItem()->setVisible(false);
-			o->setDefenderLayersVisible(false);
-		} else if (RpgMp *o = dynamic_cast<RpgMp*>(otherBody))
-			item = qobject_cast<TiledVisualItem*>(o->visualItem());
-		else if (RpgDefender *o = dynamic_cast<RpgDefender*>(otherBody))
-			item = qobject_cast<TiledVisualItem*>(o->visualItem());
-
+		if (RpgTower *o = dynamic_cast<RpgTower*>(otherBody))
+			o->setDefenderLayersVisible(RpgStream::TeamNone);
 
 		if (item)
 			item->setGlowEnabled(false);
@@ -1369,13 +1387,11 @@ void RpgMotorPlayerControlled::onShapeContactEnd(cpShape *self, cpShape *other)
 		d->m_groundCollision.remove(other);
 	}
 
-	/*if (m_player->isBodyShape(self)) {
-		if (RpgMp *mp = dynamic_cast<RpgMp*>(otherBody)) {
-			LOG_CINFO("game") << "CONTACT MP END" << RpgLogicObjectMapper::getId(mp->objectId());
-			return;
-		}
-	}*/
+	/*if (self == m_player->targetCircle() || m_player->isBodyShape(self) ||
+			self == m_player->sensorPolygon()) {
 
+		removeContactedTarget(self);
+	}*/
 
 }
 
@@ -1651,11 +1667,9 @@ void RpgPlayer::setTargetControl(TiledObjectBody *newTargetControl)
 
 void RpgPlayer::updateColor()
 {
-	LOG_CDEBUG("game") << "Update colors" << this << m_team;
-
 	if (m_markerItem) {
-		m_markerItem->setProperty("progressBarColor", RpgGameItem::teamColor().value(m_team));
-		m_markerItem->setProperty("labelColor", RpgGameItem::teamColor().value(m_team));
+		m_markerItem->setProperty("progressBarColor", m_rpgGame->getColor(m_team));
+		m_markerItem->setProperty("labelColor", m_rpgGame->getColor(m_team));
 	}
 }
 
@@ -1777,7 +1791,7 @@ void RpgPlayer::synchronize()
 	QPointF offset(0.,0.);
 	qreal width = 50.;
 	qreal stroke = 0.;
-	QColor color = RpgGameItem::teamColor().value(m_team);
+	QColor color = m_rpgGame->getColor(m_team);
 
 
 	if (RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(currentMotor())) {
@@ -1801,7 +1815,7 @@ void RpgPlayer::synchronize()
 			else if (dynamic_cast<RpgDefender*>(m_targetControl))
 				color = QColorConstants::Svg::red;
 			else
-				color = QColorConstants::Svg::lightgreen;
+				color = QColorConstants::Svg::limegreen;
 
 		} else if (motor->controlJoystickState().distance > 0.1) {
 			const QPointF p = currentChunkCenter();
@@ -1810,25 +1824,12 @@ void RpgPlayer::synchronize()
 				offset = p;
 				width = 25.;
 				stroke = 2.;
-				color = QColorConstants::Svg::green;
+				color = QColorConstants::Svg::limegreen;
 			}
 
 		}
 
-
-
 		///////motor->targetAhead()
-
-		/*else {
-			const QPointF p = currentChunkCenter();
-
-			if (p.x() >= 0 && p.y() >= 0) {
-				offset = p - bodyPositionF();
-				width = 25.;
-				stroke = 2.;
-				color = QColor::fromRgb(57,250,65,150);
-			}
-		}*/
 
 		if (m_scatterPoint.isValid())
 			m_scatterPoint.scatter->setPointConfiguration(m_scatterPoint.index, QXYSeries::PointConfiguration::Size, 14);
@@ -1882,6 +1883,14 @@ void RpgPlayerPrivate::updateLock(const qint64 &tick)
 	if (m_lockId > 0 && !m_gameQuestionLoaded) {
 		q->m_rpgGame->loadNextQuestion();
 		m_gameQuestionLoaded = true;
+
+		static const QColor iconColor = QColor("#26C6DA");
+		if (GameQuestion *gq = q->m_rpgGame->gameQuestion()) {
+			gq->setProperty("progressColor", iconColor);
+			gq->setProperty("msecLeft", q->m_rpgGame->msecLeft()
+							-AbstractGame::TickTimer::tickToMsec(CFG_QUESTION_MAX_DURATION));
+		}
+
 		return;
 	}
 
@@ -1892,6 +1901,9 @@ void RpgPlayerPrivate::updateLock(const qint64 &tick)
 			q->m_rpgGame->gameQuestion()->forceDestroy();
 			m_lockedEvent = std::nullopt;
 		}
+
+		if (GameQuestion *gq = q->m_rpgGame->gameQuestion())
+			gq->setProperty("msecLeft", 0);
 
 		m_gameQuestionLoaded = false;
 	}
@@ -1906,7 +1918,6 @@ void RpgPlayerPrivate::updateLock(const qint64 &tick)
 void RpgPlayerPrivate::resetLock(const RpgStream::EventPlayer &event)
 {
 	if (m_lockedEvent && m_lockId == 0 && !m_gameQuestionLoaded && m_lockedEvent->type() == event.type()) {
-		LOG_CERROR("game") << "RESET LOCK" << event.type();
 		m_lockedEvent = std::nullopt;
 	}
 }

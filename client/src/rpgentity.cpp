@@ -333,11 +333,19 @@ RpgEntity *RpgMotorEntity::findNearestTarget(const cpVect &rayDest, const cpBitm
 		if (e->team() == m_entity->team())
 			continue;
 
+		const float angle = atan2(abs(cpvcross(rayDest, e->bodyPosition())),
+								  cpvdot(rayDest, e->bodyPosition()));
+
+		if (angle > M_PI_4)
+			continue;
+
 		return e;
 	}
 
 	return nullptr;
 }
+
+
 
 
 

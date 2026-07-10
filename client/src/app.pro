@@ -250,6 +250,7 @@ SOURCES += \
 	pass.cpp \
 	question.cpp \
 	rpgdefender.cpp \
+	rpgdefenderfog.cpp \
 	rpgentity.cpp \
 	rpggame.cpp \
 	rpggameitem.cpp \
@@ -345,6 +346,7 @@ HEADERS += \
 	pass.h \
 	question.h \
 	rpgdefender.h \
+	rpgdefenderfog.h \
 	rpgentity.h \
 	rpggame.h \
 	rpggame_p.h \

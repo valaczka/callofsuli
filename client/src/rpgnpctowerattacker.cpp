@@ -32,6 +32,7 @@ RpgNpcTowerAttacker::RpgNpcTowerAttacker(RpgGameItem *gameItem, const cpVect &ce
 	: RpgNpc(gameItem, center)
 {
 	m_defaultMotor.reset(new Motor(this));
+	setIsFriend(true);
 }
 
 
@@ -220,6 +221,11 @@ void RpgMotorNpcTowerAttacker::saveState(RpgStream::NpcState &dest)
 {
 	dest.setType(RpgStream::NpcData::TowerAttacker);
 
+	if (m_targetTower)
+		dest.setTarget(RpgLogicObjectMapper::getId(m_targetTower->objectId()));
+	else
+		dest.setTarget(0u);
+
 	const auto ptr = destination();
 
 	if (m_currentIdx >= 0 && m_currentIdx < (int) m_towers.size())
@@ -315,6 +321,33 @@ void RpgMotorNpcTowerAttacker::onShapeContactBegin(cpShape *self, cpShape *other
 void RpgMotorNpcTowerAttacker::onShapeContactEnd(cpShape *self, cpShape *other)
 {
 	RpgMotorNpcControlled::onShapeContactEnd(self, other);
+
+	TiledObjectBody *otherBody = TiledObjectBody::fromShapeRef(other);
+
+	if (!otherBody) {
+		LOG_CERROR("game") << "****ERR";
+		return;
+	}
+
+	if (self == m_npc->targetCircle() || m_npc->isBodyShape(self)) {
+		if (RpgTower *tower = dynamic_cast<RpgTower*>(otherBody)) {
+			if (m_targetTowerReached && m_targetTower == tower) {
+				m_targetTower = nullptr;
+				m_targetDefender = nullptr;
+				m_targetTowerReached = 0;
+				LOG_CINFO("game") << "SHAPE CONTACT TOWER END";
+			}
+		}
+
+		if (RpgDefender *defender = dynamic_cast<RpgDefender*>(otherBody)) {
+			RpgTower *tower = defender->tower();
+			if (m_targetTowerReached && m_targetTower == tower) {
+				m_targetTowerReached = 0;
+				m_targetDefender = nullptr;
+				LOG_CINFO("game") << "SHAPE CONTACT DEFENDER END";
+			}
+		}
+	}
 }
 
 

@@ -25,7 +25,11 @@
  */
 
 #include "rpgtower.h"
+#include <rpgconfig.h>
 
+
+
+const int RpgTower::m_maxLockTime = AbstractGame::TickTimer::tickToMsec(CFG_TOWER_LOCK)/1000.;
 
 
 const TiledObjectBody::DrawBodyStyle RpgDefenderPoint::m_style = {
@@ -69,7 +73,6 @@ void RpgTower::initialize()
 {
 	m_markerItem = createMarkerItem(QStringLiteral("qrc:/RpgTowerMarker.qml"));
 	m_markerItem->setVisible(false);
-	setDisplayName("TOWER 200");
 }
 
 
@@ -101,12 +104,21 @@ void RpgTower::worldStep()
 	setState(*state);
 
 	if (state->active() != oldActive) {
-		LOG_CERROR("game") << "ACTIVE CHANGED" << state->active() << m_state.active() << m_defenderLayers;
 		reloadDefenderLayersVisibility();
 	}
 
-	setCanAttack(!state->hasDefender() && state->lockedUntil() < m_gameItem->tickTimer()->currentTick() /*&&
-							  state->lockId() == 0*/);
+
+	const quint64 tick = m_gameItem->tickTimer()->currentTick();
+
+	if (tick > 0 && state->lockedUntil() > tick) {
+		setLockTime((AbstractGame::TickTimer::tickToMsec(state->lockedUntil() - tick))/1000);
+		setDisplayName(tr("LOCKED %1s").arg(m_lockTime));
+	} else {
+		setLockTime(0);
+		setDisplayName(QStringLiteral(""));
+	}
+
+	setCanAttack(!state->hasDefender() && state->lockedUntil() < tick);
 }
 
 
@@ -135,6 +147,13 @@ void RpgTower::setVisualItem(TiledVisualItem *item)
 {
 	m_visualItem = item;
 	emit visualItemChanged();
+
+	if (!item)
+		return;
+
+	connect(item, &TiledVisualItem::glowEnabledChanged, this, [this, item](){
+		m_markerItem->setVisible(item->glowEnabled());
+	});
 }
 
 
@@ -154,12 +173,12 @@ void RpgTower::addDefenderPoints(const QList<RpgDefenderPoint *> &list)
 
 /**
  * @brief RpgTower::setDefenderLayersVisible
- * @param visible
+ * @param team
  */
 
-void RpgTower::setDefenderLayersVisible(const bool visible)
+void RpgTower::setDefenderLayersVisible(const RpgStream::Team &team)
 {
-	m_defenderLayers = visible;
+	m_defenderLayers = team;
 	reloadDefenderLayersVisibility();
 }
 
@@ -172,7 +191,7 @@ void RpgTower::reloadDefenderLayersVisibility()
 {
 	for (RpgDefenderPoint *p : std::as_const(m_defenderPoints)) {
 		if (QQuickItem *item = p->visualItem())
-			item->setVisible(m_visible && m_defenderLayers && m_state.active() && !p->defender());
+			item->setVisible(m_visible && m_defenderLayers == m_state.team() && m_state.active() && !p->defender());
 	}
 }
 
@@ -192,7 +211,6 @@ void RpgTower::setVisible(const bool &visible)
 
 	if (!m_visible) {
 		m_visual.setState(RpgStream::TeamNone);
-		m_markerItem->setVisible(false);
 		reloadDefenderLayersVisibility();
 
 		filterSet(RpgGameItem::FixtureInvalid, RpgGameItem::FixtureInvalid);
@@ -223,9 +241,12 @@ void RpgTower::synchronize()
 	if (m_visual.state() != team)
 		m_visual.setState(team);
 
-	setColor(RpgGameItem::teamColor().value(m_state.team()));
+	setColor(m_gameItem->game()->getColor(m_state.team(), RpgGame::colorNeutral()));
 	setLoad(m_state.load());
 
+	if (TiledVisualItem *item = qobject_cast<TiledVisualItem*>(m_visualItem)) {
+		item->setGlowColor(m_gameItem->game()->getColor(m_state.team(), RpgGame::colorGlow()));
+	}
 
 	if (m_scatterPoint.isValid()) {
 		if (m_state.active())
@@ -237,6 +258,13 @@ void RpgTower::synchronize()
 
 	TiledObjectBody::synchronize();
 }
+
+int RpgTower::maxLockTime()
+{
+	return m_maxLockTime;
+}
+
+
 
 QQuickItem *RpgTower::markerItem() const
 {
@@ -366,4 +394,17 @@ RpgTower *RpgDefenderPoint::tower() const
 void RpgDefenderPoint::setTower(RpgTower *newTower)
 {
 	m_tower = newTower;
+}
+
+int RpgTower::lockTime() const
+{
+	return m_lockTime;
+}
+
+void RpgTower::setLockTime(int newLockTime)
+{
+	if (m_lockTime == newLockTime)
+		return;
+	m_lockTime = newLockTime;
+	emit lockTimeChanged();
 }

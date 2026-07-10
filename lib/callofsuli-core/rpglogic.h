@@ -734,8 +734,21 @@ struct DefenderObject
 	RpgStream::Team team = RpgStream::TeamNone;
 	quint32 maxHp = 0;
 
+	quint32 radius = 350;					// Ekkora körben hat
+
+	quint32 repeaterDelay = 30;				// Ennyi tick kell két akció között
+	quint32 lastAction = 0;					// Ekkor volt utoljára akció
+	quint32 actionsToHpLoss = 3;			// Ennyi akció után veszít hp-t
+
+	std::unordered_set<entt::entity> nearTargets;	// Ezek vannak jelen pillanatban a közelében
+
+	std::unordered_set<entt::entity> lastTargets;
+	quint32 actionCounter = 0;
+
 	static DefenderObject fromRpgStream(const RpgStream::BaseDefenderObject &stream);
 	RpgStream::BaseDefenderObject toRpgStream() const;
+
+	bool isNear(const cpVect &pos) const;
 };
 
 
@@ -1091,6 +1104,7 @@ struct EventChangeDefender {
 	bool skipLock = false;
 	RpgStream::BaseDefenderObject::Type type = RpgStream::BaseDefenderObject::None;
 };
+
 
 
 

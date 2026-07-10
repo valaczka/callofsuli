@@ -44,11 +44,28 @@ class RpgDefender : public RpgEntity
 	QML_ELEMENT
 
 	Q_PROPERTY(RpgTower *tower READ tower CONSTANT FINAL)
+	Q_PROPERTY(bool visibleToAll READ visibleToAll WRITE setVisibleToAll NOTIFY visibleToAllChanged FINAL)
+	Q_PROPERTY(bool hasTarget READ hasTarget WRITE setHasTarget NOTIFY hasTargetChanged FINAL)
 
 public:
-	RpgDefender(RpgGameItem *gameItem, const cpVect &pos);
+	RpgDefender(RpgGameItem *gameItem, const Rpg::DefenderObject &config);
+	virtual ~RpgDefender();
 
-	virtual void initialize() override;
+	static RpgDefender* createDefender(const Rpg::DefenderObject &defender, RpgGameItem *gameItem, TiledScene *scene);
+
+	enum State {
+		StateNormal,
+		StateActive,
+		StateDestroyed,
+		StateHidden
+	};
+
+	Q_ENUM(State);
+
+
+	//virtual void initialize() override;
+
+	virtual void updateVisibility();
 
 	RpgDefenderPoint *defenderPoint() const;
 	void setDefenderPoint(RpgDefenderPoint *newDefenderPoint);
@@ -59,13 +76,68 @@ public:
 	RpgStream::Team team() const;
 	void setTeam(RpgStream::Team newTeam);
 
+	const Rpg::DefenderObject &config() const;
+
+	bool visibleToAll() const;
+	void setVisibleToAll(bool newVisibleToAll);
+
+	bool hasTarget() const;
+	void setHasTarget(bool newHasTarget);
+
+signals:
+	void visibleToAllChanged();
+	void hasTargetChanged();
+
+protected:
+	virtual void onAlive() override;
+	virtual void onDead() override;
+
+	bool loadFromCommonMap(const QString &name);
+
 protected:
 	RpgDefenderPoint* m_defenderPoint = nullptr;
 	QPointer<RpgTower> m_tower;
 	RpgStream::Team m_team = RpgStream::TeamNone;
+	const Rpg::DefenderObject m_config;
+
+	bool m_visibleToAll = false;
+	bool m_hasTarget = false;
+
+	RpgVisualState<State> m_visual;
+	TiledScene *m_scene = nullptr;
+	QList<TiledQuick::TileLayerItem *> m_layerItems;
+
+	friend class RpgDefenderMotor;
 };
 
 
+
+
+
+/**
+ * @brief The RpgDefenderCommon class
+ */
+
+class RpgDefenderCommon : public RpgDefender
+{
+	Q_OBJECT
+	QML_ELEMENT
+
+public:
+	RpgDefenderCommon(const QString &name, RpgGameItem *gameItem, const Rpg::DefenderObject &config)
+		: RpgDefender(gameItem, config)
+		, m_name(name)
+	{}
+
+	virtual void initialize() override {
+		if (!loadFromCommonMap(m_name)) {
+			LOG_CERROR("game") << "Common defender load failed" << m_name;
+		}
+	}
+
+private:
+	const QString m_name;
+};
 
 
 

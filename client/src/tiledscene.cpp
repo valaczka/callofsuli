@@ -423,7 +423,7 @@ TiledVisualItem *TiledScene::addVisualItem(Tiled::TileLayer *layer, Tiled::MapRe
  * @param item
  */
 
-void TiledScene::removeVisualItem(TiledVisualItem *item)
+void TiledScene::removeVisualItem(QQuickItem *item)
 {
 	if (!item)
 		return;

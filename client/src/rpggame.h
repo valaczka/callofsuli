@@ -271,8 +271,10 @@ class RpgGame : public AbstractLevelGame
 
 	Q_PROPERTY(int ptsTeam READ ptsTeam WRITE setPtsTeam NOTIFY ptsTeamChanged FINAL)
 	Q_PROPERTY(int ptsOpponent READ ptsOpponent WRITE setPtsOpponent NOTIFY ptsOpponentChanged FINAL)
-	Q_PROPERTY(QColor colorTeam READ colorTeam WRITE setColorTeam NOTIFY colorTeamChanged FINAL)
-	Q_PROPERTY(QColor colorOpponent READ colorOpponent WRITE setColorOpponent NOTIFY colorOpponentChanged FINAL)
+	Q_PROPERTY(QColor colorTeam READ colorTeam CONSTANT FINAL)
+	Q_PROPERTY(QColor colorOpponent READ colorOpponent CONSTANT FINAL)
+	Q_PROPERTY(QColor colorNeutral READ colorNeutral CONSTANT FINAL)
+	Q_PROPERTY(QColor colorGlow READ colorGlow CONSTANT FINAL)
 
 	Q_PROPERTY(QSListModel* modelLobby READ modelLobby CONSTANT FINAL)
 	Q_PROPERTY(QSListModel* modelPlayer READ modelPlayer CONSTANT FINAL)
@@ -334,6 +336,9 @@ public:
 
 	static void reloadWorld();
 
+	const Tiled::Map* commonMap(const QString &scene) const;
+	Tiled::MapRenderer *commonRenderer(const QString &scene) const;
+
 	Rpg::RpgLogicClient* rpgLogicClient();
 
 	bool loadNextQuestion();
@@ -361,12 +366,6 @@ public:
 	int ptsOpponent() const;
 	void setPtsOpponent(int newPtsOpponent);
 
-	QColor colorTeam() const;
-	void setColorTeam(const QColor &newColorTeam);
-
-	QColor colorOpponent() const;
-	void setColorOpponent(const QColor &newColorOpponent);
-
 	QSListModel* modelLobby() const;
 
 	QSListModel* modelPlayer() const;
@@ -375,6 +374,14 @@ public:
 
 	QString terrain() const;
 	void setTerrain(const QString &newTerrain);
+
+	static QColor colorTeam();
+	static QColor colorOpponent();
+	static QColor colorNeutral();
+
+	QColor getColor(const RpgStream::Team &team, const QColor &neutral = m_colorOpponent) const;
+
+	static QColor colorGlow();
 
 signals:
 	void downloadRequest(QString size);
@@ -385,8 +392,6 @@ signals:
 	void gameModeChanged();
 	void ptsTeamChanged();
 	void ptsOpponentChanged();
-	void colorTeamChanged();
-	void colorOpponentChanged();
 	void readableRoomChanged();
 	void terrainChanged();
 
@@ -394,6 +399,7 @@ protected:
 	virtual void timerEvent(QTimerEvent *) override;
 	virtual QQuickItem *loadPage() override;
 	virtual void connectGameQuestion() override;
+	virtual bool gameFinishEvent() override;
 
 	void setError(const QString &str = {});
 
@@ -411,8 +417,10 @@ private:
 
 	int m_ptsTeam = 0;
 	int m_ptsOpponent = 0;
-	QColor m_colorTeam;
-	QColor m_colorOpponent;
+	static const QColor m_colorTeam;
+	static const QColor m_colorOpponent;
+	static const QColor m_colorNeutral;
+	static const QColor m_colorGlow;
 
 	QString m_terrain;
 
@@ -425,6 +433,7 @@ private:
 
 	friend class RpgGamePrivate;
 	friend class RpgGameItem;
+
 };
 
 #endif // RPGGAME_H

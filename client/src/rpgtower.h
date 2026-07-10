@@ -85,6 +85,8 @@ class RpgTower : public TiledObject
 	Q_PROPERTY(QColor color READ color WRITE setColor NOTIFY colorChanged FINAL)
 	Q_PROPERTY(RpgGameItem *gameItem READ gameItem CONSTANT FINAL)
 	Q_PROPERTY(bool canAttack READ canAttack WRITE setCanAttack NOTIFY canAttackChanged FINAL)
+	Q_PROPERTY(int lockTime READ lockTime WRITE setLockTime NOTIFY lockTimeChanged FINAL)
+	Q_PROPERTY(int maxLockTime READ maxLockTime CONSTANT FINAL)
 
 public:
 	RpgTower(RpgGameItem *gameItem, Tiled::MapObject *object, Tiled::MapRenderer *renderer);
@@ -97,7 +99,7 @@ public:
 	void setVisualItem(TiledVisualItem *item);
 	void addDefenderPoints(const QList<RpgDefenderPoint*> &list);
 
-	void setDefenderLayersVisible(const bool visible = true);
+	void setDefenderLayersVisible(const RpgStream::Team &team);
 	void reloadDefenderLayersVisibility();
 
 	void setVisible(const bool &visible = true);
@@ -120,11 +122,16 @@ public:
 	bool canAttack() const;
 	void setCanAttack(bool newCanAttack);
 
+	int lockTime() const;
+	void setLockTime(int newLockTime);
+
+	static int maxLockTime();
 
 signals:
 	void loadChanged();
 	void colorChanged();
 	void canAttackChanged();
+	void lockTimeChanged();
 
 protected:
 	void synchronize() override;
@@ -143,7 +150,10 @@ private:
 	int m_load = 0;
 	QColor m_color = QColorConstants::Svg::white;
 	bool m_canAttack = false;
-	bool m_defenderLayers = false;
+	RpgStream::Team m_defenderLayers = RpgStream::TeamNone;
+	int m_lockTime = 0;
+
+	static const int m_maxLockTime;
 };
 
 #endif // RPGTOWER_H
