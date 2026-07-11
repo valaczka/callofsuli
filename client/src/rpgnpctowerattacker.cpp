@@ -32,7 +32,6 @@ RpgNpcTowerAttacker::RpgNpcTowerAttacker(RpgGameItem *gameItem, const cpVect &ce
 	: RpgNpc(gameItem, center)
 {
 	m_defaultMotor.reset(new Motor(this));
-	setIsFriend(true);
 }
 
 
@@ -439,6 +438,13 @@ RpgDefender *RpgMotorNpcTowerAttacker::findNextDefender(RpgTower *tower) const
 		if (RpgDefender *def = p->defender(); def && def->isAlive()) {
 			return def;
 		}
+	}
+
+	LOG_CINFO("game") << "FIND" << tower->defenders();
+
+	for (RpgDefender *def : tower->defenders()) {
+		if (def)
+			return def;
 	}
 
 	return nullptr;

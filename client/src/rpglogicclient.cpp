@@ -704,7 +704,7 @@ void RpgLogicClientMulti::loadControls(const std::vector<RpgStream::ControlState
 		entt::entity control = mapper->get(s.tagId());
 
 		if (!scope.valid(control)) {
-			ELOG_ERROR << "Invalid control" << s.tagId();
+			//////ELOG_ERROR << "Invalid control" << s.tagId();
 			continue;
 		}
 

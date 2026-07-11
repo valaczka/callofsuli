@@ -709,6 +709,27 @@ public:
 
 
 /**
+ * @brief The FullMapTag class
+ */
+
+class FullMapTag
+{
+public:
+	FullMapTag() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
+
+	bool operator==(const FullMapTag &other) const {
+		return other.m_tagId == m_tagId;
+	}
+};
+
+
+
+/**
  * @brief The Chunk class
  */
 
@@ -883,7 +904,6 @@ public:
 
 	enum Type {
 		None = 0,
-		Dummy,
 		Multiplier1,
 		Fog,
 		Pulse
@@ -914,9 +934,9 @@ public:
 	STREAM_MEMBER_QUANT(posY, PosY, 0);
 
 
-	// Dummy
+	/*// Dummy
 
-	STREAM_MEMBER(quint32, dummy, Dummy, 8, 0);
+	STREAM_MEMBER(quint32, dummy, Dummy, 8, 0);*/
 };
 
 Q_DECLARE_OPERATORS_FOR_FLAGS(BaseDefenderObject::PlacementFlags)
@@ -1131,7 +1151,6 @@ public:
 
 	enum Type {
 		None = 0,
-		Dummy,
 		TowerAttacker
 	};
 
@@ -1140,8 +1159,6 @@ public:
 	STREAM_FIELD(EntityConfig, entity, Entity, {})
 	STREAM_MEMBER_RESOLVED(character, Character)
 	STREAM_MEMBER_CAST(Team, team, Team, quint8, 2, TeamNone)
-
-	// Dummy...
 
 	// TowerAttacker
 
@@ -1516,7 +1533,8 @@ public:
 	STREAM_MEMBER(quint8, load, Load, 8, 0)
 	STREAM_MEMBER(quint32, lockedUntil, LockedUntil, 32, 0)
 	STREAM_MEMBER_CAST(bool, active, Active, quint8, 1, false)
-	STREAM_MEMBER_CAST(bool, hasDefender, HasDefender, quint8, 1, false)
+	STREAM_MEMBER_VECTOR(FullMapTag, defenders, Defenders, ENTITY_LIST_TYPE, ENTITY_LIST_BITS);
+	//STREAM_MEMBER_CAST(bool, hasDefender, HasDefender, quint8, 1, false)
 	STREAM_MEMBER(quint8, multiply, Multiply, 4, 0)							// max. 15
 
 	bool operator==(const TowerState &other) const {
@@ -1525,10 +1543,12 @@ public:
 				other.m_load == m_load &&
 				other.m_lockedUntil == m_lockedUntil &&
 				other.m_active == m_active &&
-				other.m_hasDefender == m_hasDefender &&
+				other.m_defenders == m_defenders &&
 				other.m_multiply == m_multiply;
 				;
 	}
+
+	bool hasDefender() const { return !m_defenders.empty(); }
 };
 
 
@@ -1558,15 +1578,15 @@ public:
 
 	// Dummy
 
-	STREAM_MEMBER(quint32, dummy, Dummy, 8, 0);
+	//STREAM_MEMBER(quint32, dummy, Dummy, 8, 0);
 
 	bool operator==(const DefenderState &other) const {
 		return other.m_tagId == m_tagId &&
 				other.m_type == m_type &&
 				other.m_hp == m_hp &&
 				other.m_visible == m_visible &&
-				other.m_targetId == m_targetId &&
-				other.m_dummy == m_dummy
+				other.m_targetId == m_targetId
+				//other.m_dummy == m_dummy
 				;
 	}
 
@@ -1638,6 +1658,7 @@ public:
 	STREAM_FIELD(Chunk, chunk, Chunk, {});
 
 	STREAM_MEMBER(quint32, at, At, 32, 0);
+	STREAM_MEMBER_CAST(bool, success, Success, quint8, 1, false);
 
 
 };
@@ -1863,21 +1884,6 @@ public:
 
 
 
-
-/**
- * @brief The FullMapTag class
- */
-
-class FullMapTag
-{
-public:
-	FullMapTag() = default;
-
-	EngineStream& operator<<(EngineStream &stream);
-	EngineStream& operator>>(EngineStream &stream) const;
-
-	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
-};
 
 
 

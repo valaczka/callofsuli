@@ -13,7 +13,7 @@ TiledVisualItemImpl {
 	width: sourceRect.width
 	height: sourceRect.height
 
-	property bool _initShow: true
+	property bool _initShow: false
 
 	layer.enabled: true
 

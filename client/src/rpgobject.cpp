@@ -111,6 +111,18 @@ void RpgObject::setSecondaryMotor(std::unique_ptr<AbstractRpgMotor> newSecondary
 
 
 /**
+ * @brief RpgObject::setMarked
+ * @param marked
+ */
+
+void RpgObject::setMarked(const bool &marked)
+{
+	if (TiledVisualItem *item = qobject_cast<TiledVisualItem*>(m_visualItem))
+		item->setGlowEnabled(marked);
+}
+
+
+/**
  * @brief RpgObject::synchronize
  */
 

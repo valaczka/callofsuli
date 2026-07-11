@@ -47,6 +47,7 @@
 #include "offlineclientengine.h"
 #include "qapplication.h"
 #include "qsjsonlistmodel.h"
+#include "rpgdefender.h"
 #include "rpggame.h"
 #include "rpggameitem.h"
 #include "rpgnpc.h"
@@ -381,6 +382,7 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<MapPlayMissionLevel>("CallOfSuli", 1, 0, "MapPlayMissionLevel", "MapPlayMissionLevel is uncreatable");
 	qmlRegisterUncreatableType<MapPlayOffline>("CallOfSuli", 1, 0, "MapPlayOffline", "MapPlayOffline is uncreatable");
 	qmlRegisterUncreatableType<OfflineClientEngine>("CallOfSuli", 1, 0, "OfflineClientEngine", "OfflineClientEngine is uncreatable");
+	qmlRegisterUncreatableType<RpgDefender>("CallOfSuli", 1, 0, "RpgDefender", "RpgDefender is uncreatable");
 	qmlRegisterUncreatableType<RpgEntity>("CallOfSuli", 1, 0, "RpgEntity", "RpgEntity is uncreatable");
 	qmlRegisterUncreatableType<RpgGame>("CallOfSuli", 1, 0, "RpgGame", "RpgGame is uncreatable");
 	qmlRegisterUncreatableType<RpgNpc>("CallOfSuli", 1, 0, "RpgNpc", "RpgNpc is uncreatable");

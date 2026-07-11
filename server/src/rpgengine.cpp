@@ -919,7 +919,7 @@ void RpgEnginePrivate::render()
 	}
 
 
-	if (m_selectTimer.isValid() && m_selectTimer.hasExpired(2500)) {
+	if (m_selectTimer.isValid() && m_selectTimer.hasExpired(CFG_GAME_STAGE_SELECT)) {
 		LOG_CINFO("engine") << "EXPIRED";
 		onSelectFinished();
 
@@ -949,9 +949,16 @@ void RpgEnginePrivate::render()
 		else
 			requireFull |= q->m_logic.render(false);
 
+		if (st > 0)
+			requireFull |= (st % 120 == 0);
+
+
+		// SEND_STATE_COUNT db FullState-et gyártunk
+
 		const RpgStream::Full &full = q->m_logic.getRenderedState(requireFull);
 
 		const RpgStream::FullState::Flags flags = full.fullState().flags();
+
 
 		if (!requireFull && flags == RpgStream::FullState::Null)
 			continue;
@@ -966,7 +973,7 @@ void RpgEnginePrivate::render()
 			const std::vector<uint8_t> data = state.toDataStream().data();
 
 			for (const RpgPeerData &p : m_players) {
-				if (p.peer)
+				if (p.peer && !p.peer->socket())
 					p.peer->send(data, true);
 			}
 
@@ -984,9 +991,20 @@ void RpgEnginePrivate::render()
 
 
 		for (const RpgPeerData &p : m_players) {
-			if (p.peer)
+			if (!p.peer)
+				continue;
+
+			// A websocketet nem akarjuk túltelíteni, ezért 60/SEND_STATE_COUNT fps-sel egyben kapja meg a
+			// SEND_STATE_COUNT db FullState-et
+
+			if (!p.peer->socket() || m_wsCounter == 0) {
 				p.peer->send(data, requireFull && !isStageSelect);
+			}
 		}
+
+		++m_wsCounter;
+		if (m_wsCounter >= SEND_STATE_COUNT)
+			m_wsCounter = 0;
 	}
 
 }

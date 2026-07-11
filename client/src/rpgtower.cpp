@@ -26,6 +26,8 @@
 
 #include "rpgtower.h"
 #include <rpgconfig.h>
+#include "rpgdefender.h"
+#include <QPointer>
 
 
 
@@ -119,6 +121,31 @@ void RpgTower::worldStep()
 	}
 
 	setCanAttack(!state->hasDefender() && state->lockedUntil() < tick);
+
+
+	RpgLogicObjectMapper *mapper = scope.getCtx<RpgLogicObjectMapper>();
+
+	if (!mapper) {
+		LOG_CERROR("game") << "Missing RpgLogicObjectMapper";
+		return;
+	}
+
+	QList<QPointer<RpgDefender>> defenders;
+
+	defenders.reserve(state->defenders().size());
+
+	for (const RpgStream::FullMapTag &tag : state->defenders()) {
+		RpgDefender *def = qobject_cast<RpgDefender*>(mapper->get(tag.tagId()));
+
+		if (!def) {
+			LOG_CERROR("game") << "Invalid defender" << tag.tagId();
+			continue;
+		}
+
+		defenders.append(def);
+	}
+
+	m_defenders.swap(defenders);
 }
 
 
@@ -258,6 +285,23 @@ void RpgTower::synchronize()
 
 	TiledObjectBody::synchronize();
 }
+
+
+/**
+ * @brief RpgTower::defenders
+ * @return
+ */
+
+const QList<QPointer<RpgDefender> > &RpgTower::defenders() const
+{
+	return m_defenders;
+}
+
+
+/**
+ * @brief RpgTower::maxLockTime
+ * @return
+ */
 
 int RpgTower::maxLockTime()
 {

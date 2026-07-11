@@ -28,6 +28,7 @@
 #define RPGDEFENDERFOG_H
 
 #include "rpgdefender.h"
+#include "tiledeffectfog.h"
 #include <QQmlEngine>
 
 
@@ -42,9 +43,16 @@ class RpgDefenderFog : public RpgDefender
 
 public:
 	RpgDefenderFog(RpgGameItem *gameItem, const Rpg::DefenderObject &config);
+	virtual ~RpgDefenderFog();
 
 	virtual void initialize() override;
 
+protected:
+	virtual void updateVisibility() override;
+	virtual void updateColor() override;
+
+private:
+	TiledEffectFog *m_image = nullptr;
 };
 
 #endif // RPGDEFENDERFOG_H

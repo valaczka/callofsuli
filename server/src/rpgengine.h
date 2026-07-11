@@ -31,6 +31,9 @@
 #include "udpserver.h"
 
 
+#define SEND_STATE_COUNT			3
+
+
 class RpgEnginePrivate;
 
 

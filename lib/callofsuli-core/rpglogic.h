@@ -37,6 +37,7 @@
 #include "qmutex.h"
 #include "qpaintdevice.h"
 #include "qpoint.h"
+#include "rpgconfig.h"
 #include "rpgstream.h"
 
 
@@ -749,6 +750,8 @@ struct DefenderObject
 	RpgStream::BaseDefenderObject toRpgStream() const;
 
 	bool isNear(const cpVect &pos) const;
+
+	void fromDefenderConfigBase(const CfgDefenderBase &cfg);
 };
 
 
@@ -756,7 +759,7 @@ struct DefenderObject
 /**
  * @brief The DefenderDummyObject class
  */
-
+/*
 struct DefenderDummyObject
 {
 	quint32 dummy = 0;
@@ -764,7 +767,7 @@ struct DefenderDummyObject
 	static DefenderDummyObject fromRpgStream(const RpgStream::BaseDefenderObject &stream);
 	void toRpgStream(RpgStream::BaseDefenderObject &stream) const;
 };
-
+*/
 
 
 
@@ -1035,6 +1038,7 @@ struct EventAttackPlayer {
 	entt::entity player;
 	entt::entity target;
 	bool withHurt = false;
+	bool withSuccess = true;				// Ha pl. DefenderFog-ban van, akkor nem lehet eltalálni
 };
 
 
@@ -1044,6 +1048,7 @@ struct EventAttackPlayer {
 struct EventAttackNpc {
 	entt::entity player;
 	entt::entity target;
+	bool withSuccess = true;				// Ha pl. DefenderFog-ban van, akkor nem lehet eltalálni
 };
 
 
@@ -1199,6 +1204,8 @@ public:
 
 	static cpVect decayKnockback(RpgStream::EntityState *targetState);
 	static cpVect decayKnockback(cpVect &knockback);
+
+	static RpgStream::Team oppositeTeam(const RpgStream::Team &team);
 
 
 	std::mt19937 &rnd() { return m_rnd; }

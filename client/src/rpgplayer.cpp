@@ -1324,12 +1324,12 @@ void RpgMotorPlayerControlled::onShapeContactBegin(cpShape *self, cpShape *other
 	const cpShapeFilter &filter = cpShapeGetFilter(other);
 
 	if (self == m_player->virtualCircle()) {
-		TiledVisualItem *item = qobject_cast<TiledVisualItem*>(otherBody->visualItem());
-
 		if (RpgTower *o = dynamic_cast<RpgTower*>(otherBody))
 			o->setDefenderLayersVisible(m_player->team());
 
-		if (item)
+		if (RpgObject *o = dynamic_cast<RpgObject*>(otherBody))
+			o->setMarked(true);
+		else if (TiledVisualItem *item = qobject_cast<TiledVisualItem*>(otherBody->visualItem()))
 			item->setGlowEnabled(true);
 	}
 
@@ -1373,12 +1373,12 @@ void RpgMotorPlayerControlled::onShapeContactEnd(cpShape *self, cpShape *other)
 	const cpShapeFilter &filter = cpShapeGetFilter(other);
 
 	if (self == m_player->virtualCircle()) {
-		TiledVisualItem *item = qobject_cast<TiledVisualItem*>(otherBody->visualItem());
-
 		if (RpgTower *o = dynamic_cast<RpgTower*>(otherBody))
 			o->setDefenderLayersVisible(RpgStream::TeamNone);
 
-		if (item)
+		if (RpgObject *o = dynamic_cast<RpgObject*>(otherBody))
+			o->setMarked(false);
+		else if (TiledVisualItem *item = qobject_cast<TiledVisualItem*>(otherBody->visualItem()))
 			item->setGlowEnabled(false);
 	}
 

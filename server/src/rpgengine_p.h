@@ -135,6 +135,8 @@ private:
 	qint64 m_dtAcc = 0;
 	quint32 m_deadlineTick = 0;
 
+	quint32 m_wsCounter = 0;
+
 
 	inline static quint32 m_engineId = 1;
 

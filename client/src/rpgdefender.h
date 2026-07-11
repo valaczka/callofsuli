@@ -73,9 +73,6 @@ public:
 	RpgTower *tower() const;
 	void setTower(RpgTower *newTower);
 
-	RpgStream::Team team() const;
-	void setTeam(RpgStream::Team newTeam);
-
 	const Rpg::DefenderObject &config() const;
 
 	bool visibleToAll() const;
@@ -84,6 +81,8 @@ public:
 	bool hasTarget() const;
 	void setHasTarget(bool newHasTarget);
 
+	virtual void setMarked(const bool &marked = true) override;
+
 signals:
 	void visibleToAllChanged();
 	void hasTargetChanged();
@@ -91,21 +90,25 @@ signals:
 protected:
 	virtual void onAlive() override;
 	virtual void onDead() override;
+	virtual void updateColor() override;
 
 	bool loadFromCommonMap(const QString &name);
+	void addMarkerItem();
 
 protected:
 	RpgDefenderPoint* m_defenderPoint = nullptr;
 	QPointer<RpgTower> m_tower;
-	RpgStream::Team m_team = RpgStream::TeamNone;
 	const Rpg::DefenderObject m_config;
 
 	bool m_visibleToAll = false;
 	bool m_hasTarget = false;
+	bool m_marked = false;
 
 	RpgVisualState<State> m_visual;
 	TiledScene *m_scene = nullptr;
 	QList<TiledQuick::TileLayerItem *> m_layerItems;
+
+	QQuickItem *m_markerItem = nullptr;
 
 	friend class RpgDefenderMotor;
 };

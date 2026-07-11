@@ -33,6 +33,12 @@ TiledEffectFog::TiledEffectFog(QQuickItem *parent)
 	: QQuickItem(parent)
 {
 	setFlag(ItemHasContents);
+
+	connect(&m_animX, &QVariantAnimation::valueChanged, this, &TiledEffectFog::setCurrentX);
+	connect(&m_animY, &QVariantAnimation::valueChanged, this, &TiledEffectFog::setCurrentY);
+
+	connect(&m_animX, &QVariantAnimation::finished, this, &TiledEffectFog::restartX);
+	connect(&m_animY, &QVariantAnimation::finished, this, &TiledEffectFog::restartY);
 }
 
 
@@ -64,10 +70,6 @@ QSGNode *TiledEffectFog::updatePaintNode(QSGNode *node, UpdatePaintNodeData *)
 		return node;
 
 	if (!m_texture) {
-		m_texture = m_game->getTexture(":/rpg/ambient/fog.png", window());
-	}
-
-	if (!m_texture) {
 		LOG_CERROR("scene") << "Texture error";
 		return node;
 	}
@@ -80,22 +82,6 @@ QSGNode *TiledEffectFog::updatePaintNode(QSGNode *node, UpdatePaintNodeData *)
 		return node;
 	}
 
-	if (m_animX.state() != QAbstractAnimation::Running) {
-		m_animX.setStartValue(0);
-		m_animX.setEndValue(-rect.width());
-		m_animX.setDuration(38000);
-		m_animX.setEasingCurve(QEasingCurve::InOutQuad);
-		m_animX.start();
-	}
-
-	if (m_animY.state() != QAbstractAnimation::Running) {
-		m_animY.setStartValue(-rect.height());
-		m_animY.setEndValue(0);
-		m_animY.setDuration(48000);
-		m_animY.setEasingCurve(QEasingCurve::OutInBack);
-		m_animY.start();
-	}
-
 	QSizeF mySize = size();
 
 	mySize.setWidth(mySize.width() + rect.width());
@@ -103,11 +89,8 @@ QSGNode *TiledEffectFog::updatePaintNode(QSGNode *node, UpdatePaintNodeData *)
 
 	QPoint offset;
 
-	if (m_animX.state() == QAbstractAnimation::Running)
-		offset.setX(m_animX.currentValue().toInt());
-
-	if (m_animY.state() == QAbstractAnimation::Running)
-		offset.setY(m_animY.currentValue().toInt());
+	offset.setX(m_currentX);
+	offset.setY(m_currentY);
 
 	for (int i=0; i<std::ceil((float) mySize.width()/rect.width()); ++i) {
 		for (int j=0; j<std::ceil((float) mySize.height()/rect.height()); ++j) {
@@ -146,7 +129,77 @@ void TiledEffectFog::setGame(TiledGame *newGame)
 	m_game = newGame;
 	emit gameChanged();
 
+	if (!m_texture) {
+		m_texture = m_game->getTexture(":/rpg/ambient/fog.png", window());
+	}
+
+	restartX();
+	restartY();
+
 	connect(m_game, &TiledGame::gameSynchronized, this, &TiledEffectFog::update);
+}
+
+
+
+/**
+ * @brief TiledEffectFog::stop
+ */
+
+void TiledEffectFog::stop()
+{
+	setVisible(false);
+	m_animX.stop();
+	m_animY.stop();
+
+	if (m_game)
+		disconnect(m_game);
+
+	update();
+}
+
+
+
+/**
+ * @brief TiledEffectFog::setCurrentX
+ * @param value
+ */
+
+void TiledEffectFog::setCurrentX(const QVariant &value)
+{
+	m_currentX = value.toInt();
+}
+
+void TiledEffectFog::setCurrentY(const QVariant &value)
+{
+	m_currentY = value.toInt();
+}
+
+void TiledEffectFog::restartX()
+{
+	if (!m_texture) {
+		LOG_CERROR("scene") << "Missing texture";
+		return;
+	}
+
+	m_animX.setStartValue(0);
+	m_animX.setEndValue(-m_texture->textureSize().width());
+	m_animX.setDuration(38000);
+	m_animX.setEasingCurve(QEasingCurve::InOutQuad);
+	m_animX.start();
+}
+
+void TiledEffectFog::restartY()
+{
+	if (!m_texture) {
+		LOG_CERROR("scene") << "Missing texture";
+		return;
+	}
+
+	m_animY.setStartValue(-m_texture->textureSize().height());
+	m_animY.setEndValue(0);
+	m_animY.setDuration(48000);
+	m_animY.setEasingCurve(QEasingCurve::OutInBack);
+	m_animY.start();
 }
 
 

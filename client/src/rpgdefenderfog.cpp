@@ -25,6 +25,9 @@
  */
 
 #include "rpgdefenderfog.h"
+#include "application.h"
+#include "tiledeffectfog.h"
+#include "rpgplayer.h"
 
 
 
@@ -41,6 +44,21 @@ RpgDefenderFog::RpgDefenderFog(RpgGameItem *gameItem, const Rpg::DefenderObject 
 }
 
 
+/**
+ * @brief RpgDefenderFog::~RpgDefenderFog
+ */
+
+RpgDefenderFog::~RpgDefenderFog()
+{
+	if (m_image) {
+		m_image->stop();
+		m_image->deleteLater();
+		m_image = nullptr;
+	}
+}
+
+
+
 
 /**
  * @brief RpgDefenderFog::initialize
@@ -48,5 +66,129 @@ RpgDefenderFog::RpgDefenderFog(RpgGameItem *gameItem, const Rpg::DefenderObject 
 
 void RpgDefenderFog::initialize()
 {
-	loadFromCommonMap(QStringLiteral("test_defender.tmx"));
+	m_scene = scene();
+
+	Q_ASSERT(m_scene);
+
+	TiledVisualItem *item = m_scene->addVisualItem();
+	m_visualItem = item;
+
+	m_visual.setImageItem(item);
+
+
+	m_visual.addSource(StateActive, QUrl::fromLocalFile(QStringLiteral(":/rpg/time/pickable.png")));
+	m_visual.addSource(StateDestroyed, QUrl::fromLocalFile(QStringLiteral(":/rpg/key/pickable.png")));
+
+
+	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/RpgDefenderFogVisual.qml"), this);
+
+	m_image = qobject_cast<TiledEffectFog*>(component.create());
+
+	if (!m_image) {
+		LOG_CERROR("scene") << "QML item create error" << component.errorString();
+		return;
+	}
+
+	m_image->setParentItem(m_scene);
+	m_image->setGame(m_rpgGame->gameItem());
+	m_image->setSize(QSizeF(cfgDefenderFog.radius*2, cfgDefenderFog.radius*2));
+
+	m_image->setPosition(m_visual.basePosition() - QPointF(cfgDefenderFog.radius, cfgDefenderFog.radius));
+
+	float z = m_scene->getDynamicZ(m_visual.basePosition());
+
+	m_image->setZ(z+0.9);
+
+	m_visualItem->setZ(z);
+
+	addMarkerItem();
+
+	updateColor();
+
 }
+
+
+
+
+
+/**
+ * @brief RpgDefenderFog::updateVisibility
+ */
+
+void RpgDefenderFog::updateVisibility()
+{
+	if (!m_image)
+		return;
+
+	if (!isAlive()) {
+		m_image->setVisible(false);
+		m_visual.setState(StateDestroyed);
+		return;
+	}
+
+	if (!m_rpgGame || !m_rpgGame->controlledPlayer()) {
+		LOG_CERROR("game") << "Invalid game or player";
+		return;
+	}
+
+	if (m_visibleToAll || m_team == m_rpgGame->controlledPlayer()->team()) {
+		m_image->setVisible(true);
+		m_visual.setState(StateActive);
+	} else {
+		m_image->setVisible(false);
+		m_visual.setState(StateHidden);
+	}
+
+	if (m_team == m_rpgGame->controlledPlayer()->team())
+		m_image->setOpacity(0.7);
+	else
+		m_image->setOpacity(1.0);
+
+	if (m_markerItem)
+		m_markerItem->setVisible(m_visual.state() != StateHidden && m_marked);
+}
+
+
+
+/**
+ * @brief RpgDefenderFog::updateColor
+ */
+
+void RpgDefenderFog::updateColor()
+{
+	RpgDefender::updateColor();
+
+	if (m_image)
+		m_image->setProperty("tintColor", m_rpgGame->getColor(m_team).lighter());
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

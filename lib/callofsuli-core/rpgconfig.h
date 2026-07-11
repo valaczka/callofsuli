@@ -27,12 +27,15 @@
 #ifndef RPGCONFIG_H
 #define RPGCONFIG_H
 
+#include "qtypes.h"
+#include "rpgstream.h"
 
 /// Config ----------------------------------------------
 
 #define	CFG_GAME_DURATION				3*60*60					// duration in tick
 #define CFG_GAME_STAGE_MAIN				10*60 //60*60					// start stage main in tick
 #define CFG_GAME_STAGE_LAST				CFG_GAME_DURATION-30*60	// start last stage in tick
+#define CFG_GAME_STAGE_SELECT			1250					// stage select max. length in msec
 
 #define	CFG_EMITTER_CAPACITY_STAGE_WU	0.75					// mp emitter capacity ratio in stage Warming Up
 #define	CFG_EMITTER_DELAY_STAGE_WU		5*60					// mp emitter delay in tick in stage Warming Up
@@ -64,6 +67,77 @@
 #define CFG_QUESTION_MAX_DURATION		10*60	// 30*60		// question's max. duration in tick
 
 /// -----------------------------------------------------
+
+
+/// DEFENDER
+
+struct CfgDefenderBase
+{
+	const quint32 maxHp = 3;
+
+	const quint32 radius = 350;					// Ekkora körben hat
+
+	const quint32 repeaterDelay = 30;			// Ennyi tick kell két akció között
+	const quint32 actionsToHpLoss = 3;			// Ennyi akció után veszít 1 hp-t
+
+	const bool alwaysVisible = false;			// Már rögtön látható-e?
+};
+
+
+
+
+struct CfgDefenderPulse
+{
+	const CfgDefenderBase base = {
+		.maxHp = 3,
+		.radius = 150,
+		.repeaterDelay = 20,
+		.actionsToHpLoss = 12,
+	};
+
+	const quint32 push = 400;
+	const quint32 pushDist = base.radius * 1.75;
+
+	RpgStream::EntityConfig toEntityConfig() const {
+		RpgStream::EntityConfig cfg;
+		cfg.setPush(push);
+		cfg.setPushDist(pushDist);
+		cfg.setMaxHp(base.maxHp);
+		return cfg;
+	}
+};
+
+
+
+static inline const CfgDefenderPulse cfgDefenderPulse = {};
+static inline const CfgDefenderBase cfgDefenderFog = { .radius = 250 };
+static inline const CfgDefenderBase cfgDefenderMultiplier = { .maxHp = 4 };
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

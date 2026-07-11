@@ -1,7 +1,7 @@
 TEMPLATE = app
 TARGET = callofsuli
 
-QT += gui quick svg xml network gui-private quickcontrols2 charts websockets core5compat
+QT += gui quick svg xml network gui-private quickcontrols2 charts websockets core5compat shadertools
 
 !wasm: QT += pdf
 
@@ -207,7 +207,6 @@ macx {
 ######## SOURCES ###############
 
 
-
 SOURCES += \
 	abstractgame.cpp \
 	abstractlevelgame.cpp \
@@ -300,7 +299,8 @@ SOURCES += \
 
 RESOURCES += \
 	../qml/qml.qrc \
-	../qml/QaterialHelper.qrc
+	../qml/QaterialHelper.qrc \
+	$$OUT_PWD/../qml/shaders/shaders.qrc
 
 HEADERS += \
 	../../version/version.h \

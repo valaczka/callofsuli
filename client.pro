@@ -24,11 +24,14 @@ application.file = client/src/app.pro
 application.makefile = Makefile
 modules.file = client/modules/modules.pro
 modules.makefile = Makefile
+shaders.file = client/qml/shaders/shaders.pro
+shaders.makefile = Makefile
 
 SUBDIRS += \
 		version \
 		client_lib \
 		modules \
+		shaders \
 		application
 
 CONFIG(release,debug|release):linux|win32:!android:!ios {

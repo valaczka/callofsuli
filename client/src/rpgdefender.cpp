@@ -98,11 +98,9 @@ RpgDefender *RpgDefender::createDefender(const Rpg::DefenderObject &defender, Rp
 
 	switch (defender.type) {
 		case RpgStream::BaseDefenderObject::Fog:
-			common = QStringLiteral("test_defender.tmx");
-			break;
-			/*return gameItem->createObject<RpgDefenderFog>(RpgLogicObjectMapper::toObjectId(defender.idTag),
+			return gameItem->createObject<RpgDefenderFog>(RpgLogicObjectMapper::toObjectId(defender.idTag),
 														  scene, gameItem,
-														  defender);*/
+														  defender);
 
 		case RpgStream::BaseDefenderObject::Pulse:
 			common = QStringLiteral("def_pulse.tmx");
@@ -111,7 +109,6 @@ RpgDefender *RpgDefender::createDefender(const Rpg::DefenderObject &defender, Rp
 		case RpgStream::BaseDefenderObject::Multiplier1:
 
 
-		case RpgStream::BaseDefenderObject::Dummy:
 		case RpgStream::BaseDefenderObject::None:
 			LOG_CERROR("game") << "Invalid defender type" << defender.type;
 			break;
@@ -147,6 +144,9 @@ void RpgDefender::updateVisibility()
 
 	if (TiledVisualItem *item = m_visual.imageItem())
 		item->setVisible(m_visual.state() != StateHidden);
+
+	if (m_markerItem)
+		m_markerItem->setVisible(m_visual.state() != StateHidden && m_marked);
 }
 
 
@@ -177,17 +177,6 @@ void RpgDefender::setTower(RpgTower *newTower)
 	m_tower = newTower;
 }
 
-RpgStream::Team RpgDefender::team() const
-{
-	return m_team;
-}
-
-void RpgDefender::setTeam(RpgStream::Team newTeam)
-{
-	m_team = newTeam;
-
-	updateVisibility();
-}
 
 const Rpg::DefenderObject &RpgDefender::config() const
 {
@@ -225,6 +214,19 @@ void RpgDefender::setHasTarget(bool newHasTarget)
 
 
 /**
+ * @brief RpgDefender::setMarked
+ * @param marked
+ */
+
+void RpgDefender::setMarked(const bool &marked)
+{
+	m_marked = marked;
+
+	updateVisibility();
+}
+
+
+/**
  * @brief RpgDefender::onAlive
  */
 
@@ -240,6 +242,28 @@ void RpgDefender::onAlive()
 
 void RpgDefender::onDead()
 {
+	updateVisibility();
+}
+
+
+
+/**
+ * @brief RpgDefender::updateColor
+ */
+
+void RpgDefender::updateColor()
+{
+	QColor color = m_rpgGame->getColor(m_team);
+
+	if (m_markerItem) {
+		m_markerItem->setProperty("progressBarColor", color);
+		m_markerItem->setProperty("labelColor", color);
+	}
+
+	if (TiledVisualItem *item = m_visual.imageItem()) {
+		item->setGlowColor(color);
+	}
+
 	updateVisibility();
 }
 
@@ -325,9 +349,25 @@ bool RpgDefender::loadFromCommonMap(const QString &name)
 	else if (!layerNormal && layerActive)
 		m_visual.addLayer(StateNormal, layerActive);
 
-	updateVisibility();
+	addMarkerItem();
+
+	updateColor();
 
 	return true;
+}
+
+
+
+
+
+/**
+ * @brief RpgDefender::addMarkerItem
+ */
+
+void RpgDefender::addMarkerItem()
+{
+	m_markerItem = createMarkerItem(QStringLiteral("qrc:/RpgDefenderMarker.qml"));
+	m_markerItem->setVisible(false);
 }
 
 

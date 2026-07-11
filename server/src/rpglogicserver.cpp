@@ -29,7 +29,7 @@
 #include "serverservice.h"
 
 #define LAST_AUTH_DIFF				6
-#define SEND_STATE_COUNT			3
+
 
 RpgLogicServer::RpgLogicServer(RpgEngine *engine)
 	: Rpg::RpgLogic(LAST_AUTH_DIFF)
@@ -123,7 +123,6 @@ void RpgLogicServer::eventRealized(entt::entity entity)
 bool RpgLogicServer::onStageChanged(const RpgStream::GameConfig::Stage &stage)
 {
 	if (stage == RpgStream::GameConfig::StageWarmingUp)	{
-		LOG_CINFO("engine") << "WARMING UP";
 		ELOG_DEBUG << "Stage: warming up";
 	}
 

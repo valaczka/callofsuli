@@ -47,14 +47,25 @@ public:
 	TiledGame *game() const;
 	void setGame(TiledGame *newGame);
 
+	void stop();
+
 signals:
 	void gameChanged();
+
+private:
+	void setCurrentX(const QVariant &value);
+	void setCurrentY(const QVariant &value);
+	void restartX();
+	void restartY();
 
 private:
 	TiledGame *m_game = nullptr;
 	QSGTexture *m_texture = nullptr;
 	QVariantAnimation m_animX;
 	QVariantAnimation m_animY;
+
+	int m_currentX = 0;
+	int m_currentY = 0;
 };
 
 #endif // TILEDEFFECTFOG_H

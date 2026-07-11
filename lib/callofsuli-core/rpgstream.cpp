@@ -41,7 +41,6 @@ namespace RpgStream
 
 quint32 BaseDefenderObject::requiredMp(const Type &type) {
 	switch (type) {
-		case Dummy:						return 1;
 		case Multiplier1:				return 1;
 		case Fog:						return 1;
 		case Pulse:						return 1;
@@ -62,7 +61,6 @@ quint32 BaseDefenderObject::requiredMp(const Type &type) {
 BaseDefenderObject::PlacementFlags BaseDefenderObject::placementFlags(const Type &type)
 {
 	switch (type) {
-		case Dummy:
 		case Fog:
 		case Pulse:
 			return PlacementTower | PlacementChunk;
@@ -650,6 +648,9 @@ EngineStream &EventPlayer::operator<<(EngineStream &stream)
 			m_type == EventStreak)				// itt a streak-et tároljuk nem az msec-t!
 		readAt(stream);
 
+	if (m_type == EventAttackPlayer)
+		readSuccess(stream);
+
 	return stream;
 }
 
@@ -685,6 +686,9 @@ EngineStream &EventPlayer::operator>>(EngineStream &stream) const
 	if (m_type == EventRespawn ||
 			m_type == EventStreak)
 		writeAt(stream);
+
+	if (m_type == EventAttackPlayer)
+		writeSuccess(stream);
 
 	return stream;
 }
@@ -819,7 +823,7 @@ EngineStream &TowerState::operator<<(EngineStream &stream)
 	readLoad(stream);
 	readLockedUntil(stream);
 	readActive(stream);
-	readHasDefender(stream);
+	readDefenders(stream);
 	readMultiply(stream);
 
 	return stream;
@@ -841,7 +845,7 @@ EngineStream &TowerState::operator>>(EngineStream &stream) const
 	writeLoad(stream);
 	writeLockedUntil(stream);
 	writeActive(stream);
-	writeHasDefender(stream);
+	writeDefenders(stream);
 	writeMultiply(stream);
 
 	return stream;
@@ -969,7 +973,7 @@ EngineStream &BaseDefenderObject::operator<<(EngineStream &stream)
 	readPosX(stream);
 	readPosY(stream);
 
-	switch (m_type) {
+	/*switch (m_type) {
 		case BaseDefenderObject::Dummy:
 			readDummy(stream);
 			break;
@@ -979,7 +983,7 @@ EngineStream &BaseDefenderObject::operator<<(EngineStream &stream)
 		case BaseDefenderObject::Pulse:
 		case BaseDefenderObject::None:
 			break;
-	}
+	}*/
 
 	return stream;
 }
@@ -1003,7 +1007,7 @@ EngineStream &BaseDefenderObject::operator>>(EngineStream &stream) const
 	writePosX(stream);
 	writePosY(stream);
 
-	switch (m_type) {
+	/*switch (m_type) {
 		case BaseDefenderObject::Dummy:
 			writeDummy(stream);
 			break;
@@ -1013,7 +1017,7 @@ EngineStream &BaseDefenderObject::operator>>(EngineStream &stream) const
 		case BaseDefenderObject::Pulse:
 		case BaseDefenderObject::None:
 			break;
-	}
+	}*/
 
 
 	return stream;
@@ -1040,7 +1044,7 @@ EngineStream &DefenderState::operator<<(EngineStream &stream)
 	readVisible(stream);
 	readTargetId(stream);
 
-
+/*
 	switch (m_type) {
 		case BaseDefenderObject::Dummy:
 			readDummy(stream);
@@ -1052,7 +1056,7 @@ EngineStream &DefenderState::operator<<(EngineStream &stream)
 		case BaseDefenderObject::None:
 			break;
 	}
-
+*/
 
 	return stream;
 }
@@ -1073,6 +1077,7 @@ EngineStream &DefenderState::operator>>(EngineStream &stream) const
 	writeVisible(stream);
 	writeTargetId(stream);
 
+	/*
 	switch (m_type) {
 		case BaseDefenderObject::Dummy:
 			writeDummy(stream);
@@ -1084,6 +1089,7 @@ EngineStream &DefenderState::operator>>(EngineStream &stream) const
 		case BaseDefenderObject::None:
 			break;
 	}
+	*/
 
 	return stream;
 }

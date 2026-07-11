@@ -143,6 +143,8 @@ public:
 
 	quint32 nextEventId() { return ++m_eventId; }
 
+	virtual void setMarked(const bool &marked = true);
+
 protected:
 	void synchronize() override;
 	void worldStep() override final;

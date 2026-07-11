@@ -87,7 +87,6 @@ RpgNpc *RpgNpc::createNpc(const Rpg::Npc &npc, RpgGameItem *gameItem, TiledScene
 			return gameItem->createObject<RpgNpcTowerAttacker>(RpgLogicObjectMapper::toObjectId(npc.idTag),
 															   scene, gameItem, pos);
 
-		case RpgStream::NpcData::Dummy:
 		case RpgStream::NpcData::None:
 			return gameItem->createObject<RpgNpc>(RpgLogicObjectMapper::toObjectId(npc.idTag),
 												  scene, gameItem, pos);

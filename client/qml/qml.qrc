@@ -247,5 +247,7 @@
         <file>QMapTagDialog.qml</file>
         <file>RpgTowerMarker.qml</file>
         <file>RpgCharacterSelectTmp.qml</file>
+        <file>RpgDefenderFogVisual.qml</file>
+        <file>RpgDefenderMarker.qml</file>
     </qresource>
 </RCC>
