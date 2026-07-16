@@ -161,7 +161,7 @@ void RpgGame::gameAbort()
 
 void RpgGame::loadGameItem()
 {
-	LOG_CDEBUG("game") << "LOAD GAME ITEM";
+	LOG_CDEBUG("game") << "Load GameItem";
 
 	QMetaObject::invokeMethod(d, &RpgGamePrivate::prepareGameItem, Qt::QueuedConnection);
 }
@@ -712,9 +712,9 @@ void RpgGamePrivate::updateCharacterSelect()
 			d.setTeam(RpgStream::TeamNone);
 			d.setType(RpgStream::NpcData::TowerAttacker);
 			d.setEntity(def.toEntityConfig());
-			d.entity().setMaxHp(50);
+			d.entity().setMaxHp(30);
 
-			m_logic->addNpc(d, p);
+			m_logic->addNpc(d, entt::null);
 
 			////////////////////////////////////////////////////////////////////////
 		}
@@ -1359,7 +1359,7 @@ void RpgGamePrivate::onQuestionSuccess(const QVariantMap &answer)
 
 	q->addStatistics(gq->module(), gq->objectiveUuid(), true, gq->elapsedMsec());
 
-	int xp = gq->questionData().value(QStringLiteral("xpFactor"), 0.0).toReal() * 10.;
+	//int xp = gq->questionData().value(QStringLiteral("xpFactor"), 0.0).toReal() * 10.;
 
 
 	gq->answerReveal(answer);
@@ -1727,6 +1727,24 @@ void RpgGamePrivate::syncPlayers()
 			continue;
 		}
 
+
+		/////////////////////////////////////////////////////////
+		LOG_CERROR("game") << "<<<<<<<<<<< REMOVE";
+		def.defender = {
+			RpgStream::BaseDefenderObject::Multiplier1,
+			RpgStream::BaseDefenderObject::Fog,
+			RpgStream::BaseDefenderObject::Pulse,
+		};
+
+		def.utility = {
+			RpgStream::PlayerConfig::UtilityMissionary,
+			RpgStream::PlayerConfig::UtilitySniper,
+		};
+
+		///////////////////////////////////////////////////////
+
+
+
 		cpVect pos;
 
 		if (state) {
@@ -1750,11 +1768,13 @@ void RpgGamePrivate::syncPlayers()
 
 		LOG_CWARNING("game") << "--- check" << (controlledObjects ? controlledObjects->player : 0) << p.idTag();
 
+
 		if ((controlledObjects && controlledObjects->player == p.idTag()) || q->m_gameMode == RpgGame::SinglePlayer) {
 			obj->setSecondaryMotor(std::make_unique<RpgMotorPlayerControlled>(obj));
-			q->setControlledPlayer(obj);
 
-			LOG_CWARNING("game") << "***** CONTROLLED" << obj;
+			LOG_CWARNING("game") << "***** CONTROLLED" << obj << obj->config().defender << obj->config().utility;
+
+			q->setControlledPlayer(obj);
 
 			recolor = true;
 		}
@@ -1765,6 +1785,7 @@ void RpgGamePrivate::syncPlayers()
 			obj->setMp(state->mp());
 			obj->setBullet(state->bullet());
 			obj->setDefender(state->defender(), state->hasDefender());
+			obj->setUtility(state->utility(), state->hasUtility());
 			obj->setTeam(p.team);
 
 			if (auto ptr = addToScatter(0)) {
@@ -1773,6 +1794,7 @@ void RpgGamePrivate::syncPlayers()
 													q->getColor(p.team));
 			}
 		}
+
 	}
 
 
@@ -1925,65 +1947,80 @@ void RpgGamePrivate::syncNpc()
 
 	Rpg::RpgLogicControlledObjects *controlledObjects = scope.getCtx<Rpg::RpgLogicControlledObjects>();
 
-	auto view = scope.view<Rpg::Npc>(entt::exclude<Rpg::LocalIdTag>);
-
-	for (auto entity : view) {
+	for (auto entity : scope.view<Rpg::Npc>()) {
 		const RpgStream::NpcState *state = scope.getCurrentState<RpgStream::NpcState>(entity);
 
 		const Rpg::Npc &p = scope.get<Rpg::Npc>(entity);
 
-		TiledScene *scene = q->m_gameItem->currentScene();
+		RpgNpc *obj = nullptr;
 
-		Q_ASSERT(scene);
+		if (scope.try_get<Rpg::LocalIdTag>(entity)) {
+			obj = qobject_cast<RpgNpc*>(scope.getCtx<RpgLogicObjectMapper>()->get(p.idTag));
 
-		LOG_CWARNING("game") << "CREATE NPC" << p.idTag << p.data.character()
-							 << p.data.characterResolved(m_npcHash);
-
-		const auto ptr = q->readNpcDefinition(p.data.characterResolved(m_npcHash));
-
-		if (!ptr) {
-			LOG_CERROR("game") << "Invalid NPC" << p.data.character();
-			continue;
-		}
-
-		const RpgNpcDefinition &def = ptr.value();
-
-		cpVect pos;
-
-		if (state) {
-			pos.x = state->entityState().posXAsFloat();
-			pos.y = state->entityState().posYAsFloat();
-		}
-
-		RpgNpc *obj = RpgNpc::createNpc(p, q->m_gameItem, scene, pos);
-
-		Q_ASSERT(obj);
-
-		//obj->setDisplayName(QString("NPC #%1").arg(p.idTag));
-		obj->load(def);
-
-		if (state) {
-			obj->setHp(state->hp());
-			obj->setTeam(p.data.team());
-
-			if (auto ptr = addToScatter(2)) {
-				obj->setScatterPoint(ptr.value());
-				ptr->scatter->setPointConfiguration(ptr->index, QXYSeries::PointConfiguration::Color,
-													obj->getColor());
+			if (!obj) {
+				LOG_CERROR("game") << "Invalid NPC" << p.idTag;
+				continue;
 			}
+
+			obj->setMaxHp(p.data.entity().maxHp());
+			obj->setTeam(p.data.team());
+		} else {
+			TiledScene *scene = q->m_gameItem->currentScene();
+
+			Q_ASSERT(scene);
+
+			LOG_CWARNING("game") << "CREATE NPC" << p.idTag << p.data.character()
+								 << p.data.characterResolved(m_npcHash);
+
+			const auto ptr = q->readNpcDefinition(p.data.characterResolved(m_npcHash));
+
+			if (!ptr) {
+				LOG_CERROR("game") << "Invalid NPC" << p.data.character();
+				continue;
+			}
+
+			const RpgNpcDefinition &def = ptr.value();
+
+			cpVect pos;
+
+			if (state) {
+				pos.x = state->entityState().posXAsFloat();
+				pos.y = state->entityState().posYAsFloat();
+			}
+
+			obj = RpgNpc::createNpc(p, q->m_gameItem, scene, pos);
+
+			Q_ASSERT(obj);
+
+			//obj->setDisplayName(QString("NPC #%1").arg(p.idTag));
+			obj->load(def);
+
+			if (state) {
+				obj->setHp(state->hp());
+				obj->setTeam(p.data.team());
+
+				if (auto ptr = addToScatter(2)) {
+					obj->setScatterPoint(ptr.value());
+					ptr->scatter->setPointConfiguration(ptr->index, QXYSeries::PointConfiguration::Color,
+														obj->getColor());
+				}
+			}
+
+			const quint32 pid = logicRegisterObject(obj);
+			m_logic->addLocalIdTag(entity);
+
+			LOG_CINFO("game") << "ADDED" << pid << "==" << obj->hp() << "HP" << "/" << obj->maxHp() << "MaxHp";
+
+			LOG_CWARNING("game") << "--- check" << (controlledObjects ? controlledObjects->entities.size() : 0) << p.idTag;
+
 		}
 
-		const quint32 pid = logicRegisterObject(obj);
-		m_logic->addLocalIdTag(entity);
+		if (!obj->secondaryMotor()) {
+			if ((controlledObjects && controlledObjects->entities.contains(p.idTag)) || q->m_gameMode == RpgGame::SinglePlayer) {
+				obj->setSecondaryMotor(obj->getControlledMotor());
 
-		LOG_CINFO("game") << "ADDED" << pid << "==" << obj->hp() << "HP" << "/" << obj->maxHp() << "MaxHp";
-
-		LOG_CWARNING("game") << "--- check" << (controlledObjects ? controlledObjects->entities.size() : 0) << p.idTag;
-
-		if ((controlledObjects && controlledObjects->entities.contains(p.idTag)) || q->m_gameMode == RpgGame::SinglePlayer) {
-			obj->setSecondaryMotor(obj->getControlledMotor());
-
-			LOG_CWARNING("game") << "***** CONTROLLED NPC" << obj << obj->secondaryMotor();
+				LOG_CWARNING("game") << "***** CONTROLLED NPC" << obj << obj->secondaryMotor();
+			}
 		}
 	}
 }
@@ -3197,6 +3234,10 @@ RpgStream::PlayerConfig RpgPlayerDefinition::toPlayerConfig() const
 	for (const RpgStream::BaseDefenderObject::Type &t : defender)
 		cfg.defenders().push_back(t);
 
+	cfg.utilities().reserve(utility.size());
+
+	for (const RpgStream::PlayerConfig::Utility &t : utility)
+		cfg.utilities().push_back(t);
 
 	return cfg;
 }

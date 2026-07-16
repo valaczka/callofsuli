@@ -24,6 +24,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "rpgnpc.h"
 #include "tiledspritehandler.h"
 #include "rpgplayer.h"
 #include "rpgmp.h"
@@ -69,8 +70,6 @@ private:
 
 	bool m_controlActionDisable = false;
 	quint32 m_controlActionDisableLastNotification = 0;
-
-	RpgStream::BaseDefenderObject::Type m_currentDefender = RpgStream::BaseDefenderObject::None;
 
 	cpVect m_currentKnockback = cpvzero;
 
@@ -234,6 +233,21 @@ bool RpgPlayer::isWalking() const
 	// 60 FPS
 	const float &l = currentSpeedSq();
 	return l < POW2(m_config.run) && l > POW2(0.05);
+}
+
+
+
+/**
+ * @brief RpgPlayer::useCurrentUtility
+ */
+
+void RpgPlayer::useCurrentUtility()
+{
+	if (RpgMotorPlayerControlled* motor = dynamic_cast<RpgMotorPlayerControlled*>(currentMotor())) {
+		motor->useCurrentUtility();
+	} else {
+		LOG_CWARNING("game") << "Invalid player motor";
+	}
 }
 
 
@@ -444,6 +458,23 @@ void RpgMotorPlayer::onAttack(RpgPlayer *player)
 
 
 /**
+ * @brief RpgMotorPlayer::onUseUtility
+ * @param player
+ */
+
+void RpgMotorPlayer::onUseUtility(RpgPlayer *player)
+{
+	Q_ASSERT(player);
+
+	player->jumpToSprite("cast", player->facingDirection());
+
+	player->game()->playSfx(QStringLiteral(":/rpg/hammer/hammer2.mp3"),
+							player->scene(), player->bodyPositionF());
+}
+
+
+
+/**
  * @brief RpgMotorPlayer::processEventAt
  * @param tick
  */
@@ -454,6 +485,9 @@ void RpgMotorPlayer::processEventAt(const qint64 &/*tick*/)
 		if (e.type() == RpgStream::EventPlayer::EventAttackPlayer) {
 			LOG_CWARNING("game") << "ATTACK >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
 			onAttack(m_player);
+		} else if (e.type() == RpgStream::EventPlayer::EventUseUtility) {
+			LOG_CWARNING("game") << "USE UTILITY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
+			onUseUtility(m_player);
 		}
 	}
 }
@@ -584,6 +618,7 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 
 		m_player->setTargetControl(nullptr);
 		m_player->setTargetEntity(nullptr);
+		m_player->setUtilityEntity(nullptr);
 		return;
 	}
 
@@ -742,14 +777,36 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 
 
 
+	cpBitmask utilityBitmask = RpgGameItem::FixtureInvalid;
+	const float utilityTarget = utilityRequireTarget(&utilityBitmask);
 
 
 	// Attack enemy (JoystickC)
 
-	if (m_controlJoystickState.hasTouch || m_player->bullet() <= 0) {
+	if (m_controlJoystickState.hasTouch || (m_player->bullet() <= 0 && utilityTarget == 0.f)) {
+		m_player->setTargetEntity(nullptr);
+		m_player->setUtilityEntity(nullptr);
+		return;
+	}
+
+
+	if (utilityTarget > 0.f && !m_targetJoystickState.hasTouch) {
+		cpVect ahead = m_player->bodyPosition()+TiledObjectBody::vectorFromAngle(m_player->currentAngle(), utilityTarget);
+
+		if (RpgEntity *next = findNearestTarget(ahead, utilityBitmask)) {
+			m_player->setTargetEntity(nullptr);
+			m_player->setUtilityEntity(next);
+			return;
+		}
+	}
+
+	m_player->setUtilityEntity(nullptr);
+
+	if (m_player->bullet() <= 0) {
 		m_player->setTargetEntity(nullptr);
 		return;
 	}
+
 
 	if (!m_targetJoystickState.hasTouch && m_player->targetControl() && d->m_isTargetAuto) {
 		m_player->setTargetEntity(nullptr);
@@ -817,7 +874,6 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 							  );
 
 		if (next) {
-			LOG_CINFO("game") << "OVERRIDE TARGET" << next;
 			m_player->setTargetEntity(next);
 			d->m_isTargetAuto = true;
 		}
@@ -945,6 +1001,7 @@ bool RpgMotorPlayerControlled::beforeWorldStep(const qint64 &tick, entt::entity 
 	m_player->setMp(state->mp());
 	m_player->setBullet(state->bullet());
 	m_player->setDefender(state->defender(), state->hasDefender());
+	m_player->setUtility(state->utility(), state->hasUtility());
 
 	bool oldLock = m_player->locked();
 
@@ -1092,6 +1149,8 @@ const RpgStream::PlayerState *RpgMotorPlayerControlled::saveCurrentState(const q
 	st.setPenalty(d->m_penalty);
 	st.setDefender(m_player->m_defender);
 	st.setHasDefender(m_player->m_hasDefender);
+	st.setUtility(m_player->m_utility);
+	st.setHasUtility(m_player->m_hasUtility);
 
 
 	m_statePull.append(std::move(st));
@@ -1129,6 +1188,11 @@ void RpgMotorPlayerControlled::attackCurrentTarget()
 {
 	if (!m_player->targetEntity() || !m_player->targetEntity()->isAlive()) {
 		LOG_CWARNING("game") << "Invalid target";
+		return;
+	}
+
+	if (m_player->bullet() <= 0) {
+		LOG_CWARNING("game") << "Missing bullet";
 		return;
 	}
 
@@ -1185,6 +1249,102 @@ void RpgMotorPlayerControlled::useCurrentControl()
 	if (dynamic_cast<RpgDefenderPoint*>(m_player->targetControl()))
 		return putDefender(true);
 
+}
+
+
+
+
+
+/**
+ * @brief RpgMotorPlayerControlled::useCurrentUtility
+ */
+
+void RpgMotorPlayerControlled::useCurrentUtility()
+{
+	if (!m_player->m_hasUtility || !m_player->m_canUseUtility) {
+		LOG_CWARNING("game") << "Invalid utility";
+		return;
+	}
+
+	RpgStream::EventPlayer e(RpgStream::EventPlayer::EventUseUtility);
+	e.setSeq(m_player->nextEventId());
+
+	if (m_player->utilityEntity())
+		e.setTarget(RpgLogicObjectMapper::getId(m_player->utilityEntity()->objectId()));
+
+	RpgMotorPlayer::onUseUtility(m_player);
+
+	d->m_eventList.emplace_back(std::move(e));
+}
+
+
+
+/**
+ * @brief RpgMotorPlayerControlled::updateUseUtility
+ */
+
+void RpgMotorPlayerControlled::updateUseUtility()
+{
+	if (!m_player->hasUtility())
+		return m_player->setCanUseUtility(false);
+
+	if (m_player->m_utility == RpgStream::PlayerConfig::UtilityMissionary) {
+		RpgNpc *target = qobject_cast<RpgNpc*>(m_player->utilityEntity());
+
+		if (!target)
+			return m_player->setCanUseUtility(false);
+
+		return m_player->setCanUseUtility(target->team() != m_player->team());
+
+	} else if (m_player->m_utility == RpgStream::PlayerConfig::UtilitySniper) {
+		RpgDefender *defender = qobject_cast<RpgDefender*>(m_player->utilityEntity());
+		RpgNpc *target = qobject_cast<RpgNpc*>(m_player->utilityEntity());
+
+		if (!target && !defender)
+			return m_player->setCanUseUtility(false);
+
+		if (target)
+			return m_player->setCanUseUtility(target->team() != m_player->team());
+
+		if (defender)
+			return m_player->setCanUseUtility(defender->team() != m_player->team());
+	}
+
+	m_player->setCanUseUtility(true);
+}
+
+
+
+
+/**
+ * @brief RpgMotorPlayerControlled::utilityRequireTarget
+ * @return
+ */
+
+float RpgMotorPlayerControlled::utilityRequireTarget(cpBitmask *categoryPtr) const
+{
+	if (categoryPtr)
+		*categoryPtr = RpgGameItem::FixtureInvalid;
+
+	if (!m_player->hasUtility())
+		return 0.f;
+
+	if (m_player->m_utility == RpgStream::PlayerConfig::UtilityMissionary) {
+		if (categoryPtr)
+			*categoryPtr = RpgGameItem::FixtureNpcBody | RpgGameItem::FixtureNpcTarget;
+
+		return cfgUtilityMissionary.dist;
+	}
+
+	if (m_player->m_utility == RpgStream::PlayerConfig::UtilitySniper) {
+		if (categoryPtr)
+			*categoryPtr = RpgGameItem::FixtureNpcBody | RpgGameItem::FixtureNpcTarget |
+						   RpgGameItem::FixtureDefender;
+
+		return cfgUtilitySniper.dist;
+	}
+
+	return 0.f;
 }
 
 
@@ -1270,7 +1430,7 @@ void RpgMotorPlayerControlled::changeMpToDefender()
 		return;
 	}
 
-	if (m_player->mp() < (int) RpgStream::BaseDefenderObject::requiredMp(d->m_currentDefender)) {
+	if (m_player->mp() < cfgRequiredMpDefender.value(m_player->m_defender)) {
 		m_player->game()->message(QObject::tr("Not enough MP"));
 		d->vibrate();
 		return;
@@ -1287,6 +1447,83 @@ void RpgMotorPlayerControlled::changeMpToDefender()
 
 	d->m_eventList.emplace_back(std::move(e));
 }
+
+
+
+/**
+ * @brief RpgMotorPlayerControlled::changeMpToUtility
+ */
+
+void RpgMotorPlayerControlled::changeMpToUtility()
+{
+	if (m_player->m_utility == RpgStream::PlayerConfig::UtilityNone) {
+		m_player->game()->message(QObject::tr("Select utility"));
+		d->vibrate();
+		return;
+	}
+
+	if (m_player->m_hasUtility) {
+		m_player->game()->message(QObject::tr("Already have an utility"));
+		d->vibrate();
+		return;
+	}
+
+	if (m_player->mp() < cfgRequiredMpUtility.value(m_player->m_utility)) {
+		m_player->game()->message(QObject::tr("Not enough MP"));
+		d->vibrate();
+		return;
+	}
+
+	const qint64 tick = m_gameItem->tickTimer()->currentTick();
+
+	RpgStream::EventPlayer e(RpgStream::EventPlayer::EventChangeUtility);
+
+	e.setSeq(m_player->nextEventId());
+
+	d->m_lockedEvent = e;
+	d->m_waitForLock = tick + 5*60;			// Wait for lockId from server
+
+	d->m_eventList.emplace_back(std::move(e));
+}
+
+
+
+
+
+/**
+ * @brief RpgMotorPlayerControlled::replaceDefender
+ * @param type
+ */
+
+void RpgMotorPlayerControlled::replaceDefender(const RpgStream::BaseDefenderObject::Type &type)
+{
+	RpgStream::EventPlayer e(RpgStream::EventPlayer::EventReplaceDefender);
+
+	e.setSeq(m_player->nextEventId());
+	e.setAt(type);
+
+	d->m_eventList.emplace_back(std::move(e));
+}
+
+
+
+
+/**
+ * @brief RpgMotorPlayerControlled::replaceUtility
+ * @param type
+ */
+
+void RpgMotorPlayerControlled::replaceUtility(const RpgStream::PlayerConfig::Utility &type)
+{
+	RpgStream::EventPlayer e(RpgStream::EventPlayer::EventReplaceUtility);
+
+	e.setSeq(m_player->nextEventId());
+	e.setAt(type);
+
+	d->m_eventList.emplace_back(std::move(e));
+}
+
+
 
 
 
@@ -1580,6 +1817,11 @@ void RpgPlayer::onCurrentSpriteChanged()
 		d->idleClear();*/
 }
 
+const RpgPlayerDefinition &RpgPlayer::config() const
+{
+	return m_config;
+}
+
 
 /**
  * @brief RpgPlayer::hasDefender
@@ -1636,6 +1878,29 @@ void RpgPlayer::setBullet(int newBullet)
 	if (m_bullet > m_config.bullet) {
 		m_config.bullet = m_bullet;
 		emit maxBulletChanged();
+	}
+}
+
+
+
+/**
+ * @brief RpgPlayer::setUtility
+ * @param type
+ * @param hasUtility
+ */
+
+void RpgPlayer::setUtility(const RpgStream::PlayerConfig::Utility &type, const bool &hasUtility)
+{
+	if (m_utility == type && m_hasUtility == hasUtility)
+		return;
+
+	m_utility = type;
+	m_hasUtility = hasUtility;
+
+	emit hasUtilityChanged();
+
+	if (RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(currentMotor())) {
+		motor->updateUseUtility();
 	}
 }
 
@@ -1797,7 +2062,14 @@ void RpgPlayer::synchronize()
 	if (RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(currentMotor())) {
 		stroke = 1.;
 
-		if (m_targetEntity) {
+		if (m_utilityEntity && m_canUseUtility) {
+			QRectF rect = m_utilityEntity->bodyAABB();
+
+			offset = rect.center();
+			width = std::max(rect.width(), rect.height()) * 1.5;
+			color = QColorConstants::Svg::salmon;
+
+		} else if (m_targetEntity) {
 			QRectF rect = m_targetEntity->bodyAABB();
 
 			offset = rect.center();
@@ -1958,3 +2230,38 @@ void RpgPlayerPrivate::vibrate()
 
 }
 
+
+bool RpgPlayer::hasUtility() const
+{
+	return m_utility != RpgStream::PlayerConfig::UtilityNone && m_hasUtility;
+}
+
+bool RpgPlayer::canUseUtility() const
+{
+	return m_canUseUtility;
+}
+
+void RpgPlayer::setCanUseUtility(bool newCanUseUtility)
+{
+	if (m_canUseUtility == newCanUseUtility)
+		return;
+	m_canUseUtility = newCanUseUtility;
+	emit canUseUtilityChanged();
+}
+
+RpgEntity *RpgPlayer::utilityEntity() const
+{
+	return m_utilityEntity;
+}
+
+void RpgPlayer::setUtilityEntity(RpgEntity *newUtilityEntity)
+{
+	if (m_utilityEntity == newUtilityEntity)
+		return;
+	m_utilityEntity = newUtilityEntity;
+	emit utilityEntityChanged();
+
+	if (RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(currentMotor())) {
+		motor->updateUseUtility();
+	}
+}

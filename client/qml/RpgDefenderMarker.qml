@@ -9,7 +9,18 @@ TiledPlayerMarker {
 
 	property RpgDefender defender: target
 
-	visible: defender && defender.hp > 0
+	entityHeight: 75
+
+	Connections {
+		target: defender
+
+		function onHpChanged() {
+			if (defender.hp <= 0)
+				visible = false
+		}
+	}
+
+	visible: false
 }
 
 

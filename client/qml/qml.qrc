@@ -249,5 +249,9 @@
         <file>RpgCharacterSelectTmp.qml</file>
         <file>RpgDefenderFogVisual.qml</file>
         <file>RpgDefenderMarker.qml</file>
+        <file>RpgChangerDialog.qml</file>
+        <file>RpgChangerButton.qml</file>
+        <file>RpgChangerComponent.qml</file>
+        <file>RpgDialog.qml</file>
     </qresource>
 </RCC>

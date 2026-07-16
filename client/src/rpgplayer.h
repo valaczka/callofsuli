@@ -59,7 +59,11 @@ class RpgPlayer : public RpgEntity
 
 	Q_PROPERTY(bool hasDefender READ hasDefender NOTIFY hasDefenderChanged FINAL)
 
+	Q_PROPERTY(bool hasUtility READ hasUtility NOTIFY hasUtilityChanged FINAL)
+	Q_PROPERTY(bool canUseUtility READ canUseUtility WRITE setCanUseUtility NOTIFY canUseUtilityChanged FINAL)
+
 	Q_PROPERTY(RpgEntity *targetEntity READ targetEntity WRITE setTargetEntity NOTIFY targetEntityChanged FINAL)
+	Q_PROPERTY(RpgEntity *utilityEntity READ utilityEntity WRITE setUtilityEntity NOTIFY utilityEntityChanged FINAL)
 
 public:
 	RpgPlayer(RpgGameItem *gameItem, const cpVect &center = cpvzero);
@@ -70,11 +74,13 @@ public:
 
 	void load(const RpgPlayerDefinition &config);
 
+	const RpgPlayerDefinition &config() const;
 	void setConfig(const RpgPlayerDefinition &config);
 
 	Q_INVOKABLE bool isRunning() const;
 	Q_INVOKABLE bool isWalking() const;
 
+	Q_INVOKABLE void useCurrentUtility();
 
 	QPoint currentChunk() const;
 	void setCurrentChunk(QPoint newCurrentChunk);
@@ -90,6 +96,7 @@ public:
 
 	bool hasDefender() const;
 	void setDefender(const RpgStream::BaseDefenderObject::Type &type, const bool &hasDefender);
+	const RpgStream::BaseDefenderObject::Type &currentDefender() const { return m_defender; }
 
 	RpgEntity *targetEntity() const;
 	void setTargetEntity(RpgEntity *newTargetEntity);
@@ -100,6 +107,15 @@ public:
 	int bullet() const;
 	void setBullet(int newBullet);
 
+	void setUtility(const RpgStream::PlayerConfig::Utility &type, const bool &hasUtility);
+	const RpgStream::PlayerConfig::Utility &currentUtility() const { return m_utility; }
+	bool hasUtility() const;
+
+	bool canUseUtility() const;
+	void setCanUseUtility(bool newCanUseUtility);
+
+	RpgEntity *utilityEntity() const;
+	void setUtilityEntity(RpgEntity *newUtilityEntity);
 
 
 signals:
@@ -112,6 +128,9 @@ signals:
 	void bulletChanged();
 	void maxBulletChanged();
 	void hasDefenderChanged();
+	void hasUtilityChanged();
+	void canUseUtilityChanged();
+	void utilityEntityChanged();
 
 protected:
 	void synchronize() override;
@@ -134,6 +153,9 @@ private:
 	RpgStream::BaseDefenderObject::Type m_defender = RpgStream::BaseDefenderObject::None;
 	bool m_hasDefender = false;
 
+	RpgStream::PlayerConfig::Utility m_utility = RpgStream::PlayerConfig::UtilityNone;
+	bool m_hasUtility = false;
+	bool m_canUseUtility = false;
 
 	TiledGameSfx m_sfxPain;
 	TiledGameSfx m_sfxDead;
@@ -156,6 +178,7 @@ private:
 	friend class RpgMotorPlayer;
 	friend class RpgMotorPlayerControlled;
 
+	RpgEntity *m_utilityEntity = nullptr;
 };
 
 
@@ -193,6 +216,7 @@ public:
 
 	static void updateBody(RpgPlayer *player, const RpgStream::PlayerState &state, const bool &isEmplace);
 	static void onAttack(RpgPlayer *player);
+	static void onUseUtility(RpgPlayer *player);
 
 protected:
 	virtual void processEventAt(const qint64 &tick);
@@ -236,9 +260,16 @@ public:
 	void useCurrentControl();
 	void putDefender(const bool &click);
 
+	void useCurrentUtility();
+	void updateUseUtility();
+	float utilityRequireTarget(cpBitmask *categoryPtr = nullptr) const;
+
 	void changeMpToBullet();
 	void changeMpToDefender();
-	void changeMpToSuper();
+	void changeMpToUtility();
+
+	void replaceDefender(const RpgStream::BaseDefenderObject::Type &type);
+	void replaceUtility(const RpgStream::PlayerConfig::Utility &type);
 
 	virtual void processEvent(const RpgStream::EventPlayer &event) override;
 

@@ -773,6 +773,23 @@ struct DefenderDummyObject
 
 
 
+/**
+ * @brief The Utility class
+ */
+
+struct Utility
+{
+	RpgStream::PlayerConfig::Utility type = RpgStream::PlayerConfig::UtilityNone;
+	RpgStream::Team team = RpgStream::TeamNone;
+
+	entt::entity target = entt::null;
+
+	quint32 destroyAt = 0;
+};
+
+
+
+
 
 // Chunkgrid data
 
@@ -1030,6 +1047,14 @@ struct EventDefenderAdd {
 };
 
 
+// Using utility
+
+struct EventUtility {
+	entt::entity player;
+	entt::entity target;
+	RpgStream::PlayerConfig::Utility type = RpgStream::PlayerConfig::UtilityNone;
+};
+
 
 
 // Player target player
@@ -1110,6 +1135,15 @@ struct EventChangeDefender {
 	RpgStream::BaseDefenderObject::Type type = RpgStream::BaseDefenderObject::None;
 };
 
+
+// Change Mp to utility
+
+struct EventChangeUtility {
+	entt::entity player;
+	bool lock = true;
+	bool skipLock = false;
+	RpgStream::PlayerConfig::Utility type = RpgStream::PlayerConfig::UtilityNone;
+};
 
 
 

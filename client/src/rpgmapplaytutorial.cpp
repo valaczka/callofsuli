@@ -128,7 +128,7 @@ QQuickItem* RpgMapPlayTutorial::load(const QUrl &url)
 			for (int i=1; i<6; ++i) {
 				Rpg::EventNpcCreate ev;
 				ev.data.setCharacterResolved("soldier04");
-				ev.data.setTeam(RpgStream::TeamB);
+				ev.data.setTeam(RpgStream::TeamNone);
 				ev.data.setType(RpgStream::NpcData::TowerAttacker);
 				RpgNpcDefinition def = RpgGame::readNpcDefinition("soldier04").value_or(RpgNpcDefinition{});
 				ev.data.setEntity(def.toEntityConfig());

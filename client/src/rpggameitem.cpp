@@ -911,42 +911,31 @@ void RpgGameItem::keyPressEvent(QKeyEvent *event)
 
 	/*
 	WASD + Shift: Sprint or run faster.
-	WASD + Spacebar: Jump.
+	WASD + Spacebar: Jump.										- attack target
 	WASD + Ctrl: Crouch or go prone.
-	WASD + E: Interact with objects or perform actions.
-	WASD + Q: Switch weapons or equipment.
-	WASD + R: Reload your weapon.
-	WASD + F: Activate a flashlight or use a special ability.
+	WASD + E: Interact with objects or perform actions.			- use control
+	WASD + Q: Switch weapons or equipment.						- change mp
+	WASD + R: Reload your weapon.								- reload weapons
+	WASD + F: Activate a flashlight or use a special ability.	- use utility
 	WASD + Numbers (1-9): Switch between different inventory items or abilities.
 	*/
 
 	switch (key) {
-		/*		case Qt::Key_X:
-		case Qt::Key_Clear:
-		case Qt::Key_5:
-			if (m_controlledPlayer)
-				m_controlledPlayer->exitHiding();
+		/*
+		case Qt::Key_F10:
+			emit questsRequest();
+			break;*/
+
+		case Qt::Key_Tab:
+			emit minimapToggleRequest();
 			break;
 
 
 		case Qt::Key_Q:
 		case Qt::Key_Delete:
 		case Qt::Key_Comma:
-			if (m_controlledPlayer)
-				m_controlledPlayer->armory()->changeToNextWeapon();
+			emit changerRequest();
 			break;
-
-
-
-		case Qt::Key_C:
-			if (m_controlledPlayer)
-				m_controlledPlayer->cast();
-			break;
-
-
-		case Qt::Key_F10:
-			emit questsRequest();
-			break;*/
 
 		case Qt::Key_Space:
 		case Qt::Key_Insert:
@@ -955,32 +944,36 @@ void RpgGameItem::keyPressEvent(QKeyEvent *event)
 				motor->attackCurrentTarget();
 			break;
 
-		case Qt::Key_Tab:
-			emit minimapToggleRequest();
-			break;
-
-
-		case Qt::Key_F10:
-			//d->changeControlledPlayer();
-			break;
-
-		case Qt::Key_F11:
-			if (motor)
-				motor->changeMpToDefender();
-			break;
-
-		case Qt::Key_F9:
-			if (motor)
-				motor->changeMpToBullet();
-			break;
-
-
 		case Qt::Key_Return:
 		case Qt::Key_Enter:
 		case Qt::Key_E:
 			if (motor)
 				motor->useCurrentControl();
 			break;
+
+		case Qt::Key_F:
+		case Qt::Key_Clear:
+		case Qt::Key_5:
+			if (motor)
+				motor->useCurrentUtility();
+			break;
+
+
+		case Qt::Key_X:
+			if (motor)
+				motor->changeMpToDefender();
+			break;
+
+		case Qt::Key_R:
+			if (motor)
+				motor->changeMpToBullet();
+			break;
+
+		case Qt::Key_C:
+			if (motor)
+				motor->changeMpToUtility();
+			break;
+
 
 		default:
 			TiledGame::keyPressEvent(event);

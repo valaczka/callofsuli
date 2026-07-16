@@ -917,7 +917,6 @@ public:
 
 	Q_DECLARE_FLAGS(PlacementFlags, PlacementFlag)
 
-	static quint32 requiredMp(const Type &type);
 	static PlacementFlags placementFlags(const Type &type);
 
 
@@ -1080,6 +1079,11 @@ public:
 	EngineStream& operator<<(EngineStream &stream);
 	EngineStream& operator>>(EngineStream &stream) const;
 
+	enum Utility {
+		UtilityNone = 0,
+		UtilityMissionary,												// Saját csapatba állítja az NPC-ket
+		UtilitySniper													// Messziről lelövi az NPC-ket és a defendereket
+	};
 
 	STREAM_FIELD(EntityConfig, entity, Entity, {})
 
@@ -1088,6 +1092,8 @@ public:
 	STREAM_MEMBER(ENTITY_MP_TYPE, maxBullet, MaxBullet, ENTITY_HP_BITS, 0)
 
 	STREAM_MEMBER_VECTOR_CAST(BaseDefenderObject::Type, OBJECT_TYPE, OBJECT_BITS, defenders, Defenders, quint8, 8, BaseDefenderObject::None)
+
+	STREAM_MEMBER_VECTOR_CAST(Utility, OBJECT_TYPE, OBJECT_BITS, utilities, Utilities, quint8, 8, UtilityNone)
 
 };
 
@@ -1341,7 +1347,7 @@ public:
 
 
 	STREAM_DELTA_MASK (
-			quint32, 7,
+			quint32, 9,
 
 			Hp,
 			Mp,
@@ -1349,7 +1355,9 @@ public:
 			Lock,
 			Penalty,
 			Defender,
-			HasDefender
+			HasDefender,
+			Utility,
+			HasUtility
 
 			)
 
@@ -1364,6 +1372,9 @@ public:
 	STREAM_DELTA_MEMBER_CAST(BaseDefenderObject::Type, defender, Defender, OBJECT_TYPE, OBJECT_BITS, BaseDefenderObject::None, Defender)
 	STREAM_DELTA_MEMBER_CAST(bool, hasDefender, HasDefender, quint8, 1, false, HasDefender);
 
+	STREAM_DELTA_MEMBER_CAST(PlayerConfig::Utility, utility, Utility, OBJECT_TYPE, OBJECT_BITS, PlayerConfig::UtilityNone, Utility)
+	STREAM_DELTA_MEMBER_CAST(bool, hasUtility, HasUtility, quint8, 1, false, HasUtility);
+
 	bool operator==(const PlayerState &other) const {
 		return other.m_entityState == m_entityState &&
 				other.m_hp == m_hp &&
@@ -1372,7 +1383,9 @@ public:
 				other.m_lock == m_lock &&
 				other.m_penalty == m_penalty &&
 				other.m_defender == m_defender &&
-				other.m_hasDefender == m_hasDefender
+				other.m_hasDefender == m_hasDefender &&
+				other.m_utility == m_utility &&
+				other.m_hasUtility == m_hasUtility
 				;
 	}
 
@@ -1388,6 +1401,9 @@ public:
 
 	LOAD_FROM_DELTA(defender, Defender)
 	LOAD_FROM_DELTA(hasDefender, HasDefender)
+
+	LOAD_FROM_DELTA(utility, Utility)
+	LOAD_FROM_DELTA(hasUtility, HasUtility)
 
 	LOAD_FROM_DELTA_MEMBER(entityState)
 
@@ -1635,8 +1651,11 @@ public:
 		EventRespawn,											// meghalt a játékos, respawn jön x tick múlva
 		EventChangeBullet,										// MP váltása töltényre
 		EventChangeDefender,									// MP váltása defenderre
-		EventChangeSuper,										// MP váltása super képességre
+		EventChangeUtility,										// MP váltása super képességre
 		EventStreak,											// helyes válasz streak
+		EventUseUtility,										// aktuális képesség felhasználása
+		EventReplaceDefender,									// defender kicserélése
+		EventReplaceUtility,									// super képesség kicserélése
 	};
 
 	EventPlayer() : BaseEventState() {}

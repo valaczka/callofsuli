@@ -113,14 +113,39 @@ static inline const CfgDefenderPulse cfgDefenderPulse = {};
 static inline const CfgDefenderBase cfgDefenderFog = { .radius = 250 };
 static inline const CfgDefenderBase cfgDefenderMultiplier = { .maxHp = 4 };
 
+static inline const QHash<RpgStream::BaseDefenderObject::Type, int> cfgRequiredMpDefender = {
+	{ RpgStream::BaseDefenderObject::Fog,					1 },
+	{ RpgStream::BaseDefenderObject::Multiplier1,					1 },
+	{ RpgStream::BaseDefenderObject::Pulse,					1 },
+};
 
 
 
 
 
 
+/// UTILITY
 
 
+struct CfgUtilityMissionary
+{
+	const quint32 dist = 200;
+};
+
+
+struct CfgUtilitySniper
+{
+	const quint32 dist = 800;
+};
+
+
+static inline const CfgUtilityMissionary cfgUtilityMissionary = {};
+static inline const CfgUtilitySniper cfgUtilitySniper = {};
+
+static inline const QHash<RpgStream::PlayerConfig::Utility, int> cfgRequiredMpUtility = {
+	{ RpgStream::PlayerConfig::UtilityMissionary,					1 },
+	{ RpgStream::PlayerConfig::UtilitySniper,						1 },
+};
 
 
 

@@ -248,6 +248,7 @@ SOURCES += \
 	offsetmodel.cpp \
 	pass.cpp \
 	question.cpp \
+	rpgchanger.cpp \
 	rpgdefender.cpp \
 	rpgdefenderfog.cpp \
 	rpgentity.cpp \
@@ -345,6 +346,7 @@ HEADERS += \
 	offsetmodel.h \
 	pass.h \
 	question.h \
+	rpgchanger.h \
 	rpgdefender.h \
 	rpgdefenderfog.h \
 	rpgentity.h \

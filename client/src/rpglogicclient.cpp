@@ -270,7 +270,7 @@ void RpgLogicClientSingle::eventRealized(entt::entity entity)
 				evc.setTick(tick + i*60);
 
 				evc.data.setCharacterResolved("soldier04");
-				evc.data.setTeam(RpgStream::TeamB);
+				evc.data.setTeam(RpgStream::TeamNone);
 				evc.data.setType(RpgStream::NpcData::TowerAttacker);
 				evc.data.entity().setMaxHp(50);
 				//evc.data.setEntity(def.toEntityConfig());

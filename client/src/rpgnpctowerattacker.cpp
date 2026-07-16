@@ -275,7 +275,7 @@ void RpgMotorNpcTowerAttacker::onShapeContactBegin(cpShape *self, cpShape *other
 
 	if (self == m_npc->sensorPolygon()) {
 		if (RpgTower *tower = dynamic_cast<RpgTower*>(otherBody)) {
-			if (!m_targetTower && tower->state().active()) {
+			if (!m_targetTower && tower->state().active() && tower->state().team() != m_npc->team()) {
 				m_targetTower = tower;
 				m_targetTowerReached = 0;
 				m_lastAttack = 0;
@@ -293,7 +293,7 @@ void RpgMotorNpcTowerAttacker::onShapeContactBegin(cpShape *self, cpShape *other
 
 	if (self == m_npc->targetCircle() || m_npc->isBodyShape(self)) {
 		if (RpgTower *tower = dynamic_cast<RpgTower*>(otherBody)) {
-			if (!m_targetDefender && tower->canAttack() && tower->state().active()) {
+			if (!m_targetDefender && tower->canAttack() && tower->state().active() && tower->state().team() != m_npc->team()) {
 				m_targetTower = tower;
 				m_targetTowerReached = m_currentTick;
 			}
@@ -301,7 +301,7 @@ void RpgMotorNpcTowerAttacker::onShapeContactBegin(cpShape *self, cpShape *other
 
 		if (RpgDefender *defender = dynamic_cast<RpgDefender*>(otherBody)) {
 			RpgTower *tower = defender->tower();
-			if (tower && tower->state().active() && defender->isAlive()) {
+			if (tower && tower->state().active() && defender->isAlive() && tower->state().team() != m_npc->team()) {
 				m_targetTower = tower;
 				m_targetTowerReached = m_currentTick;
 				m_targetDefender = defender;
@@ -435,15 +435,13 @@ RpgDefender *RpgMotorNpcTowerAttacker::findNextDefender(RpgTower *tower) const
 		return nullptr;
 
 	for (RpgDefenderPoint *p : tower->defenderPoints()) {
-		if (RpgDefender *def = p->defender(); def && def->isAlive()) {
+		if (RpgDefender *def = p->defender(); def && def->isAlive() && def->team() != m_npc->team()) {
 			return def;
 		}
 	}
 
-	LOG_CINFO("game") << "FIND" << tower->defenders();
-
 	for (RpgDefender *def : tower->defenders()) {
-		if (def)
+		if (def && def->team() != m_npc->team())
 			return def;
 	}
 

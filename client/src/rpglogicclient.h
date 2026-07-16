@@ -312,7 +312,9 @@ private:
  * @brief The LocalIdTag class
  */
 
-struct LocalIdTag {};
+struct LocalIdTag {
+	bool placeholder = false;
+};
 
 /**
  * @brief The RpgLogicControlledObjects class

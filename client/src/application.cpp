@@ -47,6 +47,7 @@
 #include "offlineclientengine.h"
 #include "qapplication.h"
 #include "qsjsonlistmodel.h"
+#include "rpgchanger.h"
 #include "rpgdefender.h"
 #include "rpggame.h"
 #include "rpggameitem.h"
@@ -441,6 +442,7 @@ void Application::registerQmlTypes()
 	qmlRegisterType<PassList>("CallOfSuli", 1, 0, "PassList");
 	qmlRegisterType<PassItem>("CallOfSuli", 1, 0, "PassItem");
 	qmlRegisterType<PassItemList>("CallOfSuli", 1, 0, "PassItemList");
+	qmlRegisterType<RpgChanger>("CallOfSuli", 1, 0, "RpgChangerImpl");
 	qmlRegisterType<RpgGameItem>("CallOfSuli", 1, 0, "RpgGameItemImpl");
 	qmlRegisterType<RpgUserWalletList>("CallOfSuli", 1, 0, "RpgUserWalletList");
 	qmlRegisterType<ScoreList>("CallOfSuli", 1, 0, "ScoreListImpl");

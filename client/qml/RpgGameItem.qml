@@ -50,6 +50,7 @@ FocusScope {
 		onIsContentReadyChanged: if (isContentReady) startGame()
 
 		onMinimapToggleRequest: _mapRect.visible = !_mapRect.visible
+		onChangerRequest: _changerDialog.open()
 
 		onStageChanged: _infoTime.marked = true
 
@@ -129,7 +130,7 @@ FocusScope {
 		}
 	}
 
-	/*
+
 	Row {
 		anchors.left: _rowTime.left
 		anchors.top: _rowTime.bottom
@@ -152,11 +153,11 @@ FocusScope {
 			fontImageScale: 0.7
 
 			onClicked: {
-				Qaterial.DialogManager.openFromComponent(_settingsDialog)
+				///Qaterial.DialogManager.openFromComponent(_settingsDialog)
 			}
 		}
 
-		GameButton {
+		/*GameButton {
 			id: _questsButton
 			size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 40 : 30
 
@@ -192,7 +193,7 @@ FocusScope {
 			fontImageScale: 0.7
 
 			onClicked: showQuests()
-		}
+		}*/
 
 		GameButton {
 			id: _mapButton
@@ -221,7 +222,7 @@ FocusScope {
 
 			anchors.verticalCenter: parent.verticalCenter
 
-			visible: _game.currentScene && _game.currentScene.scale !== _game.baseScale
+			visible: _item.currentScene && _item.currentScene.scale !== _item.baseScale
 
 			size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 40 : 30
 
@@ -234,13 +235,45 @@ FocusScope {
 			fontImageScale: 0.7
 
 			onClicked: {
-				_game.currentScene.scaleResetRequest()
+				_item.currentScene.scaleResetRequest()
 			}
 		}
 	}
 
-	*/
 
+	GameButton {
+		id: _utilityButton
+		size: 40
+
+		anchors.verticalCenter: parent.verticalCenter
+		anchors.left: _rowTime.left
+
+		color: game && game.controlledPlayer && game.controlledPlayer.canUseUtility ? Qaterial.Colors.pink400 : "transparent"
+
+		visible: game && game.controlledPlayer ? game.controlledPlayer.hasUtility : false
+
+		border.color: fontImage.color
+		border.width: 2
+
+		fontImage.icon: Qaterial.Icons.wifi
+		fontImage.color: Qaterial.Colors.white
+		fontImageScale: 0.7
+
+		onClicked: {
+			game.controlledPlayer.useCurrentUtility()
+		}
+	}
+
+
+
+	RpgChangerButton {
+		id: _changerButton
+
+		anchors.verticalCenter: parent.verticalCenter
+		anchors.right: _colInfo.right
+
+		changer: _changerDialog
+	}
 
 
 
@@ -316,6 +349,8 @@ FocusScope {
 
 
 	Column {
+		id: _colInfo
+
 		anchors.right: parent.right
 		anchors.top: parent.top
 		anchors.topMargin: Math.max(Client.safeMarginTop, 5)
@@ -478,6 +513,24 @@ FocusScope {
 
 
 
+	RpgChangerDialog {
+		id: _changerDialog
+
+		anchors.fill: parent
+		anchors.topMargin: Client.safeMarginTop
+		anchors.bottomMargin: Client.safeMarginBottom
+		anchors.leftMargin: Client.safeMarginLeft
+		anchors.rightMargin: Client.safeMarginRight
+
+		game: root.game
+
+		z: 4
+
+		onVisibleChanged: {
+			if (!visible)
+				_item.forceActiveFocus()
+		}
+	}
 
 
 	GameQuestionAction {

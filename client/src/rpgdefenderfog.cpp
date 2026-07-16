@@ -145,7 +145,7 @@ void RpgDefenderFog::updateVisibility()
 		m_image->setOpacity(1.0);
 
 	if (m_markerItem)
-		m_markerItem->setVisible(m_visual.state() != StateHidden && m_marked);
+		m_markerItem->setVisible(m_visual.state() != StateHidden && m_marked && isAlive());
 }
 
 

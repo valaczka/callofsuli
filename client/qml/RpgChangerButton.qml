@@ -1,0 +1,324 @@
+import QtQuick
+import QtQuick.Controls
+import CallOfSuli
+import Qaterial as Qaterial
+import "./QaterialHelper" as Qaterial
+
+
+Item {
+	id: root
+
+	width: mainButton.width
+	height: mainButton.height
+
+	property RpgChangerImpl changer: null
+
+	property bool quickActionsEnabled: true
+
+	property real iconSize: 46
+	property real menuRadius: 78
+	property real minSwipeDistance: 24
+
+	// 0.2 másodperc
+	property int holdDelay: 200
+
+	property color iconColor: "#263445"
+	property color iconSelectedColor: "#4c8fff"
+	property color textColor: "white"
+
+	property string centerText: "⚙"
+
+	property var actions: [
+		{
+			id: "weapon",
+			label: "Töltény",
+			icon: "●",
+			angle: 180
+		},
+		{
+			id: "defender",
+			label: "Eszköz",
+			icon: "▣",
+			angle: -80
+		},
+		{
+			id: "utility",
+			label: "Képesség",
+			icon: "✦",
+			angle: 80
+		}
+	]
+
+
+	enabled: changer
+
+	property bool menuVisible: false
+	property bool pointerDown: false
+	property int selectedIndex: -1
+
+	property real pressX: 0
+	property real pressY: 0
+	property real currentX: 0
+	property real currentY: 0
+
+	function degToRad(deg) {
+		return deg * Math.PI / 180.0
+	}
+
+	function actionCenter(index) {
+		const action = actions[index]
+		const a = degToRad(action.angle)
+
+		return Qt.point(
+			root.width / 2 + Math.cos(a) * menuRadius,
+			root.height / 2 + Math.sin(a) * menuRadius
+		)
+	}
+
+	function distance(x1, y1, x2, y2) {
+		const dx = x1 - x2
+		const dy = y1 - y2
+		return Math.sqrt(dx * dx + dy * dy)
+	}
+
+	function swipeDistance() {
+		return distance(pressX, pressY, currentX, currentY)
+	}
+
+	function updateSelection(x, y) {
+		currentX = x
+		currentY = y
+
+		if (!menuVisible) {
+			selectedIndex = -1
+			return
+		}
+
+		if (swipeDistance() < minSwipeDistance) {
+			selectedIndex = -1
+			return
+		}
+
+		let bestIndex = -1
+		let bestDistance = 999999
+
+		for (let i = 0; i < actions.length; ++i) {
+			const p = actionCenter(i)
+			const d = distance(x, y, p.x, p.y)
+
+			if (d < bestDistance) {
+				bestDistance = d
+				bestIndex = i
+			}
+		}
+
+		selectedIndex = bestIndex
+	}
+
+	function hideMenu() {
+		menuVisible = false
+		selectedIndex = -1
+	}
+
+	Rectangle {
+		id: dimCircle
+
+		anchors.centerIn: parent
+		width: root.menuRadius * 2 + root.iconSize
+		height: width
+		radius: width / 2
+
+		visible: opacity > 0
+		opacity: root.menuVisible ? 0.22 : 0.0
+		color: "#000000"
+
+		Behavior on opacity {
+			NumberAnimation {
+				duration: 90
+			}
+		}
+	}
+
+	Repeater {
+		id: actionRepeater
+
+		model: root.actions.length
+
+		Item {
+			id: actionItem
+
+			required property int index
+
+			readonly property var action: root.actions[index]
+			readonly property point targetPos: root.actionCenter(index)
+			readonly property bool selected: root.selectedIndex === index
+
+			width: root.iconSize
+			height: root.iconSize
+
+			x: root.width / 2 - width / 2
+			y: root.height / 2 - height / 2
+
+			opacity: root.menuVisible ? 1.0 : 0.0
+			scale: root.menuVisible ? 1.0 : 0.4
+			visible: opacity > 0
+
+			states: State {
+				name: "open"
+				when: root.menuVisible
+
+				PropertyChanges {
+					actionItem.x: actionItem.targetPos.x - actionItem.width / 2
+					actionItem.y: actionItem.targetPos.y - actionItem.height / 2
+				}
+			}
+
+			transitions: Transition {
+				NumberAnimation {
+					properties: "x,y,opacity,scale"
+					duration: 110
+					easing.type: Easing.OutCubic
+				}
+			}
+
+			Rectangle {
+				anchors.fill: parent
+				radius: width / 2
+				color: actionItem.selected
+					   ? root.iconSelectedColor
+					   : root.iconColor
+
+				border.width: actionItem.selected ? 3 : 1
+				border.color: actionItem.selected ? "white" : "#708090"
+
+				scale: actionItem.selected ? 1.18 : 1.0
+
+				Behavior on scale {
+					NumberAnimation {
+						duration: 70
+					}
+				}
+
+				Behavior on color {
+					ColorAnimation {
+						duration: 70
+					}
+				}
+			}
+
+			Text {
+				anchors.centerIn: parent
+				text: actionItem.action.icon
+				color: root.textColor
+				font.pixelSize: 22
+				font.bold: true
+			}
+
+			Text {
+				anchors.horizontalCenter: parent.horizontalCenter
+				anchors.top: parent.bottom
+				anchors.topMargin: 4
+
+				text: actionItem.action.label
+				color: root.textColor
+				font.pixelSize: 11
+				opacity: actionItem.selected ? 1.0 : 0.75
+			}
+		}
+	}
+
+
+	GameButton {
+		id: mainButton
+		size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 40 : 30
+
+		anchors.centerIn: parent
+
+		tap.enabled: false
+
+		color: "transparent"
+
+		border.width: root.menuVisible ? 3 : 2
+		border.color: root.menuVisible ? Qaterial.Style.iconColor() : fontImage.color
+
+		fontImage.icon: Qaterial.Icons.reload
+		fontImage.color: root.menuVisible ? Qaterial.Style.iconColor() : Qaterial.Colors.white
+		fontImageScale: 0.7
+
+
+		scale: root.menuVisible ? 0.92 : 1.0
+
+		Behavior on scale {
+			NumberAnimation {
+				duration: 80
+			}
+		}
+	}
+
+
+	MouseArea {
+		id: mouseArea
+
+		anchors.fill: parent
+
+		acceptedButtons: Qt.LeftButton
+		hoverEnabled: true
+		preventStealing: true
+
+		pressAndHoldInterval: root.holdDelay
+
+		onPressed: function(mouse) {
+			root.pointerDown = true
+			root.pressX = mouse.x
+			root.pressY = mouse.y
+			root.currentX = mouse.x
+			root.currentY = mouse.y
+			root.selectedIndex = -1
+		}
+
+		onPositionChanged: function(mouse) {
+			root.updateSelection(mouse.x, mouse.y)
+		}
+
+		onPressAndHold: function(mouse) {
+			if (!root.quickActionsEnabled)
+				return
+
+			root.menuVisible = true
+			root.updateSelection(mouse.x, mouse.y)
+		}
+
+		onReleased: function(mouse) {
+			root.pointerDown = false
+			root.currentX = mouse.x
+			root.currentY = mouse.y
+
+			if (root.menuVisible) {
+				root.updateSelection(mouse.x, mouse.y)
+
+				const idx = root.selectedIndex
+				root.hideMenu()
+
+				if (idx >= 0 && idx < root.actions.length) {
+					changer.use(root.actions[idx].id)
+				}
+
+				return
+			}
+
+			root.hideMenu()
+
+			const moved = root.swipeDistance()
+
+			if (moved < root.minSwipeDistance) {
+				//root.openSettingsRequested()
+				changer.open()
+			}
+		}
+
+		onCanceled: {
+			root.pointerDown = false
+			root.hideMenu()
+		}
+	}
+}

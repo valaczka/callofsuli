@@ -149,7 +149,7 @@ public:
 
 
 	QS_COLLECTION(QList, RpgStream::BaseDefenderObject::Type, defender)				// available defenders
-	// todo: utility
+	QS_COLLECTION(QList, RpgStream::PlayerConfig::Utility, utility)					// available utilities
 
 
 	// Weapon

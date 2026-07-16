@@ -146,7 +146,7 @@ void RpgDefender::updateVisibility()
 		item->setVisible(m_visual.state() != StateHidden);
 
 	if (m_markerItem)
-		m_markerItem->setVisible(m_visual.state() != StateHidden && m_marked);
+		m_markerItem->setVisible(m_visual.state() != StateHidden && m_marked && isAlive());
 }
 
 

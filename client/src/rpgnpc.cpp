@@ -176,6 +176,8 @@ void RpgNpc::load(const RpgNpcDefinition &config)
 
 	m_markerItem = createMarkerItem(QStringLiteral("qrc:/RpgNpcMarker.qml"));
 
+	connect(this, &RpgNpc::hpChanged, this, [this]() { setDisplayName(QStringLiteral("%1 HP").arg(m_hp)); });
+
 	if (QFile::exists(m_config.prefixPath+QStringLiteral("/input.txt"))) {
 		//QHash<QString, RpgArmory::LayerData> layerData;
 		QRect measure = RpgGameItem::loadTextureSprites(m_spriteHandler, m_config.prefixPath+QStringLiteral("/")/*, &layerData*/);
@@ -290,8 +292,6 @@ void RpgNpc::onDead()
 
 void RpgNpc::updateColor()
 {
-	LOG_CDEBUG("game") << "Update colors" << this << m_team;
-
 	const QColor color = getColor();
 
 	if (m_markerItem) {
@@ -509,6 +509,8 @@ void RpgMotorNpcControlled::updateBody(TiledObject *)
 	if (!m_npc->isAlive() || m_game->gameState() != RpgGame::GameStatePlay) {
 		m_npc->stop();
 
+		applyKnockback();
+
 		m_npc->setTargetEntity(nullptr);
 		return;
 	}
@@ -523,99 +525,6 @@ void RpgMotorNpcControlled::updateBody(TiledObject *)
 	applyKnockback();
 
 	updateMotor();
-
-	/*
-
-
-	// Using control (JoystickB)
-
-	if (d->m_controlActionDisable) {
-		m_player->setTargetControl(nullptr);
-	} else {
-		float targetDist = 250;			// TODO:
-
-		if (m_controlJoystickState.hasTouch) {
-			if (m_controlJoystickState.distance > 0.1)
-				m_targetAngle = m_controlJoystickState.angle;
-			else if (!m_player->targetControl() && !m_targetAngle.has_value())
-				m_targetAngle = m_player->desiredBodyRotation();
-
-			targetDist *= std::clamp(m_controlJoystickState.distance, 0.3, 1.0);
-		}
-
-		if (!m_targetJoystickState.hasTouch) {
-			if (m_targetAngle.has_value()) {
-				cpVect ahead = m_player->bodyPosition()+TiledObjectBody::vectorFromAngle(m_targetAngle.value(), targetDist);
-
-				m_player->setTargetControl(findNearestControl(ahead));
-			} else {
-				m_player->setTargetControl(findNearestControl(targetDist));
-			}
-		}
-	}
-
-
-
-	if (m_player->targetControl() || !m_controlJoystickState.hasTouch
-			|| m_controlJoystickState.distance <= 0.1
-			|| !m_targetAngle.has_value()
-			|| !m_player->hasDefender()) {
-		m_player->setCurrentChunk({-1,-1});
-		m_player->setCurrentChunkCenter({-1,-1});
-	} else {
-		cpVect center;
-
-		const QPoint ch = m_game->rpgLogicClient()->getChunkFromVector(m_player->bodyPosition(),
-																	   m_targetAngle.value(),
-																	   &center);
-
-		m_player->setCurrentChunk(ch);
-		m_player->setCurrentChunkCenter(TiledObjectBody::toPointF(center));
-
-	}
-
-
-
-
-
-	// Attack enemy (JoystickC)
-
-	if (m_controlJoystickState.hasTouch || m_player->bullet() <= 0) {
-		m_player->setTargetEntity(nullptr);
-		return;
-	}
-
-
-	const float dist = std::max(SENSOR_LENGTH, 450.);			// TODO: weapon length
-
-	if (m_targetJoystickState.hasTouch) {
-		if (m_targetJoystickState.distance > 0.1)
-			m_targetAngle = m_targetJoystickState.angle;
-		else if (!m_player->targetEntity() && !m_targetAngle.has_value())
-			m_targetAngle = m_player->desiredBodyRotation();
-
-
-		if (m_targetAngle.has_value()) {
-			cpVect ahead = m_player->bodyPosition()+TiledObjectBody::vectorFromAngle(m_targetAngle.value(), dist);
-
-			m_player->setTargetEntity(findNearestTarget(ahead, RpgGameItem::FixturePlayerBody | RpgGameItem::FixturePlayerTarget));
-		}
-
-	} else if (m_player->targetEntity()) {
-		if (!m_player->targetEntity()->isAlive()) {
-			m_player->setTargetEntity(nullptr);
-		} else {
-			RayCastInfo ray = m_player->rayCast(m_player->targetEntity()->bodyPosition(),
-												RpgGameItem::FixtureGround,
-												RpgGameItem::FixturePlayerBody | RpgGameItem::FixturePlayerTarget,
-												2.);
-
-
-			if (!ray.isVisible(m_player->targetEntity()) ||
-					m_player->distanceToPointSq(m_player->targetEntity()->bodyPosition()) > POW2(dist))
-				m_player->setTargetEntity(nullptr);
-		}
-	}	*/
 }
 
 

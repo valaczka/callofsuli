@@ -33,22 +33,6 @@ namespace RpgStream
 
 
 
-/**
- * @brief BaseDefenderObject::requiredMp
- * @param type
- * @return
- */
-
-quint32 BaseDefenderObject::requiredMp(const Type &type) {
-	switch (type) {
-		case Multiplier1:				return 1;
-		case Fog:						return 1;
-		case Pulse:						return 1;
-		case None:						return 0;
-	}
-
-	return 0;
-}
 
 
 
@@ -275,6 +259,9 @@ EngineStream &PlayerState::operator<<(EngineStream &stream)
 	readDefenderDelta(stream);
 	readHasDefenderDelta(stream);
 
+	readUtilityDelta(stream);
+	readHasUtilityDelta(stream);
+
 	return stream;
 }
 
@@ -300,6 +287,9 @@ EngineStream &PlayerState::operator>>(EngineStream &stream) const
 
 	writeDefenderDelta(stream);
 	writeHasDefenderDelta(stream);
+
+	writeUtilityDelta(stream);
+	writeHasUtilityDelta(stream);
 
 	return stream;
 }
@@ -635,6 +625,8 @@ EngineStream &EventPlayer::operator<<(EngineStream &stream)
 			m_type == EventDefender ||
 			m_type == EventAttackPlayer ||
 			m_type == EventAttackDefender ||
+			m_type == EventUseUtility ||
+			m_type == EventFailed ||
 			m_type == EventRespawn
 			) {
 		readTarget(stream);
@@ -645,7 +637,9 @@ EngineStream &EventPlayer::operator<<(EngineStream &stream)
 	}
 
 	if (m_type == EventRespawn ||
-			m_type == EventStreak)				// itt a streak-et tároljuk nem az msec-t!
+			m_type == EventStreak ||				// itt a streak-et tároljuk nem az msec-t!
+			m_type == EventReplaceDefender ||		// itt a típust tároljuk
+			m_type == EventReplaceUtility)			// itt is
 		readAt(stream);
 
 	if (m_type == EventAttackPlayer)
@@ -674,6 +668,8 @@ EngineStream &EventPlayer::operator>>(EngineStream &stream) const
 			m_type == EventDefender ||
 			m_type == EventAttackPlayer ||
 			m_type == EventAttackDefender ||
+			m_type == EventUseUtility ||
+			m_type == EventFailed ||
 			m_type == EventRespawn
 			) {
 		writeTarget(stream);
@@ -684,7 +680,9 @@ EngineStream &EventPlayer::operator>>(EngineStream &stream) const
 	}
 
 	if (m_type == EventRespawn ||
-			m_type == EventStreak)
+			m_type == EventStreak ||
+			m_type == EventReplaceDefender ||
+			m_type == EventReplaceUtility)
 		writeAt(stream);
 
 	if (m_type == EventAttackPlayer)
@@ -1111,6 +1109,7 @@ EngineStream &PlayerConfig::operator<<(EngineStream &stream)
 	m_entity << stream;
 
 	readDefenders(stream);
+	readUtilities(stream);
 
 	return stream;
 }
@@ -1131,9 +1130,12 @@ EngineStream &PlayerConfig::operator>>(EngineStream &stream) const
 	m_entity >> stream;
 
 	writeDefenders(stream);
+	writeUtilities(stream);
 
 	return stream;
 }
+
+
 
 
 
