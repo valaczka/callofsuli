@@ -66,6 +66,8 @@ public:
 	Q_INVOKABLE void setDefender(const int &key);
 	Q_INVOKABLE void setUtility(const int &key);
 
+	Q_INVOKABLE void set(const QString &mode, const int &key);
+
 	Q_INVOKABLE static QVariantMap availableWeapon();
 
 	bool active() const;
@@ -94,7 +96,6 @@ signals:
 	void playerChanged();
 	void availableDefendersChanged();
 	void availableUtilitesChanged();
-
 	void replaceEnabledChanged();
 
 private:

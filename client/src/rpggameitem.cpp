@@ -395,14 +395,6 @@ bool RpgGameItem::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, 
 	Q_ASSERT(d);
 
 	for (Tiled::MapObject *object : std::as_const(group->objects())) {
-		/*if (object->className().startsWith(QStringLiteral("player"))) {
-			LOG_CINFO("game") << "REGISTER" << object->className();
-
-			const QPointF pos = renderer->pixelToScreenCoords(object->position() + group->totalOffset());
-
-			d->m_logic->playerPositionAdd(pos, Rpg::TeamTag::TeamNone);
-		}*/
-
 		if (group->className() == QStringLiteral("teamA") || group->name() == QStringLiteral("teamA")) {
 			const QPointF pos = renderer->pixelToScreenCoords(object->position() + group->totalOffset());
 
@@ -415,6 +407,10 @@ bool RpgGameItem::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, 
 			const QPointF pos = renderer->pixelToScreenCoords(object->position() + group->totalOffset());
 
 			d->chestPositionAdd(pos);
+		} else if (group->className() == QStringLiteral("entry") || group->name() == QStringLiteral("entry")) {
+			const QPointF pos = renderer->pixelToScreenCoords(object->position() + group->totalOffset());
+
+			d->entryPointAdd(object->name(), pos);
 		}
 	}
 
@@ -456,6 +452,7 @@ void RpgGameItem::loadTower(TiledScene *scene, Tiled::GroupLayer *group, Tiled::
 	QMultiMap<RpgStream::Team, TiledQuick::TileLayerItem *> layers;
 	RpgTower *tower = nullptr;
 	QList<RpgDefenderPoint*> defenders;
+	QList<TiledObjectBody*> excludeList;
 
 	TiledVisualItem *visualItem = nullptr;
 
@@ -510,8 +507,10 @@ void RpgGameItem::loadTower(TiledScene *scene, Tiled::GroupLayer *group, Tiled::
 																				 }, scene,
 																				 object, this, renderer, CP_BODY_TYPE_STATIC);
 
-					if (mapObject)
+					if (mapObject) {
 						mapObject->filterSet(FixtureExcluded, FixtureAll);
+						excludeList.append(mapObject);
+					}
 				}
 
 			}
@@ -537,6 +536,7 @@ void RpgGameItem::loadTower(TiledScene *scene, Tiled::GroupLayer *group, Tiled::
 
 	tower->addLayers(layers);
 	tower->addDefenderPoints(defenders);
+	tower->setExcludeList(excludeList);
 
 	d->towerAdd(tower);
 
@@ -627,6 +627,9 @@ void RpgGameItem::onStageChanged(const RpgStream::GameConfig::Stage &stage)
 void RpgGameItem::loadMp(Tiled::GroupLayer *group, TiledScene *scene, Tiled::MapRenderer *renderer)
 {
 	QQuickItem *visual = nullptr;
+	QList<TiledObjectBody*> excludeList;
+	QPointF pos;
+	int id = -1;
 
 	for (Tiled::Layer *layer : std::as_const(*group)) {
 		if (Tiled::TileLayer *tl = layer->asTileLayer()) {
@@ -641,17 +644,21 @@ void RpgGameItem::loadMp(Tiled::GroupLayer *group, TiledScene *scene, Tiled::Map
 																				 }, scene,
 																				 object, this, renderer, CP_BODY_TYPE_STATIC);
 
-					if (mapObject)
+					if (mapObject) {
 						mapObject->filterSet(FixtureExcluded, FixtureAll);
+						excludeList.append(mapObject);
+					}
 				} else {
-					const QPointF pos = renderer->pixelToScreenCoords(object->position()) + gr->totalOffset();
-					d->mpEmitterAdd(pos, Rpg::RpgLogic::packId(scene->sceneId(), 0, object->id()), visual);
+					id = object->id();
+					pos = renderer->pixelToScreenCoords(object->position()) + gr->totalOffset();
 				}
 
 			}
 		}
-
 	}
+
+	if (!pos.isNull() && id > 0)
+		d->mpEmitterAdd(pos, Rpg::RpgLogic::packId(scene->sceneId(), 0, id), visual, excludeList);
 }
 
 /**
@@ -670,31 +677,6 @@ void RpgGameItem::loadGroupLayer(TiledScene *scene, Tiled::GroupLayer *group, Ti
 	} else if (cname == QStringLiteral("tower")) {
 		loadTower(scene, group, renderer);
 	}
-
-	/*if (cname == QStringLiteral("container")) {
-			controlAdd<RpgControlContainer>(this, scene, group, renderer);
-		} else if (cname == QStringLiteral("container2") && q->m_loadForPlayerCount > 1) {
-			controlAdd<RpgControlContainer>(this, scene, group, renderer);
-		} else if (cname == QStringLiteral("container3") && q->m_loadForPlayerCount > 2) {
-			controlAdd<RpgControlContainer>(this, scene, group, renderer);
-		} else if (cname == QStringLiteral("container4") && q->m_loadForPlayerCount > 3) {
-			controlAdd<RpgControlContainer>(this, scene, group, renderer);
-		} else if (cname == QStringLiteral("container5") && q->m_loadForPlayerCount > 4) {
-			controlAdd<RpgControlContainer>(this, scene, group, renderer);
-		} else if (cname == QStringLiteral("gate")) {
-			controlAdd<RpgControlGate>(this, scene, group, renderer);
-		} else if (cname == QStringLiteral("teleport")) {
-			controlAdd<RpgControlTeleport>(this, scene, group, false, renderer);
-		} else if (cname == QStringLiteral("hideout")) {
-			controlAdd<RpgControlTeleport>(this, scene, group, true, renderer);
-		} else if (cname == QStringLiteral("randomizer")) {
-			if (RpgControlRandomizer *r = RpgControlRandomizer::find(m_controls, group, scene->sceneId()))
-				r->addGroupLayer(scene, group, renderer);
-			else
-				controlAdd<RpgControlRandomizer>(this, scene, group, renderer);
-		} else if (cname == QStringLiteral("collection")) {
-			addCollection(scene, group, renderer);
-		}*/
 }
 
 

@@ -7,233 +7,257 @@ import "./QaterialHelper" as Qaterial
 
 
 ColumnLayout {
-    id: root
+	id: root
 
-    required property RpgChangerImpl changer
-    required property string type
+	required property RpgChangerImpl changer
+	required property string type
 
-    property var model: []
-    property int modelIdx: -1
+	property int modelIdx: -1
 
-    property bool replaceMode: false
+	property bool replaceMode: false
 
-    readonly property color mainColor: type == "weapon" ?
-                                           Qaterial.Colors.red400 :
-                                           type == "defender" ?
-                                               Qaterial.Colors.green400 :
-                                               type == "utility" ?
-                                                   Qaterial.Colors.pink400 :
-                                                   Qaterial.Colors.white
-    implicitWidth: 250
+	readonly property color mainColor: type == "weapon" ?
+										   Qaterial.Colors.red400 :
+										   type == "defender" ?
+											   Qaterial.Colors.green400 :
+											   type == "utility" ?
+												   Qaterial.Colors.pink400 :
+												   Qaterial.Colors.white
+	implicitWidth: 250
 
 
-    Tumbler {
-        id: _tumbler
+	ListModel {
+		id: _model
+	}
 
-        visible: replaceMode
+	Tumbler {
+		id: _tumbler
 
-        model: root.model
+		model: _model
 
-        Layout.fillHeight: true
-        Layout.fillWidth: true
+		visible: replaceMode
 
-        currentIndex: modelIdx
+		Layout.fillHeight: true
+		Layout.fillWidth: true
 
-        delegate: Qaterial.IconLabel {
-            icon.source: modelData.icon
-            text: modelData.description
+		currentIndex: modelIdx
 
-            font: Qaterial.Style.textTheme.body1
-            icon.width: 32 * Qaterial.Style.pixelSizeRatio
-            icon.height: 32 * Qaterial.Style.pixelSizeRatio
+		delegate: Rectangle {
+			readonly property bool isCurrent: Tumbler.displacement === 0
 
-            color: root.mainColor
+			color: isCurrent ? root.mainColor : "transparent"
 
-            opacity: 1.0 - Math.abs(Tumbler.displacement) / (_tumbler.visibleItemCount / 2)
-        }
+			Qaterial.IconLabel {
+				anchors.fill: parent
 
-        Rectangle {
-            anchors.horizontalCenter: _tumbler.horizontalCenter
-            y: _tumbler.height * 0.4
-            width: _tumbler.width * 0.9
-            height: 1
-            color: root.mainColor
-        }
+				icon.source: model.icon
+				text: description
 
-        Rectangle {
-            anchors.horizontalCenter: _tumbler.horizontalCenter
-            y: _tumbler.height * 0.6
-            width: _tumbler.width * 0.9
-            height: 1
-            color: root.mainColor
-        }
-    }
+				font: Qaterial.Style.textTheme.body1
+				icon.width: 32 * Qaterial.Style.pixelSizeRatio
+				icon.height: 32 * Qaterial.Style.pixelSizeRatio
 
+				color: parent.isCurrent ? Qaterial.Colors.black : root.mainColor
+			}
 
-    Qaterial.IconLabel {
-        id: _content
+			opacity: 1.0 - Math.abs(Tumbler.displacement) / (_tumbler.visibleItemCount / 2)
+		}
 
-        visible: !replaceMode
+		Rectangle {
+			anchors.horizontalCenter: _tumbler.horizontalCenter
+			y: _tumbler.height * 0.4
+			width: _tumbler.width * 0.9
+			height: 1
+			color: root.mainColor
+			visible: _tumbler.moving
+		}
 
-        display: IconLabel.Display.TextUnderIcon
+		Rectangle {
+			anchors.horizontalCenter: _tumbler.horizontalCenter
+			y: _tumbler.height * 0.6
+			width: _tumbler.width * 0.9
+			height: 1
+			color: root.mainColor
+			visible: _tumbler.moving
+		}
+	}
 
-        font: Qaterial.Style.textTheme.body1
-        icon.width: 32 * Qaterial.Style.pixelSizeRatio
-        icon.height: 32 * Qaterial.Style.pixelSizeRatio
-        icon.source: modelIdx >= 0 ? model[modelIdx].icon : ""
 
-        text: modelIdx >= 0 ? model[modelIdx].description : ""
+	Qaterial.IconLabel {
+		id: _content
 
+		visible: !replaceMode
 
-        Layout.fillHeight: true
-        Layout.fillWidth: true
+		display: IconLabel.Display.TextUnderIcon
 
-        color: mainColor
-    }
+		font: Qaterial.Style.textTheme.body1
+		icon.width: 32 * Qaterial.Style.pixelSizeRatio
+		icon.height: 32 * Qaterial.Style.pixelSizeRatio
+		icon.source: modelIdx >= 0 ? _model.get(modelIdx).icon : ""
 
+		text: modelIdx >= 0 ? _model.get(modelIdx).description : ""
 
 
-    QButton {
-        id: _btnChange
+		Layout.fillHeight: true
+		Layout.fillWidth: true
 
-        visible: !replaceMode
+		color: mainColor
+	}
 
-        highlightedBgColor: root.mainColor
-        highlightedTextColor: Qaterial.Colors.black
-        highlighted: enabled
 
 
-        readonly property bool hasItem: changer.player ?
-                                            (type == "defender" ? changer.player.hasDefender :
-                                                                  type == "utility" ? changer.player.hasUtility :
-                                                                                      false) :
-                                            false
+	QButton {
+		id: _btnChange
 
-        enabled: changer.player && modelIdx >= 0 &&
-                 changer.player.mp >= model[modelIdx].cost &&
-                 !hasItem
+		visible: !replaceMode
 
-        icon.source: enabled ? Qaterial.Icons.shimmer : Qaterial.Icons.lock
-        text: modelIdx >= 0 ? qsTr("%1 MP").arg(model[modelIdx].cost) : "---"
+		highlightedBgColor: root.mainColor
+		highlightedTextColor: Qaterial.Colors.black
+		highlighted: enabled
 
-        leftPadding: 18 * Qaterial.Style.pixelSizeRatio
-        rightPadding: 18 * Qaterial.Style.pixelSizeRatio
-        topPadding: 20 * Qaterial.Style.pixelSizeRatio
-        bottomPadding: 20 * Qaterial.Style.pixelSizeRatio
 
-        onClicked: type == "defender" ?
-                       changer.useDefender() :
-                       type == "utility" ?
-                           changer.useUtility() :
-                           type == "weapon" ?
-                               changer.useWeapon() :
-                               console.warn("Invalid type", type)
+		readonly property bool hasItem: changer.player ?
+											(type == "defender" ? changer.player.hasDefender :
+																  type == "utility" ? changer.player.hasUtility :
+																					  false) :
+											false
 
-        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-    }
+		enabled: changer.player && modelIdx >= 0 &&
+				 changer.player.mp >= _model.get(modelIdx).cost &&
+				 !hasItem
 
+		icon.source: enabled ? Qaterial.Icons.shimmer : Qaterial.Icons.lock
+		text: modelIdx >= 0 ? qsTr("%1 MP").arg(_model.get(modelIdx).cost) : "---"
 
-    QButton {
-        id: _btnReplace
+		leftPadding: 18 * Qaterial.Style.pixelSizeRatio
+		rightPadding: 18 * Qaterial.Style.pixelSizeRatio
+		topPadding: 20 * Qaterial.Style.pixelSizeRatio
+		bottomPadding: 20 * Qaterial.Style.pixelSizeRatio
 
-        enabled: changer.replaceEnabled  && type != "weapon"
+		onClicked: type == "defender" ?
+					   changer.useDefender() :
+					   type == "utility" ?
+						   changer.useUtility() :
+						   type == "weapon" ?
+							   changer.useWeapon() :
+							   console.warn("Invalid type", type)
 
-        visible: !replaceMode
+		Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+	}
 
-        opacity: type == "weapon" ? 0.0 : 1.0
 
-        icon.source: Qaterial.Icons.refresh
-        text: qsTr("Csere")
+	QButton {
+		id: _btnReplace
 
-        outlined: false
-        flat: true
+		enabled: changer.replaceEnabled  && type != "weapon" && _model.count > 1
 
-        textColor: Qaterial.Style.iconColor()
+		visible: !replaceMode
 
-        onClicked: replaceMode = true
+		opacity: type == "weapon" ? 0.0 : 1.0
 
-        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-    }
+		icon.source: Qaterial.Icons.refresh
+		text: qsTr("Csere")
 
+		outlined: false
+		flat: true
 
-    QButton {
-        id: _btnReplaceOk
+		textColor: Qaterial.Style.iconColor()
 
-        visible: replaceMode
+		onClicked: replaceMode = true
 
-        icon.source: Qaterial.Icons.checkBold
-        text: qsTr("Csere")
+		Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+	}
 
-        bgColor: Qaterial.Colors.green600
-        textColor: Qaterial.Colors.white
 
-        onClicked: {
-            modelIdx = _tumbler.currentIndex
+	QButton {
+		id: _btnReplaceOk
 
-            replaceMode = false
-        }
+		visible: replaceMode
 
-        Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
-    }
+		icon.source: Qaterial.Icons.checkBold
+		text: qsTr("Csere")
 
+		bgColor: Qaterial.Colors.green600
+		textColor: Qaterial.Colors.white
 
+		onClicked: {
+			modelIdx = _tumbler.currentIndex
+			changer.set(type, _model.get(modelIdx).key)
 
-    function reset() {
-        replaceMode = false
+			replaceMode = false
+		}
 
-        if (type == "weapon") {
-            modelIdx = model.length-1
-            return
-        }
+		Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+	}
 
-        let t = -1
 
-        if (type == "defender")
-            t = changer.currentDefender()
-        else if (type == "utility")
-            t = changer.currentUtility()
-        else {
-            modelIdx = -1
-            console.error("Invalid type", type)
-            return
-        }
 
-        for (let idx=0; idx<model.length; ++idx) {
-            if (model[idx].key === t) {
-                modelIdx = idx
-                return
-            }
-        }
+	function reset() {
+		replaceMode = false
 
-        modelIdx = -1
-    }
+		if (type == "weapon") {
+			modelIdx = _model.count-1
+			return
+		}
 
+		let t = -1
 
-    function reload() {
-        if (type == "defender")
-            model = changer.availableDefenders
-        else if (type == "utility")
-            model = changer.availableUtilites
-        else if (type == "weapon")
-            model = [ changer.availableWeapon() ]
-        else {
-            console.error("Invalid type", type)
-            return
-        }
+		if (type == "defender")
+			t = changer.currentDefender()
+		else if (type == "utility")
+			t = changer.currentUtility()
+		else {
+			modelIdx = -1
+			console.error("Invalid type", type)
+			return
+		}
 
-        reset()
-    }
+		for (let idx=0; idx<_model.count; ++idx) {
+			if (_model.get(idx).key === t) {
+				modelIdx = idx
+				return
+			}
+		}
 
+		modelIdx = -1
+	}
 
-    Connections {
-        target: changer
 
-        function onPlayerReloaded() {
-            reload()
-        }
-    }
+	function reload() {
+		if (!changer)
+			return
 
-    //changer.onPlayerReloaded: reload()
+		let model = []
 
-    Component.onCompleted: reload()
+		if (type == "defender")
+			model = changer.availableDefenders
+		else if (type == "utility")
+			model = changer.availableUtilites
+		else if (type == "weapon")
+			model = [ changer.availableWeapon() ]
+		else {
+			console.error("Invalid type", type)
+			return
+		}
+
+		_model.clear()
+
+		for (let i=0; i<model.length; ++i)
+			_model.append(model[i])
+
+		reset()
+	}
+
+
+	Connections {
+		target: changer
+
+		function onPlayerReloaded() {
+			reload()
+		}
+	}
+
+	onTypeChanged: reload()
+
+	Component.onCompleted: reload()
 }

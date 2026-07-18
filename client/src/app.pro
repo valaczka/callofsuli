@@ -249,6 +249,7 @@ SOURCES += \
 	pass.cpp \
 	question.cpp \
 	rpgchanger.cpp \
+	rpgcontrol.cpp \
 	rpgdefender.cpp \
 	rpgdefenderfog.cpp \
 	rpgentity.cpp \
@@ -347,6 +348,7 @@ HEADERS += \
 	pass.h \
 	question.h \
 	rpgchanger.h \
+	rpgcontrol.h \
 	rpgdefender.h \
 	rpgdefenderfog.h \
 	rpgentity.h \

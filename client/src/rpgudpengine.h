@@ -108,6 +108,7 @@ private:
 	bool m_isHost = false;
 
 	bool m_isMapReady = false;
+	bool m_isMapReloaded = false;
 	bool m_fullReceived = false;
 
 	RpgStream::PlayerData::Flags m_gameFlags = RpgStream::PlayerData::FlagNull;

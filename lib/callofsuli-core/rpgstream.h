@@ -836,10 +836,12 @@ public:
 
 	STREAM_MEMBER(quint32, ptsA, PtsA, 32, 0)
 	STREAM_MEMBER(quint32, ptsB, PtsB, 32, 0)
+	STREAM_MEMBER(quint8, heat, Heat, 8, 0)
 
 	bool operator==(const GameState &other) const {
 		return other.m_ptsA == m_ptsA &&
-				other.m_ptsB == m_ptsB
+				other.m_ptsB == m_ptsB &&
+				other.m_heat == m_heat
 				;
 	}
 };
@@ -971,6 +973,97 @@ public:
 
 
 
+/**
+ * @brief The EntityConfig class
+ */
+
+class EntityConfig
+{
+public:
+	EntityConfig() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER(ENTITY_HP_TYPE, maxHp, MaxHp, ENTITY_HP_BITS, 0)
+
+	STREAM_MEMBER(quint32, push, Push, 32, 0);
+	STREAM_MEMBER(quint32, pushDist, PushDist, 32, 0);
+	STREAM_MEMBER(quint32, resist, Resist, 32, 0);
+};
+
+
+
+/**
+ * @brief The NpcData class
+ */
+
+class NpcData
+{
+public:
+	NpcData() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	enum Type {
+		None = 0,
+		TowerAttacker
+	};
+
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
+	STREAM_MEMBER_CAST(Type, type, Type, quint32, 12, None)						// max. 4096 types
+	STREAM_FIELD(EntityConfig, entity, Entity, {})
+	STREAM_MEMBER_RESOLVED(character, Character)
+	STREAM_MEMBER_CAST(Team, team, Team, quint8, 2, TeamNone)
+
+	// TowerAttacker
+
+	STREAM_MEMBER(quint32, force, Force, 32, 0);
+};
+
+
+
+
+
+/**
+ * @brief The HeatNpc class
+ */
+
+class HeatNpc
+{
+public:
+	HeatNpc() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+
+	STREAM_FIELD(NpcData, data, Data, {});
+	STREAM_MEMBER_VECTOR(PlayerPosition, positionList, PositionList, quint8, 8);
+	STREAM_MEMBER(quint32, num, Num, 32, 0);
+	STREAM_MEMBER(quint32, delay, Delay, 32, 0);								// in tick!
+};
+
+
+
+
+/**
+ * @brief The Heat class
+ */
+
+class Heat
+{
+public:
+	Heat() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER_VECTOR(HeatNpc, npc, Npc, quint8, 8)
+};
+
+
 
 
 /**
@@ -987,11 +1080,13 @@ public:
 	EngineStream& operator<<(EngineStream &stream);
 	EngineStream& operator>>(EngineStream &stream) const;
 
+	STREAM_MEMBER_CAST(bool, forceReload, ForceReload, quint8, 1, false);
 	STREAM_MEMBER_VECTOR(PlayerPosition, playerPositionList, PlayerPositionList, quint8, 8);
 	STREAM_FIELD(ChunkGrid, chunkGrid, ChunkGrid, {})
 	STREAM_MEMBER_VECTOR(MpEmitter, mpEmitterList, MpEmitterList, quint8, 8);
 	STREAM_MEMBER_VECTOR(Tower, towerList, TowerList, quint8, 8);
 	STREAM_MEMBER_VECTOR(PlayerPosition, chestPositionList, ChestPositionList, quint8, 8);
+	STREAM_MEMBER_VECTOR(Heat, heat, Heat, quint8, 8)
 };
 
 
@@ -1016,8 +1111,9 @@ public:
 		FlagWaitingData			= 1 << 1,				// várjuk a host-tól a terepadatokat
 		FlagDataCompleted		= 1 << 2,				// megkaptuk az adatokat (player position, chunk grid, randomizer,...)
 		FlagDataPrepared		= 1 << 3,				// feldolgoztuk és elküldtük az adatokat mindenkinek
-		FlagPlaying				= 1 << 4,				// játék elindult
-		FlagFinished			= 1 << 5,				// játék véget ért
+		FlagDataReloaded		= 1 << 4,				// miután a randomizer befejeződött, újra elkérjünk a chunk grid-et
+		FlagPlaying				= 1 << 5,				// játék elindult
+		FlagFinished			= 1 << 6,				// játék véget ért
 	};
 
 	Q_DECLARE_FLAGS(Flags, Flag)
@@ -1042,26 +1138,6 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(GameConfig::Flags)
 
 
 
-
-
-/**
- * @brief The EntityConfig class
- */
-
-class EntityConfig
-{
-public:
-	EntityConfig() = default;
-
-	EngineStream& operator<<(EngineStream &stream);
-	EngineStream& operator>>(EngineStream &stream) const;
-
-	STREAM_MEMBER(ENTITY_HP_TYPE, maxHp, MaxHp, ENTITY_HP_BITS, 0)
-
-	STREAM_MEMBER(quint32, push, Push, 32, 0);
-	STREAM_MEMBER(quint32, pushDist, PushDist, 32, 0);
-	STREAM_MEMBER(quint32, resist, Resist, 32, 0);
-};
 
 
 
@@ -1141,35 +1217,6 @@ public:
 Q_DECLARE_OPERATORS_FOR_FLAGS(PlayerData::Flags)
 
 
-
-
-/**
- * @brief The NpcData class
- */
-
-class NpcData
-{
-public:
-	NpcData() = default;
-
-	EngineStream& operator<<(EngineStream &stream);
-	EngineStream& operator>>(EngineStream &stream) const;
-
-	enum Type {
-		None = 0,
-		TowerAttacker
-	};
-
-	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
-	STREAM_MEMBER_CAST(Type, type, Type, quint32, 12, None)						// max. 4096 types
-	STREAM_FIELD(EntityConfig, entity, Entity, {})
-	STREAM_MEMBER_RESOLVED(character, Character)
-	STREAM_MEMBER_CAST(Team, team, Team, quint8, 2, TeamNone)
-
-	// TowerAttacker
-
-	STREAM_MEMBER(quint32, force, Force, 32, 0);
-};
 
 
 
@@ -1946,12 +1993,12 @@ public:
 
 	bool operator==(const ControlState &other) const {
 		return other.m_type == m_type &&
-				other.m_active == m_active
+				other.m_isAlive == m_isAlive
 				;
 	}
 
 	STREAM_MEMBER_CAST(ControlData::Type, type, Type, OBJECT_TYPE, OBJECT_BITS, ControlData::None)
-	STREAM_MEMBER_CAST(bool, active, Active, quint8, 1, false)
+	STREAM_MEMBER_CAST(bool, isAlive, IsAlive, quint8, 1, false)
 };
 
 

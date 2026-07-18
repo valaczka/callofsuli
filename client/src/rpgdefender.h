@@ -92,7 +92,7 @@ protected:
 	virtual void onDead() override;
 	virtual void updateColor() override;
 
-	bool loadFromCommonMap(const QString &name);
+	bool loadFromCommonMap(const QString &name, const QHash<State, QString> &baseImageHash);
 	void addMarkerItem();
 
 protected:
@@ -127,19 +127,14 @@ class RpgDefenderCommon : public RpgDefender
 	QML_ELEMENT
 
 public:
-	RpgDefenderCommon(const QString &name, RpgGameItem *gameItem, const Rpg::DefenderObject &config)
-		: RpgDefender(gameItem, config)
-		, m_name(name)
-	{}
+	RpgDefenderCommon(const QString &name, RpgGameItem *gameItem, const Rpg::DefenderObject &config,
+					  const QHash<State, QString> &baseImageHash = {});
 
-	virtual void initialize() override {
-		if (!loadFromCommonMap(m_name)) {
-			LOG_CERROR("game") << "Common defender load failed" << m_name;
-		}
-	}
+	virtual void initialize() override;
 
 private:
 	const QString m_name;
+	const QHash<State, QString> m_baseImageHash;
 };
 
 

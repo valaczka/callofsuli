@@ -198,8 +198,11 @@ void StandaloneClient::onStartPageLoaded()
 	bool hasNetwork = QNetworkInformation::instance() &&
 			QNetworkInformation::instance()->reachability() == QNetworkInformation::Reachability::Online;
 
-	if (hasNetwork)
-		authorizedServersGet();
+	if (hasNetwork) {
+		LOG_CERROR("client") << "<<<<<<<<<<<<<<<<<<<< REMOVE reset";
+		//authorizedServersGet();
+	}
+
 
 	for (Server *s : *m_serverList) {
 		if (s->autoConnect()) {

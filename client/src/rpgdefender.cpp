@@ -95,6 +95,7 @@ RpgDefender *RpgDefender::createDefender(const Rpg::DefenderObject &defender, Rp
 	Q_ASSERT(scene);
 
 	QString common;
+	QHash<State, QString> baseImage;
 
 	switch (defender.type) {
 		case RpgStream::BaseDefenderObject::Fog:
@@ -104,9 +105,15 @@ RpgDefender *RpgDefender::createDefender(const Rpg::DefenderObject &defender, Rp
 
 		case RpgStream::BaseDefenderObject::Pulse:
 			common = QStringLiteral("def_pulse.tmx");
+			/*baseImage = {
+				{ StateNormal, QStringLiteral(":/rpg/time/pickable.png") },
+				{ StateActive, QStringLiteral(":/rpg/key/pickable.png") },
+			};*/
 			break;
 
 		case RpgStream::BaseDefenderObject::Multiplier1:
+			common = QStringLiteral("def_multiplier1.tmx");
+			break;
 
 
 		case RpgStream::BaseDefenderObject::None:
@@ -117,7 +124,7 @@ RpgDefender *RpgDefender::createDefender(const Rpg::DefenderObject &defender, Rp
 	if (!common.isEmpty())
 		return gameItem->createObject<RpgDefenderCommon>(RpgLogicObjectMapper::toObjectId(defender.idTag),
 														 scene,
-														 common, gameItem, defender);
+														 common, gameItem, defender, baseImage);
 
 	return nullptr;
 }
@@ -232,6 +239,7 @@ void RpgDefender::setMarked(const bool &marked)
 
 void RpgDefender::onAlive()
 {
+	setSubZ(0.5);
 	updateVisibility();
 }
 
@@ -242,6 +250,7 @@ void RpgDefender::onAlive()
 
 void RpgDefender::onDead()
 {
+	setSubZ(0.0);
 	updateVisibility();
 }
 
@@ -275,7 +284,7 @@ void RpgDefender::updateColor()
  * @return
  */
 
-bool RpgDefender::loadFromCommonMap(const QString &name)
+bool RpgDefender::loadFromCommonMap(const QString &name, const QHash<State, QString> &baseImageHash)
 {
 	m_scene = scene();
 
@@ -312,6 +321,18 @@ bool RpgDefender::loadFromCommonMap(const QString &name)
 		}
 	}
 
+
+
+	TiledVisualItem *item = m_scene->addVisualItem();
+	m_visualItem = item;
+
+	m_visual.setImageItem(item);
+
+
+	for (const auto &[st, url] : baseImageHash.asKeyValueRange())
+		m_visual.addSource(st, QUrl::fromLocalFile(url));
+
+
 	TiledQuick::TileLayerItem *layerNormal = nullptr;
 	TiledQuick::TileLayerItem *layerActive = nullptr;
 
@@ -334,7 +355,9 @@ bool RpgDefender::loadFromCommonMap(const QString &name)
 				r.setY(layerItem->height()/2);
 			}
 
-			layerItem->setZ(scene()->getDynamicZ(layerItem->position() + m_visual.basePosition()));
+			QObject::connect(item, &TiledVisualItem::zChanged, layerItem, [item, layerItem]() {
+				layerItem->setZ(item->z());
+			});
 			layerItem->setPosition(layerItem->position() + m_visual.basePosition() - r);
 
 			m_layerItems.append(layerItem);
@@ -348,6 +371,9 @@ bool RpgDefender::loadFromCommonMap(const QString &name)
 		m_visual.addLayer(StateActive, layerNormal);
 	else if (!layerNormal && layerActive)
 		m_visual.addLayer(StateNormal, layerActive);
+
+
+
 
 	addMarkerItem();
 
@@ -397,4 +423,37 @@ bool RpgDefenderMotor::beforeWorldStep(const qint64 &/*tick*/, entt::entity &ent
 	m_defender->setVisibleToAll(state->visible());
 
 	return true;
+}
+
+
+/**
+ * @brief RpgDefenderCommon::RpgDefenderCommon
+ * @param name
+ * @param gameItem
+ * @param config
+ * @param baseImageHash
+ */
+
+RpgDefenderCommon::RpgDefenderCommon(const QString &name, RpgGameItem *gameItem, const Rpg::DefenderObject &config,
+									 const QHash<State, QString> &baseImageHash)
+	: RpgDefender(gameItem, config)
+	, m_name(name)
+	, m_baseImageHash(baseImageHash)
+{
+
+}
+
+
+
+/**
+ * @brief RpgDefenderCommon::initialize
+ */
+
+void RpgDefenderCommon::initialize()
+{
+	if (!loadFromCommonMap(m_name, m_baseImageHash)) {
+		LOG_CERROR("game") << "Common defender load failed" << m_name;
+	}
+
+	onAlive();
 }

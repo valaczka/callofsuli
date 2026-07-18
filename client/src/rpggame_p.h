@@ -33,6 +33,7 @@
 #include "rpglogic.h"
 #include "rpglogicclient.h"
 #include "rpgobject.h"
+#include "rpggameitem.h"
 #include "rpgplayer.h"
 #include "rpgtower.h"
 #include "rpgudpengine.h"
@@ -56,15 +57,14 @@ public:
 	CommonGameDefinition() : TiledGameDefinition() {
 		basePath = QStringLiteral("qrc:/map/map_common/");
 
-		{
-			TiledSceneDefinition sc;
-			sc.file = QStringLiteral("test_defender.tmx");
-			scenes.emplace_back(std::move(sc));
-		}
+		static const QStringList list = {
+			QStringLiteral("def_pulse.tmx"),
+			QStringLiteral("def_multiplier1.tmx"),
+		};
 
-		{
+		for (const QString &s : list) {
 			TiledSceneDefinition sc;
-			sc.file = QStringLiteral("def_pulse.tmx");
+			sc.file = s;
 			scenes.emplace_back(std::move(sc));
 		}
 	}
@@ -118,10 +118,12 @@ private:
 	void prepareGameItem();
 	void onGameItemPrepared();
 	void loadChunkGrid();
+	void loadHeat();
 	void playerPositionAdd(const QPointF &pos, const RpgStream::Team &team);
-	void mpEmitterAdd(const QPointF &pos, const quint32 &tagId, QQuickItem *visualItem);
+	void mpEmitterAdd(const QPointF &pos, const quint32 &tagId, QQuickItem *visualItem, const QList<TiledObjectBody *> &excludeList);
 	void towerAdd(RpgTower *tower);
 	void chestPositionAdd(const QPointF &pos);
+	void entryPointAdd(const QString &name, const QPointF &pos);
 
 	void addLocationSound(TiledObjectBody *object, const QString &sound,
 						  const qreal &baseVolume = 1.,
@@ -169,6 +171,7 @@ private:
 	void syncMp();
 	void syncDefenders();
 	void syncNpc();
+	void syncControls();
 
 	std::optional<ScatterPoint> addToScatter(const int &scatter);
 
@@ -177,6 +180,7 @@ private:
 		QSet<quint32> player;
 		QSet<quint32> mp;
 		QSet<quint32> defender;
+		QSet<quint32> control;
 	};
 
 	ObjectSet extractObjects(const RpgStream::FullState &full) const;
@@ -200,7 +204,10 @@ private:
 private:
 	RpgGame *const q;
 
+	RpgGameDefinition m_gameDefinition;
+
 	bool m_isMapLoaded = false;
+	bool m_isMapSynchronized = false;
 
 	RpgStream::CharacterSelectClient m_characterSelect;
 
@@ -217,7 +224,8 @@ private:
 
 	RpgStream::MapData m_mapData;
 	QHash<quint32, QPointer<RpgTower> > m_towerList;
-	QHash<quint32, QPointer<QQuickItem> > m_emitters;
+	QHash<quint32, QPair<QPointer<QQuickItem>, QList<TiledObjectBody*> > > m_emitters;
+	QHash<QString, QPointF> m_entryPoint;
 	std::vector<std::unique_ptr<TiledGameSfxLocation>> m_sfxLocations;
 	QList<QScatterSeries*> m_scatters;
 

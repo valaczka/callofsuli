@@ -148,6 +148,7 @@ protected:
 signals:
 	void minimapToggleRequest();
 	void changerRequest();
+	void mpMarkerRequest();
 	void gameChanged();
 	void isContentReadyChanged();
 	void stageChanged();

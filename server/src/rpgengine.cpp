@@ -105,7 +105,7 @@ void RpgEngine::peerWithoutRoomHandle(std::unique_ptr<UdpBitStream> &&data, UdpS
 			RpgEngine *engine = peer->server()->createEngine<RpgEngine>();
 
 			if (!engine) {
-				LOG_CERROR("engine") << "ENGINE CREATE ERROR";
+				LOG_CERROR("engine") << "Engine create error";
 			} else {
 				peer->server()->sendRoomList(EngineRpg, true);
 
@@ -416,32 +416,10 @@ void RpgEnginePrivate::onAllCompleted()
 	Q_ASSERT(cfg);
 
 	for (RpgPeerData &p : m_players) {
-		auto player = scope.logic()->playerAdd(p.data, &p.rpgId, &p.playerTag);
+		scope.logic()->playerAdd(p.data, &p.rpgId, &p.playerTag);
 		p.acceptedTags.insert(p.playerTag, {});
 
 		ELOG_DEBUG << "Add player" << p.rpgId << p.peerId << p.playerTag << p.data.userName() << p.token.mapUuid << p.token.missionUuid << p.token.missionLevel;
-
-
-
-		////////////////////////////////////////////////////////////////////////
-		LOG_CERROR("game") << "REMOVE<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<";
-
-		const QString character = "soldier04";
-
-		RpgStream::NpcData d;
-		d.setCharacterResolved(character);
-		d.setTeam(RpgStream::TeamNone);
-		d.setType(RpgStream::NpcData::TowerAttacker);
-		d.entity().setMaxHp(7);
-
-		quint32 idTag = 0;
-
-		q->m_logic.npcAdd(d, player, &idTag);
-		p.acceptedTags.insert(idTag, {});
-
-		ELOG_DEBUG << "Add NPC" << idTag;
-
-		////////////////////////////////////////////////////////////////////////
 	}
 
 	ELOG_INFO << "All completed";
@@ -540,14 +518,30 @@ void RpgEnginePrivate::receiveWaitingData(RpgPeerData *player, RpgStream::Engine
 	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
 	Q_ASSERT(cfg);
 
+	bool mapReload = false;
+
 	if (cfg->flags().testFlag(RpgStream::GameConfig::FlagDataCompleted)) {
-		//LOG_CWARNING("engine") << "Engine data already completed";
-		//ELOG_WARNING << "Engine selection already completed";
-		return;
+		if (cfg->flags().testFlag(RpgStream::GameConfig::FlagDataReloaded)) {
+			//LOG_CWARNING("engine") << "Engine data already completed";
+			//ELOG_WARNING << "Engine selection already completed";
+			return;
+		}
+
+		mapReload = true;
 	}
 
 	RpgStream::MapData d;
 	d << stream;
+
+	if (mapReload) {
+		if (!d.forceReload()) {
+			//LOG_CWARNING("engine") << "Expecting reloaded data";
+			return;
+		}
+
+		q->m_logic.reloadMapData(d);
+		return;
+	}
 
 	if (!d.playerPositionList().empty() && d.chunkGrid().chunkHeight() > 0 && d.chunkGrid().chunkWidth() > 0) {
 		q->m_logic.loadMapData(d);
@@ -574,6 +568,17 @@ void RpgEnginePrivate::sendWaitingData()
 	if (flags.testFlags(RpgStream::GameConfig::FlagPlaying))
 		return;
 
+
+	if (flags.testFlag(RpgStream::GameConfig::FlagDataPrepared) &&
+			!flags.testFlags(RpgStream::GameConfig::FlagDataReloaded)) {
+		RpgStream::MapData stream;
+		stream.setForceReload(true);
+		for (const RpgPeerData &p : m_players) {
+			if (p.peer && p.peerId == m_host)
+				p.peer->send(stream.toDataStream().data(), true);
+		}
+	}
+
 	RpgStream::MapData stream;
 
 	if (flags.testFlags(RpgStream::GameConfig::FlagDataCompleted)) {
@@ -581,6 +586,8 @@ void RpgEnginePrivate::sendWaitingData()
 			stream = ptr.value();
 	}
 
+	if (flags.testFlags(RpgStream::GameConfig::FlagDataReloaded))
+		stream.setForceReload(true);
 
 	const std::vector<uint8_t> data = stream.toDataStream().data();
 
@@ -646,8 +653,6 @@ void RpgEnginePrivate::receiveFull(RpgPeerData *player, RpgStream::EngineDataStr
 
 void RpgEnginePrivate::onDataReceived()
 {
-	LOG_CWARNING("engine") << "ALL DATA RECEIVED";
-
 	ELOG_INFO << "All data received";
 
 	if (q->m_logic.initialize())
@@ -677,24 +682,7 @@ void RpgEnginePrivate::sendFull()
 	RpgStream::Full stream = q->m_logic.getFull();
 #endif
 
-
-	stream.map().reserve(m_players.size());
-
-	for (const RpgPeerData &p : m_players) {
-		RpgStream::FullPlayerMap m;
-
-		m.setPeerId(p.peerId);
-		m.setPlayer(p.playerTag);
-		for (const quint32 &k : p.acceptedTags.keys()) {
-			if (p.playerTag != k) {
-				RpgStream::FullMapTag t;
-				t.setTagId(k);
-				m.entities().emplace_back(std::move(t));
-			}
-		}
-
-		stream.map().emplace_back(std::move(m));
-	}
+	addMapTagsToStream(stream);
 
 	const std::vector<uint8_t> data = stream.toDataStream().data();
 
@@ -720,6 +708,36 @@ void RpgEnginePrivate::sendFull()
 
 
 
+
+
+/**
+ * @brief RpgEnginePrivate::addMapTagsToStream
+ * @param stream
+ */
+
+void RpgEnginePrivate::addMapTagsToStream(RpgStream::Full &stream) const
+{
+	stream.map().reserve(m_players.size());
+
+	for (const RpgPeerData &p : m_players) {
+		RpgStream::FullPlayerMap m;
+
+		m.setPeerId(p.peerId);
+		m.setPlayer(p.playerTag);
+		for (const quint32 &k : p.acceptedTags.keys()) {
+			if (p.playerTag != k) {
+				RpgStream::FullMapTag t;
+				t.setTagId(k);
+				m.entities().emplace_back(std::move(t));
+			}
+		}
+
+		stream.map().emplace_back(std::move(m));
+	}
+}
+
+
+
 /**
  * @brief RpgEnginePrivate::checkPrepared
  */
@@ -739,7 +757,7 @@ void RpgEnginePrivate::checkPrepared()
 	}
 
 	if (!cfg->flags().testFlag(RpgStream::GameConfig::FlagDataPrepared)) {
-		LOG_CDEBUG("engine") << "NOT PREPARED";
+		//LOG_CDEBUG("engine") << "NOT PREPARED";
 		return;
 	}
 
@@ -752,13 +770,14 @@ void RpgEnginePrivate::checkPrepared()
 		}
 	}
 
-	LOG_CDEBUG("engine") << "COMPLETED" << cmpltd;
-
 	if (!cmpltd)
 		return;
 
 
-	//cfg->flags().setFlag(RpgStream::GameConfig::FlagSelected);
+	if (!cfg->flags().testFlag(RpgStream::GameConfig::FlagDataReloaded)) {
+		//LOG_CDEBUG("engine") << "WAIT FOR RELOAD";
+		return;
+	}
 
 	onAllPrepared();
 }
@@ -772,8 +791,6 @@ void RpgEnginePrivate::checkPrepared()
 
 void RpgEnginePrivate::onAllPrepared()
 {
-	LOG_CWARNING("engine") << "ALL PREPARED";
-
 	Rpg::RpgLogicScope scope = q->m_logic.getScope();
 	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
 	Q_ASSERT(cfg);
@@ -839,8 +856,6 @@ void RpgEnginePrivate::onSelectFinished()
 
 	ELOG_INFO << "Select finished";
 
-	LOG_CINFO("engine")	 << "SELECT FINISHED";
-
 	m_deadlineTick = cfg->duration();
 
 	start(0);
@@ -863,8 +878,6 @@ void RpgEnginePrivate::onAborted()
 	cfg->flags().setFlag(RpgStream::GameConfig::FlagFinished);
 
 	ELOG_INFO << "Aborted";
-
-	LOG_CINFO("engine")	 << "ABORTED";
 
 	stop();
 }
@@ -911,7 +924,8 @@ void RpgEnginePrivate::render()
 
 	if (m_deadlineTick > 0 && m_host == 0) {
 		if (running()) {
-			LOG_CERROR("engine") << "NO HOST";
+			LOG_CWARNING("engine") << "Engine" << m_engineId << "hasn't host";
+			ELOG_ERROR << "No host";
 			onAborted();
 		}
 
@@ -1092,8 +1106,8 @@ void RpgEnginePrivate::receiveCharacterSelect(RpgPeerData *player, RpgStream::En
 
 
 	if (player->data.flags().testFlag(RpgStream::PlayerData::FlagCompleted)) {
-		LOG_CWARNING("engine") << "Player already completed" << player->peerId;
-		ELOG_WARNING << "Player already completed" << player->peerId;
+		LOG_CWARNING("engine") << "Engine" << m_engineId << "player" << player->rpgId << "already completed";
+		ELOG_WARNING << "Player already completed" << player->rpgId;
 		return;
 	}
 
@@ -1106,7 +1120,7 @@ void RpgEnginePrivate::receiveCharacterSelect(RpgPeerData *player, RpgStream::En
 		Q_ASSERT(cfg);
 
 		if (cfg->flags().testFlag(RpgStream::GameConfig::FlagSelected)) {
-			LOG_CWARNING("engine") << "Engine selection already completed";
+			LOG_CWARNING("engine") << "Engine" << m_engineId << "selection already completed";
 			ELOG_WARNING << "Engine selection already completed";
 			return;
 		}
@@ -1269,6 +1283,7 @@ void RpgEngine::udpTimerEvent(const qint64 &dt)
 		d->sendFull();
 
 	} else if (flags.testFlags(RpgStream::GameConfig::FlagPlaying)) {
+		d->sendWaitingData();
 		d->render();
 
 	} else if (!flags.testFlags(RpgStream::GameConfig::FlagSelected)) {
@@ -1365,6 +1380,60 @@ RpgStream::GameConfig::Stage RpgEngine::configStage() const
 
 
 
+/**
+ * @brief RpgEngine::addTagToPlayer
+ * @param idTag
+ * @param player
+ * @return
+ */
+
+quint32 RpgEngine::addTagToPlayer(const quint32 &idTag, Rpg::Player *player)
+{
+	RpgEnginePrivate::RpgPeerData *dst = nullptr;
+
+
+	// Azt keressük mindig, akinél a legkevesebb van
+
+	for (RpgEnginePrivate::RpgPeerData &p : d->m_players) {
+		if (player && p.rpgId == player->playerData.playerId()) {
+			ELOG_DEBUG << "Add" << idTag << "directly to player" << player->playerData.playerId();
+			dst = &p;
+			break;
+		}
+
+		if (!dst) {
+			dst = &p;
+			continue;
+		}
+
+		if (p.acceptedTags.size() < dst->acceptedTags.size())
+			dst = &p;
+	}
+
+	if (!dst) {
+		ELOG_ERROR << "AddTagToPlayer failed" << idTag;
+		return 0;
+	}
+
+	dst->acceptedTags.insert(idTag, {});
+
+	return dst->rpgId;
+}
+
+
+
+/**
+ * @brief RpgEngine::addMapTagsToStream
+ * @param stream
+ */
+
+void RpgEngine::addMapTagsToStream(RpgStream::Full &stream) const
+{
+	d->addMapTagsToStream(stream);
+}
+
+
+
 
 
 /**
@@ -1391,17 +1460,17 @@ void RpgEngine::setLoggerFile(const QString &fname)
 
 
 #ifndef QT_NO_DEBUG
-	LOG_CERROR("engine") << "TEMPORARY APPENDER";
+	LOG_CERROR("engine") << "Set temporary console appender";
 
 	ColorConsoleAppender *console = new ColorConsoleAppender;
 
 	console->setDetailsLevel(Logger::Debug);
 
 	console->setFormat(QString::fromStdString(
-									 "%{time}{hh:mm:ss} %{category:-10} [%{TypeOne}] %{message} "+
-									 ColorConsoleAppender::reset+ColorConsoleAppender::green+"<%{function} "+
-									 ColorConsoleAppender::magenta+"%{file}:%{line}"+
-									 ColorConsoleAppender::green+">\n"));
+						   "%{time}{hh:mm:ss} %{category:-10} [%{TypeOne}] %{message} "+
+						   ColorConsoleAppender::reset+ColorConsoleAppender::green+"<%{function} "+
+						   ColorConsoleAppender::magenta+"%{file}:%{line}"+
+						   ColorConsoleAppender::green+">\n"));
 
 	d->m_logger->registerAppender(console);
 

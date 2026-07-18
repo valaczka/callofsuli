@@ -51,6 +51,55 @@ Q_DECLARE_OPAQUE_POINTER(RpgPlayer*)
 #endif
 
 
+
+
+
+/**
+ * @brief The RpgHeatNpc class
+ */
+
+class RpgHeatNpc : public QSerializer
+{
+	Q_GADGET
+
+public:
+	RpgHeatNpc()
+		: QSerializer()
+		, num(1)
+		, delay(0)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(QString, type)							// NPC típus
+	QS_COLLECTION(QList, QString, entry)			// Lehetséges belépési pontok (tmx -> "entry" layer), ha üres, akkor random chunk
+	QS_FIELD(int, num)								// Hány jön létre
+	QS_FIELD(int, delay)							// Késleltetés (msec) a létrehozás között
+};
+
+
+
+
+/**
+ * @brief The RpgHeat class
+ */
+
+class RpgHeat : public QSerializer
+{
+	Q_GADGET
+
+public:
+	RpgHeat() : QSerializer() {}
+
+	QS_SERIALIZABLE
+
+	QS_COLLECTION_OBJECTS(QList, RpgHeatNpc, npc)	// Létrehozandó npc-k
+};
+
+
+
+
+
 /**
  * @brief The RpgGameDefinition class
  */
@@ -64,12 +113,18 @@ public:
 		: TiledGameDefinition()
 	{}
 
+	QStringList getDynamicContent() const;
+
 	QS_SERIALIZABLE
 
 	// Base
 
 	QS_FIELD(QString, name)
 	QS_FIELD(QString, minVersion)
+
+	// Heat
+
+	QS_COLLECTION_OBJECTS(QList, RpgHeat, heat)		// A heat-ek
 
 	// Required tileset
 
@@ -109,6 +164,7 @@ public:
 	void updateSfxPath(const QString &prefix);
 
 	RpgStream::PlayerConfig toPlayerConfig() const;
+	void loadPlayerConfig(const RpgStream::PlayerConfig &cfg);
 
 	QString prefixPath;
 
@@ -173,6 +229,7 @@ class RpgNpcDefinition : public QSerializer
 
 public:
 	RpgNpcDefinition() : QSerializer()
+	  , type(RpgStream::NpcData::None)
 	  , hp(5)
 	  , walk(90)
 	  , run(200)
@@ -189,6 +246,8 @@ public:
 	RpgStream::EntityConfig toEntityConfig() const;
 
 	QS_SERIALIZABLE
+
+	QS_FIELD(RpgStream::NpcData::Type, type)
 
 	// Sfx sounds
 

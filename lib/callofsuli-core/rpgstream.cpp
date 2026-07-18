@@ -411,11 +411,13 @@ EngineStream &PlayerPosition::operator>>(EngineStream &stream) const
 
 EngineStream &MapData::operator<<(EngineStream &stream)
 {
+	readForceReload(stream);
 	m_chunkGrid << stream;
 	readPlayerPositionList(stream);
 	readMpEmitterList(stream);
 	readTowerList(stream);
 	readChestPositionList(stream);
+	readHeat(stream);
 
 	return stream;
 }
@@ -429,11 +431,13 @@ EngineStream &MapData::operator<<(EngineStream &stream)
 
 EngineStream &MapData::operator>>(EngineStream &stream) const
 {
+	writeForceReload(stream);
 	m_chunkGrid >> stream;
 	writePlayerPositionList(stream);
 	writeMpEmitterList(stream);
 	writeTowerList(stream);
 	writeChestPositionList(stream);
+	writeHeat(stream);
 
 	return stream;
 }
@@ -896,6 +900,7 @@ EngineStream &GameState::operator<<(EngineStream &stream)
 	readTick(stream);
 	readPtsA(stream);
 	readPtsB(stream);
+	readHeat(stream);
 
 	return stream;
 }
@@ -913,6 +918,7 @@ EngineStream &GameState::operator>>(EngineStream &stream) const
 	writeTick(stream);
 	writePtsA(stream);
 	writePtsB(stream);
+	writeHeat(stream);
 
 	return stream;
 }
@@ -1667,7 +1673,7 @@ EngineStream &ControlState::operator<<(EngineStream &stream)
 {
 	readTick(stream);
 	readType(stream);
-	readActive(stream);
+	readIsAlive(stream);
 
 	return stream;
 }
@@ -1683,7 +1689,7 @@ EngineStream &ControlState::operator>>(EngineStream &stream) const
 {
 	writeTick(stream);
 	writeType(stream);
-	writeActive(stream);
+	writeIsAlive(stream);
 
 	return stream;
 }
@@ -1786,6 +1792,71 @@ EngineStream &EventDefender::operator>>(EngineStream &stream) const
 	writeTagId(stream);
 	writeType(stream);
 	writeTargetId(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief Heat::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &Heat::operator<<(EngineStream &stream)
+{
+	readNpc(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief Heat::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &Heat::operator>>(EngineStream &stream) const
+{
+	writeNpc(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief HeatNpc::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &HeatNpc::operator<<(EngineStream &stream)
+{
+	m_data << stream;
+	readPositionList(stream);
+	readNum(stream);
+	readDelay(stream);
+
+	return stream;
+}
+
+
+
+
+/**
+ * @brief HeatNpc::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &HeatNpc::operator>>(EngineStream &stream) const
+{
+	m_data >> stream;
+	writePositionList(stream);
+	writeNum(stream);
+	writeDelay(stream);
 
 	return stream;
 }

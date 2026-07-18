@@ -34,14 +34,14 @@ const QHash<RpgStream::PlayerConfig::Utility, QVariantMap> RpgChanger::m_dataUti
 	{ RpgStream::PlayerConfig::UtilityMissionary,
 	  {
 		  { "icon", "qrc:/internal/medal/Icon.1_04.png" },
-		  { "description", tr("Missionary...") },
+		  { "description", tr("Missionary") },
 	  }
 	},
 
 	{ RpgStream::PlayerConfig::UtilitySniper,
 	  {
 		  { "icon", "qrc:/internal/medal/Icon.1_05.png" },
-		  { "description", tr("Sniper...") },
+		  { "description", tr("Sniper") },
 	  }
 	},
 };
@@ -53,21 +53,21 @@ const QHash<RpgStream::BaseDefenderObject::Type, QVariantMap> RpgChanger::m_data
 	{ RpgStream::BaseDefenderObject::Pulse,
 	  {
 		  { "icon", "qrc:/internal/medal/Icon.1_02.png" },
-		  { "description", tr("Pulse...") },
+		  { "description", tr("Pulse") },
 	  }
 	},
 
 	{ RpgStream::BaseDefenderObject::Multiplier1,
 	  {
 		  { "icon", "qrc:/internal/medal/Icon.1_01.png" },
-		  { "description", tr("Multiplier1...") },
+		  { "description", tr("Multiplier1") },
 	  }
 	},
 
 	{ RpgStream::BaseDefenderObject::Fog,
 	  {
 		  { "icon", "qrc:/internal/medal/Icon.1_03.png" },
-		  { "description", tr("Fog...") },
+		  { "description", tr("Fog") },
 	  }
 	},
 };
@@ -84,7 +84,9 @@ const QHash<RpgStream::BaseDefenderObject::Type, QVariantMap> RpgChanger::m_data
 RpgChanger::RpgChanger(QQuickItem *parent)
 	: QQuickItem(parent)
 {
-
+	LOG_CERROR("game") << "<<<<<<<<<<<<<<<<<< REMOVE";
+	setReplaceEnabled(true);
+	//////////////////////////
 }
 
 
@@ -209,7 +211,7 @@ void RpgChanger::setDefender(const int &key)
 	if (!motor)
 		return;
 
-	m_player->setDefender(RpgStream::BaseDefenderObject::Type(key), m_player->hasDefender());
+	motor->replaceDefender(RpgStream::BaseDefenderObject::Type(key));
 }
 
 
@@ -228,7 +230,25 @@ void RpgChanger::setUtility(const int &key)
 	if (!motor)
 		return;
 
-	m_player->setUtility(RpgStream::PlayerConfig::Utility(key), m_player->hasDefender());
+	motor->replaceUtility(RpgStream::PlayerConfig::Utility(key));
+}
+
+
+
+/**
+ * @brief RpgChanger::set
+ * @param mode
+ * @param key
+ */
+
+void RpgChanger::set(const QString &mode, const int &key)
+{
+	if (mode == QStringLiteral("defender"))
+		setDefender(key);
+	else if (mode == QStringLiteral("utility"))
+		setUtility(key);
+	else
+		LOG_CERROR("game") << "Invalid mode" << mode;
 }
 
 
@@ -342,6 +362,7 @@ void RpgChanger::reloadDefenders()
 
 	for (const auto &ptr : list) {
 		QVariantMap m = m_dataDefenders.value(ptr);
+
 		if (!m.isEmpty()) {
 			m.insert(QStringLiteral("key"), ptr);
 			m.insert(QStringLiteral("cost"), cfgRequiredMpDefender.value(ptr));
@@ -363,8 +384,6 @@ void RpgChanger::reloadUtilities()
 		return setAvailableUtilites({});
 
 	const auto &list = m_player->config().utility;
-
-	LOG_CWARNING("game") << "****************" << list;
 
 	QVariantList d;
 	d.reserve(list.size());

@@ -75,6 +75,8 @@ public:
 	RpgStream::GameConfig::Flags configFlags() const;
 	RpgStream::GameConfig::Stage configStage() const;
 
+	quint32 addTagToPlayer(const quint32 &idTag, Rpg::Player *player);
+	void addMapTagsToStream(RpgStream::Full &stream) const;
 
 private:
 	void setLoggerFile(const QString &fname);

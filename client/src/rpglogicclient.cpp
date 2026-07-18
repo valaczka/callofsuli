@@ -262,48 +262,7 @@ void RpgLogicClientSingle::eventRealized(entt::entity entity)
 				eventStore(std::move(evc));
 			}
 
-
-			LOG_CERROR("game") << "REMOVE<<<<<<<<<<<<<<<<<<<<<";
-
-			for (int i=1; i<4; ++i) {
-				EventNpcCreate evc;
-				evc.setTick(tick + i*60);
-
-				evc.data.setCharacterResolved("soldier04");
-				evc.data.setTeam(RpgStream::TeamNone);
-				evc.data.setType(RpgStream::NpcData::TowerAttacker);
-				evc.data.entity().setMaxHp(50);
-				//evc.data.setEntity(def.toEntityConfig());
-
-
-				ELOG_DEBUG << "Register NPC event for" << evc.tick();
-
-				eventStore(std::move(evc));
-			}
-
-
-			/*for (int i=0; i<3; ++i) {
-				for (int j=0; j<5; ++j) {
-					EventNpcCreate evc;
-					evc.setTick(tick + 600 + i);
-
-					evc.data.setCharacterResolved("soldier04");
-					evc.data.setTeam(RpgStream::TeamB);
-					evc.data.setType(RpgStream::NpcData::Dummy);
-					evc.data.entity().setMaxHp(4);
-					//evc.data.setEntity(def.toEntityConfig());
-
-
-					ELOG_DEBUG << "Register NPC event for" << evc.tick();
-
-					eventStore(std::move(evc));
-				}
-			}*/
-
-		} else if (ev->config().stage() == RpgStream::GameConfig::StageMain) {
-
 		}
-
 
 		return;
 	}
@@ -389,7 +348,6 @@ void RpgLogicClientMulti::loadFull(const RpgStream::Full &full)
 
 		for (const RpgStream::FullMapTag &t : m.entities())
 			objs->entities.insert(t.tagId());
-
 	}
 
 	loadFullState(full.fullState());
@@ -704,7 +662,7 @@ void RpgLogicClientMulti::loadControls(const std::vector<RpgStream::ControlState
 		entt::entity control = mapper->get(s.tagId());
 
 		if (!scope.valid(control)) {
-			//////ELOG_ERROR << "Invalid control" << s.tagId();
+//////			ELOG_ERROR << "Invalid control" << s.tagId();
 			continue;
 		}
 

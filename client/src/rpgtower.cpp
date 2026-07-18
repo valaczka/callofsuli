@@ -249,6 +249,10 @@ void RpgTower::setVisible(const bool &visible)
 		m_scatterPoint.scatter->setPointConfiguration(m_scatterPoint.index, QXYSeries::PointConfiguration::Visibility,
 													  m_visible);
 
+	for (TiledObjectBody *b : std::as_const(m_excludeList)) {
+		b->filterSet(m_visible ? RpgGameItem::FixtureExcluded : RpgGameItem::FixtureInvalid,
+					 m_visible ? RpgGameItem::FixtureAll : RpgGameItem::FixtureInvalid);
+	}
 }
 
 
@@ -284,6 +288,23 @@ void RpgTower::synchronize()
 	}
 
 	TiledObjectBody::synchronize();
+}
+
+
+/**
+ * @brief RpgTower::excludeList
+ * @return
+ */
+
+const QList<TiledObjectBody *> &RpgTower::excludeList() const
+{
+	return m_excludeList;
+}
+
+
+void RpgTower::setExcludeList(const QList<TiledObjectBody *> &newExcludeList)
+{
+	m_excludeList = newExcludeList;
 }
 
 

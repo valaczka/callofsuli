@@ -26,7 +26,7 @@ RpgChangerImpl {
 		Row {
 			height: parent.height
 
-			readonly property real itemWidth: (parent.width-(2*spacing))/3
+			readonly property real itemWidth: (parent.width-(4*spacing)-(2*_sep.width))/3
 
 			spacing: 5
 
@@ -39,6 +39,7 @@ RpgChangerImpl {
 			}
 
 			Qaterial.VerticalLineSeparator {
+				id: _sep
 				height: parent.height * 0.9
 				anchors.verticalCenter: parent.verticalCenter
 			}

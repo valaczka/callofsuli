@@ -15,6 +15,9 @@ Rectangle {
 
     property color borderColor: Qaterial.Style.iconColor()
 
+    readonly property real contentWidth: realContent.width
+    readonly property real contentHeight: realContent.height
+
     default property alias _contentData: realContent.data
 
     signal closeRequest()

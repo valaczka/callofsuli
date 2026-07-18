@@ -886,6 +886,8 @@ struct Control
 	quint32 idTag = 0;
 	RpgStream::ControlData::Type type = RpgStream::ControlData::None;
 	cpVect pos = cpvzero;
+
+	RpgStream::ControlData toRpgStream() const;
 };
 
 
@@ -921,6 +923,8 @@ typedef BaseStatePull<RpgStream::NpcState> NpcStateOutput;
 typedef BaseStatePull<RpgStream::ControlState> ControlStateOutput;
 
 typedef std::vector<Chest> ChestList;
+
+typedef std::vector<RpgStream::Heat> HeatList;
 
 
 
@@ -1207,6 +1211,7 @@ public:
 
 	bool initialize();
 	bool startStageSelect();
+	bool increaseHeat();
 
 	bool render(const bool &first = false);
 	void renderStageSelect();
@@ -1221,6 +1226,7 @@ public:
 	// Map Data
 
 	void loadMapData(const RpgStream::MapData &data);
+	void reloadMapData(const RpgStream::MapData &data);
 	bool isChunkEmpty(const Chunk &chunk) const;
 	std::optional<RpgStream::MapData> getMapData() const;
 
@@ -1259,8 +1265,12 @@ protected:
 	virtual std::unordered_set<entt::entity> initializeTowers();
 	virtual std::unordered_set<entt::entity> initializeEmitters();
 	virtual std::vector<Chest> initializeChests();
+	virtual void checkState(const RpgStream::GameState &state);
 
 	entt::entity npcAdd(const RpgStream::NpcData &data, entt::entity owner, const cpVect &pos = cpvzero, quint32 *tagIdPtr = nullptr);
+
+	virtual void onNpcCreated(entt::entity entity, const quint32 &idTag, Player *player);
+
 
 private:
 	RpgLogicPrivate *d = nullptr;

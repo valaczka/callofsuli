@@ -176,8 +176,6 @@ void RpgNpc::load(const RpgNpcDefinition &config)
 
 	m_markerItem = createMarkerItem(QStringLiteral("qrc:/RpgNpcMarker.qml"));
 
-	connect(this, &RpgNpc::hpChanged, this, [this]() { setDisplayName(QStringLiteral("%1 HP").arg(m_hp)); });
-
 	if (QFile::exists(m_config.prefixPath+QStringLiteral("/input.txt"))) {
 		//QHash<QString, RpgArmory::LayerData> layerData;
 		QRect measure = RpgGameItem::loadTextureSprites(m_spriteHandler, m_config.prefixPath+QStringLiteral("/")/*, &layerData*/);

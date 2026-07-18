@@ -99,7 +99,9 @@ void RpgDefenderFog::initialize()
 
 	m_image->setZ(z+0.9);
 
-	m_visualItem->setZ(z);
+	onAlive();
+
+	//m_visualItem->setZ(z);
 
 	addMarkerItem();
 

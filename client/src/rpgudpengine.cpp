@@ -313,9 +313,21 @@ void RpgUdpEngine::updateMapData(RpgStream::EngineDataStream &&stream)
 	m << stream;
 
 	if (m_isHost && m_isMapReady) {
+		if (m.forceReload() && !m_isMapReloaded && m_gamePrivate->m_isMapLoaded && m_gamePrivate->m_isMapSynchronized) {
+			LOG_CINFO("game") << "Reload map data";
+			m_gamePrivate->loadChunkGrid();
+
+			m_isMapReloaded = true;
+		}
+
 		RpgStream::EngineDataStream st = getDataStream(RpgStream::EngineDataStream::DataOperationMapData);
 
-		m_gamePrivate->m_mapData >> st;
+		RpgStream::MapData md = m_gamePrivate->m_mapData;
+
+		if (m.forceReload() && m_isMapReloaded)
+			md.setForceReload(true);
+
+		md >> st;
 
 		sendMessage(st.data(), true);
 	}
@@ -330,6 +342,8 @@ void RpgUdpEngine::updateMapData(RpgStream::EngineDataStream &&stream)
 
 		m_gamePrivate->m_logic->loadMapData(m);
 		m_gamePrivate->m_isMapLoaded = true;
+	} else if (m.forceReload()) {
+		m_gamePrivate->m_logic->reloadMapData(m);
 	}
 }
 

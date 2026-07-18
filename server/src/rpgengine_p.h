@@ -107,6 +107,7 @@ private:
 	void receiveFull(RpgEnginePrivate::RpgPeerData *player, RpgStream::EngineDataStream &&stream);
 	void onDataReceived();
 	void sendFull();
+	void addMapTagsToStream(RpgStream::Full &stream) const;
 
 	void checkPrepared();
 	void onAllPrepared();

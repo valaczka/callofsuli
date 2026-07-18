@@ -24,6 +24,11 @@ Page {
 				_stack.currentItem.minimapVisible = false
 				return false
 			}
+
+			if (_stack.currentItem.changer.active) {
+				_stack.currentItem.changer.close()
+				return false
+			}
 		}
 
 		if (game) {

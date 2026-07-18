@@ -24,6 +24,7 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+#include "rpgcontrol.h"
 #include "rpgnpc.h"
 #include "tiledspritehandler.h"
 #include "rpgplayer.h"
@@ -590,6 +591,8 @@ bool RpgMotorPlayerControlled::checkControl(TiledObjectBody *control) const
 				p->tower()->state().team() == m_player->team() && !p->defender();
 	} else if (RpgDefender *p = dynamic_cast<RpgDefender*>(control)) {
 		return p->team() != m_player->team() && p->hp() > 0;
+	} else if (RpgControl *p = dynamic_cast<RpgControl*>(control)) {
+		return p->isAlive();
 	}
 
 	return false;
@@ -1394,6 +1397,7 @@ void RpgMotorPlayerControlled::changeMpToBullet()
 {
 	if (m_player->mp() < CFG_MP_CHANGE_BULLET) {
 		m_player->game()->message(QObject::tr("Not enough MP"));
+		emit m_player->m_rpgGame->gameItem()->mpMarkerRequest();
 		d->vibrate();
 		return;
 	}
@@ -1432,6 +1436,7 @@ void RpgMotorPlayerControlled::changeMpToDefender()
 
 	if (m_player->mp() < cfgRequiredMpDefender.value(m_player->m_defender)) {
 		m_player->game()->message(QObject::tr("Not enough MP"));
+		emit m_player->m_rpgGame->gameItem()->mpMarkerRequest();
 		d->vibrate();
 		return;
 	}
@@ -1470,6 +1475,7 @@ void RpgMotorPlayerControlled::changeMpToUtility()
 
 	if (m_player->mp() < cfgRequiredMpUtility.value(m_player->m_utility)) {
 		m_player->game()->message(QObject::tr("Not enough MP"));
+		emit m_player->m_rpgGame->gameItem()->mpMarkerRequest();
 		d->vibrate();
 		return;
 	}
@@ -2156,7 +2162,7 @@ void RpgPlayerPrivate::updateLock(const qint64 &tick)
 		q->m_rpgGame->loadNextQuestion();
 		m_gameQuestionLoaded = true;
 
-		static const QColor iconColor = QColor("#26C6DA");
+		static const QColor iconColor = QColorConstants::Svg::cyan;
 		if (GameQuestion *gq = q->m_rpgGame->gameQuestion()) {
 			gq->setProperty("progressColor", iconColor);
 			gq->setProperty("msecLeft", q->m_rpgGame->msecLeft()

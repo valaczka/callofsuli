@@ -11,6 +11,7 @@ FocusScope {
 	id: root
 
 	property alias game: _item.game
+	property alias changer: _changerDialog
 
 	property alias minimapVisible: _mapRect.visible
 	property real gameControlRatio: 1.0
@@ -51,6 +52,7 @@ FocusScope {
 
 		onMinimapToggleRequest: _mapRect.visible = !_mapRect.visible
 		onChangerRequest: _changerDialog.open()
+		onMpMarkerRequest: _infoMP.marked = true
 
 		onStageChanged: _infoTime.marked = true
 
@@ -526,8 +528,8 @@ FocusScope {
 
 		z: 4
 
-		onVisibleChanged: {
-			if (!visible)
+		onActiveChanged: {
+			if (!active)
 				_item.forceActiveFocus()
 		}
 	}

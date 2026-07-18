@@ -97,6 +97,8 @@ private:
 	// Initialize
 
 	void mapInitialize();
+	void loadHeat(const quint8 &heat);
+
 
 
 	// Players
@@ -188,6 +190,8 @@ private:
 	bool utilityMissionary(Utility &utility, entt::entity target);
 	bool utilitySniper(Utility &utility, entt::entity target);
 
+
+
 	// Events
 
 	void eventInputLoad(const std::vector<RpgStream::Events> &list, EventWindowHash *acceptedInputList);
@@ -204,6 +208,7 @@ private:
 	bool addToCurrentEvents(entt::entity entity, RpgStream::Events *dst);
 
 	void changeStage(const RpgStream::GameConfig::Stage &stage);
+	void autoSelectInventory();
 
 
 
@@ -217,6 +222,9 @@ private:
 
 	template <class T>
 	entt::entity controlAdd(const RpgStream::ControlData &data, const T &controlData, quint32 *tagIdPtr = nullptr);
+
+	void controlUpdate(const std::vector<RpgStream::ControlData> &list);
+	void controlUpdate(entt::entity entity, const RpgStream::ControlData &stream, Control *object, RpgStream::ControlState *state);
 
 
 	// Render
@@ -233,6 +241,8 @@ private:
 	void preRenderEventChangeBullet(const RpgStream::EventPlayer &event);
 	void preRenderEventChangeDefender(const RpgStream::EventPlayer &event);
 	void preRenderEventChangeUtility(const RpgStream::EventPlayer &event);
+	void preRenderEventReplaceDefender(const RpgStream::EventPlayer &event);
+	void preRenderEventReplaceUtility(const RpgStream::EventPlayer &event);
 	void preRenderEventUseUtility(const RpgStream::EventPlayer &event);
 
 	void preRenderEventNpcCreate(entt::entity ent);
@@ -317,7 +327,7 @@ private:
 
 struct PlayerPrivate
 {
-	void load(const RpgStream::PlayerConfig &cfg);
+	void load(const RpgStream::PlayerConfig &cfg, RpgStream::PlayerData &dst);
 	RpgStream::EntityConfig toEntityConfig() const;
 
 	quint32 lastObjectId = 0;
@@ -611,6 +621,17 @@ std::unordered_set<entt::entity> RpgLogic::initializeEmitters()
 }
 
 
+/**
+ * @brief RpgLogic::checkState
+ * @param state
+ */
+
+void RpgLogic::checkState(const RpgStream::GameState &state)
+{
+	Q_UNUSED(state);
+}
+
+
 
 
 /**
@@ -622,7 +643,13 @@ ChestList RpgLogic::initializeChests()
 {
 	QMutexLocker locker(&m_mutex);
 
-	const quint64 numChests = 4;
+	LOG_CERROR("game") << "<<<<<<<<< REMOVE";
+	const int numChests = 4;//m_registry.ctx().get<HeatList>().size()-1;
+
+	if (numChests <= 0) {
+		ELOG_INFO << "Heat list empty, skip chests";
+		return {};
+	};
 
 	// Chest
 
@@ -632,7 +659,7 @@ ChestList RpgLogic::initializeChests()
 
 	std::shuffle(list.begin(), list.end(), m_rnd);
 
-	if (list.size() > numChests) {
+	if ((int) list.size() > numChests) {
 		list.erase(list.cbegin()+numChests, list.cend());
 	}
 
@@ -665,13 +692,48 @@ void RpgLogic::loadMapData(const RpgStream::MapData &data)
 		chest.emplace_back(std::move(c));
 	}
 
+	HeatList heat = data.heat();
 
 	m_registry.ctx().insert_or_assign<ChunkGrid>(std::move(grid));
 	m_registry.ctx().insert_or_assign<PlayerPositionList>(std::move(l));
 	m_registry.ctx().insert_or_assign<ChestList>(std::move(chest));
+	m_registry.ctx().insert_or_assign<HeatList>(std::move(heat));
 
 	d->loadMpEmitters(data.mpEmitterList());
 	d->loadTower(data.towerList());
+}
+
+
+
+
+
+/**
+ * @brief RpgLogic::reloadMapData
+ * @param data
+ */
+
+void RpgLogic::reloadMapData(const RpgStream::MapData &data)
+{
+	QMutexLocker locker(&m_mutex);
+
+	RpgStream::GameConfig &cfg = m_registry.ctx().get<RpgStream::GameConfig>();
+
+	if (cfg.flags().testFlag(RpgStream::GameConfig::FlagDataReloaded))
+		return;
+
+	if (!cfg.flags().testFlag(RpgStream::GameConfig::FlagDataPrepared)) {
+		ELOG_ERROR << "Reload map data error, map isn't prepared";
+		return;
+	}
+
+
+	ELOG_DEBUG << "Reload map data (chunk grid)";
+
+	ChunkGrid grid = ChunkGrid::fromRpgStream(data.chunkGrid());
+
+	m_registry.ctx().insert_or_assign<ChunkGrid>(std::move(grid));
+
+	cfg.flags().setFlag(RpgStream::GameConfig::FlagDataReloaded);
 }
 
 
@@ -780,10 +842,11 @@ entt::entity RpgLogic::playerAdd(const RpgStream::PlayerData &data, quint32 *idP
 
 	auto entity = m_registry.create();
 
-	const Player &pp = m_registry.emplace<Player>(entity, std::move(playerData), data.team());
-	m_registry.emplace<PlayerPrivate>(entity).load(data.config());
+	m_registry.emplace<PlayerPrivate>(entity).load(data.config(), playerData);
 	m_registry.emplace<PlayerStateInput>(entity);
 	m_registry.emplace<PlayerStateOutput>(entity);
+
+	const Player &pp = m_registry.emplace<Player>(entity, std::move(playerData), data.team());
 
 	entitySetIdTag(entity, pp.idTag());
 
@@ -817,6 +880,21 @@ entt::entity RpgLogic::npcAdd(const RpgStream::NpcData &data, entt::entity owner
 	}
 
 	return d->generateNpc(player, priv, data, pos, tagIdPtr);
+}
+
+
+/**
+ * @brief RpgLogic::onNpcCreated
+ * @param entity
+ * @param idTag
+ * @param player
+ */
+
+void RpgLogic::onNpcCreated(entt::entity entity, const quint32 &idTag, Player *player)
+{
+	Q_UNUSED(entity);
+	Q_UNUSED(idTag);
+	Q_UNUSED(player);
 }
 
 
@@ -867,7 +945,7 @@ cpVect RpgLogic::addKnockbackImpulse(RpgStream::EntityState *targetState, const 
 		return knockback;
 
 	float power = attacker.push() * distanceFalloff(dist, attacker.pushDist())
-				  //- target.resist()
+				  - target.resist()
 				  ;
 
 	if (power <= 0)
@@ -1256,26 +1334,12 @@ quint32 RpgLogicPrivate::playerIncreaseStreak(entt::entity player, const bool &s
 	pp.increasePassedQuestions(skip);
 
 
-	// Streak rewards
-
-	struct Reward {
-		quint32 point;
-		quint32 hp;
-	};
-
-	static const QHash<quint32, Reward> hash = {
-		{ 3, {.point=15, .hp=0} },
-		{ 5, {.point=20, .hp=1} },
-		{ 7, {.point=30, .hp=1} },
-		{ 10, {.point=50, .hp=2} },
-		{ 12, {.point=75, .hp=2} },
-		{ 15, {.point=100, .hp=3} },
-	};
 
 
-	const auto it = hash.find(pp.passedStreak);
 
-	if (it == hash.constEnd())
+	const auto it = cfgRewardStreak.find(pp.passedStreak);
+
+	if (it == cfgRewardStreak.constEnd())
 		return pp.passedStreak;
 
 
@@ -2028,7 +2092,7 @@ entt::entity RpgLogicPrivate::generateNpc(Player *player, PlayerPrivate *priv, c
 	if (idTagPtr)
 		*idTagPtr = d.idTag;
 
-	ELOG_DEBUG << "Add NPC" << d.idTag << "type" << d.data.type() << "team" << d.data.team();
+	ELOG_DEBUG << "Add NPC" << d.idTag << "type" << d.data.type() << "team" << d.data.team() << "at" << q->lastAuthTick();
 
 	return entity;
 }
@@ -2091,13 +2155,7 @@ bool RpgLogicPrivate::npcInitialize(entt::entity ent)
 
 	npcUpdate(ent, *npc, state);
 
-
-	ELOG_INFO << "NPC" << npc->idTag << "initialized at" << q->lastAuthTick()
-			  << state.entityState().posXAsFloat()
-			  << state.entityState().posYAsFloat();
-
 	return true;
-
 }
 
 
@@ -2145,8 +2203,6 @@ void RpgLogicPrivate::npcUpdate(const std::vector<RpgStream::NpcData> &list)
 			npc.idTag = p.tagId();
 			npc.data = p;
 
-			LOG_CINFO("game") << "**********************************" << p.tagId();
-
 			q->entitySetIdTag(entity, npc.idTag);
 
 			NpcStateOutput &out = q->m_registry.emplace<NpcStateOutput>(entity);
@@ -2187,6 +2243,12 @@ void RpgLogicPrivate::npcUpdate(const std::vector<RpgStream::NpcData> &list)
 
 void RpgLogicPrivate::npcUpdate(entt::entity entity, const RpgStream::NpcData &stream, Npc *object, RpgStream::NpcState *state)
 {
+	static bool showed = false;
+	if (!showed) {
+	LOG_CERROR("game") << "DEPRECATED";
+	showed = true;
+	}
+
 	QMutexLocker locker(&q->m_mutex);
 
 	if (!q->m_registry.valid(entity)) {
@@ -2800,6 +2862,16 @@ void RpgLogicPrivate::preRenderEventPlayer(entt::entity event)
 		case RpgStream::EventPlayer::EventChangeUtility:
 			preRenderEventChangeUtility(e);
 			break;
+
+
+		case RpgStream::EventPlayer::EventReplaceDefender:
+			preRenderEventReplaceDefender(e);
+			break;
+
+		case RpgStream::EventPlayer::EventReplaceUtility:
+			preRenderEventReplaceUtility(e);
+			break;
+
 
 		case RpgStream::EventPlayer::EventUseUtility:
 			preRenderEventUseUtility(e);
@@ -3532,6 +3604,82 @@ void RpgLogicPrivate::preRenderEventChangeUtility(const RpgStream::EventPlayer &
 
 
 /**
+ * @brief RpgLogicPrivate::preRenderEventReplaceDefender
+ * @param event
+ */
+
+void RpgLogicPrivate::preRenderEventReplaceDefender(const RpgStream::EventPlayer &event)
+{
+	if (event.type() != RpgStream::EventPlayer::EventReplaceDefender) {
+		ELOG_ERROR << "Invalid event" << event.type();
+		return;
+	}
+
+	QMutexLocker locker(&q->m_mutex);
+
+	entt::entity player = q->entityFromIdTag(event.tagId());
+
+	if (!q->m_registry.valid(player)) {
+		ELOG_WARNING << "Player entity not found" << event.tagId();
+		return;
+	}
+
+	const RpgStream::BaseDefenderObject::Type defender = RpgStream::BaseDefenderObject::Type(event.at());
+
+	const PlayerPrivate &pp = q->m_registry.get<PlayerPrivate>(player);
+
+	if (!pp.defenders.contains(defender)) {
+		ELOG_WARNING << "Player" << event.tagId() << "don't have defender" << defender;
+		return;
+	}
+
+	RpgStream::PlayerState &st = getEditableCurrentState<RpgStream::PlayerState>(player);
+
+	st.setDefender(defender);
+}
+
+
+
+
+
+/**
+ * @brief RpgLogicPrivate::preRenderEventReplaceUtility
+ * @param event
+ */
+
+void RpgLogicPrivate::preRenderEventReplaceUtility(const RpgStream::EventPlayer &event)
+{
+	if (event.type() != RpgStream::EventPlayer::EventReplaceUtility) {
+		ELOG_ERROR << "Invalid event" << event.type();
+		return;
+	}
+
+	QMutexLocker locker(&q->m_mutex);
+
+	entt::entity player = q->entityFromIdTag(event.tagId());
+
+	if (!q->m_registry.valid(player)) {
+		ELOG_WARNING << "Player entity not found" << event.tagId();
+		return;
+	}
+
+	const RpgStream::PlayerConfig::Utility utility = RpgStream::PlayerConfig::Utility(event.at());
+
+	const PlayerPrivate &pp = q->m_registry.get<PlayerPrivate>(player);
+
+	if (!pp.utilities.contains(utility)) {
+		ELOG_WARNING << "Player" << event.tagId() << "don't have utility" << utility;
+		return;
+	}
+
+	RpgStream::PlayerState &st = getEditableCurrentState<RpgStream::PlayerState>(player);
+
+	st.setUtility(utility);
+}
+
+
+
+/**
  * @brief RpgLogicPrivate::preRenderEventUseUtility
  * @param event
  */
@@ -3612,6 +3760,8 @@ void RpgLogicPrivate::preRenderEventNpcCreate(entt::entity ent)
 
 	auto e = generateNpc(player, priv, event.data, event.pos, &idTag);
 	npcInitialize(e);
+
+	q->onNpcCreated(e, idTag, player);
 
 	// Register event
 
@@ -3818,8 +3968,6 @@ void RpgLogicPrivate::preRenderEventDefenderDestroy(entt::entity ent)
 	q->m_registry.emplace_or_replace<DeleteTag>(event.defenderObject);
 
 	m_requireFull = true;
-
-	ELOG_WARNING << ">>>>>>REAL DELETE";
 
 	if (!q->m_registry.valid(event.container))
 		return;
@@ -4121,7 +4269,7 @@ void RpgLogicPrivate::renderEvents(entt::entity ent, const std::vector<EventTowe
 
 		if (e->lock) {
 			if (e->skipLock) {
-				ELOG_DEBUG << "Player" << player->idTag() << "lock skip" << "at" << q->lastAuthTick();
+				ELOG_DEBUG << "Player" << player->idTag() << "lock skip at" << q->lastAuthTick();
 
 				pst.setLock(0);
 			} else {
@@ -4599,7 +4747,7 @@ void RpgLogicPrivate::renderEvents(EventChangeDefender *event)
 
 	if (event->lock) {
 		if (event->skipLock) {
-			ELOG_DEBUG << "Player" << p->idTag() << "lock skip" << "at" << q->lastAuthTick();
+			ELOG_DEBUG << "Player" << p->idTag() << "lock skip at" << q->lastAuthTick();
 			pst.setLock(0);
 		} else {
 			const quint32 lockId = playerLock(event->player);
@@ -4666,7 +4814,7 @@ void RpgLogicPrivate::renderEvents(EventChangeUtility *event)
 
 	if (event->lock) {
 		if (event->skipLock) {
-			ELOG_DEBUG << "Player" << p->playerData.playerId() << "lock skip" << "at" << q->lastAuthTick();
+			ELOG_DEBUG << "Player" << p->playerData.playerId() << "lock skip at" << q->lastAuthTick();
 			pst.setLock(0);
 		} else {
 			const quint32 lockId = playerLock(event->player);
@@ -5001,22 +5149,17 @@ void RpgLogicPrivate::renderEntityKnockbacks()
 
 			const cpVect knock = RpgLogic::decayKnockback(&st.entityState());
 
-			if (cpveql(knock, cpvzero)) {
-				LOG_CINFO("engine") << "*********************************** REMOVE KNOCKBACK";
-
+			if (cpveql(knock, cpvzero))
 				q->m_registry.remove<KnockbackTag>(e);
-			}
+
 
 		} else if (q->m_registry.try_get<Npc>(e)) {
 			RpgStream::NpcState &st = getEditableCurrentState<RpgStream::NpcState>(e);
 
 			const cpVect knock = RpgLogic::decayKnockback(&st.entityState());
 
-			if (cpveql(knock, cpvzero)) {
-				LOG_CINFO("engine") << "*********************************** REMOVE KNOCKBACK";
-
+			if (cpveql(knock, cpvzero))
 				q->m_registry.remove<KnockbackTag>(e);
-			}
 
 		} else {
 			ELOG_ERROR << "Invalid knockback entity";
@@ -5246,6 +5389,8 @@ void RpgLogicPrivate::renderFinalTowers()
 					state.setPtsB(state.ptsB() + tpts);
 			}
 		}
+
+		q->checkState(state);
 	}
 }
 
@@ -5419,6 +5564,43 @@ void RpgLogicPrivate::changeStage(const RpgStream::GameConfig::Stage &stage)
 
 
 
+
+
+/**
+ * @brief RpgLogicPrivate::autoSelectInventory
+ */
+
+void RpgLogicPrivate::autoSelectInventory()
+{
+	QMutexLocker locker(&q->m_mutex);
+
+	for (auto e : q->m_registry.view<Player>()) {
+		const Player &p = q->m_registry.get<Player>(e);
+
+		if (p.playerData.config().defenders().empty() &&
+				p.playerData.config().utilities().empty()) {
+			ELOG_DEBUG << "Player" << p.playerData.playerId() << "inventory empty!";
+			continue;
+		}
+
+		RpgStream::PlayerState &st = getEditableCurrentState<RpgStream::PlayerState>(e);
+
+		if (!p.playerData.config().defenders().empty() &&
+				st.defender() == RpgStream::BaseDefenderObject::None) {
+			st.setDefender(p.playerData.config().defenders().front());
+			ELOG_DEBUG << "Player" << p.playerData.playerId() << "auto select defender:" << st.defender();
+		}
+
+		if (!p.playerData.config().utilities().empty() &&
+				st.utility() == RpgStream::PlayerConfig::UtilityNone) {
+			st.setUtility(p.playerData.config().utilities().front());
+			ELOG_DEBUG << "Player" << p.playerData.playerId() << "auto select utility:" << st.utility();
+		}
+	}
+}
+
+
+
 /**
  * @brief RpgLogicPrivate::onEventStageChanged
  * @param event
@@ -5453,6 +5635,123 @@ void RpgLogicPrivate::onEventStageChanged(const RpgStream::EventStageChanged &ev
 			q->eventStore(std::move(ev));
 		}
 	}
+}
+
+
+
+
+
+
+
+/**
+ * @brief RpgLogicPrivate::controlUpdate
+ * @param list
+ */
+
+void RpgLogicPrivate::controlUpdate(const std::vector<RpgStream::ControlData> &list)
+{
+	QMutexLocker locker(&q->m_mutex);
+
+	std::unordered_map<quint32, entt::entity> entities;
+	entities.reserve(list.size());
+
+	for (auto e : q->m_registry.view<Control>()) {
+		if (!q->m_registry.valid(e))
+			continue;
+
+		entities[q->m_registry.get<Control>(e).idTag] = e;
+	}
+
+	std::unordered_set<quint32> ids;
+
+	ids.reserve(list.size());
+
+
+	for (const RpgStream::ControlData &p : list) {
+		ids.insert(p.tagId());
+
+		auto it = entities.find(p.tagId());
+
+		if (it != entities.end()) {
+			/*q->m_registry.patch<Npc>(it->second, [&p](Npc &t) {
+				t.data.entity().setMaxHp(p.entity().maxHp());
+				t.data.setTeam(p.team());
+			});*/
+		} else {
+			auto entity = q->m_registry.create();
+
+			Control control;
+			control.idTag = p.tagId();
+			control.type = p.type();
+			control.pos.x = p.posXAsFloat();
+			control.pos.y = p.posYAsFloat();
+
+			q->entitySetIdTag(entity, control.idTag);
+
+			ControlStateOutput &out = q->m_registry.emplace<ControlStateOutput>(entity);
+
+			RpgStream::ControlState state;
+
+			state.setType(p.type());
+			state.setTick(q->lastAuthTick());
+			state.setIsAlive(false);
+
+			controlUpdate(entity, p, &control, &state);
+
+			out.append(std::move(state));
+
+			q->m_registry.emplace<Control>(entity, std::move(control));
+		}
+	}
+
+	for (const auto &[id, e] : entities) {
+		if (ids.contains(id))
+			continue;
+
+		q->m_registry.emplace<DeleteTag>(e);
+	}
+}
+
+
+
+
+
+/**
+ * @brief RpgLogicPrivate::controlUpdate
+ * @param entity
+ * @param stream
+ * @param object
+ * @param state
+ */
+
+void RpgLogicPrivate::controlUpdate(entt::entity entity, const RpgStream::ControlData &stream, Control *object, RpgStream::ControlState *state)
+{
+	/*QMutexLocker locker(&q->m_mutex);
+
+	if (!q->m_registry.valid(entity)) {
+		ELOG_ERROR << "Invalid entity";
+		return;
+	}
+
+	RpgStream::ControlData::Type t = object ? object->type : stream.type();
+
+	if (t == RpgStream::ControlData::Chest) {
+		q->m_registry.emplace<NpcTowerAttacker>(entity);
+
+		/ *if (object)
+			object->data.entity().setMaxHp(5);
+
+		if (state) {
+			state->setDummy(125);
+			state->setHp(1);
+		}* /
+
+	} else {
+		/ *if (object)
+			object->maxHp = 5;* /
+	}
+
+	*/
 }
 
 
@@ -5561,9 +5860,67 @@ void RpgLogicPrivate::mapInitialize()
 		RpgStream::ControlState &state = getEditableCurrentState<RpgStream::ControlState>(entity);
 		state.setTick(0);
 		state.setType(RpgStream::ControlData::Chest);
-		state.setActive(true);
+		state.setIsAlive(true);
 
 		ELOG_DEBUG << "Load chest" << id;
+	}
+}
+
+
+
+/**
+ * @brief RpgLogicPrivate::loadHeat
+ * @param heat
+ */
+
+void RpgLogicPrivate::loadHeat(const quint8 &heat)
+{
+	QMutexLocker locker(&q->m_mutex);
+
+	const HeatList &heatList = q->m_registry.ctx().get<HeatList>();
+	RpgStream::GameState &state = q->m_registry.ctx().get<RpgStream::GameState>();
+
+	if (heat >= heatList.size()) {
+		ELOG_ERROR << "Invalid heat" << heat;
+		return;
+	}
+
+	ELOG_DEBUG << "Load heat" << heat;
+
+	state.setHeat(heat);
+
+	const RpgStream::Heat &data = heatList.at(heat);
+
+	for (const RpgStream::HeatNpc &n : data.npc()) {
+		quint32 tick = q->lastAuthTick() + 1;
+
+		std::optional<std::uniform_int_distribution<int> > dptr;
+
+		if (n.positionList().size() > 1)
+			dptr = std::uniform_int_distribution<int>(0, n.positionList().size()-1);
+
+		for (quint32 i=0; i<n.num(); ++i) {
+			EventNpcCreate evc;
+
+			evc.setTick(tick + i*n.delay());
+			evc.data = n.data();
+			evc.data.setTeam(RpgStream::TeamNone);
+
+			if (dptr) {
+				int idx = (*dptr)(q->m_rnd);
+
+				evc.pos.x = n.positionList().at(idx).posXAsFloat();
+				evc.pos.y = n.positionList().at(idx).posYAsFloat();
+
+			} else if (!n.positionList().empty()) {
+				evc.pos.x = n.positionList().front().posXAsFloat();
+				evc.pos.y = n.positionList().front().posYAsFloat();
+			}
+
+			ELOG_DEBUG << "NPC create event for" << evc.tick();
+
+			q->eventStore(std::move(evc));
+		}
 	}
 }
 
@@ -5739,15 +6096,6 @@ bool RpgLogicPrivate::playerInitialize(entt::entity ent)
 	state.entityState().setPosX(p ? p->posX() : 0.f);
 	state.entityState().setPosY(p ? p->posY() : 0.f);
 	state.entityState().setVelSq(0);
-
-
-	LOG_CERROR("game") << "**************REMOVE";
-	///state.setBullet(cfg.maxBullet());			/// ez törlendő!!!
-	priv.defenders.insert(RpgStream::BaseDefenderObject::Fog);
-	state.setDefender(RpgStream::BaseDefenderObject::Fog);
-	priv.utilities.insert(RpgStream::PlayerConfig::UtilitySniper);
-	state.setUtility(RpgStream::PlayerConfig::UtilitySniper);
-
 
 	priv.modSkipLock = 3;
 
@@ -6058,7 +6406,7 @@ RpgStream::FullState RpgLogic::getFullState(const int &maxTick, QString *textPtr
 			for (const RpgStream::ControlState &st : list) {
 				*textPtr += QStringLiteral("   [%1] %2 | ")
 							.arg(st.tick(), 5)
-							.arg(st.active() ? QStringLiteral("*") : QString())
+							.arg(st.isAlive() ? QStringLiteral("*") : QString())
 							;
 
 				/**textPtr += d->npcFullState(npc, st);*/
@@ -6172,6 +6520,7 @@ void RpgLogic::fullLoad(const RpgStream::Full &full)
 	d->towerUpdate(full.towers());
 	d->defenderUpdate(full.defenders());
 	d->npcUpdate(full.npcs());
+	d->controlUpdate(full.controls());
 
 
 	d->m_lastFullLoadTick = full.serverTick();
@@ -6265,6 +6614,14 @@ RpgStream::Full RpgLogic::getFull(QString *textPtr)
 	}
 
 
+	// Controls
+
+	for (auto entity : m_registry.view<Control>()) {
+		const Control &p = m_registry.get<Control>(entity);
+		full.controls().push_back(p.toRpgStream());
+	}
+
+
 	full.setFullState(getFullState(1, textPtr));
 
 	return full;
@@ -6292,6 +6649,8 @@ bool RpgLogic::initialize()
 
 	cfg.setDuration(CFG_GAME_DURATION);
 
+	m_registry.ctx().get<RpgStream::GameState>().setHeat(0);
+
 
 	// Stage main
 
@@ -6309,6 +6668,10 @@ bool RpgLogic::initialize()
 
 	eventStore(std::move(ev2));
 
+
+	// Heat initiliazie
+
+	d->loadHeat(0);
 
 	// Map initialize
 
@@ -6369,6 +6732,40 @@ bool RpgLogic::startStageSelect()
 
 
 /**
+ * @brief RpgLogic::increaseHeat
+ * @return
+ */
+
+bool RpgLogic::increaseHeat()
+{
+	QMutexLocker locker(&m_mutex);
+
+	RpgStream::GameConfig &cfg = m_registry.ctx().get<RpgStream::GameConfig>();
+
+	if (!cfg.flags().testFlag(RpgStream::GameConfig::FlagPlaying)) {
+		ELOG_ERROR << "Invalid game state";
+		return false;
+	}
+
+
+	const HeatList &heatList = m_registry.ctx().get<HeatList>();
+	RpgStream::GameState &state = m_registry.ctx().get<RpgStream::GameState>();
+
+	quint8 heat = state.heat();
+
+	if (heat >= heatList.size()) {
+		ELOG_ERROR << "Can't increase heat, max:" << heatList.size();
+		return false;
+	}
+
+	d->loadHeat(heat+1);
+
+	return true;
+}
+
+
+
+/**
  * @brief RpgLogic::render
  */
 
@@ -6384,6 +6781,7 @@ bool RpgLogic::render(const bool &first)
 		if (cfg.stage() < RpgStream::GameConfig::StageWarmingUp) {
 			ELOG_DEBUG << "Set StageWarmingUp at" << m_serverTick;
 
+			d->autoSelectInventory();
 			d->changeStage(RpgStream::GameConfig::StageWarmingUp);
 
 			if (d->m_oldStage) {
@@ -6870,7 +7268,7 @@ entt::entity RpgLogicPrivate::eventRealStore(T &&event)
  * @return
  */
 
-void PlayerPrivate::load(const RpgStream::PlayerConfig &cfg)
+void PlayerPrivate::load(const RpgStream::PlayerConfig &cfg, RpgStream::PlayerData &dst)
 {
 	power = std::max((quint8) 1, cfg.power());
 
@@ -6916,8 +7314,15 @@ void PlayerPrivate::load(const RpgStream::PlayerConfig &cfg)
 
 	// Streak
 
-	modSkipLock = std::max((quint32) 2, (quint32) std::ceil(5-((cfg.power()-1)/2.)));
+	modSkipLock = 3;//std::max((quint32) 2, (quint32) std::ceil(5-((cfg.power()-1)/2.)));
 
+
+	dst.config().setPower(power);
+	dst.config().setEntity(this->toEntityConfig());
+	dst.config().setMaxBullet(maxBullet);
+	dst.config().setMaxMp(maxMp);
+	dst.config().utilities().assign(utilities.cbegin(), utilities.cend());
+	dst.config().defenders().assign(defenders.cbegin(), defenders.cend());
 }
 
 
@@ -7137,6 +7542,24 @@ entt::entity RpgLogicPrivate::controlAdd(const RpgStream::ControlData &data, con
 
 	return entity;
 
+}
+
+
+/**
+ * @brief Control::toRpgStream
+ * @return
+ */
+
+RpgStream::ControlData Control::toRpgStream() const
+{
+	RpgStream::ControlData stream;
+
+	stream.setTagId(idTag);
+	stream.setType(type);
+	stream.setPosXAsFloat(pos.x);
+	stream.setPosYAsFloat(pos.y);
+
+	return stream;
 }
 
 

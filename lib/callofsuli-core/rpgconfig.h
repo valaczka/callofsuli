@@ -69,6 +69,31 @@
 /// -----------------------------------------------------
 
 
+
+/// Rewards
+
+// Streak rewards
+
+struct CfgRewardStreak {
+	quint32 point;
+	quint32 hp;
+};
+
+static const QHash<quint32, CfgRewardStreak> cfgRewardStreak = {
+	{ 3, {.point=15, .hp=0} },
+	{ 5, {.point=20, .hp=1} },
+	{ 7, {.point=30, .hp=1} },
+	{ 10, {.point=50, .hp=2} },
+	{ 12, {.point=75, .hp=2} },
+	{ 15, {.point=100, .hp=3} },
+};
+
+
+
+
+
+
+
 /// DEFENDER
 
 struct CfgDefenderBase
@@ -114,9 +139,9 @@ static inline const CfgDefenderBase cfgDefenderFog = { .radius = 250 };
 static inline const CfgDefenderBase cfgDefenderMultiplier = { .maxHp = 4 };
 
 static inline const QHash<RpgStream::BaseDefenderObject::Type, int> cfgRequiredMpDefender = {
-	{ RpgStream::BaseDefenderObject::Fog,					1 },
-	{ RpgStream::BaseDefenderObject::Multiplier1,					1 },
-	{ RpgStream::BaseDefenderObject::Pulse,					1 },
+	{ RpgStream::BaseDefenderObject::Fog,					5 },
+	{ RpgStream::BaseDefenderObject::Multiplier1,			1 },
+	{ RpgStream::BaseDefenderObject::Pulse,					2 },
 };
 
 
@@ -143,8 +168,8 @@ static inline const CfgUtilityMissionary cfgUtilityMissionary = {};
 static inline const CfgUtilitySniper cfgUtilitySniper = {};
 
 static inline const QHash<RpgStream::PlayerConfig::Utility, int> cfgRequiredMpUtility = {
-	{ RpgStream::PlayerConfig::UtilityMissionary,					1 },
-	{ RpgStream::PlayerConfig::UtilitySniper,						1 },
+	{ RpgStream::PlayerConfig::UtilityMissionary,					2 },
+	{ RpgStream::PlayerConfig::UtilitySniper,						6 },
 };
 
 

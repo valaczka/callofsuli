@@ -46,10 +46,10 @@ public:
 
 	RpgStream::Full getRenderedState(const bool &isStageSelect);
 
-	entt::entity npcAdd(const RpgStream::NpcData &data, entt::entity owner, quint32 *tagIdPtr = nullptr);
-
 protected:
 	virtual void eventRealized(entt::entity entity) override;
+	virtual void onNpcCreated(entt::entity entity, const quint32 &idTag, Rpg::Player *player) override;
+	virtual std::vector<Rpg::Chest> initializeChests() override;
 
 	bool onStageChanged(const RpgStream::GameConfig::Stage &stage);
 

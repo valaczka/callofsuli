@@ -129,6 +129,9 @@ public:
 
 	const QList<QPointer<RpgDefender> > &defenders() const;
 
+	const QList<TiledObjectBody *> &excludeList() const;
+	void setExcludeList(const QList<TiledObjectBody *> &newExcludeList);
+
 signals:
 	void loadChanged();
 	void colorChanged();
@@ -149,6 +152,7 @@ private:
 
 	QList<RpgDefenderPoint *> m_defenderPoints;
 	QList<QPointer<RpgDefender> > m_defenders;
+	QList<TiledObjectBody*> m_excludeList;
 
 	int m_load = 0;
 	QColor m_color = QColorConstants::Svg::white;

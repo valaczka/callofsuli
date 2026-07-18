@@ -65,6 +65,11 @@ RpgStream::Full RpgLogicServer::getRenderedState(const bool &requireFull)
 #endif
 
 
+	if (requireFull)
+		m_engine->addMapTagsToStream(f);
+
+
+
 #ifdef WITH_FTXUI
 	QCborMap m;
 	m.insert(QStringLiteral("mode"), QStringLiteral("SND"));
@@ -76,18 +81,6 @@ RpgStream::Full RpgLogicServer::getRenderedState(const bool &requireFull)
 }
 
 
-/**
- * @brief RpgLogicServer::npcAdd
- * @param data
- * @param owner
- * @param tagIdPtr
- * @return
- */
-
-entt::entity RpgLogicServer::npcAdd(const RpgStream::NpcData &data, entt::entity owner, quint32 *tagIdPtr)
-{
-	return RpgLogic::npcAdd(data, owner, cpvzero, tagIdPtr);
-}
 
 
 
@@ -111,6 +104,41 @@ void RpgLogicServer::eventRealized(entt::entity entity)
 
 	if (m_registry.try_get<Rpg::EventMpEmitterEmpty>(entity))
 		eventRealizedDefault(entity);
+}
+
+
+
+/**
+ * @brief RpgLogicServer::onNpcCreated
+ * @param entity
+ * @param idTag
+ * @param player
+ */
+
+void RpgLogicServer::onNpcCreated(entt::entity entity, const quint32 &idTag, Rpg::Player *player)
+{
+	Q_UNUSED(entity);
+
+	quint32 pid = m_engine->addTagToPlayer(idTag, player);
+
+	ELOG_DEBUG << "NPC" << idTag << "owner set to player" << pid;
+}
+
+
+
+/**
+ * @brief RpgLogicServer::initializeChests
+ * @return
+ */
+
+std::vector<Rpg::Chest> RpgLogicServer::initializeChests()
+{
+	LOG_CERROR("engine") << ">>>>>>>>>>>>>>>>>>>>>> REMOVE";
+	return Rpg::RpgLogic::initializeChests();
+
+	// Nincsenek multiplayerbern
+
+	/// return std::vector<Rpg::Chest>{};
 }
 
 

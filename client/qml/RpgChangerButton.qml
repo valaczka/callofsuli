@@ -230,7 +230,8 @@ Item {
 
 	GameButton {
 		id: mainButton
-		size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 40 : 30
+		//size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 40 : 30
+		size: 40
 
 		anchors.centerIn: parent
 
