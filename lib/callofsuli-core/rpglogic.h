@@ -887,6 +887,8 @@ struct Control
 	RpgStream::ControlData::Type type = RpgStream::ControlData::None;
 	cpVect pos = cpvzero;
 
+	quint32 data = 0;
+
 	RpgStream::ControlData toRpgStream() const;
 };
 
@@ -898,6 +900,12 @@ struct Control
 struct Chest
 {
 	cpVect pos = cpvzero;
+
+	enum State {
+		StateNormal,
+		StateActivated,
+		StateDisabled
+	};
 };
 
 
@@ -1032,6 +1040,18 @@ struct EventTower {
 
 
 
+
+// Player use control
+
+struct EventControl {
+	entt::entity control;
+	entt::entity player;
+	bool lock = true;
+	bool skipLock = false;
+};
+
+
+
 // Player put tower defender
 
 struct EventDefenderPut {
@@ -1099,6 +1119,7 @@ struct EventAttackDefender {
 struct EventNpcAttackDefender {
 	entt::entity npc;
 	entt::entity target;
+	quint32 operation = 0;
 };
 
 
@@ -1470,7 +1491,18 @@ public:
 
 
 
+// Change control state
 
+class EventControlStateChange : public RpgStream::BaseTickState
+{
+public:
+	EventControlStateChange() : RpgStream::BaseTickState() {}
+
+	entt::entity control = entt::null;
+
+	bool isAlive = true;
+
+};
 
 
 

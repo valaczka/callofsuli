@@ -265,6 +265,10 @@ QVariantMap ModulePair::generateOne(const QVariantMap &data, QVariantList pairLi
 {
 	QVariantMap m;
 
+	std::random_device rd;
+	std::mt19937 g(rd());
+	std::bernoulli_distribution dist(0.5);
+
 	if (pairList.isEmpty())
 		pairList = {
 			QVariantMap({{QStringLiteral("first"), QStringLiteral(" ")}, {QStringLiteral("second"), QStringLiteral(" ")}}),
@@ -280,7 +284,7 @@ QVariantMap ModulePair::generateOne(const QVariantMap &data, QVariantList pairLi
 	} else if (mode == QStringLiteral("second")) {
 		modes.setFlag(Mode::Second);
 	} else if (mode == QStringLiteral("both")) {
-		if (QRandomGenerator::global()->bounded(2) == 1)
+		if (dist(g))
 			modes.setFlag(Mode::Second);
 		else
 			modes.setFlag(Mode::First);
@@ -298,8 +302,6 @@ QVariantMap ModulePair::generateOne(const QVariantMap &data, QVariantList pairLi
 	QVariantList answers;
 	QStringList options;
 
-	std::random_device rd;
-	std::mt19937 g(rd());
 	std::shuffle(pairList.begin(), pairList.end(), g);
 
 	for (const QVariant &v : pairList) {
@@ -313,7 +315,7 @@ QVariantMap ModulePair::generateOne(const QVariantMap &data, QVariantList pairLi
 		if ((!first.isEmpty() && !second.isEmpty()) && (questions.size() < maxQuestions)) {
 			Mode currentMode;
 			if (modes.testFlag(Mode::First) && modes.testFlag(Mode::Second)) {
-				if (QRandomGenerator::global()->bounded(2) == 1)
+				if (dist(g))
 					currentMode = Mode::Second;
 				else
 					currentMode = Mode::First;

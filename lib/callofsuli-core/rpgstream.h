@@ -1703,6 +1703,7 @@ public:
 		EventUseUtility,										// aktuális képesség felhasználása
 		EventReplaceDefender,									// defender kicserélése
 		EventReplaceUtility,									// super képesség kicserélése
+		EventUseControl,										// pl. chest használata
 	};
 
 	EventPlayer() : BaseEventState() {}
@@ -1799,6 +1800,8 @@ public:
 	STREAM_MEMBER_CAST(Type, type, Type, quint32, 4, EventNone)
 
 	STREAM_MEMBER(TAG_ID_TYPE, targetId, TargetId, TAG_ID_BITS, 0);
+
+	STREAM_MEMBER(quint32, operation, Operation, 32, 0);		// EventAttack esetén egyedi kód
 };
 
 
@@ -1853,6 +1856,8 @@ public:
 	STREAM_MEMBER_CAST(Type, type, Type, quint32, 12, None)						// max. 4096 types
 	STREAM_MEMBER_QUANT(posX, PosX, 0);
 	STREAM_MEMBER_QUANT(posY, PosY, 0);
+	STREAM_MEMBER(quint32, data, Data, 32, 0)									// Universal data
+
 };
 
 
@@ -1993,12 +1998,14 @@ public:
 
 	bool operator==(const ControlState &other) const {
 		return other.m_type == m_type &&
-				other.m_isAlive == m_isAlive
+				other.m_isAlive == m_isAlive &&
+				other.m_state == m_state
 				;
 	}
 
 	STREAM_MEMBER_CAST(ControlData::Type, type, Type, OBJECT_TYPE, OBJECT_BITS, ControlData::None)
 	STREAM_MEMBER_CAST(bool, isAlive, IsAlive, quint8, 1, false)
+	STREAM_MEMBER(quint32, state, State, 32, 0)							// Universal state code
 };
 
 

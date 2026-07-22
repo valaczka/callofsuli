@@ -1937,9 +1937,7 @@ QVector<TiledGame::TextureSpriteDirection> TiledGame::spritesFromMapper(const QV
 {
 	QVector<TextureSpriteDirection> list;
 
-	const QStringList sprites = spriteNamesFromMapper(mapper);
-
-	for (const QString &s : sprites) {
+	for (const QString &s : spriteNamesFromMapper(mapper)) {
 		const QVector<TiledObject::Direction> directions = directionsFromMapper(mapper, s);
 
 		for (const auto &d : directions) {
@@ -1962,14 +1960,12 @@ QVector<TiledGame::TextureSpriteDirection> TiledGame::spritesFromMapper(const QV
  * @return
  */
 
-QStringList TiledGame::spriteNamesFromMapper(const QVector<TextureSpriteMapper> &mapper)
+QSet<QString> TiledGame::spriteNamesFromMapper(const QVector<TextureSpriteMapper> &mapper)
 {
-	QStringList list;
+	QSet<QString> list;
 
-	for (const auto &m : mapper) {
-		if (!list.contains(m.name))
-			list.append(m.name);
-	}
+	for (const auto &m : mapper)
+		list.insert(m.name);
 
 	return list;
 }

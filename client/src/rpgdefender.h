@@ -29,6 +29,7 @@
 
 #include "rpgentity.h"
 #include "rpgtower.h"
+#include "rpgcontrol.h"
 #include <QQmlEngine>
 
 
@@ -83,6 +84,12 @@ public:
 
 	virtual void setMarked(const bool &marked = true) override;
 
+	const State &state() const { return m_visual.state(); }
+	void setState(const State &state) {
+		stateChange(m_visual.state(), state);
+		m_visual.setState(state);
+	}
+
 signals:
 	void visibleToAllChanged();
 	void hasTargetChanged();
@@ -91,6 +98,8 @@ protected:
 	virtual void onAlive() override;
 	virtual void onDead() override;
 	virtual void updateColor() override;
+
+	virtual void stateChange(const State &from, const State &to) { Q_UNUSED(from); Q_UNUSED(to); };
 
 	bool loadFromCommonMap(const QString &name, const QHash<State, QString> &baseImageHash);
 	void addMarkerItem();
@@ -130,11 +139,23 @@ public:
 	RpgDefenderCommon(const QString &name, RpgGameItem *gameItem, const Rpg::DefenderObject &config,
 					  const QHash<State, QString> &baseImageHash = {});
 
+	RpgDefenderCommon(RpgGameItem *gameItem, const Rpg::DefenderObject &config,
+					  const QString &spriteSource, const TiledObjectSpriteList &spriteList,
+					  const RpgControlCommon::SpriteAnimations &animations = RpgControlCommon::AnimationNone);
+
 	virtual void initialize() override;
+
+protected:
+	virtual void stateChange(const State &from, const State &to) override;
 
 private:
 	const QString m_name;
 	const QHash<State, QString> m_baseImageHash;
+
+	const QString m_spriteSource;
+	const TiledObjectSpriteList m_spriteList;
+
+	RpgControlCommon::SpriteAnimations m_animations = RpgControlCommon::AnimationNone;
 };
 
 

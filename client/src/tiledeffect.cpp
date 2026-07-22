@@ -39,30 +39,6 @@ const QString TiledEffectRing::m_staticSpriteName = QStringLiteral("ring");
 
 
 
-/**
- * @brief fromSprite
- * @param sprite
- * @return
- */
-
-namespace TiledEffectNS {
-static QVector<TiledGame::TextureSpriteMapper> fromSprite(const TiledObjectSprite &sprite, const QString &name) {
-	QVector<TiledGame::TextureSpriteMapper> mapper;
-
-	TiledGame::TextureSpriteMapper m;
-	m.name = name;
-	m.width = sprite.width;
-	m.height = sprite.height;
-	m.duration = sprite.duration;
-	m.loops = sprite.loops;
-
-	for (int i=0; i<sprite.count; ++i) {
-		mapper.append(m);
-	}
-
-	return mapper;
-}
-}
 
 
 /**
@@ -286,6 +262,33 @@ void TiledEffect::clear()
 
 
 
+/**
+ * @brief TiledEffect::fromSprite
+ * @param sprite
+ * @param name
+ * @return
+ */
+
+QVector<TiledGame::TextureSpriteMapper> TiledEffect::fromSprite(const TiledObjectSprite &sprite, const QString &name)
+{
+	QVector<TiledGame::TextureSpriteMapper> mapper;
+
+	TiledGame::TextureSpriteMapper m;
+	m.name = name;
+	m.width = sprite.width;
+	m.height = sprite.height;
+	m.duration = sprite.duration;
+	m.loops = sprite.loops;
+
+	for (int i=0; i<sprite.count; ++i) {
+		mapper.append(m);
+	}
+
+	return mapper;
+}
+
+
+
 //// ----------------------------------------------- ////
 
 
@@ -419,7 +422,7 @@ void TiledEffectFire::play()
 	TextureSpriteDef def;
 	def.fromJson(*ptr);
 
-	TextureSprite s = TiledGame::spriteFromMapper(TiledEffectNS::fromSprite(sprite, QStringLiteral("default")),
+	TextureSprite s = TiledGame::spriteFromMapper(fromSprite(sprite, QStringLiteral("default")),
 												  def, QStringLiteral("default"));
 
 	playSprite(QStringLiteral(":/rpg/common/explosion_texture.png"), s, true);
@@ -450,7 +453,7 @@ void TiledEffectSleep::play()
 	TextureSpriteDef def;
 	def.fromJson(*ptr);
 
-	TextureSprite s = TiledGame::spriteFromMapper(TiledEffectNS::fromSprite(sprite, QStringLiteral("default")),
+	TextureSprite s = TiledGame::spriteFromMapper(fromSprite(sprite, QStringLiteral("default")),
 												  def, QStringLiteral("default"));
 
 	playSprite(QStringLiteral(":/rpg/common/sparkle_texture.png"), s);

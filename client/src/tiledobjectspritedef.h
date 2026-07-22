@@ -151,6 +151,7 @@ public:
 		, duration(0)
 		, loops(0)
 		, flow(false)
+		, reverse(false)
 	{}
 
 	TiledObjectSprite(const QString &_name,
@@ -161,7 +162,8 @@ public:
 					  const int &_height,
 					  const int &_duration,
 					  const int &_loops = 0,
-					  const bool &_flow = false)
+					  const bool &_flow = false,
+					  const bool &_reverse = false)
 		: name(_name)
 		, count(_count)
 		, x(_x)
@@ -171,6 +173,7 @@ public:
 		, duration(_duration)
 		, loops(_loops)
 		, flow(_flow)
+		, reverse(_reverse)
 	{}
 
 private:
@@ -184,6 +187,7 @@ private:
 	QS_FIELD(int, duration)
 	QS_FIELD(int, loops)					// 0: forever, -1: forever forward+reverse
 	QS_FIELD(bool, flow)
+	QS_FIELD(bool, reverse)					// reverse play
 
 };
 

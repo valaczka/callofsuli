@@ -188,10 +188,12 @@ Page {
 			case RpgGame.GameStateInit:
 			case RpgGame.GameStatePlay:
 				_stack.activeComponent = _cmpRpg
+				game.menuBgMusicStop()
 				break
 
 			case RpgGame.GameStateError:
 				_stack.activeComponent = _cmpError
+				game.menuBgMusicStop()
 				break
 
 			case RpgGame.GameStateCharacterSelect:
@@ -233,6 +235,7 @@ Page {
 
 
 	StackView.onDeactivating: {
+
 	}
 
 	StackView.onActivated: {

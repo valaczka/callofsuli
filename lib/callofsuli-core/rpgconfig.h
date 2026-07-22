@@ -50,6 +50,7 @@
 
 #define CFG_PENALTY_TOWER				300						// player question penalty in tick after failed tower attack
 #define CFG_PENALTY_AUTO_UNLOCK			300						// player penalty after auto unlock (no answer)
+#define CFG_PENALTY_CHEST				300						// player penalty after failed chest opening
 
 #define CFG_TOWER_LOCK					60*30					// tower lock after activation in tick
 #define CFG_TOWER_INACTIVE				80						// tower inactivate below percent

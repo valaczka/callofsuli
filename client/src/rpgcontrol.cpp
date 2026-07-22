@@ -25,6 +25,8 @@
  */
 
 #include "rpgcontrol.h"
+#include "tiledspritehandler.h"
+
 
 
 
@@ -43,6 +45,8 @@ RpgControl::RpgControl(RpgGameItem *gameItem, const Rpg::Control &config)
 
 	filterSet(RpgGameItem::FixtureControl, RpgGameItem::FixtureAll);
 	setSensor(true);
+
+	this->setGlowColor(RpgGame::colorGlow());
 
 	setSubZ(0.5);
 }
@@ -87,13 +91,24 @@ RpgControl *RpgControl::createControl(const Rpg::Control &config, RpgGameItem *g
 	QString common;
 	QHash<StateCommon, QString> baseImage;
 
+	QString spriteSource;
+	TiledObjectSpriteList spriteList;
+	RpgControlCommon::SpriteAnimations animations = RpgControlCommon::AnimationNone;
+	QPointF offset;
+	QString title;
+	int height = 0;
+	RpgGameItem::ProxyDirections proxy;
+
 	switch (config.type) {
 		case RpgStream::ControlData::Chest:
-			common = QStringLiteral("def_pulse.tmx");
-			/*baseImage = {
-				{ StateNormal, QStringLiteral(":/rpg/time/pickable.png") },
-				{ StateActive, QStringLiteral(":/rpg/time/pickable.png") },
-			};*/
+			spriteSource = QStringLiteral(":/rpg/chest");
+			title = tr("Upgrade heat");
+			animations = RpgControlCommon::AnimationNormalToActive;
+			height = 80;
+			proxy = {
+				{ SouthWest, { SouthWest, West, NorthWest, North } },
+				{ East, { NorthEast, East, SouthEast, South } }
+			};
 			break;
 
 		case RpgStream::ControlData::None:
@@ -101,13 +116,61 @@ RpgControl *RpgControl::createControl(const Rpg::Control &config, RpgGameItem *g
 			break;
 	}
 
+
+
 	if (!common.isEmpty())
 		return gameItem->createObject<RpgControlCommon>(RpgLogicObjectMapper::toObjectId(config.idTag),
-														 scene,
-														 common, gameItem, config, baseImage,
-														"Chest #1");
+														scene,
+														common, gameItem, config, baseImage,
+														title);
+	else if (!spriteSource.isEmpty() && proxy.isEmpty()) {
+		RpgControlCommon *c = gameItem->createObject<RpgControlCommon>(RpgLogicObjectMapper::toObjectId(config.idTag),
+														scene,
+														gameItem, config,
+														spriteSource, spriteList, animations,
+														title);
+		if (!spriteList.sprites.isEmpty()) {
+			c->visualItem()->setSize(QSizeF(spriteList.sprites.first().width, spriteList.sprites.first().height));
+		}
+
+		if (height > 0 && c->m_markerItem)
+			c->m_markerItem->setProperty("entityHeight", height);
+
+		c->setBodyOffset(offset);
+
+		return c;
+	} else if (!spriteSource.isEmpty() && !proxy.empty()) {
+		RpgControlCommon *c = gameItem->createObject<RpgControlCommon>(RpgLogicObjectMapper::toObjectId(config.idTag),
+														scene,
+														gameItem, config, spriteSource, proxy, animations,
+														title);
+
+		if (height > 0 && c->m_markerItem)
+			c->m_markerItem->setProperty("entityHeight", height);
+
+		return c;
+	}
 
 	return nullptr;
+}
+
+
+
+
+
+/**
+ * @brief RpgControl::setMarked
+ * @param marked
+ */
+
+void RpgControl::setMarked(const bool &marked)
+{
+	if (m_markerItem)
+		m_markerItem->setVisible(marked && m_isAlive);
+
+	this->setGlowEnabled(marked && m_isAlive);
+
+	RpgObject::setMarked(marked && m_isAlive);
 }
 
 
@@ -143,6 +206,8 @@ void RpgControl::setIsAlive(bool newIsAlive)
 	emit isAliveChanged();
 
 	setSubZ(m_isAlive ? 0.5 : 0.0);
+
+	setMarked(false);
 }
 
 
@@ -168,5 +233,311 @@ bool RpgControlMotor::beforeWorldStep(const qint64 &/*tick*/, entt::entity &enti
 
 	m_control->setIsAlive(state->isAlive());
 
-	return beforeWorldStepControl(*state, entity);
+	m_control->loadCurrentState(*state);
+
+	return true;
+}
+
+
+
+
+
+
+/**
+ * @brief RpgControlCommon::RpgControlCommon
+ * @param name
+ * @param gameItem
+ * @param config
+ * @param baseImageHash
+ * @param displayName
+ */
+
+RpgControlCommon::RpgControlCommon(const QString &name, RpgGameItem *gameItem, const Rpg::Control &config,
+								   const QHash<StateCommon, QString> &baseImageHash, const QString &displayName)
+	: RpgControl(gameItem, config)
+	, RpgControlCommonIface(name, config, StateNormal)
+	, m_baseImageHash(baseImageHash)
+	, m_spriteSource()
+	, m_spriteList()
+{
+	Q_ASSERT(!m_name.isEmpty());
+
+	if (!displayName.isEmpty())
+		setDisplayName(displayName);
+}
+
+
+
+
+/**
+ * @brief RpgControlCommon::RpgControlCommon
+ * @param name
+ * @param gameItem
+ * @param config
+ * @param spriteSource
+ * @param spriteList
+ * @param animations
+ * @param displayName
+ */
+
+RpgControlCommon::RpgControlCommon(RpgGameItem *gameItem, const Rpg::Control &config,
+								   const QString &spriteSource, const TiledObjectSpriteList &spriteList,
+								   const SpriteAnimations &animations, const QString &displayName)
+	: RpgControl(gameItem, config)
+	, RpgControlCommonIface(QString(), config, StateNormal)
+	, m_baseImageHash()
+	, m_spriteSource(spriteSource)
+	, m_spriteList(spriteList)
+	, m_animations(animations)
+{
+	if (!displayName.isEmpty())
+		setDisplayName(displayName);
+}
+
+
+
+/**
+ * @brief RpgControlCommon::RpgControlCommon
+ * @param gameItem
+ * @param config
+ * @param texturePath
+ * @param animations
+ * @param displayName
+ */
+
+RpgControlCommon::RpgControlCommon(RpgGameItem *gameItem, const Rpg::Control &config,
+								   const QString &texturePath, const RpgGameItem::ProxyDirections &proxy,
+								   const SpriteAnimations &animations, const QString &displayName)
+	: RpgControl(gameItem, config)
+	, RpgControlCommonIface(QString(), config, StateNormal)
+	, m_baseImageHash()
+	, m_proxy(proxy)
+	, m_spriteSource(texturePath)
+	, m_animations(animations)
+{
+	if (!displayName.isEmpty())
+		setDisplayName(displayName);
+}
+
+
+
+/**
+ * @brief RpgControlCommon::initialize
+ */
+
+void RpgControlCommon::initialize()
+{
+	m_scene = scene();
+
+	Q_ASSERT(m_scene);
+
+	if (!m_name.isEmpty()) {
+		TiledVisualItem* item = loadFromCommonMap(m_rpgGame, m_scene, &m_layerItems, m_name, stateHash(), baseImageHash());
+
+		if (!item) {
+			LOG_CERROR("game") << "Common control load failed" << m_name;
+			return;
+		}
+
+		m_visualItem = item;
+	} else if (m_proxy) {
+		createVisual();
+		setAvailableDirections(Direction_8);
+
+		QRect measure = RpgGameItem::loadTextureSprites(m_spriteHandler, m_spriteSource+QStringLiteral("/"), m_proxy.value());
+
+		m_visualItem->setWidth(measure.width());
+		m_visualItem->setHeight(measure.height());
+		setBodyOffset(measure.x(), measure.y());
+
+		m_spriteHandler->setVisibleLayers({"default"});
+
+		synchronize();
+		jumpToSprite("normal");
+
+	} else {
+		createVisual();
+		appendSprite(m_spriteSource, m_spriteList);
+
+		if (!m_spriteList.sprites.isEmpty())
+			jumpToSprite(m_spriteList.sprites.first().name.toLatin1());
+	}
+
+	setState(m_visual.state());
+
+	resetMarkerDisplay(m_displayName);
+}
+
+
+
+
+
+/**
+ * @brief RpgControlCommon::initControl
+ */
+
+void RpgControlCommon::initControl()
+{
+	LOG_CINFO("game") << "INIT CONTROL" << this << m_config.type << m_config.data;
+
+	if (m_config.type == RpgStream::ControlData::Chest) {
+		rotateBody(TiledObject::directionToIsometricRadian(m_config.data == 1 ? SouthWest : SouthEast), true);
+		jumpToSprite("normal");
+	}
+}
+
+
+/**
+ * @brief RpgControlCommon::setMarked
+ * @param marked
+ */
+
+void RpgControlCommon::setMarked(const bool &marked)
+{
+	if (m_config.type == RpgStream::ControlData::Chest) {
+		return RpgControl::setMarked(marked && m_visual.state() == StateNormal);
+	}
+
+	return RpgControl::setMarked(marked);
+}
+
+
+
+
+
+
+/**
+ * @brief RpgControlCommon::canTargeting
+ * @return
+ */
+
+bool RpgControlCommon::canTargeting() const
+{
+	if (m_config.type == RpgStream::ControlData::Chest) {
+		return m_visual.state() == StateNormal;
+	}
+
+	return RpgControl::canTargeting();
+}
+
+
+
+
+
+/**
+ * @brief RpgControlCommon::resetMarkerDisplay
+ * @param displayName
+ */
+
+void RpgControlCommon::resetMarkerDisplay(const QString &displayName)
+{
+	if (displayName.isEmpty())
+		return;
+
+	if (!m_markerItem)
+		m_markerItem = createMarkerItem();
+
+	setDisplayName(displayName);
+}
+
+
+/**
+ * @brief RpgControlCommon::stateHash
+ * @return
+ */
+
+QHash<QString, RpgControl::StateCommon> RpgControlCommon::stateHash() const
+{
+	static const QHash<QString, RpgControl::StateCommon> hash = {
+		{ "active", StateActive },
+		{ "destroyed", StateDestroyed },
+		{ "normal", StateNormal }
+	};
+
+	return hash;
+}
+
+
+/**
+ * @brief RpgControlCommon::stateChange
+ * @param from
+ * @param to
+ */
+
+void RpgControlCommon::stateChange(const StateCommon &from, const StateCommon &to)
+{
+	if (m_spriteSource.isEmpty())
+		return;
+
+	struct Anim {
+		RpgControlCommon::StateCommon from;
+		RpgControlCommon::StateCommon to;
+		SpriteAnimation flag;
+		const char* sprite;
+	};
+
+	static const std::vector<Anim> animations = {
+		{ StateNormal, StateActive, AnimationNormalToActive, "activating" },
+		{ StateActive, StateNormal, AnimationActiveToNormal, "deactivating" },
+		{ StateNormal, StateDestroyed, AnimationNormalToDestroyed, "destroying" },
+		{ StateDestroyed, StateNormal, AnimationDestroyedToNormal, "reloading" },
+		{ StateActive, StateDestroyed, AnimationActiveToDestroyed, "unloading" },
+		{ StateDestroyed, StateActive, AnimationDestroyedToActive, "reactivating" },
+	};
+
+	for (const Anim &a : animations) {
+		if (from == a.from && to == a.to && m_animations.testFlag(a.flag)) {
+			jumpToSprite(a.sprite);
+			break;
+		}
+	}
+
+	jumpToSpriteLater(stateHash().key(to).toLatin1());
+
+	if (m_config.type == RpgStream::ControlData::Chest) {
+		if (to == StateDestroyed) {
+			m_visualItem->setVisible(false);
+			setMarked(false);
+		} else {
+			if (to == StateActive)
+				setMarked(false);
+
+			m_visualItem->setVisible(true);
+		}
+	}
+}
+
+
+
+/**
+ * @brief RpgControlCommon::loadCurrentState
+ * @param state
+ */
+
+void RpgControlCommon::loadCurrentState(const RpgStream::ControlState &state)
+{
+	if (m_config.type == RpgStream::ControlData::Chest) {
+		if (state.state() == Rpg::Chest::StateDisabled)
+			setState(StateDestroyed);
+		else if (state.state() == Rpg::Chest::StateActivated)
+			setState(StateActive);
+		else
+			setState(StateNormal);
+	}
+}
+
+
+/**
+ * @brief RpgControlCommon::animations
+ * @return
+ */
+
+const RpgControlCommon::SpriteAnimations &RpgControlCommon::animations() const
+{
+	return m_animations;
+}
+
+void RpgControlCommon::setAnimations(const SpriteAnimations &newAnimations)
+{
+	m_animations = newAnimations;
 }

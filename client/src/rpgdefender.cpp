@@ -29,6 +29,57 @@
 #include "rpgdefender.h"
 #include "rpgdefenderfog.h"
 #include "rpgplayer.h"
+#include "rpgcontrol.h"
+
+
+
+
+
+// Chest
+
+static struct {
+	QSize size = {192, 210};
+	int height = 0;
+
+	TiledObjectSprite spriteNormal = {
+		"normal",
+		2,
+		0, 630, size.width(), size.height(),
+		30,
+		0,
+		true
+	};
+
+	TiledObjectSprite spriteActive = {
+		"active",
+		20,
+		0, 0, size.width(), size.height(),
+		15,
+		0,
+		true,
+		true			// reverse
+	};
+
+	TiledObjectSprite spriteDestroyed = {
+		"destroyed",
+		1,
+		384, 630, size.width(), size.height(),
+		30,
+		1,
+		true
+	};
+
+	QString source = ":/rpg/defenderPulse/spritesheet.png";
+	RpgControlCommon::SpriteAnimations animations = RpgControlCommon::AnimationNone;
+	QPointF offset = { 100-((float) size.width()/2),
+					   153-((float) size.height()/2) };
+
+	TiledObjectSpriteList spriteList() const {
+		TiledObjectSpriteList l;
+		l.sprites << spriteNormal << spriteActive << spriteDestroyed;
+		return l;
+	};
+} defenderPulse;
 
 
 
@@ -97,6 +148,12 @@ RpgDefender *RpgDefender::createDefender(const Rpg::DefenderObject &defender, Rp
 	QString common;
 	QHash<State, QString> baseImage;
 
+	QString spriteSource;
+	TiledObjectSpriteList spriteList;
+	RpgControlCommon::SpriteAnimations animations = RpgControlCommon::AnimationNone;
+	QPointF offset;
+	int height = 0;
+
 	switch (defender.type) {
 		case RpgStream::BaseDefenderObject::Fog:
 			return gameItem->createObject<RpgDefenderFog>(RpgLogicObjectMapper::toObjectId(defender.idTag),
@@ -104,11 +161,16 @@ RpgDefender *RpgDefender::createDefender(const Rpg::DefenderObject &defender, Rp
 														  defender);
 
 		case RpgStream::BaseDefenderObject::Pulse:
-			common = QStringLiteral("def_pulse.tmx");
+			//common = QStringLiteral("def_pulse.tmx");
 			/*baseImage = {
 				{ StateNormal, QStringLiteral(":/rpg/time/pickable.png") },
 				{ StateActive, QStringLiteral(":/rpg/key/pickable.png") },
 			};*/
+			spriteList = defenderPulse.spriteList();
+			spriteSource = defenderPulse.source;
+			animations = defenderPulse.animations;
+			offset = defenderPulse.offset;
+			height = defenderPulse.height;
 			break;
 
 		case RpgStream::BaseDefenderObject::Multiplier1:
@@ -121,10 +183,27 @@ RpgDefender *RpgDefender::createDefender(const Rpg::DefenderObject &defender, Rp
 			break;
 	}
 
+
+
 	if (!common.isEmpty())
 		return gameItem->createObject<RpgDefenderCommon>(RpgLogicObjectMapper::toObjectId(defender.idTag),
 														 scene,
 														 common, gameItem, defender, baseImage);
+	else if (!spriteSource.isEmpty()) {
+		RpgDefenderCommon *c = gameItem->createObject<RpgDefenderCommon>(RpgLogicObjectMapper::toObjectId(defender.idTag),
+																		 scene,
+																		 gameItem, defender,
+																		 spriteSource, spriteList, animations);
+		if (!spriteList.sprites.isEmpty()) {
+			c->visualItem()->setSize(QSizeF(spriteList.sprites.first().width, spriteList.sprites.first().height));
+		}
+
+		if (height > 0 && c->m_markerItem)
+			c->m_markerItem->setProperty("entityHeight", height);
+
+		c->setBodyOffset(offset);
+		return c;
+	}
 
 	return nullptr;
 }
@@ -145,12 +224,12 @@ void RpgDefender::updateVisibility()
 	}
 
 	if (m_visibleToAll || m_team == m_rpgGame->controlledPlayer()->team())
-		m_visual.setState(isAlive() ? (m_hasTarget ? StateActive : StateNormal) : StateDestroyed);
+		setState(isAlive() ? (m_hasTarget ? StateActive : StateNormal) : StateDestroyed);
 	else
-		m_visual.setState(StateHidden);
+		setState(StateHidden);
 
-	if (TiledVisualItem *item = m_visual.imageItem())
-		item->setVisible(m_visual.state() != StateHidden);
+	if (m_visualItem)
+		m_visualItem->setVisible(m_visual.state() != StateHidden);
 
 	if (m_markerItem)
 		m_markerItem->setVisible(m_visual.state() != StateHidden && m_marked && isAlive());
@@ -373,8 +452,6 @@ bool RpgDefender::loadFromCommonMap(const QString &name, const QHash<State, QStr
 		m_visual.addLayer(StateNormal, layerActive);
 
 
-
-
 	addMarkerItem();
 
 	updateColor();
@@ -445,15 +522,94 @@ RpgDefenderCommon::RpgDefenderCommon(const QString &name, RpgGameItem *gameItem,
 
 
 
+RpgDefenderCommon::RpgDefenderCommon(RpgGameItem *gameItem, const Rpg::DefenderObject &config,
+									 const QString &spriteSource, const TiledObjectSpriteList &spriteList,
+									 const RpgControlCommon::SpriteAnimations &animations)
+	: RpgDefender(gameItem, config)
+	, m_spriteSource(spriteSource)
+	, m_spriteList(spriteList)
+	, m_animations(animations)
+{
+
+}
+
+
+
 /**
  * @brief RpgDefenderCommon::initialize
  */
 
 void RpgDefenderCommon::initialize()
 {
-	if (!loadFromCommonMap(m_name, m_baseImageHash)) {
-		LOG_CERROR("game") << "Common defender load failed" << m_name;
+	if (!m_name.isEmpty()) {
+		if (!loadFromCommonMap(m_name, m_baseImageHash)) {
+			LOG_CERROR("game") << "Common defender load failed" << m_name;
+		}
+	} else {
+		m_scene = scene();
+
+		Q_ASSERT(m_scene);
+
+		createVisual();
+		appendSprite(m_spriteSource, m_spriteList);
+
+		addMarkerItem();
+
+		updateColor();
+
+		if (!m_spriteList.sprites.isEmpty())
+			jumpToSprite(m_spriteList.sprites.first().name.toLatin1());
 	}
 
 	onAlive();
+}
+
+
+
+/**
+ * @brief RpgDefenderCommon::stateChange
+ * @param from
+ * @param to
+ */
+
+void RpgDefenderCommon::stateChange(const State &from, const State &to)
+{
+	if (m_spriteSource.isEmpty())
+		return;
+
+	//bool hasAnim = false;
+
+	struct Anim {
+		State from;
+		State to;
+		RpgControlCommon::SpriteAnimation flag;
+		const char* sprite;
+	};
+
+	static const std::vector<Anim> animations = {
+		{ StateNormal, StateActive, RpgControlCommon::AnimationNormalToActive, "activating" },
+		{ StateActive, StateNormal, RpgControlCommon::AnimationActiveToNormal, "deactivating" },
+		{ StateNormal, StateDestroyed, RpgControlCommon::AnimationNormalToDestroyed, "destroying" },
+		{ StateDestroyed, StateNormal, RpgControlCommon::AnimationDestroyedToNormal, "reloading" },
+		{ StateActive, StateDestroyed, RpgControlCommon::AnimationActiveToDestroyed, "unloading" },
+		{ StateDestroyed, StateActive, RpgControlCommon::AnimationDestroyedToActive, "reactivating" },
+		{ StateHidden, StateActive, RpgControlCommon::AnimationNormalToActive, "activating" },
+	};
+
+	for (const Anim &a : animations) {
+		if (from == a.from && to == a.to && m_animations.testFlag(a.flag)) {
+			//hasAnim = true;
+			jumpToSprite(a.sprite);
+			break;
+		}
+	}
+
+	static const QHash<State, const char*> stateHash = {
+		{ StateActive, "active" },
+		{ StateDestroyed, "destroyed" },
+		{ StateNormal, "normal" }
+	};
+
+	if (const char *sprite = stateHash.value(to))
+		jumpToSpriteLater(sprite);
 }

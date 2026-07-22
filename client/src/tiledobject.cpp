@@ -906,8 +906,8 @@ void TiledObject::jumpToSprite(const char *sprite, const Direction &direction) c
 		return;
 	}
 
-	/*if (m_spriteHandler->currentSprite() != sprite || m_spriteHandler->currentDirection() != direction)
-		LOG_CTRACE("scene") << "[SPRITE]" << this << sprite << direction;*/
+	if (m_spriteHandler->currentSprite() != sprite || m_spriteHandler->currentDirection() != direction)
+		LOG_CTRACE("scene") << "[SPRITE]" << this << sprite << direction;
 
 	m_spriteHandler->jumpToSprite(sprite, direction, TiledSpriteHandler::JumpImmediate);
 }
@@ -2426,7 +2426,10 @@ std::optional<TextureSprite> TiledObject::toTextureSprite(const TiledObjectSprit
 		frame.sourceSize.w = sprite.width;
 		frame.sourceSize.h = sprite.height;
 
-		s.frames.append(frame);
+		if (sprite.reverse)
+			s.frames.prepend(frame);
+		else
+			s.frames.append(frame);
 
 		x += sprite.width;
 

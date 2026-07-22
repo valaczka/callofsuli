@@ -219,7 +219,7 @@ public:
 			const QVector<TextureSpriteMapper> &mapper,
 			const TextureSpriteDef &def);
 
-	static QStringList spriteNamesFromMapper(const QVector<TextureSpriteMapper> &mapper);
+	static QSet<QString> spriteNamesFromMapper(const QVector<TextureSpriteMapper> &mapper);
 	static QVector<TiledObject::Direction> directionsFromMapper(const QVector<TextureSpriteMapper> &mapper, const QString &name);
 
 	static bool appendToSpriteHandler(TiledSpriteHandler *handler,

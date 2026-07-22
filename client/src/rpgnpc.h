@@ -28,6 +28,7 @@
 #define RPGNPC_H
 
 #include "rpgentity.h"
+#include "tiledeffect.h"
 #include "tiledgamesfx.h"
 #include <QQmlEngine>
 
@@ -90,6 +91,8 @@ private:
 	TiledGameSfx m_sfxPain;
 	TiledGameSfx m_sfxDead;
 	TiledGameSfx m_sfxFootStep;
+
+	TiledEffectHealed m_effectHealed;
 
 	RpgNpcDefinition m_config;
 	RpgEntity *m_targetEntity = nullptr;

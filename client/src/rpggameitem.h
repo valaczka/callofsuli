@@ -57,7 +57,6 @@ struct ScatterPoint {
 
 
 
-
 /**
  * @brief The RpgGameItem class
  */
@@ -74,6 +73,7 @@ public:
 	RpgGameItem(QQuickItem *parent = nullptr);
 	virtual ~RpgGameItem();
 
+	typedef QVector<QPair<TiledObject::Direction, QVector<TiledObject::Direction> > > ProxyDirections;
 
 	enum Fixture {
 		FixtureInvalid			= 0,
@@ -111,7 +111,8 @@ public:
 
 	bool load(const RpgGameDefinition &def);
 
-	static QRect loadTextureSprites(TiledSpriteHandler *handler, const QString &path);
+	static const ProxyDirections &defaultProxyDirections();
+	static QRect loadTextureSprites(TiledSpriteHandler *handler, const QString &path, const ProxyDirections &proxy = defaultProxyDirections());
 	static bool loadTextureSprites(TiledSpriteHandler *handler, const QVector<TextureSpriteMapper> &mapper,
 									const QString &path);
 	static const QVector<TiledGame::TextureSpriteMapper> &baseSpriteMapper();

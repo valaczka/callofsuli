@@ -58,8 +58,12 @@ public:
 	Q_ENUM(StateCommon);
 
 	static RpgControl* createControl(const Rpg::Control &config, RpgGameItem *gameItem, TiledScene *scene);
+	virtual void initControl() {}
+	virtual bool canTargeting() const { return true; }
 
 	//virtual void initialize() override;
+
+	virtual void setMarked(const bool &marked = true) override;
 
 	const Rpg::Control &config() const;
 
@@ -67,8 +71,10 @@ public:
 	void setIsAlive(bool newIsAlive);
 
 signals:
-
 	void isAliveChanged();
+
+protected:
+	virtual void loadCurrentState(const RpgStream::ControlState &state) { Q_UNUSED(state); }
 
 protected:
 	const Rpg::Control m_config;
@@ -101,12 +107,6 @@ public:
 
 	virtual void updateBody(TiledObject *) override {};
 	virtual bool beforeWorldStep(const qint64 &tick, entt::entity &entity) override;
-
-	virtual bool beforeWorldStepControl(const RpgStream::ControlState &state, entt::entity &entity) {
-		Q_UNUSED(state);
-		Q_UNUSED(entity);
-		return true;
-	};
 
 protected:
 	QPointer<RpgControl> m_control;
@@ -142,10 +142,17 @@ public:
 		m_visual.clear();
 	}
 
+	const T &state() const { return m_visual.state(); }
+	void setState(const T &state) {
+		stateChange(m_visual.state(), state);
+		m_visual.setState(state);
+	}
+
 
 protected:
 	virtual QHash<QString, T> stateHash() const = 0;
 	virtual QHash<T, QString> baseImageHash() const = 0;
+	virtual void stateChange(const T &from, const T &to) { Q_UNUSED(from); Q_UNUSED(to); }
 
 	const T m_stateDefault;
 
@@ -239,68 +246,60 @@ class RpgControlCommon : public RpgControl, public RpgControlCommonIface<RpgCont
 	QML_ELEMENT
 
 public:
+	enum SpriteAnimation {
+		AnimationNone					= 0,
+		AnimationNormalToActive			= 1,
+		AnimationActiveToNormal			= 1 << 1,
+		AnimationNormalToDestroyed		= 1 << 2,
+		AnimationDestroyedToNormal		= 1 << 3,
+		AnimationActiveToDestroyed		= 1 << 4,
+		AnimationDestroyedToActive		= 1 << 5,
+	};
+
+	Q_ENUM(SpriteAnimation);
+	Q_DECLARE_FLAGS(SpriteAnimations, SpriteAnimation)
+
 	RpgControlCommon(const QString &name, RpgGameItem *gameItem, const Rpg::Control &config,
 					 const QHash<RpgControl::StateCommon, QString> &baseImageHash = {},
-					 const QString &displayName = {})
-		: RpgControl(gameItem, config)
-		, RpgControlCommonIface(name, config, StateNormal)
-		, m_baseImageHash(baseImageHash)
-	{
-		if (!displayName.isEmpty())
-			setDisplayName(displayName);
+					 const QString &displayName = {});
 
-		connect(this, &RpgControlCommon::isAliveChanged, this, [this]() {
-			m_visual.setState(m_isAlive ? StateNormal : StateDestroyed);
-			if (m_markerItem)
-				m_markerItem->setVisible(m_isAlive);
-		});
-	}
 
-	virtual void initialize() override {
-		m_scene = scene();
+	RpgControlCommon(RpgGameItem *gameItem, const Rpg::Control &config,
+					 const QString &spriteSource, const TiledObjectSpriteList &spriteList,
+					 const SpriteAnimations &animations = AnimationNone,
+					 const QString &displayName = {});
 
-		Q_ASSERT(m_scene);
+	RpgControlCommon(RpgGameItem *gameItem, const Rpg::Control &config,
+					 const QString &texturePath, const RpgGameItem::ProxyDirections &proxy = RpgGameItem::defaultProxyDirections(),
+					 const SpriteAnimations &animations = AnimationNone,
+					 const QString &displayName = {});
 
-		TiledVisualItem* item = loadFromCommonMap(m_rpgGame, m_scene, &m_layerItems, m_name, stateHash(), baseImageHash());
+	virtual void initialize() override;
+	virtual void initControl() override;
+	virtual void setMarked(const bool &marked = true) override;
+	virtual bool canTargeting() const override;
 
-		if (!item) {
-			LOG_CERROR("game") << "Common control load failed" << m_name;
-			return;
-		}
+	void resetMarkerDisplay(const QString &displayName);
 
-		m_visualItem = item;
-
-		resetMarkerDisplay(m_displayName);
-	}
-
-	void resetMarkerDisplay(const QString &displayName) {
-		if (displayName.isEmpty())
-			return;
-
-		if (!m_markerItem)
-			m_markerItem = createMarkerItem();
-
-		setDisplayName(displayName);
-	}
+	const SpriteAnimations &animations() const;
+	void setAnimations(const SpriteAnimations &newAnimations);
 
 protected:
-	virtual QHash<QString, RpgControl::StateCommon> stateHash() const override {
-		static const QHash<QString, RpgControl::StateCommon> hash = {
-			{ "active", StateActive },
-			{ "destroyed", StateDestroyed },
-			{ "normal", StateNormal }
-		};
-
-		return hash;
-	}
-
+	virtual QHash<QString, RpgControl::StateCommon> stateHash() const override;
 	virtual QHash<RpgControlCommon::StateCommon, QString> baseImageHash() const override { return m_baseImageHash; }
+	virtual void stateChange(const RpgControlCommon::StateCommon &from, const RpgControlCommon::StateCommon &to) override;
+	virtual void loadCurrentState(const RpgStream::ControlState &state) override;
 
 	const QHash<RpgControl::StateCommon, QString> m_baseImageHash;
 
+	const std::optional<RpgGameItem::ProxyDirections> m_proxy;
+	const QString m_spriteSource;
+	const TiledObjectSpriteList m_spriteList;
+
+	SpriteAnimations m_animations = AnimationNone;
 };
 
-
+Q_DECLARE_OPERATORS_FOR_FLAGS(RpgControlCommon::SpriteAnimations)
 
 
 

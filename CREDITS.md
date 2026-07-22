@@ -105,6 +105,9 @@
 - Teleporter circle - (c) 2012 Clint Bellanger (https://opengameart.org/content/teleporter-circle)
 - Teleporter effect - (c) 2015 rubberduck (https://opengameart.org/content/teleporter-effect)
 - Medieval Shield - (c) Artem Mykhailov (https://skfb.ly/6SQuN)
+- turbine-01 - (c) Karan.Dhindsa (https://skfb.ly/6Vn7Q)
+- Scrap metal (lowpoly) - (c) Zuckergelee (https://skfb.ly/ovXPw) 
+
 
 **Music & SFX**
 

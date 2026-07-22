@@ -170,6 +170,28 @@ bool RpgGameItem::load(const RpgGameDefinition &def)
 
 
 /**
+ * @brief RpgGameItem::defaultProxyDirections
+ * @return
+ */
+
+const RpgGameItem::ProxyDirections &RpgGameItem::defaultProxyDirections()
+{
+	static const ProxyDirections directions = {
+		{ TiledObject::SouthWest,	{ TiledObject::SouthWest } },
+		{ TiledObject::South,		{ TiledObject::South } },
+		{ TiledObject::SouthEast,	{ TiledObject::SouthEast } },
+		{ TiledObject::East,		{ TiledObject::East } },
+		{ TiledObject::NorthEast,	{ TiledObject::NorthEast } },
+		{ TiledObject::North,		{ TiledObject::North } },
+		{ TiledObject::NorthWest,	{ TiledObject::NorthWest } },
+		{ TiledObject::West,		{ TiledObject::West } },
+	};
+
+	return directions;
+}
+
+
+/**
  * @brief RpgGameItem::onMouseClick
  * @param x
  * @param y
@@ -1003,22 +1025,8 @@ void RpgGameItem::joystickStateEvent(const Joystick &joystick, const JoystickSta
  * @return
  */
 
-QRect RpgGameItem::loadTextureSprites(TiledSpriteHandler *handler, const QString &path)
+QRect RpgGameItem::loadTextureSprites(TiledSpriteHandler *handler, const QString &path, const ProxyDirections &proxy)
 {
-	// 								  QHash<QString, RpgArmory::LayerData> *layerPtr
-
-	static const QVector<TiledObject::Direction> directions = {
-		TiledObject::SouthWest,
-		TiledObject::South,
-		TiledObject::SouthEast,
-		TiledObject::East,
-		TiledObject::NorthEast,
-		TiledObject::North,
-		TiledObject::NorthWest,
-		TiledObject::West,
-	};
-
-
 	QByteArray input = Utils::fileContentRead(path+QStringLiteral("input.txt"));
 
 	if (input.isEmpty())
@@ -1066,10 +1074,10 @@ QRect RpgGameItem::loadTextureSprites(TiledSpriteHandler *handler, const QString
 			const int loops = field.size() > 3 ? field.at(3).toInt() : 0;
 			const bool baked = field.size() > 4 ? field.at(4).toInt() : false;
 
-			for (const auto &d : directions) {
+			for (const auto &p : proxy) {
 				TextureSpriteMapper dst;
 				dst.name = sprite;
-				dst.direction = d;
+				dst.direction = p.first;
 				dst.width = measure.width();
 				dst.height = measure.height();
 				dst.duration = duration;
@@ -1084,57 +1092,6 @@ QRect RpgGameItem::loadTextureSprites(TiledSpriteHandler *handler, const QString
 		++n;
 	}
 
-	/*
-
-	QHash<QString, RpgArmory::LayerData> RpgGamePrivate::readLayerData(const QString &file)
-	{
-		QHash<QString, RpgArmory::LayerData> hash;
-
-		hash.insert(QStringLiteral("default"), RpgArmory::LayerData(RpgGameData::Weapon::WeaponInvalid, 0, RpgArmory::ShieldNeutral));
-
-		/// layer.txt format
-		///
-		/// <sprite-prefix> \t [<weapon-str>] \t [<shield-layer-str>] \t [<baked>]
-
-		QByteArray layerData = Utils::fileContentRead(file);
-		QTextStream layerBuffer(&layerData, QIODevice::ReadOnly);
-
-		QString line;
-
-		while (layerBuffer.readLineInto(&line)) {
-			const QStringList field = line.split('\t');
-
-			if (field.isEmpty())
-				continue;
-
-
-			RpgArmory::LayerData data;
-
-			if (field.size() > 4)
-				data.baked = field.at(4).toInt();
-
-			if (field.size() > 3)
-				data.shield = QVariant::fromValue(field.at(3)).value<RpgArmory::ShieldLayer>();
-
-			if (field.size() > 2)
-				data.subType = field.at(2).toInt();
-
-			if (field.size() > 1)
-				data.weapon = RpgArmory::weaponHash().key(field.at(1), RpgGameData::Weapon::WeaponInvalid);
-
-			hash.insert(field.at(0), data);
-		}
-
-		return hash;
-	}
-
-
-
-	QHash<QString, RpgArmory::LayerData> layerData = RpgGamePrivate::readLayerData(path+QStringLiteral("layers.txt"));
-*/
-	//for (const auto &[layer, data] : layerData.asKeyValueRange()) {
-
-
 	static const QString layer = "default";
 
 	QString basePath = path;
@@ -1143,49 +1100,37 @@ QRect RpgGameItem::loadTextureSprites(TiledSpriteHandler *handler, const QString
 	else
 		basePath += layer + QStringLiteral("-texture");
 
-	/*if (data.baked)
-			LOG_CDEBUG("scene") << "Load texture from" << qPrintable(basePath) << "to baked layer" << qPrintable(layer);
-		else*/
 	LOG_CDEBUG("scene") << "Load texture from" << qPrintable(basePath) << "to layer" << qPrintable(layer);
 
 	const auto &ptr = Utils::fileToJsonObject(basePath+QStringLiteral(".json"));
 
 	if (!ptr) {
 		LOG_CERROR("scene") << "Missing" << qPrintable(basePath) << "JSON";
-		//continue;
 		return QRect();
 	}
 
 	TextureSpriteDef def;
 	def.fromJson(*ptr);
 
-	QVector<RpgGameItem::TextureSpriteMapper> filteredMapper;
+	//const QVector<TiledGame::TextureSpriteDirection> &sprites = spritesFromMapper(mapper, def);
 
-	filteredMapper.reserve(mapper.size());
+	QVector<TextureSpriteDirection> sprites;
 
-	const QString bakedName = layer+QStringLiteral("-");
+	for (const QString &s : spriteNamesFromMapper(mapper)) {
+		for (const auto &p : proxy) {
+			const TextureSprite sp = spriteFromMapper(mapper, def, s, p.first);
 
-	for (const RpgGameItem::TextureSpriteMapper &m : mapper) {
-		/*if (data.baked) {
-				if (m.baked && m.name.startsWith(bakedName)) {
-					m.name.remove(0, bakedName.size());
-					filteredMapper.append(m);
-				}
-			} else {
-				if (!m.baked)*/
-		filteredMapper.append(m);
-		//}
+			for (const TiledObject::Direction &d : p.second) {
+				TextureSpriteDirection data;
+				data.sprite = sp;
+				data.direction = d;
+				sprites.append(data);
+			}
+		}
 	}
-
-	const QVector<TiledGame::TextureSpriteDirection> &sprites = spritesFromMapper(filteredMapper, def);
 
 	if (!appendToSpriteHandler(handler, sprites, basePath+QStringLiteral(".png"), layer))
 		return QRect();
-	/*}
-
-	if (layerPtr)
-		layerPtr->swap(layerData);
-		 */
 
 	return measure;
 }
@@ -1225,7 +1170,7 @@ bool RpgGameItem::loadTextureSprites(TiledSpriteHandler *handler, const QVector<
 
 	// Add hurt virtual sprites
 
-	if (const QStringList list = spriteNamesFromMapper(mapper);
+	if (const QSet<QString> &list = spriteNamesFromMapper(mapper);
 			list.contains(QStringLiteral("death")) && !list.contains(QStringLiteral("hurt"))) {
 
 		const QVector<TiledObject::Direction> directions = directionsFromMapper(mapper, QStringLiteral("death"));

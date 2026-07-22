@@ -592,7 +592,7 @@ bool RpgMotorPlayerControlled::checkControl(TiledObjectBody *control) const
 	} else if (RpgDefender *p = dynamic_cast<RpgDefender*>(control)) {
 		return p->team() != m_player->team() && p->hp() > 0;
 	} else if (RpgControl *p = dynamic_cast<RpgControl*>(control)) {
-		return p->isAlive();
+		return p->isAlive() && p->canTargeting();
 	}
 
 	return false;
@@ -1247,6 +1247,21 @@ void RpgMotorPlayerControlled::useCurrentControl()
 
 		return;
 	}
+
+
+	if (RpgControl *p = dynamic_cast<RpgControl*>(m_player->targetControl())) {
+		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventUseControl);
+		e.setSeq(m_player->nextEventId());
+		e.setTarget(RpgLogicObjectMapper::getId(p->objectId()));
+
+		d->m_lockedEvent = e;
+		d->m_waitForLock = tick + 5*60;			// Wait for lockId from server
+
+		d->m_eventList.emplace_back(std::move(e));
+
+		return;
+	}
+
 
 
 	if (dynamic_cast<RpgDefenderPoint*>(m_player->targetControl()))

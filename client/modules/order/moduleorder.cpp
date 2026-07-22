@@ -214,6 +214,10 @@ QVariantList ModuleOrder::generateAll(const QVariantMap &data, ModuleInterface *
 		helper.reset(new SeedHelper(seed, SEED_BLOCK_LEFT));
 	}
 
+	std::random_device rd;
+	std::mt19937 g(rd());
+	std::bernoulli_distribution dist(0.5);
+
 
 	for (int i=0; i<genCount; ++i) {
 
@@ -235,7 +239,7 @@ QVariantList ModuleOrder::generateAll(const QVariantMap &data, ModuleInterface *
 		if (mode == QStringLiteral("descending"))
 			isDesc = true;
 		else if (mode == QStringLiteral("random"))
-			isDesc = (QRandomGenerator::global()->generate() % 2 == 1);
+			isDesc = dist(g);
 
 		QVariantMap m;
 

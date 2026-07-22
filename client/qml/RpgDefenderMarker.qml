@@ -9,7 +9,7 @@ TiledPlayerMarker {
 
 	property RpgDefender defender: target
 
-	entityHeight: 75
+	//entityHeight: 75
 
 	Connections {
 		target: defender

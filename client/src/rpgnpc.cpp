@@ -40,6 +40,7 @@ RpgNpc::RpgNpc(RpgGameItem *gameItem, const cpVect &center)
 	: RpgEntity(gameItem, center, 25., CP_BODY_TYPE_DYNAMIC)
 	, m_sfxPain(this)
 	, m_sfxFootStep(this)
+	, m_effectHealed(this)
 {
 	m_defaultMotor = std::make_unique<RpgMotorNpc>(this);
 
@@ -49,7 +50,7 @@ RpgNpc::RpgNpc(RpgGameItem *gameItem, const cpVect &center)
 	addTargetCircle(50, TiledObjectBody::getFilter(RpgGameItem::FixtureNpcTarget,
 												   RpgGameItem::FixtureAll));
 
-	//connect(this, &RpgPlayer::healed, this, [this](){ m_effectHealed.play(); });
+	connect(this, &RpgNpc::healed, this, [this](){ m_effectHealed.play(); });
 };
 
 

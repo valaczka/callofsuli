@@ -28,6 +28,7 @@
 #define TILEDEFFECT_H
 
 #include "tiledobject.h"
+#include "tiledgame.h"
 
 
 
@@ -47,6 +48,8 @@ public:
 	virtual bool active() const;
 
 	void clear();
+
+	static QVector<TiledGame::TextureSpriteMapper> fromSprite(const TiledObjectSprite &sprite, const QString &name);
 
 protected:
 	void playSprite(const QString &path, const TiledObjectSprite &sprite);

@@ -211,6 +211,10 @@ QVariantList ModuleTruefalse::generateBinding(const QVariantMap &data, const QVa
 	const QVariantList &list = storageData.value(QStringLiteral("bindings")).toList();
 	const QString &question = data.value(QStringLiteral("question")).toString();
 
+	std::random_device rd;
+	std::mt19937 g(rd());
+	std::bernoulli_distribution dist(0.5);
+
 	if (mode == QStringLiteral("left") || mode == QStringLiteral("right")) {
 		for (int i=0; i<list.size(); ++i) {
 			const QVariantMap &m = list.at(i).toMap();
@@ -259,7 +263,7 @@ QVariantList ModuleTruefalse::generateBinding(const QVariantMap &data, const QVa
 			if (left.isEmpty() || right.isEmpty())
 				continue;
 
-			bool isCorrect = (QRandomGenerator::global()->generate() % 2 == 1);
+			bool isCorrect = dist(g);
 
 			const QString &questionPart = isBindToRight ? right : left;
 			QString answerPart;
@@ -332,6 +336,10 @@ QVariantList ModuleTruefalse::generateBlock(const QVariantMap &data, const QVari
 
 	SeedHelper helper(seed, SEED_BLOCK_LEFT);
 
+	std::random_device rd;
+	std::mt19937 g(rd());
+	std::bernoulli_distribution dist(0.5);
+
 	QVector<QString> bNames;
 	QVector<QStringList> bItems;
 	QVector<int> realIndices;
@@ -366,7 +374,7 @@ QVariantList ModuleTruefalse::generateBlock(const QVariantMap &data, const QVari
 			if (s.isEmpty())
 				continue;
 
-			bool isCorrect = (QRandomGenerator::global()->generate() % 2 == 1);
+			bool isCorrect = dist(g);
 
 			QString qName;
 
@@ -421,6 +429,10 @@ QVariantList ModuleTruefalse::generateMergeBinding(const QVariantMap &data, cons
 	const QString &mode = data.value(QStringLiteral("mode")).toString();
 
 	SeedDuplexHelper helper(seed, SEED_BINDING_LEFT, SEED_BINDING_RIGHT);
+
+	std::random_device rd;
+	std::mt19937 g(rd());
+	std::bernoulli_distribution dist(0.5);
 
 	////const QVariantList &list = storageData.value(QStringLiteral("bindings")).toList();
 	const QString &question = data.value(QStringLiteral("question")).toString();
@@ -498,7 +510,7 @@ QVariantList ModuleTruefalse::generateMergeBinding(const QVariantMap &data, cons
 			if (d.left.isEmpty() || d.right.isEmpty())
 				continue;
 
-			bool isCorrect = (QRandomGenerator::global()->generate() % 2 == 1);
+			bool isCorrect = dist(g);
 
 			const QString &questionPart = isBindToRight ? d.right : d.left;
 			QString answerPart;

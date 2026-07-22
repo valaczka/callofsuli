@@ -630,6 +630,7 @@ EngineStream &EventPlayer::operator<<(EngineStream &stream)
 			m_type == EventAttackPlayer ||
 			m_type == EventAttackDefender ||
 			m_type == EventUseUtility ||
+			m_type == EventUseControl ||
 			m_type == EventFailed ||
 			m_type == EventRespawn
 			) {
@@ -673,6 +674,7 @@ EngineStream &EventPlayer::operator>>(EngineStream &stream) const
 			m_type == EventAttackPlayer ||
 			m_type == EventAttackDefender ||
 			m_type == EventUseUtility ||
+			m_type == EventUseControl ||
 			m_type == EventFailed ||
 			m_type == EventRespawn
 			) {
@@ -1598,8 +1600,10 @@ EngineStream &EventNpc::operator<<(EngineStream &stream)
 	readTagId(stream);
 	readType(stream);
 
-	if (m_type == EventAttack)
+	if (m_type == EventAttack) {
 		readTargetId(stream);
+		readOperation(stream);
+	}
 
 	return stream;
 }
@@ -1618,8 +1622,10 @@ EngineStream &EventNpc::operator>>(EngineStream &stream) const
 	writeTagId(stream);
 	writeType(stream);
 
-	if (m_type == EventAttack)
+	if (m_type == EventAttack) {
 		writeTargetId(stream);
+		writeOperation(stream);
+	}
 
 	return stream;
 }
@@ -1639,6 +1645,7 @@ EngineStream &ControlData::operator<<(EngineStream &stream)
 	readType(stream);
 	readPosX(stream);
 	readPosY(stream);
+	readData(stream);
 
 	return stream;
 }
@@ -1657,6 +1664,7 @@ EngineStream &ControlData::operator>>(EngineStream &stream) const
 	writeType(stream);
 	writePosX(stream);
 	writePosY(stream);
+	writeData(stream);
 
 	return stream;
 }
@@ -1674,6 +1682,7 @@ EngineStream &ControlState::operator<<(EngineStream &stream)
 	readTick(stream);
 	readType(stream);
 	readIsAlive(stream);
+	readState(stream);
 
 	return stream;
 }
@@ -1690,6 +1699,7 @@ EngineStream &ControlState::operator>>(EngineStream &stream) const
 	writeTick(stream);
 	writeType(stream);
 	writeIsAlive(stream);
+	writeState(stream);
 
 	return stream;
 }
