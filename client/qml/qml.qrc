@@ -253,5 +253,8 @@
         <file>RpgChangerButton.qml</file>
         <file>RpgChangerComponent.qml</file>
         <file>RpgDialog.qml</file>
+        <file>RpgFinishDialog.qml</file>
+        <file>RpgQuestSelectDialog.qml</file>
+        <file>RpgChangerTumbler.qml</file>
     </qresource>
 </RCC>

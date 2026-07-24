@@ -402,5 +402,6 @@ HEADERS += \
 	userloglist.h
 
 DISTFILES += \
+	../qml/RpgChangerTumbler.qml \
 	translation.pri
 

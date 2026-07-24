@@ -933,6 +933,7 @@ typedef BaseStatePull<RpgStream::ControlState> ControlStateOutput;
 typedef std::vector<Chest> ChestList;
 
 typedef std::vector<RpgStream::Heat> HeatList;
+typedef std::vector<RpgStream::Quest> QuestList;
 
 
 
@@ -1233,6 +1234,7 @@ public:
 	bool initialize();
 	bool startStageSelect();
 	bool increaseHeat();
+	void selectQuest(const RpgStream::QuestSelect &data);
 
 	bool render(const bool &first = false);
 	void renderStageSelect();
@@ -1291,6 +1293,12 @@ protected:
 	entt::entity npcAdd(const RpgStream::NpcData &data, entt::entity owner, const cpVect &pos = cpvzero, quint32 *tagIdPtr = nullptr);
 
 	virtual void onNpcCreated(entt::entity entity, const quint32 &idTag, Player *player);
+	virtual bool onControlStateChange(entt::entity entity, Control *control, const bool &isAlive, const quint32 &state);
+
+	virtual RpgStream::Result getResult();
+	virtual QuestList getQuestList() const;
+
+	RpgStream::Result getResultByTeam(const RpgStream::Team &team);
 
 
 private:
@@ -1491,6 +1499,8 @@ public:
 
 
 
+
+
 // Change control state
 
 class EventControlStateChange : public RpgStream::BaseTickState
@@ -1501,6 +1511,7 @@ public:
 	entt::entity control = entt::null;
 
 	bool isAlive = true;
+	quint32 state = 0;
 
 };
 

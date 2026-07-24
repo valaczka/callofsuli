@@ -119,7 +119,7 @@ Page {
 		RpgGameItem {
 			game: root.game
 
-			//onCloseRequest: Client.stackPop(root)
+			onCloseRequest: Client.stackPop(root)
 		}
 	}
 

@@ -628,7 +628,7 @@ void RpgGameItem::onStageChanged(const RpgStream::GameConfig::Stage &stage)
 		m_game->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/final_round.mp3"), Sound::VoiceoverChannel);
 		emit stageChanged();					// mark time label
 	} else if (stage == RpgStream::GameConfig::StageFinished) {
-		m_game->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"), Sound::VoiceoverChannel);
+		///m_game->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"), Sound::VoiceoverChannel);
 		emit stageChanged();					// mark time label
 	}
 

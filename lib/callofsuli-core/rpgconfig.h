@@ -32,10 +32,10 @@
 
 /// Config ----------------------------------------------
 
-#define	CFG_GAME_DURATION				3*60*60					// duration in tick
+#define	CFG_GAME_DURATION				1*60*60					// duration in tick
 #define CFG_GAME_STAGE_MAIN				10*60 //60*60					// start stage main in tick
 #define CFG_GAME_STAGE_LAST				CFG_GAME_DURATION-30*60	// start last stage in tick
-#define CFG_GAME_STAGE_SELECT			1250					// stage select max. length in msec
+#define CFG_GAME_STAGE_SELECT			15000					// stage select max. length in msec
 
 #define	CFG_EMITTER_CAPACITY_STAGE_WU	0.75					// mp emitter capacity ratio in stage Warming Up
 #define	CFG_EMITTER_DELAY_STAGE_WU		5*60					// mp emitter delay in tick in stage Warming Up
@@ -52,7 +52,9 @@
 #define CFG_PENALTY_AUTO_UNLOCK			300						// player penalty after auto unlock (no answer)
 #define CFG_PENALTY_CHEST				300						// player penalty after failed chest opening
 
+#define CFG_TOWER_COUNT					3						// used towers
 #define CFG_TOWER_LOCK					60*30					// tower lock after activation in tick
+#define CFG_TOWER_LOCK_STAGE_L			0						// tower lock after activation in tick in stage Last
 #define CFG_TOWER_INACTIVE				80						// tower inactivate below percent
 
 #define CFG_DEFENDER_DESTROY			300						// tower defender destroy after inactivation in tick
@@ -63,9 +65,16 @@
 #define CFG_POINT						3						// team points / tower / sec
 #define CFG_POINT_STAGE_L				6						// team points / tower / sec in stage Last
 
+#define CFG_MAX_POINT_FACTOR			1.0						// max. point calculation factor for multiplayer heats
+
 #define CFG_MP_CHANGE_BULLET			1//8					// mp cost of bullet change
 
 #define CFG_QUESTION_MAX_DURATION		10*60	// 30*60		// question's max. duration in tick
+
+#define CFG_RESULT_WEIGHT_QUESTION		0.6						// weight of question ratio
+#define CFG_RESULT_WEIGHT_PTS			0.3						// weight of points
+#define CFG_RESULT_WEIGHT_STREAK		0.1						// weight of question's streak
+#define CFG_RESULT_HEAT_RATIO			0.5						// heat ratio [ factor *= (1+ratio*heat) ]
 
 /// -----------------------------------------------------
 

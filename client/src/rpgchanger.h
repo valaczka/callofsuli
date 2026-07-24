@@ -88,6 +88,9 @@ public:
 	bool replaceEnabled() const;
 	void setReplaceEnabled(bool newReplaceEnabled);
 
+	static const QHash<RpgStream::BaseDefenderObject::Type, QVariantMap> &dataDefenders();
+	static const QHash<RpgStream::PlayerConfig::Utility, QVariantMap> &dataUtilities();
+
 signals:
 	void playerReloaded();
 
@@ -111,7 +114,7 @@ private:
 	QVariantList m_availableDefenders;
 	QVariantList m_availableUtilites;
 
-	bool m_replaceEnabled = false;
+	bool m_replaceEnabled = true;
 
 	static const QHash<RpgStream::BaseDefenderObject::Type, QVariantMap> m_dataDefenders;
 	static const QHash<RpgStream::PlayerConfig::Utility, QVariantMap> m_dataUtilities;

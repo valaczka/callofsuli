@@ -50,6 +50,9 @@ protected:
 	virtual void eventRealized(entt::entity entity) override;
 	virtual void onNpcCreated(entt::entity entity, const quint32 &idTag, Rpg::Player *player) override;
 	virtual std::vector<Rpg::Chest> initializeChests() override;
+	virtual void checkState(const RpgStream::GameState &state) override;
+	virtual Rpg::QuestList getQuestList() const override;
+	virtual RpgStream::Result getResult() override;
 
 	bool onStageChanged(const RpgStream::GameConfig::Stage &stage);
 
@@ -57,6 +60,7 @@ private:
 	Logger *_logger() const;
 
 	RpgEngine *const m_engine;
+	std::map<int, int> m_heatSteps;
 };
 
 #endif // RPGLOGICSERVER_H

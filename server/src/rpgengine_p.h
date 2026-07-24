@@ -99,6 +99,9 @@ private:
 	void checkCompleted();
 	void onAllCompleted();
 
+	void sendQuestSelect();
+	void receiveQuestSelect(RpgEnginePrivate::RpgPeerData *player, RpgStream::EngineDataStream &&stream);
+
 	void receivePlayerData(RpgEnginePrivate::RpgPeerData *player, RpgStream::EngineDataStream &&stream);
 
 	void receiveWaitingData(RpgEnginePrivate::RpgPeerData *player, RpgStream::EngineDataStream &&stream);
@@ -107,6 +110,7 @@ private:
 	void receiveFull(RpgEnginePrivate::RpgPeerData *player, RpgStream::EngineDataStream &&stream);
 	void onDataReceived();
 	void sendFull();
+	void sendResult();
 	void addMapTagsToStream(RpgStream::Full &stream) const;
 
 	void checkPrepared();

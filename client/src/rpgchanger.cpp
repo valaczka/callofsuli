@@ -84,9 +84,6 @@ const QHash<RpgStream::BaseDefenderObject::Type, QVariantMap> RpgChanger::m_data
 RpgChanger::RpgChanger(QQuickItem *parent)
 	: QQuickItem(parent)
 {
-	LOG_CERROR("game") << "<<<<<<<<<<<<<<<<<< REMOVE";
-	setReplaceEnabled(true);
-	//////////////////////////
 }
 
 
@@ -398,6 +395,16 @@ void RpgChanger::reloadUtilities()
 	}
 
 	setAvailableUtilites(d);
+}
+
+const QHash<RpgStream::PlayerConfig::Utility, QVariantMap> &RpgChanger::dataUtilities()
+{
+	return m_dataUtilities;
+}
+
+const QHash<RpgStream::BaseDefenderObject::Type, QVariantMap> &RpgChanger::dataDefenders()
+{
+	return m_dataDefenders;
 }
 
 

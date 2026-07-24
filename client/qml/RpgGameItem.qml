@@ -159,44 +159,6 @@ FocusScope {
 			}
 		}
 
-		/*GameButton {
-			id: _questsButton
-			size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 40 : 30
-
-			anchors.verticalCenter: parent.verticalCenter
-
-			visible: !_multiplayer
-
-			color: "transparent"
-			border.color: fontImage.color
-			border.width: 2
-
-			fontImage.icon: Qaterial.Icons.crosshairsQuestion
-			fontImage.color: Qaterial.Colors.purple400
-			fontImageScale: 0.7
-
-			onClicked: showQuests()
-		}
-
-		GameButton {
-			id: _playersButton
-			size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 40 : 30
-
-			anchors.verticalCenter: parent.verticalCenter
-
-			visible: _multiplayer
-
-			color: "transparent"
-			border.color: fontImage.color
-			border.width: 2
-
-			fontImage.icon: Qaterial.Icons.accountMultiple
-			fontImage.color: Qaterial.Colors.purple400
-			fontImageScale: 0.7
-
-			onClicked: showQuests()
-		}*/
-
 		GameButton {
 			id: _mapButton
 			size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 40 : 30
@@ -361,129 +323,90 @@ FocusScope {
 
 		visible: _item.isContentReady
 
-		GameLabel {
-			id: _infoCurrencyTeam
-
+		Row {
 			anchors.right: parent.right
 
-			pixelSize: 16 * Qaterial.Style.pixelSizeRatio
+			spacing: 0
 
-			color: game ? game.colorTeam : Qaterial.Colors.white
-			iconLabel.icon.source: "qrc:/rpg/coin/coins.png"
-			iconLabel.icon.color: "transparent"
+			GameLabel {
+				id: _infoCurrencyTeam
 
-			value: game ? game.ptsTeam : 0
-		}
+				anchors.verticalCenter: parent.verticalCenter
 
-		GameLabel {
-			id: _infoCurrencyOpp
+				pixelSize: 16 * Qaterial.Style.pixelSizeRatio
 
-			anchors.right: parent.right
+				readonly property bool success: game && game.questPtsRq > 0 && game.ptsTeam >= game.questPtsRq
 
-			pixelSize: 16 * Qaterial.Style.pixelSizeRatio
+				color: success ? Qaterial.Colors.green400 :
+								 game ? game.colorTeam : Qaterial.Colors.white
 
-			color: game ? game.colorOpponent : Qaterial.Colors.white
-			iconLabel.icon.source: "qrc:/rpg/coin/coins.png"
-			iconLabel.icon.color: "transparent"
+				iconLabel.icon.source: "qrc:/rpg/coin/coins.png"
+				iconLabel.icon.color: "transparent"
 
-			value: game ? game.ptsOpponent : 0
-		}
+				value: game ? game.ptsTeam : 0
 
+				onSuccessChanged: marked = true
+			}
 
-		GameInfo {
-			id: _infoBullet
-			anchors.right: parent.right
-			color: Qaterial.Colors.red500
-			text: Math.floor(progressBar.value)
+			GameLabel {
+				id: _infoCurrencyOpp
 
-			progressBar.from: 0
-			progressBar.to: game && game.controlledPlayer ? game.controlledPlayer.maxBullet : 0
-			progressBar.value: bullet
-			iconLabel.icon.source: Qaterial.Icons.bullet
-			progressBar.width: Math.min(root.width*0.125, 50)
+				anchors.verticalCenter: parent.verticalCenter
 
-			//opacity: canShot ? 1.0 : 0.0
+				pixelSize: 16 * Qaterial.Style.pixelSizeRatio
 
-			visible: bullet > 0
+				color: game ? game.colorOpponent : Qaterial.Colors.white
+				//iconLabel.icon.source: "qrc:/rpg/coin/coins.png"
+				//iconLabel.icon.color: "transparent"
 
-			readonly property int bullet: game && game.controlledPlayer ?
-											  game.controlledPlayer.bullet :
-											  0
+				value: game ? game.ptsOpponent : 0
 
-			property int _oldBullet: -1
-
-
-			onBulletChanged: {
-				_infoBullet.marked = true
-
-				if (bullet == 0 && _oldBullet > 0)
-					_messageList.message(qsTr("Magazine empty"), Qaterial.Colors.red400)
-
-				_oldBullet = bullet
+				visible: _item.multiplayer
 			}
 		}
 
 
-		/*
-		GameLabel {
-			id: _labelXP
-			anchors.right: parent.right
-			color: "white"
-
-			pixelSize: 16 * Qaterial.Style.pixelSizeRatio
-
-			text: "%1 XP"
-
-			value: game ? game.xp : 0
-		}
-
-
-
 		GameInfo {
-			id: _infoCollection
+			id: _questQuestion
 			anchors.right: parent.right
-			color: Qaterial.Colors.orange700
-			iconLabel.icon.source: Qaterial.Icons.mapMarkerMultiple
-			text: Math.floor(progressBar.value)
 
-			visible: progressBar.to > 0
+			readonly property bool success: game && game.questQuestionRq > 0 && game.questQuestion >= game.questQuestionRq
+
+			color: success ? Qaterial.Colors.green400 :Qaterial.Colors.cyan400
+			iconLabel.icon.source: success ? Qaterial.Icons.checkCircle : Qaterial.Icons.headQuestionOutline
+
+			visible: game && game.controlledPlayer && _item.isContentReady
+
+			text: game ? game.questQuestion : ""
 
 			progressBar.from: 0
-			progressBar.to: _game && _game.controlledPlayer ? _game.controlledPlayer.collectionRq : 0
-			progressBar.value: collection
+			progressBar.to: game ? game.questQuestionRq : 0
+			progressBar.value: game ? game.questQuestion : 0
 			progressBar.width: Math.min(root.width*0.125, 50)
 
-			property int collection: _game && _game.controlledPlayer ? _game.controlledPlayer.collection : 0
-
-			onCollectionChanged: {
-				_infoCollection.marked = true
-			}
+			onSuccessChanged: marked = true
 		}
 
 		GameInfo {
-			id: _infoShield
+			id: _questStreak
 			anchors.right: parent.right
-			color: Qaterial.Colors.green500
-			text: Math.floor(progressBar.value)
+
+			readonly property bool success: game && game.questStreakRq > 0 && game.questStreak >= game.questStreakRq
+
+			color: success ? Qaterial.Colors.green400 :Qaterial.Colors.yellow600
+			iconLabel.icon.source: success ? Qaterial.Icons.checkCircle : Qaterial.Icons.tableRow
+
+			visible: game && game.controlledPlayer && _item.isContentReady
+
+			text: game ? game.questStreak : ""
+
 			progressBar.from: 0
-			progressBar.to: 0
-			progressBar.value: shield
-			iconLabel.icon.source: Qaterial.Icons.shield
+			progressBar.to: game ? game.questStreakRq : 0
+			progressBar.value: game ? game.questStreak : 0
 			progressBar.width: Math.min(root.width*0.125, 50)
 
-			visible: shield > 0
-
-			readonly property int shield: _game.controlledPlayer ? _game.controlledPlayer.shieldCount : 0
-
-			onShieldChanged: {
-				if (shield > progressBar.to)
-					progressBar.to = shield
-			}
+			onSuccessChanged: marked = true
 		}
-
-
-*/
-
 	}
 
 
@@ -510,8 +433,47 @@ FocusScope {
 		progressBar.from: 0
 		progressBar.to: game && game.controlledPlayer ? game.controlledPlayer.maxMp : 0
 		progressBar.value: game && game.controlledPlayer ? game.controlledPlayer.mp : 0
-		progressBar.width: Math.min(root.width*0.3, 85)
+		progressBar.width: Math.min(root.width*0.3, 60)
 	}
+
+
+	GameInfo {
+		id: _infoBullet
+
+		anchors.horizontalCenter: parent.horizontalCenter
+		anchors.top: _infoMP.bottom
+
+		color: Qaterial.Colors.orange500
+		text: Math.floor(progressBar.value)
+
+		progressBar.from: 0
+		progressBar.to: game && game.controlledPlayer ? game.controlledPlayer.maxBullet : 0
+		progressBar.value: bullet
+		iconLabel.icon.source: Qaterial.Icons.bullet
+		progressBar.width: Math.min(root.width*0.25, 50)
+
+		//opacity: canShot ? 1.0 : 0.0
+
+		visible: bullet > 0
+
+		readonly property int bullet: game && game.controlledPlayer ?
+										  game.controlledPlayer.bullet :
+										  0
+
+		property int _oldBullet: -1
+
+
+		onBulletChanged: {
+			_infoBullet.marked = true
+
+			if (bullet == 0 && _oldBullet > 0)
+				_messageList.message(qsTr("No bullet"), Qaterial.Colors.red400)
+
+			_oldBullet = bullet
+		}
+	}
+
+
 
 
 
@@ -577,9 +539,9 @@ FocusScope {
 
 		Material.accent: _gameQuestion.progressColor
 
-		/*Behavior on value {
+		Behavior on value {
 			NumberAnimation { duration: 100; easing.type: Easing.Linear }
-		}*/
+		}
 	}
 
 
@@ -807,17 +769,27 @@ FocusScope {
 
 
 
-	/*Connections {
+	Connections {
 		target: game
 
-		function onFinishDialogRequest(text, icon, success) {
-			_finishIcon = icon
-			_finishText = text
-			_finishSuccess = success
+		function onQuestSelectDataChanged() {
+			if (!game.questSelectData)
+				return
 
-			Qaterial.DialogManager.openFromComponent(_multiplayer ? _cmpUserDialog : _cmpFinishQuests)
+			_dialogLoader.sourceComponent = _questSelectDialog
 		}
-	}*/
+
+		function onQuestResultDataChanged() {
+			if (!game.questResultData)
+				return
+
+			_dialogLoader.sourceComponent = _finishDialog
+		}
+
+		function onQuestSelectCompleted() {
+			_dialogLoader.sourceComponent = undefined
+		}
+	}
 
 	function startGame() {
 		if (_item.isContentReady && _delayTimer._finished) {
@@ -832,86 +804,34 @@ FocusScope {
 	}
 
 
-	/*
+	Loader {
+		id: _dialogLoader
 
-	function showQuests() {
-		if (_multiplayer) {
-			_finishIcon = ""
-			_finishText = ""
-			_finishSuccess = false
-
-			Qaterial.DialogManager.openFromComponent(_cmpUserDialog)
-		} else {
-			Qaterial.DialogManager.openFromComponent(_cmpQuests)
-		}
+		anchors.fill: parent
 	}
-
-
-
 
 	Component {
-		id: _cmpQuests
+		id: _finishDialog
 
-		RpgQuestsDialog {
-			game: root.game ? root.game.rpgGame : null
+		RpgFinishDialog {
+			result: game.questResultData
+
+			onCloseRequest: root.closeRequest()
 		}
-
 	}
-
-	property string _finishIcon: ""
-	property string _finishText: ""
-	property bool _finishSuccess: false
 
 	Component {
-		id: _cmpFinishQuests
+		id: _questSelectDialog
 
-		RpgQuestsDialog {
-			game: root.game ? root.game.rpgGame : null
+		RpgQuestSelectDialog {
+			game: _item.game
+			questData: game.questSelectData
 
-			onAccepted: if (root.game) root.game.finishGame()
-			onRejected: if (root.game) root.game.finishGame()
-
-			title: qsTr("Game over")
-
-			text: _finishText
-			iconColor: _finishSuccess ? Qaterial.Colors.green500 : Qaterial.Colors.red500
-			textColor: _finishSuccess ? Qaterial.Colors.green500 : Qaterial.Colors.red500
-
-			iconSize: Qaterial.Style.roundIcon.size
-			iconSource: _finishIcon
-			showFailed: true
-		}
-
-	}
-
-
-	Component {
-		id: _cmpUserDialog
-
-		RpgGameUserDialog {
-			game: _multiplayer
-
-			text: _finishText
-			iconColor: _finishSuccess ? Qaterial.Colors.green500 : Qaterial.Colors.red500
-			textColor: _finishSuccess ? Qaterial.Colors.green500 : Qaterial.Colors.red500
-
-			iconSize: Qaterial.Style.roundIcon.size
-			iconSource: _finishIcon
-
-			onAccepted: if (root.game && root.game.config.gameState === RpgConfig.StateFinished) {
-							closeRequest()
-						}
-
-			onRejected: if (root.game && root.game.config.gameState === RpgConfig.StateFinished) {
-							closeRequest()
-						}
+			Component.onDestruction: {
+				_item.forceActiveFocus()
+			}
 		}
 	}
-
-	*/
-
-
-
 
 
 }

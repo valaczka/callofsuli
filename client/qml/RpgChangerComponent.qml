@@ -30,56 +30,17 @@ ColumnLayout {
 		id: _model
 	}
 
-	Tumbler {
+	RpgChangerTumbler {
 		id: _tumbler
-
-		model: _model
-
-		visible: replaceMode
 
 		Layout.fillHeight: true
 		Layout.fillWidth: true
 
+		model: _model
+		visible: replaceMode
 		currentIndex: modelIdx
 
-		delegate: Rectangle {
-			readonly property bool isCurrent: Tumbler.displacement === 0
-
-			color: isCurrent ? root.mainColor : "transparent"
-
-			Qaterial.IconLabel {
-				anchors.fill: parent
-
-				icon.source: model.icon
-				text: description
-
-				font: Qaterial.Style.textTheme.body1
-				icon.width: 32 * Qaterial.Style.pixelSizeRatio
-				icon.height: 32 * Qaterial.Style.pixelSizeRatio
-
-				color: parent.isCurrent ? Qaterial.Colors.black : root.mainColor
-			}
-
-			opacity: 1.0 - Math.abs(Tumbler.displacement) / (_tumbler.visibleItemCount / 2)
-		}
-
-		Rectangle {
-			anchors.horizontalCenter: _tumbler.horizontalCenter
-			y: _tumbler.height * 0.4
-			width: _tumbler.width * 0.9
-			height: 1
-			color: root.mainColor
-			visible: _tumbler.moving
-		}
-
-		Rectangle {
-			anchors.horizontalCenter: _tumbler.horizontalCenter
-			y: _tumbler.height * 0.6
-			width: _tumbler.width * 0.9
-			height: 1
-			color: root.mainColor
-			visible: _tumbler.moving
-		}
+		mainColor: root.mainColor
 	}
 
 

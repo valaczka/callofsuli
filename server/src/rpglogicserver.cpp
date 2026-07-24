@@ -133,12 +133,187 @@ void RpgLogicServer::onNpcCreated(entt::entity entity, const quint32 &idTag, Rpg
 
 std::vector<Rpg::Chest> RpgLogicServer::initializeChests()
 {
-	LOG_CERROR("engine") << ">>>>>>>>>>>>>>>>>>>>>> REMOVE";
-	return Rpg::RpgLogic::initializeChests();
+	const int numChests = m_registry.ctx().get<Rpg::HeatList>().size();
 
-	// Nincsenek multiplayerbern
+	if (numChests <= 1) {
+		ELOG_INFO << "Not enough heat, skip chests";
+		return {};
+	};
 
-	/// return std::vector<Rpg::Chest>{};
+	int numTowers = 0;
+
+	for (entt::entity e : m_registry.view<Rpg::Tower>()) {
+		if (m_registry.get<Rpg::Tower>(e).active)
+			++numTowers;
+	}
+
+	if (numTowers < 1) {
+		ELOG_WARNING << "No tower";
+		return {};
+	};
+
+	static constexpr int maxPoint =
+			(((CFG_GAME_STAGE_LAST)/60. * CFG_POINT_STAGE_L)
+			 +((CFG_GAME_DURATION-(CFG_GAME_STAGE_LAST))/60. * CFG_POINT_STAGE_L)) * CFG_MAX_POINT_FACTOR;
+
+	const int step = maxPoint * numTowers / numChests;
+
+	m_heatSteps.clear();
+
+	for (int i=1; i<numChests; ++i) {
+		m_heatSteps[step*i] = i;
+	}
+
+	return std::vector<Rpg::Chest>{};
+}
+
+
+
+/**
+ * @brief RpgLogicServer::checkState
+ * @param state
+ */
+
+void RpgLogicServer::checkState(const RpgStream::GameState &state)
+{
+	if (m_heatSteps.empty())
+		return;
+
+	int pts = state.ptsA() + state.ptsB();
+
+	auto it = m_heatSteps.upper_bound(pts);
+
+	if (it == m_heatSteps.begin())
+		return;
+
+	std::advance(it, -1);
+
+	if (state.heat() < it->second) {
+		increaseHeat();
+	}
+}
+
+
+
+/**
+ * @brief RpgLogicServer::getQuestList
+ * @return
+ */
+
+Rpg::QuestList RpgLogicServer::getQuestList() const
+{
+	Rpg::QuestList list;
+
+	static const std::vector<std::array<int, 5> > data = {
+		{ 4,	3,	200,	1540,	215 },
+		{ 6,	4,	650,	2580,	325 },
+		{ 13,	6,	900,	3540,	415 },
+	};
+
+
+	for (const auto &a : data) {
+		RpgStream::Quest q;
+		q.setQuestion(a.at(0));
+		q.setStreak(a.at(1));
+		q.setPts(0/*a.at(2)*/);
+
+		q.setXp(a.at(3));
+		q.setToken(a.at(4));
+
+		list.emplace_back(std::move(q));
+	}
+
+	return list;
+}
+
+
+
+
+
+/**
+ * @brief RpgLogicServer::getResult
+ * @return
+ */
+
+RpgStream::Result RpgLogicServer::getResult()
+{
+	QMutexLocker locker(&m_mutex);
+
+	const RpgStream::GameState &state = m_registry.ctx().get<RpgStream::GameState>();
+
+	RpgStream::Team winnerTeam = RpgStream::TeamNone;
+
+	if (state.ptsA() > state.ptsB())
+		winnerTeam = RpgStream::TeamA;
+	else if (state.ptsA() < state.ptsB())
+		winnerTeam = RpgStream::TeamB;
+	else {
+		// Pontegyenlőség esetén
+		//
+		// 1. a helyes válaszok száma dönt
+		// 2. a több streak dönt
+		// 3. a maradék MP dönt
+		// 4. random döntünk
+
+		int questionA = 0, questionB = 0;
+		int streakA = 0, streakB = 0;
+		int mpA = 0, mpB = 0;
+
+
+		for (auto e : m_registry.view<Rpg::Player>()) {
+			const Rpg::Player &p = m_registry.get<Rpg::Player>(e);
+			const RpgStream::PlayerState *last = getLastState<RpgStream::PlayerState>(e);
+
+			if (!last) {
+				ELOG_ERROR << "Invalid PlayerState" << p.playerData.playerId();
+				continue;
+			}
+
+			if (p.playerData.team() == RpgStream::TeamA) {
+				questionA += last->question();
+				streakA += last->streak();
+				mpA += last->mp();
+			} else {
+				questionB += last->question();
+				streakB += last->streak();
+				mpB += last->mp();
+			}
+		}
+
+		if (questionA > questionB)
+			winnerTeam = RpgStream::TeamA;
+		else if (questionA < questionB)
+			winnerTeam = RpgStream::TeamB;
+		else {
+			if (streakA > streakB)
+				winnerTeam = RpgStream::TeamA;
+			else if (streakA < streakB)
+				winnerTeam = RpgStream::TeamB;
+			else {
+				if (mpA > mpB)
+					winnerTeam = RpgStream::TeamA;
+				else if (mpA < mpB)
+					winnerTeam = RpgStream::TeamB;
+				else {
+					std::bernoulli_distribution dist(0.5);
+
+					if (dist(m_rnd))
+						winnerTeam = RpgStream::TeamA;
+					else
+						winnerTeam = RpgStream::TeamB;
+				}
+			}
+		}
+	}
+
+
+	RpgStream::Result res = getResultByTeam(winnerTeam);
+
+	res.setTeam(winnerTeam);
+
+	ELOG_TRACE << "[RESULT] winner team:" << winnerTeam << state.ptsA() << state.ptsB();
+
+	return res;
 }
 
 

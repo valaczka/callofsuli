@@ -133,7 +133,7 @@ protected:
 class RpgLogicClientSingle : public RpgLogicClient
 {
 public:
-	RpgLogicClientSingle();
+	RpgLogicClientSingle(RpgGame *game);
 
 	virtual RpgStream::GameConfig start();
 	RpgStream::GameConfig startGame();
@@ -141,6 +141,10 @@ public:
 protected:
 	virtual void eventRealized(entt::entity entity) override;
 	virtual void rewindStage(const RpgStream::GameConfig::Stage &oldStage) override;
+	virtual Rpg::QuestList getQuestList() const override;
+
+protected:
+	RpgGame *const m_game;
 };
 
 
@@ -262,7 +266,6 @@ private:
 
 
 protected:
-	RpgGame *const m_game;
 	std::unique_ptr<Tutorial> m_tutorial;
 	Tutorial::Step *m_currentStep = nullptr;
 
@@ -288,6 +291,8 @@ public:
 
 	void loadFull(const RpgStream::Full &full);
 	void loadFullState(const RpgStream::FullState &full);
+
+	void loadResult(RpgStream::Result &&result);
 
 	RpgUdpEngine *engine() const;
 	void setEngine(RpgUdpEngine *newEngine);

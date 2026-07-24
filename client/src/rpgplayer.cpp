@@ -163,6 +163,7 @@ void RpgPlayer::load(const RpgPlayerDefinition &config)
 	setAvailableDirections(Direction_8);
 
 	setConfig(config);
+	setHp(config.hp);
 
 	m_markerItem = createMarkerItem(QStringLiteral("qrc:/RpgPlayerMarker.qml"));
 
@@ -1006,6 +1007,9 @@ bool RpgMotorPlayerControlled::beforeWorldStep(const qint64 &tick, entt::entity 
 	m_player->setDefender(state->defender(), state->hasDefender());
 	m_player->setUtility(state->utility(), state->hasUtility());
 
+	m_game->setQuestQuestion(state->question());
+	m_game->setQuestStreak(state->streak());
+
 	bool oldLock = m_player->locked();
 
 	m_player->setLocked(state->lock() > 0 || d->m_lockedEvent);
@@ -1154,6 +1158,8 @@ const RpgStream::PlayerState *RpgMotorPlayerControlled::saveCurrentState(const q
 	st.setHasDefender(m_player->m_hasDefender);
 	st.setUtility(m_player->m_utility);
 	st.setHasUtility(m_player->m_hasUtility);
+	st.setStreak(m_game->questStreak());
+	st.setQuestion(m_game->questQuestion());
 
 
 	m_statePull.append(std::move(st));

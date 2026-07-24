@@ -330,6 +330,7 @@ class RpgGame : public AbstractLevelGame
 
 	Q_PROPERTY(int ptsTeam READ ptsTeam WRITE setPtsTeam NOTIFY ptsTeamChanged FINAL)
 	Q_PROPERTY(int ptsOpponent READ ptsOpponent WRITE setPtsOpponent NOTIFY ptsOpponentChanged FINAL)
+	Q_PROPERTY(int heat READ heat WRITE setHeat NOTIFY heatChanged FINAL)
 	Q_PROPERTY(QColor colorTeam READ colorTeam CONSTANT FINAL)
 	Q_PROPERTY(QColor colorOpponent READ colorOpponent CONSTANT FINAL)
 	Q_PROPERTY(QColor colorNeutral READ colorNeutral CONSTANT FINAL)
@@ -340,6 +341,15 @@ class RpgGame : public AbstractLevelGame
 
 	Q_PROPERTY(QString readableRoom READ readableRoom NOTIFY readableRoomChanged FINAL)
 	Q_PROPERTY(QString terrain READ terrain WRITE setTerrain NOTIFY terrainChanged FINAL)
+
+	Q_PROPERTY(int questQuestion READ questQuestion WRITE setQuestQuestion NOTIFY questQuestionChanged FINAL)
+	Q_PROPERTY(int questQuestionRq READ questQuestionRq WRITE setQuestQuestionRq NOTIFY questQuestionRqChanged FINAL)
+	Q_PROPERTY(int questStreak READ questStreak WRITE setQuestStreak NOTIFY questStreakChanged FINAL)
+	Q_PROPERTY(int questStreakRq READ questStreakRq WRITE setQuestStreakRq NOTIFY questStreakRqChanged FINAL)
+	Q_PROPERTY(int questPtsRq READ questPtsRq WRITE setQuestPtsRq NOTIFY questPtsRqChanged FINAL)
+
+	Q_PROPERTY(QVariantMap questSelectData READ questSelectData WRITE setQuestSelectData NOTIFY questSelectDataChanged FINAL)
+	Q_PROPERTY(QVariantMap questResultData READ questResultData WRITE setQuestResultData NOTIFY questResultDataChanged FINAL)
 
 public:
 	RpgGame(GameMapMissionLevel *missionLevel, Client *client, const bool &multiplayer,
@@ -381,6 +391,7 @@ public:
 	Q_INVOKABLE void reloadLobby();
 	Q_INVOKABLE void connectLobby(const QVariantMap &data);
 	Q_INVOKABLE void characterSelect(const QVariantMap &data);
+	Q_INVOKABLE void questSelect(const QVariantMap &data);
 
 
 	static const QHash<QString, RpgGameDefinition> &terrains() { return m_terrains; }
@@ -442,8 +453,33 @@ public:
 
 	static QColor colorGlow();
 
+	int heat() const;
+	void setHeat(int newHeat);
+
+	int questQuestion() const;
+	void setQuestQuestion(int newQuestQuestion);
+
+	int questQuestionRq() const;
+	void setQuestQuestionRq(int newQuestQuestionRq);
+
+	int questStreak() const;
+	void setQuestStreak(int newQuestStreak);
+
+	int questStreakRq() const;
+	void setQuestStreakRq(int newQuestStreakRq);
+
+	int questPtsRq() const;
+	void setQuestPtsRq(int newQuestPtsRq);
+
+	QVariantMap questResultData() const;
+	void setQuestResultData(const QVariantMap &newQuestResultData);
+
+	QVariantMap questSelectData() const;
+	void setQuestSelectData(const QVariantMap &newQuestSelectData);
+
 signals:
 	void downloadRequest(QString size);
+	void questSelectCompleted();
 	void gameStateChanged();
 	void errorStringChanged();
 	void gameItemChanged();
@@ -453,6 +489,14 @@ signals:
 	void ptsOpponentChanged();
 	void readableRoomChanged();
 	void terrainChanged();
+	void heatChanged();
+	void questQuestionChanged();
+	void questQuestionRqChanged();
+	void questStreakChanged();
+	void questStreakRqChanged();
+	void questPtsRqChanged();
+	void questResultDataChanged();
+	void questSelectDataChanged();
 
 protected:
 	virtual void timerEvent(QTimerEvent *) override;
@@ -476,6 +520,17 @@ private:
 
 	int m_ptsTeam = 0;
 	int m_ptsOpponent = 0;
+	int m_heat = 0;
+
+	int m_questQuestion = 0;
+	int m_questQuestionRq = 0;
+	int m_questStreak = 0;
+	int m_questStreakRq = 0;
+	int m_questPtsRq = 0;
+
+	QVariantMap m_questResultData;
+	QVariantMap m_questSelectData;
+
 	static const QColor m_colorTeam;
 	static const QColor m_colorOpponent;
 	static const QColor m_colorNeutral;
@@ -488,7 +543,6 @@ private:
 
 	static QHash<QString, RpgGameDefinition> m_terrains;
 	static QHash<QString, RpgPlayerDefinition> m_characters;
-
 
 	friend class RpgGamePrivate;
 	friend class RpgGameItem;

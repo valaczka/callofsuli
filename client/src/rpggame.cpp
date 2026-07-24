@@ -31,6 +31,7 @@
 #include "application.h"
 #include "gamequestion.h"
 #include "litegame.h"
+#include "rpgchanger.h"
 #include "rpgnpc.h"
 #include "rpgplayer.h"
 #include "rpgstream.h"
@@ -256,6 +257,17 @@ void RpgGame::connectLobby(const QVariantMap &data)
 void RpgGame::characterSelect(const QVariantMap &data)
 {
 	d->characterSelect(data);
+}
+
+
+/**
+ * @brief RpgGame::questSelect
+ * @param data
+ */
+
+void RpgGame::questSelect(const QVariantMap &data)
+{
+	d->questSelect(data);
 }
 
 
@@ -489,6 +501,9 @@ bool RpgGame::loadNextQuestion()
 
 int RpgGame::msecLeft() const
 {
+	if (!d->m_questSelectTimer.isForever() && !d->m_questSelectTimer.hasExpired())
+		return d->m_questSelectTimer.remainingTime();
+
 	if (!m_gameItem || !m_gameItem->tickTimer())
 		return -1;
 
@@ -542,6 +557,10 @@ bool RpgGame::gameFinishEvent()
 {
 	LOG_CWARNING("game") << "GAME FINISH EVENT*****************************";
 
+	if (m_closedSuccesfully)
+		return false;
+
+	m_closedSuccesfully = true;
 	return true;
 }
 
@@ -712,6 +731,160 @@ void RpgGamePrivate::updateCharacterSelect()
 
 
 
+
+/**
+ * @brief RpgGamePrivate::loadQuests
+ * @param list
+ */
+
+void RpgGamePrivate::loadQuests(const Rpg::QuestList &list, const quint32 &msecLeft)
+{
+	m_questSelect.setDefender(RpgStream::BaseDefenderObject::None);
+	m_questSelect.setUtility(RpgStream::PlayerConfig::UtilityNone);
+	m_questSelect.setQuest(0);
+
+	if (!q->m_questSelectData.isEmpty())
+		return;
+
+	questSelectTimerSet(msecLeft);
+
+	if (!q->m_controlledPlayer) {
+		LOG_CERROR("game") << "Missing controlled player";
+		return;
+	}
+
+	const RpgPlayerDefinition &config = q->m_controlledPlayer->config();
+
+	QVariantList d;
+
+	for (const auto &ptr : config.defender) {
+		QVariantMap m = RpgChanger::dataDefenders().value(ptr);
+
+		if (!m.isEmpty()) {
+			m.insert(QStringLiteral("key"), ptr);
+			d.append(m);
+		}
+	}
+
+	QVariantList u;
+
+	for (const auto &ptr : config.utility) {
+		QVariantMap m = RpgChanger::dataUtilities().value(ptr);
+
+		if (!m.isEmpty()) {
+			m.insert(QStringLiteral("key"), ptr);
+			u.append(m);
+		}
+	}
+
+	QVariantList l;
+
+	for (const RpgStream::Quest &quest : list) {
+		QVariantMap m;
+
+		m[QStringLiteral("question")] = quest.question();
+		m[QStringLiteral("streak")] = quest.streak();
+		m[QStringLiteral("pts")] = quest.pts();
+
+		m[QStringLiteral("xp")] = quest.xp();
+		m[QStringLiteral("token")] = quest.token();
+
+		l.append(m);
+	}
+
+	QVariantMap data;
+
+	data[QStringLiteral("defenders")] = d;
+	data[QStringLiteral("utilities")] = u;
+	data[QStringLiteral("quests")] = l;
+
+	q->setQuestSelectData(data);
+}
+
+
+
+
+
+/**
+ * @brief RpgGamePrivate::questSelect
+ * @param data
+ */
+
+void RpgGamePrivate::questSelect(const QVariantMap &data)
+{
+	if (!q->m_controlledPlayer) {
+		LOG_CERROR("game") << "Missing controlled player";
+		return;
+	}
+
+	const RpgPlayerDefinition &config = q->m_controlledPlayer->config();
+
+	int idxD = data.value(QStringLiteral("defender"), -1).toInt();
+	int idxU = data.value(QStringLiteral("utility"), -1).toInt();
+	int idxC = data.value(QStringLiteral("quest"), -1).toInt();
+
+	if (idxD >= 0 && idxD < config.defender.size())
+		m_questSelect.setDefender(config.defender.at(idxD));
+
+	if (idxU >= 0 && idxU < config.utility.size())
+		m_questSelect.setUtility(config.utility.at(idxU));
+
+	if (idxC >= 0)
+		m_questSelect.setQuest(idxC);
+
+	if (data.value(QStringLiteral("ready")).toBool()) {
+		m_questSelect.setTagId(RpgLogicObjectMapper::getId(q->m_controlledPlayer->objectId()));
+
+		if (m_engine)
+			m_engine->sendQuestSelect(m_questSelect);
+		else {
+			questSelectTimerSet(0);
+
+			Rpg::RpgLogicClientSingle *logic = dynamic_cast<Rpg::RpgLogicClientSingle*>(m_logic.get());
+
+			if (!logic) {
+				LOG_CERROR("game") << "Invalid logic";
+				q->setError(tr("Belső hiba"));
+				return;
+			}
+
+			logic->selectQuest(m_questSelect);
+
+			syncGameConfig(logic->startGame(), logic->serverTick());
+		}
+	}
+}
+
+
+/**
+ * @brief RpgGamePrivate::questSelectTimerSet
+ * @param msec
+ */
+
+void RpgGamePrivate::questSelectTimerSet(const qint64 msec)
+{
+	if (msec <= 0) {
+		if (GameQuestion *gq = q->gameQuestion())
+			gq->setProperty("msecLeft", 0);
+
+		m_questBasicTimer.stop();
+		m_questSelectTimer.setRemainingTime(-1);
+	} else {
+		m_questSelectTimer.setRemainingTime(msec);
+
+		static const QColor iconColor = QColorConstants::Svg::cyan;
+		if (GameQuestion *gq = q->gameQuestion()) {
+			gq->setProperty("progressColor", iconColor);
+			gq->setProperty("msecLeft", 1 /*q->msecLeft() - msecLeft*/);
+		}
+
+		if (!m_questBasicTimer.isActive())
+			m_questBasicTimer.start(100, q);
+	}
+}
+
+
+
 /**
  * @brief RpgGamePrivate::prepareGameItem
  */
@@ -858,16 +1031,9 @@ void RpgGamePrivate::onGameItemPrepared()
 	loadChunkGrid();
 	logic->reloadMapData(m_mapData);
 
+	Rpg::RpgLogicScope scope = m_logic->getScope();
 
-
-	QTimer::singleShot(750, this, [this, logic]() {
-		LOG_CERROR("game") << "REMOVE THIS" << logic->serverTick();
-
-		syncGameConfig(logic->startGame(), logic->serverTick());
-
-		LOG_CERROR("game") << "REMOVE ...." << logic->serverTick();
-	});
-
+	loadQuests(*scope.getCtx<Rpg::QuestList>(), CFG_GAME_STAGE_SELECT);
 }
 
 
@@ -1160,14 +1326,13 @@ void RpgGamePrivate::setJoystickState(RpgPlayer *player, const TiledGame::Joysti
 		return;
 	}
 
-	if (setFromGamepad(motor))
-		return;
+	bool gamepad = setFromGamepad(motor);
 
-	if (joystick == TiledGame::JoystickA)
+	if (joystick == TiledGame::JoystickA && (!gamepad || state.hasKeyboard))
 		motor->setCurrentJoystickState(state);
-	else if (joystick == TiledGame::JoystickB)
+	else if (joystick == TiledGame::JoystickB && (!gamepad || state.hasKeyboard))
 		motor->setControlJoystickState(state);
-	else if (joystick == TiledGame::JoystickC)
+	else if (joystick == TiledGame::JoystickC && (!gamepad || state.hasKeyboard))
 		motor->setTargetJoystickState(state);
 
 }
@@ -1523,6 +1688,8 @@ void RpgGamePrivate::startGame(const quint32 &tick)
 {
 	q->setGameState(RpgGame::GameStatePlay);
 	q->m_gameItem->tickTimer()->start(q, tick);
+	emit q->questSelectCompleted();
+	questSelectTimerSet(0);
 }
 
 
@@ -1592,19 +1759,101 @@ void RpgGamePrivate::onAfterWorldStep(const RpgStream::FullState &full)
 
 void RpgGamePrivate::finishGame()
 {
-	if (q->gameState() != RpgGame::GameStatePlay) {
+	if (!q->m_questResultData.isEmpty())
+		return;
+
+	if (!q->m_controlledPlayer) {
+		q->setError(tr("Missing player"));
+		return;
+	}
+
+	Rpg::RpgLogicScope scope = m_logic->getScope();
+
+	if (scope.getCtx<RpgStream::GameConfig>()->stage() != RpgStream::GameConfig::StageFinished) {
+		return;
+	}
+
+	if (q->gameState() != RpgGame::GameStatePlay && q->gameState() != RpgGame::GameStateFinished) {
 		LOG_CERROR("game") << "Invalid state" << q->gameState();
 		return;
 	}
 
-	LOG_CINFO("game") << "FINISH GAME" << q->m_gameItem->tickTimer()->currentTick() << m_logic->serverTick() << m_logic->estimatedServerTick() << "AUTH" << m_logic->lastAuthTick();
+	LOG_CINFO("game") << "Finish game at" << q->m_gameItem->tickTimer()->currentTick();
 
 	q->setGameState(RpgGame::GameStateFinished);
 	q->m_gameItem->tickTimer()->stop();
 
-	q->setFinishState(AbstractGame::Fail);			// TODO
+	RpgStream::Result *r = scope.getCtx<RpgStream::Result>();
+
+	if (!r)
+		return;
+
+
+
+	const RpgStream::PlayerResult *pr = nullptr;
+
+	for (const RpgStream::PlayerResult &p : r->players()) {
+		if (p.playerId() == RpgLogicObjectMapper::getId(q->m_controlledPlayer)) {
+			pr = &p;
+			break;
+		}
+	}
+
+
+	if (!pr) {
+		LOG_CERROR("game") << "Player not found";
+		q->setError(tr("Belső hiba"));
+		return;
+	}
+
+
+	q->setQuestResultData(getQuestResult(*r, *pr));
+
+
+	q->setFinishState(pr->success() ? AbstractGame::Success : AbstractGame::Fail);
+
+	q->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"), Sound::VoiceoverChannel);
+
+	if (pr->success())
+		q->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/you_win.mp3"), Sound::VoiceoverChannel);
+	else
+		q->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/you_lose.mp3"), Sound::VoiceoverChannel);
 
 	q->gameFinish();
+}
+
+
+
+/**
+ * @brief RpgGamePrivate::getQuestResult
+ * @param result
+ * @param player
+ * @return
+ */
+
+QVariantMap RpgGamePrivate::getQuestResult(const RpgStream::Result &result, const RpgStream::PlayerResult &player) const
+{
+	QVariantMap m;
+
+	m[QStringLiteral("team")] = result.team();
+	m[QStringLiteral("success")] = player.success();
+
+	m[QStringLiteral("questionRq")] = player.quest().question();
+	m[QStringLiteral("streakRq")] = player.quest().streak();
+	m[QStringLiteral("ptsRq")] = player.quest().pts();
+
+	m[QStringLiteral("question")] = player.result().question();
+	m[QStringLiteral("streak")] = player.result().streak();
+	m[QStringLiteral("pts")] = player.result().pts();
+
+
+	m[QStringLiteral("xp")] = player.quest().xp();
+	m[QStringLiteral("token")] = player.quest().token();
+
+	m[QStringLiteral("xpReal")] = player.result().xp();
+	m[QStringLiteral("tokenReal")] = player.result().token();
+
+	return m;
 }
 
 
@@ -1632,9 +1881,9 @@ void RpgGamePrivate::syncGameConfig(const RpgStream::GameConfig &config, const q
 		q->setGameState(RpgGame::GameStateInit);
 	}
 
-	if (!cfg->flags().testFlag(RpgStream::GameConfig::FlagFinished) &&
-			config.flags().testFlag(RpgStream::GameConfig::FlagFinished)) {
-		q->m_gameItem->message(QObject::tr("FINISHED"));
+	if (config.flags().testFlag(RpgStream::GameConfig::FlagFinished)) {
+		//q->m_gameItem->message(QObject::tr("FINISHED"));
+		LOG_CINFO("game") << "*******FINISHED";
 
 		cfg->flags().setFlag(RpgStream::GameConfig::FlagFinished);
 	}
@@ -1656,6 +1905,7 @@ void RpgGamePrivate::syncGameConfig(const RpgStream::GameConfig &config, const q
 			LOG_CINFO("game") << "STOP******:" << cfg->stage() << "->" << config.stage();
 			q->m_gameItem->message(QObject::tr("FINISHED****"));
 
+			cfg->setStage(config.stage());
 			finishGame();
 		}
 
@@ -1690,6 +1940,7 @@ void RpgGamePrivate::syncGameState()
 	q->setPtsOpponent(q->m_controlledPlayer->team() == RpgStream::TeamA ?
 						  state->ptsB() : state->ptsA());
 
+	q->setHeat(state->heat());
 }
 
 
@@ -1772,10 +2023,19 @@ void RpgGamePrivate::syncPlayers()
 
 	bool recolor = false;
 
-	for (auto entity : scope.view<Rpg::Player>(entt::exclude<Rpg::LocalIdTag>)) {
-		const RpgStream::PlayerState *state = scope.getCurrentState<RpgStream::PlayerState>(entity);
-
+	for (auto entity : scope.view<Rpg::Player>()) {
 		const Rpg::Player &p = scope.get<Rpg::Player>(entity);
+
+		if ((controlledObjects && controlledObjects->player == p.idTag()) || q->m_gameMode == RpgGame::SinglePlayer) {
+			q->setQuestPtsRq(p.playerData.quest().pts());
+			q->setQuestQuestionRq(p.playerData.quest().question());
+			q->setQuestStreakRq(p.playerData.quest().streak());
+		}
+
+		if (scope.try_get<Rpg::LocalIdTag>(entity))
+			continue;
+
+		const RpgStream::PlayerState *state = scope.getCurrentState<RpgStream::PlayerState>(entity);
 
 		TiledScene *scene = q->m_gameItem->currentScene();
 
@@ -1783,7 +2043,7 @@ void RpgGamePrivate::syncPlayers()
 
 		LOG_CWARNING("game") << "CREATE PLAYER" << p.playerData.playerId() << p.playerData.character()
 							 << p.playerData.characterResolved(m_characterHash)
-		<< p.playerData.config().defenders().size();
+							 << p.playerData.config().defenders().size();
 
 		RpgPlayerDefinition def = RpgGame::characters().value(p.playerData.characterResolved(m_characterHash));
 
@@ -2634,7 +2894,7 @@ RpgGamePrivate::RpgGamePrivate(RpgGame *game, const bool &multi, std::unique_ptr
 	else if (multi)
 		m_logic = std::make_unique<Rpg::RpgLogicClientMulti>();
 	else
-		m_logic = std::make_unique<Rpg::RpgLogicClientSingle>();
+		m_logic = std::make_unique<Rpg::RpgLogicClientSingle>(q);
 
 
 	m_questionIterator = m_questionList.constBegin();
@@ -3119,6 +3379,16 @@ void RpgGame::setControlledPlayer(RpgPlayer *newControlledPlayer)
 
 void RpgGame::timerEvent(QTimerEvent *)
 {
+	if (!d->m_questSelectTimer.isForever() && d->m_questSelectTimer.hasExpired()) {
+		d->questSelectTimerSet(0);
+
+		if (m_gameMode == SinglePlayer) {
+			if (Rpg::RpgLogicClientSingle *logic = dynamic_cast<Rpg::RpgLogicClientSingle*>(d->m_logic.get())) {
+				d->syncGameConfig(logic->startGame(), logic->serverTick());
+			}
+		}
+	}
+
 	//LOG_CDEBUG("game") << "TICK" << m_gameItem->tickTimer()->currentTick();
 	emit msecLeftChanged();
 }
@@ -3502,4 +3772,127 @@ QStringList RpgGameDefinition::getDynamicContent() const
 	list.removeDuplicates();
 
 	return list;
+}
+
+
+/**
+ * @brief RpgGame::heat
+ * @return
+ */
+
+int RpgGame::heat() const
+{
+	return m_heat;
+}
+
+void RpgGame::setHeat(int newHeat)
+{
+	if (m_heat == newHeat)
+		return;
+	m_heat = newHeat;
+	emit heatChanged();
+}
+
+int RpgGame::questQuestion() const
+{
+	return m_questQuestion;
+}
+
+void RpgGame::setQuestQuestion(int newQuestQuestion)
+{
+	if (m_questQuestion == newQuestQuestion)
+		return;
+	m_questQuestion = newQuestQuestion;
+	emit questQuestionChanged();
+}
+
+int RpgGame::questQuestionRq() const
+{
+	return m_questQuestionRq;
+}
+
+void RpgGame::setQuestQuestionRq(int newQuestQuestionRq)
+{
+	if (m_questQuestionRq == newQuestQuestionRq)
+		return;
+	m_questQuestionRq = newQuestQuestionRq;
+	emit questQuestionRqChanged();
+}
+
+int RpgGame::questStreak() const
+{
+	return m_questStreak;
+}
+
+void RpgGame::setQuestStreak(int newQuestStreak)
+{
+	if (m_questStreak == newQuestStreak)
+		return;
+	m_questStreak = newQuestStreak;
+	emit questStreakChanged();
+}
+
+int RpgGame::questStreakRq() const
+{
+	return m_questStreakRq;
+}
+
+void RpgGame::setQuestStreakRq(int newQuestStreakRq)
+{
+	if (m_questStreakRq == newQuestStreakRq)
+		return;
+	m_questStreakRq = newQuestStreakRq;
+	emit questStreakRqChanged();
+}
+
+int RpgGame::questPtsRq() const
+{
+	return m_questPtsRq;
+}
+
+void RpgGame::setQuestPtsRq(int newQuestPtsRq)
+{
+	if (m_questPtsRq == newQuestPtsRq)
+		return;
+	m_questPtsRq = newQuestPtsRq;
+	emit questPtsRqChanged();
+}
+
+
+
+/**
+ * @brief RpgGame::questResultData
+ * @return
+ */
+
+QVariantMap RpgGame::questResultData() const
+{
+	return m_questResultData;
+}
+
+void RpgGame::setQuestResultData(const QVariantMap &newQuestResultData)
+{
+	if (m_questResultData == newQuestResultData)
+		return;
+	m_questResultData = newQuestResultData;
+	emit questResultDataChanged();
+}
+
+
+/**
+ * @brief RpgGame::questSelectData
+ * @return
+ */
+
+QVariantMap RpgGame::questSelectData() const
+{
+	return m_questSelectData;
+}
+
+void RpgGame::setQuestSelectData(const QVariantMap &newQuestSelectData)
+{
+	if (m_questSelectData == newQuestSelectData)
+		return;
+	m_questSelectData = newQuestSelectData;
+	emit questSelectDataChanged();
 }

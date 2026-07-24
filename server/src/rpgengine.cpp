@@ -326,6 +326,8 @@ void RpgEngine::binaryDataReceived(UdpPacketRcv &recv)
 		d->receivePlayerData(player, std::move(stream));
 	else if (stream.dataOperation() == RpgStream::EngineDataStream::DataOperationState)
 		d->receiveState(player, std::move(stream));
+	else if (stream.dataOperation() == RpgStream::EngineDataStream::DataOperationQuestSelect)
+		d->receiveQuestSelect(player, std::move(stream));
 	else
 		LOG_CWARNING("engine") << "Invalid data" << stream.operation() << stream.dataOperation();
 }
@@ -422,10 +424,92 @@ void RpgEnginePrivate::onAllCompleted()
 		ELOG_DEBUG << "Add player" << p.rpgId << p.peerId << p.playerTag << p.data.userName() << p.token.mapUuid << p.token.missionUuid << p.token.missionLevel;
 	}
 
-	ELOG_INFO << "All completed";
-	ELOG_INFO << engineDump().toUtf8().constData();
+	ELOG_INFO << "All player completed";
 
 	cfg->flags().setFlag(RpgStream::GameConfig::FlagWaitingData);
+}
+
+
+
+
+
+/**
+ * @brief RpgEnginePrivate::sendQuestSelect
+ */
+
+void RpgEnginePrivate::sendQuestSelect()
+{
+	if (!m_selectTimer.isValid()) {
+		ELOG_ERROR << "Invalid select timer";
+		return;
+	}
+	const int msec = CFG_GAME_STAGE_SELECT - m_selectTimer.elapsed();
+
+	if (msec <= 0) {
+		ELOG_WARNING << "Invalid remaingin select time";
+		return;
+	}
+
+	Rpg::RpgLogicScope scope = q->m_logic.getScope();
+	Rpg::QuestList *list = scope.getCtx<Rpg::QuestList>();
+	Q_ASSERT(list);
+
+	RpgStream::QuestSelect stream;
+	stream.setMsecLeft(msec);
+	stream.setQuestList(*list);
+
+	const std::vector<uint8_t> data = stream.toDataStream().data();
+
+	for (const RpgPeerData &p : m_players) {
+		if (p.peer)
+			p.peer->send(data, false);
+	}
+}
+
+
+
+
+
+
+
+/**
+ * @brief RpgEnginePrivate::receiveQuestSelect
+ * @param player
+ * @param stream
+ */
+
+void RpgEnginePrivate::receiveQuestSelect(RpgPeerData *player, RpgStream::EngineDataStream &&stream)
+{
+	Q_ASSERT(player);
+
+	if (player->data.flags().testFlag(RpgStream::PlayerData::FlagQuestSelected)) {
+		LOG_CWARNING("engine") << "Engine" << m_engineId << "player" << player->rpgId << "already selected";
+		return;
+	}
+
+	RpgStream::QuestSelect s;
+	s << stream;
+
+	q->m_logic.selectQuest(s);
+
+	player->data.flags().setFlag(RpgStream::PlayerData::FlagQuestSelected);
+
+
+	bool cmpltd = true;
+
+	for (const RpgPeerData &p : m_players) {
+		if (!p.data.flags().testFlag(RpgStream::PlayerData::FlagQuestSelected)) {
+			cmpltd = false;
+			break;
+		}
+	}
+
+	if (!cmpltd)
+		return;
+
+	ELOG_INFO << "All players' quest selected";
+
+	onSelectFinished();
 }
 
 
@@ -708,6 +792,38 @@ void RpgEnginePrivate::sendFull()
 
 
 
+/**
+ * @brief RpgEnginePrivate::sendResult
+ */
+
+void RpgEnginePrivate::sendResult()
+{
+	const auto flags = q->configFlags();
+
+	if (!flags.testFlags(RpgStream::GameConfig::FlagFinished))
+		return;
+
+
+	Rpg::RpgLogicScope scope = q->m_logic.getScope();
+
+	const RpgStream::Result *result = scope.getCtx<RpgStream::Result>();
+
+	if (!result) {
+		ELOG_ERROR << "Missing Result";
+		return;
+	}
+
+	const std::vector<uint8_t> data = result->toDataStream().data();
+
+	for (const RpgPeerData &p : m_players) {
+		if (p.peer)
+			p.peer->send(data, false);
+	}
+
+}
+
+
+
 
 
 /**
@@ -924,7 +1040,6 @@ void RpgEnginePrivate::render()
 
 	if (m_deadlineTick > 0 && m_host == 0) {
 		if (running()) {
-			LOG_CWARNING("engine") << "Engine" << m_engineId << "hasn't host";
 			ELOG_ERROR << "No host";
 			onAborted();
 		}
@@ -933,25 +1048,21 @@ void RpgEnginePrivate::render()
 	}
 
 
-	if (m_selectTimer.isValid() && m_selectTimer.hasExpired(CFG_GAME_STAGE_SELECT)) {
-		LOG_CINFO("engine") << "EXPIRED";
-		onSelectFinished();
+	if (m_selectTimer.isValid()) {
+		if (m_selectTimer.hasExpired(CFG_GAME_STAGE_SELECT)) {
+			ELOG_INFO << "Select timer expired";
+			onSelectFinished();
+			return;
+		} else {
+			sendQuestSelect();
+		}
 
-		return;
 	}
 
 
 	const bool isStageSelect = (!running() && q->configStage() == RpgStream::GameConfig::StageSelect);
 
 	quint32 t = isStageSelect ? 1 : tick();
-
-	/*if (t > m_deadlineTick) {
-		LOG_CINFO("engine") << "STOP GAME";
-
-		stop();
-
-		return;
-	}*/
 
 	quint32 st = isStageSelect ? 0 : q->m_logic.serverTick();
 
@@ -1281,9 +1392,10 @@ void RpgEngine::udpTimerEvent(const qint64 &dt)
 		}
 
 		d->sendFull();
+		d->sendResult();
 
 	} else if (flags.testFlags(RpgStream::GameConfig::FlagPlaying)) {
-		d->sendWaitingData();
+
 		d->render();
 
 	} else if (!flags.testFlags(RpgStream::GameConfig::FlagSelected)) {

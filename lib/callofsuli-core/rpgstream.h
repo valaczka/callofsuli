@@ -652,9 +652,11 @@ public:
 		DataOperationInvalid = 0x0,
 		DataOperationCharacterSelect,
 		DataOperationMapData,
+		DataOperationQuestSelect,
 		DataOperationFull,
 		DataOperationPlayerData,
-		DataOperationState
+		DataOperationState,
+		DataOperationResult
 	};
 
 	EngineDataStream(const DataOperation &dataOperation)
@@ -791,7 +793,7 @@ public:
 	STREAM_MEMBER_QUANT(posX, PosX, 0);
 	STREAM_MEMBER_QUANT(posY, PosY, 0);
 
-	STREAM_MEMBER(quint8, team, Team, 2, 0);
+	STREAM_MEMBER_CAST(Team, team, Team, quint8, 2, TeamNone)
 };
 
 
@@ -1175,6 +1177,58 @@ public:
 
 
 
+
+
+/**
+ * @brief The Quest class
+ */
+
+class Quest
+{
+public:
+	Quest() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER(quint8, question, Question, 8, 0);
+	STREAM_MEMBER(quint8, streak, Streak, 8, 0);
+	STREAM_MEMBER(quint32, pts, Pts, 32, 0);
+
+	STREAM_MEMBER(quint32, xp, Xp, 32, 0);
+	STREAM_MEMBER(quint32, token, Token, 32, 0);
+};
+
+
+
+
+
+
+/**
+ * @brief The QuestSelect class
+ */
+
+
+class QuestSelect
+{
+public:
+	QuestSelect() = default;
+
+	TO_DATA_STREAM(EngineDataStream::DataOperationQuestSelect)
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
+	STREAM_MEMBER_CAST(BaseDefenderObject::Type, defender, Defender, OBJECT_TYPE, OBJECT_BITS, BaseDefenderObject::None)
+	STREAM_MEMBER_CAST(PlayerConfig::Utility, utility, Utility, OBJECT_TYPE, OBJECT_BITS, PlayerConfig::UtilityNone)
+	STREAM_MEMBER(quint8, quest, Quest, 8, 0)
+	STREAM_MEMBER_VECTOR(Quest, questList, QuestList, quint8, 8)					// Max. 256 quest
+	STREAM_MEMBER(quint32, msecLeft, MsecLeft, 32, 0)
+};
+
+
+
 /**
  * @brief The PlayerData class
  */
@@ -1196,6 +1250,7 @@ public:
 		FlagGameStarted			= 1 << 4,				// a játék elkezdődött
 		FlagGameFinished		= 1 << 5,				// a játék befejeződött
 		FlagPlayerOnline		= 1 << 6,				// a játékos elérhető (van udp-kapcsolat)
+		FlagQuestSelected		= 1 << 7,				// a játékos kiválasztott a quest-et
 	};
 
 	Q_DECLARE_FLAGS(Flags, Flag)
@@ -1209,6 +1264,7 @@ public:
 	STREAM_MEMBER_CAST(Flags, flags, Flags, quint32, 16, FlagNull)
 
 	STREAM_FIELD(PlayerConfig, config, Config, {})
+	STREAM_FIELD(Quest, quest, Quest, {})
 
 	STREAM_MEMBER_CAST(Team, team, Team, quint8, 2, TeamNone)
 };
@@ -1218,6 +1274,55 @@ Q_DECLARE_OPERATORS_FOR_FLAGS(PlayerData::Flags)
 
 
 
+
+
+
+/**
+ * @brief The PlayerResult class
+ */
+
+
+class PlayerResult
+{
+public:
+	PlayerResult() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER(quint32, playerId, PlayerId, 32, 0)
+	STREAM_FIELD(Quest, quest, Quest, {})
+
+	STREAM_MEMBER_CAST(Team, team, Team, quint8, 2, TeamNone)
+
+	STREAM_MEMBER_CAST(bool, success, Success, quint8, 1, false)
+	STREAM_MEMBER(quint8, heat, Heat, 8, 0)
+	STREAM_FIELD(Quest, result, Result, {})
+
+};
+
+
+
+
+
+
+/**
+ * @brief The Result class
+ */
+
+class Result
+{
+public:
+	Result() = default;
+
+	TO_DATA_STREAM(EngineDataStream::DataOperationResult)
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER_CAST(Team, team, Team, quint8, 2, TeamNone)
+	STREAM_MEMBER_VECTOR(PlayerResult, players, Players, quint32, PEER_INDEX_BITS)
+};
 
 
 
@@ -1394,7 +1499,7 @@ public:
 
 
 	STREAM_DELTA_MASK (
-			quint32, 9,
+			quint32, 11,
 
 			Hp,
 			Mp,
@@ -1404,7 +1509,9 @@ public:
 			Defender,
 			HasDefender,
 			Utility,
-			HasUtility
+			HasUtility,
+			Question,
+			Streak
 
 			)
 
@@ -1422,6 +1529,9 @@ public:
 	STREAM_DELTA_MEMBER_CAST(PlayerConfig::Utility, utility, Utility, OBJECT_TYPE, OBJECT_BITS, PlayerConfig::UtilityNone, Utility)
 	STREAM_DELTA_MEMBER_CAST(bool, hasUtility, HasUtility, quint8, 1, false, HasUtility);
 
+	STREAM_DELTA_MEMBER(quint8, question, Question, 8, 0, Question)			// sikeresen megválaszolt kérdések száma (max. 256)
+	STREAM_DELTA_MEMBER(quint8, streak, Streak, 8, 0, Streak)				// sikeresen megválaszolt streak (max. 256)
+
 	bool operator==(const PlayerState &other) const {
 		return other.m_entityState == m_entityState &&
 				other.m_hp == m_hp &&
@@ -1432,7 +1542,9 @@ public:
 				other.m_defender == m_defender &&
 				other.m_hasDefender == m_hasDefender &&
 				other.m_utility == m_utility &&
-				other.m_hasUtility == m_hasUtility
+				other.m_hasUtility == m_hasUtility &&
+				other.m_question == m_question &&
+				other.m_streak == m_streak
 				;
 	}
 
@@ -1451,6 +1563,9 @@ public:
 
 	LOAD_FROM_DELTA(utility, Utility)
 	LOAD_FROM_DELTA(hasUtility, HasUtility)
+
+	LOAD_FROM_DELTA(question, Question)
+	LOAD_FROM_DELTA(streak, Streak)
 
 	LOAD_FROM_DELTA_MEMBER(entityState)
 
@@ -1864,6 +1979,42 @@ public:
 
 
 
+
+
+
+
+
+
+/**
+ * @brief The BaseControlState class
+ */
+
+class ControlState : public BaseTickState
+{
+public:
+	ControlState() : BaseTickState() {}
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	bool operator==(const ControlState &other) const {
+		return other.m_type == m_type &&
+				other.m_isAlive == m_isAlive &&
+				other.m_state == m_state
+				;
+	}
+
+	STREAM_MEMBER_CAST(ControlData::Type, type, Type, OBJECT_TYPE, OBJECT_BITS, ControlData::None)
+	STREAM_MEMBER_CAST(bool, isAlive, IsAlive, quint8, 1, false)
+	STREAM_MEMBER(quint32, state, State, 32, 0)							// Universal state code
+};
+
+
+
+
+
+
+
 /**
  * @brief The BaseControlEvent class
  */
@@ -1877,7 +2028,7 @@ public:
 	EngineStream& operator>>(EngineStream &stream) const;
 
 	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
-	STREAM_MEMBER_CAST(ControlData::Type, type, Type, OBJECT_TYPE, OBJECT_BITS, ControlData::None)
+	STREAM_FIELD(ControlState, control, Control, {});
 };
 
 
@@ -1976,37 +2127,6 @@ public:
 };
 
 
-
-
-
-
-
-
-
-
-/**
- * @brief The BaseControlState class
- */
-
-class ControlState : public BaseTickState
-{
-public:
-	ControlState() : BaseTickState() {}
-
-	EngineStream& operator<<(EngineStream &stream);
-	EngineStream& operator>>(EngineStream &stream) const;
-
-	bool operator==(const ControlState &other) const {
-		return other.m_type == m_type &&
-				other.m_isAlive == m_isAlive &&
-				other.m_state == m_state
-				;
-	}
-
-	STREAM_MEMBER_CAST(ControlData::Type, type, Type, OBJECT_TYPE, OBJECT_BITS, ControlData::None)
-	STREAM_MEMBER_CAST(bool, isAlive, IsAlive, quint8, 1, false)
-	STREAM_MEMBER(quint32, state, State, 32, 0)							// Universal state code
-};
 
 
 

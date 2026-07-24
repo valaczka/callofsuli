@@ -86,6 +86,7 @@ private:
 	// Character select
 
 	void sendCharacterSelect(const RpgStream::CharacterSelectClient &data);
+	void sendQuestSelect(const RpgStream::QuestSelect &data);
 
 	// Prepare
 
@@ -96,6 +97,8 @@ private:
 
 	void updateState(RpgStream::EngineDataStream &&stream);
 	void sendState(const RpgStream::FullState &data);
+
+	void updateResult(RpgStream::EngineDataStream &&stream);
 
 protected:
 	const PublicKeySigner m_signer;

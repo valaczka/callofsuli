@@ -137,6 +137,13 @@ void RpgUdpEngine::onDataReceived(std::unique_ptr<UdpBitStream> data)
 		updateFull(std::move(stream));
 	} else if (stream.dataOperation() == RpgStream::EngineDataStream::DataOperationState) {
 		updateState(std::move(stream));
+	} else if (stream.dataOperation() == RpgStream::EngineDataStream::DataOperationResult) {
+		updateResult(std::move(stream));
+	} else if (stream.dataOperation() == RpgStream::EngineDataStream::DataOperationQuestSelect) {
+		RpgStream::QuestSelect r;
+		r << stream;
+		if (!r.questList().empty())
+			m_gamePrivate->loadQuests(r.questList(), r.msecLeft());
 	}
 }
 
@@ -297,6 +304,23 @@ void RpgUdpEngine::sendCharacterSelect(const RpgStream::CharacterSelectClient &d
 	if (data.data().flags().testFlags(RpgStream::PlayerData::FlagCompleted))
 		m_gameFlags.setFlag(RpgStream::PlayerData::FlagCompleted);
 
+}
+
+
+
+
+/**
+ * @brief RpgUdpEngine::sendQuestSelect
+ * @param data
+ */
+
+void RpgUdpEngine::sendQuestSelect(const RpgStream::QuestSelect &data)
+{
+	RpgStream::EngineDataStream st = getDataStream(RpgStream::EngineDataStream::DataOperationQuestSelect);
+
+	data >> st;
+
+	sendMessage(st.data(), true);
 }
 
 
@@ -462,6 +486,40 @@ void RpgUdpEngine::sendState(const RpgStream::FullState &data)
 
 		sendMessage(st2.data(), true);
 	}
+}
+
+
+
+/**
+ * @brief RpgUdpEngine::updateResult
+ * @param stream
+ */
+
+void RpgUdpEngine::updateResult(RpgStream::EngineDataStream &&stream)
+{
+	if (m_game->gameState() < RpgGame::GameStatePlay) {
+		LOG_CERROR("game") << "Invalid state" << m_game->gameState();
+	}
+
+	RpgStream::Result full;
+
+	full << stream;
+
+	if (full.players().empty()) {
+		LOG_CERROR("game") << "Invalid result data";
+		return;
+	}
+
+	Rpg::RpgLogicClientMulti *l = logic();
+
+	if (!l) {
+		LOG_CERROR("game") << "Invalid logic" << m_gamePrivate->m_logic.get();
+		return;
+	}
+
+	l->loadResult(std::move(full));
+
+	m_gamePrivate->finishGame();
 }
 
 

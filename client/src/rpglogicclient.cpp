@@ -172,10 +172,16 @@ entt::entity RpgLogicClient::addNpc(const RpgStream::NpcData &data, entt::entity
  * @brief RpgLogicClientSingle::RpgLogicClientSingle
  */
 
-RpgLogicClientSingle::RpgLogicClientSingle()
+RpgLogicClientSingle::RpgLogicClientSingle(RpgGame *game)
 	: RpgLogicClient(0, 0)
+	, m_game(game)
 {
+	Q_ASSERT(m_game);
 
+	QObject::connect(m_game, &RpgGame::heatChanged, m_game, [this]() {
+		m_game->gameItem()->messageColor(QObject::tr("Heat upgraded: %1").arg(m_game->heat()),
+										 QColorConstants::Svg::orangered);
+	});
 }
 
 
@@ -199,6 +205,11 @@ RpgStream::GameConfig RpgLogicClientSingle::start()
 
 	RpgStream::GameConfig config = *cfg;
 	config.setStage(RpgStream::GameConfig::StageSelect);
+
+	// Load quests
+
+	m_registry.ctx().insert_or_assign<QuestList>(getQuestList());
+
 
 	return config;
 }
@@ -262,7 +273,32 @@ void RpgLogicClientSingle::eventRealized(entt::entity entity)
 				eventStore(std::move(evc));
 			}
 
+		} else if (ev->config().stage() == RpgStream::GameConfig::StageLast) {
+			// Disable chests
+
+			for (auto e : scope.view<Control>()) {
+				const Control &c = scope.get<Control>(e);
+				if (c.type != RpgStream::ControlData::Chest)
+					continue;
+
+				const RpgStream::ControlState *st = getCurrentState<RpgStream::ControlState>(e);
+
+				if (!st || !st->isAlive())
+					continue;
+
+				EventControlStateChange ev;
+				ev.setTick(tick);
+				ev.control = e;
+				ev.isAlive = false;
+				ev.state = Chest::StateDisabled;
+
+				ELOG_DEBUG << "Register chest disable event for" << c.idTag << "at" << ev.tick();
+
+				eventStore(std::move(ev));
+			}
 		}
+
+
 
 		return;
 	}
@@ -300,6 +336,41 @@ void RpgLogicClientSingle::rewindStage(const RpgStream::GameConfig::Stage &oldSt
 	RpgLogicScope scope = getScope();
 
 	scope.getCtx<RpgStream::GameConfig>()->setStage(oldStage);
+}
+
+
+
+
+
+/**
+ * @brief RpgLogicClientSingle::getQuestList
+ * @return
+ */
+
+QuestList RpgLogicClientSingle::getQuestList() const
+{
+	QuestList list;
+
+	static const std::vector<std::array<int, 5> > data = {
+		{ 4,	3,	200,	540,	15 },
+		{ 6,	4,	650,	580,	25 },
+		{ 13,	6,	900,	1540,	215 },
+	};
+
+
+	for (const auto &a : data) {
+		RpgStream::Quest q;
+		q.setQuestion(a.at(0));
+		q.setStreak(a.at(1));
+		q.setPts(a.at(2));
+
+		q.setXp(a.at(3));
+		q.setToken(a.at(4));
+
+		list.emplace_back(std::move(q));
+	}
+
+	return list;
 }
 
 
@@ -409,6 +480,31 @@ void RpgLogicClientMulti::loadFullState(const RpgStream::FullState &full)
 	if (full.flags().testFlag(RpgStream::FullState::Control))
 		loadControls(full.controls());
 }
+
+
+
+
+
+
+
+
+/**
+ * @brief RpgLogicClientMulti::loadResult
+ * @param result
+ */
+
+void RpgLogicClientMulti::loadResult(RpgStream::Result &&result)
+{
+	Rpg::RpgLogicScope scope = getScope();
+
+	m_registry.ctx().insert_or_assign<RpgStream::Result>(std::move(result));
+
+	RpgStream::GameConfig *cfg = scope.getCtx<RpgStream::GameConfig>();
+
+	cfg->flags().setFlag(RpgStream::GameConfig::FlagFinished);
+}
+
+
 
 
 
@@ -741,15 +837,14 @@ bool RpgLogicClientTutorial::compareEvent(const T &, const T &) {
  */
 
 RpgLogicClientTutorial::RpgLogicClientTutorial(RpgGame *game, std::unique_ptr<Tutorial> tutorial)
-	: RpgLogicClientSingle()
-	, m_game(game)
+	: RpgLogicClientSingle(game)
 	, m_tutorial(std::move(tutorial))
 {
-	Q_ASSERT(game);
+	Q_ASSERT(m_game);
 
 	m_messageTimer.setInterval(15000);
-	QObject::connect(&m_messageTimer, &QTimer::timeout, game, [this]() { onTimerTimeout(); });
-	QObject::connect(game, &RpgGame::controlledPlayerChanged, game, [this]() { onControlledPlayerChanged(); });
+	QObject::connect(&m_messageTimer, &QTimer::timeout, m_game, [this]() { onTimerTimeout(); });
+	QObject::connect(m_game, &RpgGame::controlledPlayerChanged, m_game, [this]() { onControlledPlayerChanged(); });
 }
 
 

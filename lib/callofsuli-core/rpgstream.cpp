@@ -169,6 +169,7 @@ EngineStream &PlayerData::operator<<(EngineStream &stream)
 	readTeam(stream);
 
 	m_config << stream;
+	m_quest << stream;
 
 	return stream;
 }
@@ -190,6 +191,7 @@ EngineStream &PlayerData::operator>>(EngineStream &stream) const
 	writeTeam(stream);
 
 	m_config >> stream;
+	m_quest >> stream;
 
 	return stream;
 }
@@ -262,6 +264,9 @@ EngineStream &PlayerState::operator<<(EngineStream &stream)
 	readUtilityDelta(stream);
 	readHasUtilityDelta(stream);
 
+	readQuestionDelta(stream);
+	readStreakDelta(stream);
+
 	return stream;
 }
 
@@ -290,6 +295,9 @@ EngineStream &PlayerState::operator>>(EngineStream &stream) const
 
 	writeUtilityDelta(stream);
 	writeHasUtilityDelta(stream);
+
+	writeQuestionDelta(stream);
+	writeStreakDelta(stream);
 
 	return stream;
 }
@@ -1050,7 +1058,7 @@ EngineStream &DefenderState::operator<<(EngineStream &stream)
 	readVisible(stream);
 	readTargetId(stream);
 
-/*
+	/*
 	switch (m_type) {
 		case BaseDefenderObject::Dummy:
 			readDummy(stream);
@@ -1716,7 +1724,7 @@ EngineStream &EventControl::operator<<(EngineStream &stream)
 {
 	readTick(stream);
 	readTagId(stream);
-	readType(stream);
+	m_control << stream;
 
 	return stream;
 }
@@ -1733,7 +1741,7 @@ EngineStream &EventControl::operator>>(EngineStream &stream) const
 {
 	writeTick(stream);
 	writeTagId(stream);
-	writeType(stream);
+	m_control >> stream;
 
 	return stream;
 }
@@ -1867,6 +1875,157 @@ EngineStream &HeatNpc::operator>>(EngineStream &stream) const
 	writePositionList(stream);
 	writeNum(stream);
 	writeDelay(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief Quest::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &Quest::operator<<(EngineStream &stream)
+{
+	readQuestion(stream);
+	readStreak(stream);
+	readPts(stream);
+
+	readToken(stream);
+	readXp(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief Quest::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &Quest::operator>>(EngineStream &stream) const
+{
+	writeQuestion(stream);
+	writeStreak(stream);
+	writePts(stream);
+
+	writeToken(stream);
+	writeXp(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief Result::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &Result::operator<<(EngineStream &stream)
+{
+	readTeam(stream);
+	readPlayers(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief Result::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &Result::operator>>(EngineStream &stream) const
+{
+	writeTeam(stream);
+	writePlayers(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief PlayerResult::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &PlayerResult::operator<<(EngineStream &stream)
+{
+	readPlayerId(stream);
+	m_quest << stream;
+
+	readTeam(stream);
+	readSuccess(stream);
+	readHeat(stream);
+
+	m_result << stream;
+
+	return stream;
+}
+
+
+
+/**
+ * @brief PlayerResult::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &PlayerResult::operator>>(EngineStream &stream) const
+{
+	writePlayerId(stream);
+	m_quest >> stream;
+
+	writeTeam(stream);
+	writeSuccess(stream);
+	writeHeat(stream);
+
+	m_result >> stream;
+
+	return stream;
+}
+
+
+/**
+ * @brief QuestSelect::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &QuestSelect::operator<<(EngineStream &stream)
+{
+	readTagId(stream);
+	readDefender(stream);
+	readUtility(stream);
+	readQuest(stream);
+	readQuestList(stream);
+	readMsecLeft(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief QuestSelect::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &QuestSelect::operator>>(EngineStream &stream) const
+{
+	writeTagId(stream);
+	writeDefender(stream);
+	writeUtility(stream);
+	writeQuest(stream);
+	writeQuestList(stream);
+	writeMsecLeft(stream);
 
 	return stream;
 }

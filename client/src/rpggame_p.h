@@ -113,6 +113,10 @@ private:
 	void characterSelect(const QVariantMap &data);
 	void updateCharacterSelect();
 
+	void loadQuests(const Rpg::QuestList &list, const quint32 &msecLeft);
+	void questSelect(const QVariantMap &data);
+	void questSelectTimerSet(const qint64 msec);
+
 	// Prepare
 
 	void prepareGameItem();
@@ -157,6 +161,7 @@ private:
 	void onBeforeWorldStep(const qint64 &tick);
 	void onAfterWorldStep(const RpgStream::FullState &full);
 	void finishGame();
+	QVariantMap getQuestResult(const RpgStream::Result &result, const RpgStream::PlayerResult &player) const;
 
 
 	// Synchronize
@@ -205,6 +210,9 @@ private:
 	RpgGame *const q;
 
 	RpgGameDefinition m_gameDefinition;
+	RpgStream::QuestSelect m_questSelect;
+	QDeadlineTimer m_questSelectTimer;
+	QBasicTimer m_questBasicTimer;
 
 	bool m_isMapLoaded = false;
 	bool m_isMapSynchronized = false;
