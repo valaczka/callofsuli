@@ -31,7 +31,7 @@ ListView {
 		height: view.height
 	}
 
-
+/*
 	function selectOne(_wallet) {
 		selectedList = []
 		if (_wallet && _wallet.available)
@@ -75,6 +75,6 @@ ListView {
 		}
 
 		selectedList = l
-	}
+	}*/
 
 }

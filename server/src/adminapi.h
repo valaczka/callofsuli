@@ -28,6 +28,7 @@
 #define ADMINAPI_H
 
 #include "abstractapi.h"
+#include "rpglogic.h"
 
 class AdminAPI : public AbstractAPI
 {
@@ -132,11 +133,10 @@ public:
 	static bool zapWallet(const AbstractAPI *api);
 	static bool zapWallet(const DatabaseMain *dbMain);
 
-	static bool fillCurrency(const AbstractAPI *api);
-	static bool fillCurrency(const DatabaseMain *dbMain);
-
 	static bool zapUserData(const AbstractAPI *api);
 	static bool zapUserData(const DatabaseMain *dbMain);
+
+	static bool loadRpgData(ServerService *service, const RpgCharacterList &newCharacterList);
 
 	static bool sendNotifications(const AbstractAPI *api, ServerService *service);
 	static bool sendNotifications(const DatabaseMain *dbMain, ServerService *service);

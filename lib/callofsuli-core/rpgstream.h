@@ -1010,7 +1010,8 @@ public:
 
 	enum Type {
 		None = 0,
-		TowerAttacker
+		MpLeecher,
+		TowerAttacker,
 	};
 
 	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
@@ -1018,8 +1019,10 @@ public:
 	STREAM_FIELD(EntityConfig, entity, Entity, {})
 	STREAM_MEMBER_RESOLVED(character, Character)
 	STREAM_MEMBER_CAST(Team, team, Team, quint8, 2, TeamNone)
+	STREAM_MEMBER(ENTITY_MP_TYPE, mp, Mp, ENTITY_MP_BITS, 0)					// Npc available MP
 
-	// TowerAttacker
+	// TowerAttacker -> load
+	// MpLeecher -> mp
 
 	STREAM_MEMBER(quint32, force, Force, 32, 0);
 };
@@ -1168,6 +1171,8 @@ public:
 	STREAM_MEMBER(quint8, power, Power, 8, 0)
 	STREAM_MEMBER(ENTITY_MP_TYPE, maxMp, MaxMp, ENTITY_MP_BITS, 0)
 	STREAM_MEMBER(ENTITY_MP_TYPE, maxBullet, MaxBullet, ENTITY_HP_BITS, 0)
+	STREAM_MEMBER(quint8, towerPlus, TowerPlus, 8, 0)
+	STREAM_MEMBER(quint8, towerMinus, TowerMinus, 8, 0)
 
 	STREAM_MEMBER_VECTOR_CAST(BaseDefenderObject::Type, OBJECT_TYPE, OBJECT_BITS, defenders, Defenders, quint8, 8, BaseDefenderObject::None)
 
@@ -1657,6 +1662,10 @@ public:
 	LOAD_WITHOUT_DELTA(type, Type)
 	LOAD_FROM_DELTA(hp, Hp)
 	LOAD_FROM_DELTA(target, Target)
+	LOAD_FROM_DELTA(destinationTower, DestinationTower)
+	LOAD_FROM_DELTA(destinationX, DestinationX)
+	LOAD_FROM_DELTA(destinationY, DestinationY)
+
 
 	LOAD_FROM_DELTA_MEMBER(entityState)
 

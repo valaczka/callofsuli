@@ -38,6 +38,9 @@
 
 
 
+#define	CHARACTER_PRESTIGE			QStringLiteral("--prestige--")
+
+
 /**
  * @brief StudentAPI::StudentAPI
  * @param service
@@ -222,11 +225,6 @@ UserAPI::UserAPI(Handler *handler, ServerService *service)
 	});
 
 
-	server->route(path+"inventory", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
-		AUTHORIZE_API();
-		return inventory(*credential);
-	});
-
 
 	server->route(path+"offline", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
 		AUTHORIZE_API();
@@ -234,6 +232,12 @@ UserAPI::UserAPI(Handler *handler, ServerService *service)
 		return permitUpload(*credential, *jsonObject);
 	});
 
+
+
+	server->route(path+"rpg", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return rpg(*credential);
+	});
 }
 
 
@@ -698,10 +702,11 @@ QHttpServerResponse UserAPI::gameCreate(const Credential &credential, const int 
 	if (g.mode == GameMap::Invalid)
 		return responseError("invalid mode");
 
+	if (g.mode == GameMap::Rpg)
+		return gameCreateRpg(json, credential.username(), campaign, g);
+	else
+		return gameCreate(credential.username(), campaign, g);
 
-	const QJsonObject &inventory = json.value(QStringLiteral("extended")).toObject();
-
-	return gameCreate(credential.username(), campaign, g, inventory);
 }
 
 
@@ -717,12 +722,12 @@ QHttpServerResponse UserAPI::gameCreate(const Credential &credential, const int 
  */
 
 QHttpServerResponse UserAPI::gameCreate(const QString &username, const int &campaign,
-										const UserGame &game, const QJsonObject &inventory, int *gameIdPtr)
+										const UserGame &game, int *gameIdPtr)
 {
 	if (gameIdPtr)
 		*gameIdPtr = -1;
 
-	LAMBDA_THREAD_BEGIN(campaign, game, inventory, username, gameIdPtr);
+	LAMBDA_THREAD_BEGIN(campaign, game, username, gameIdPtr);
 
 	LOG_CDEBUG("client") << "Create game for user:" << qPrintable(username) << "in campaign:" << campaign;
 
@@ -771,8 +776,6 @@ QHttpServerResponse UserAPI::gameCreate(const QString &username, const int &camp
 
 			scoreId = *s;
 		}
-
-		//.addQuery("UPDATE game SET duration=((julianday(CURRENT_TIMESTAMP)-julianday(timestamp))*86400.0), success=false, "
 
 		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
 								   .addQuery("UPDATE game SET duration=NULL, success=false, "
@@ -830,36 +833,6 @@ QHttpServerResponse UserAPI::gameCreate(const QString &username, const int &camp
 	obj.insert(QStringLiteral("id"), *gameId);
 	obj.insert(QStringLiteral("closedGames"), *list);
 
-	/*
-	if (game.mode == GameMap::Action && game.deathmatch) {
-		QJsonObject iList;
-
-		for (auto it = inventory.constBegin(); it != inventory.constEnd(); ++it) {
-			const int num = it.value().toInt(0);
-
-			if (num <= 0)
-				continue;
-
-			int realNum = qMin(num, QueryBuilder::q(db).addQuery("SELECT value FROM inventory WHERE username=").addValue(username)
-							   .addQuery(" AND key=").addValue(it.key())
-							   .execToValue("value").value_or(0).toInt());
-
-			const auto &e = QueryBuilder::q(db)
-							.addQuery("WITH t AS (SELECT ").addValue(username)
-							.addQuery(" AS username, ").addValue(it.key())
-							.addQuery(" AS key, COALESCE((SELECT value FROM inventory WHERE username=").addValue(username)
-							.addQuery(" AND key=").addValue(it.key())
-							.addQuery("),0)-").addValue(realNum)
-							.addQuery(" AS value) INSERT OR REPLACE INTO inventory(username, key, value) SELECT * FROM t")
-							.exec();
-
-			LAMBDA_SQL_ASSERT_ROLLBACK(e);
-
-			iList.insert(it.key(), realNum);
-		}
-
-		obj.insert(QStringLiteral("extended"), iList);
-	}*/
 
 	db.commit();
 
@@ -867,6 +840,72 @@ QHttpServerResponse UserAPI::gameCreate(const QString &username, const int &camp
 
 	if (gameIdPtr)
 		*gameIdPtr = *gameId;
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+
+
+/**
+ * @brief UserAPI::gameCreateRpg
+ * @param username
+ * @param campaign
+ * @param game
+ * @return
+ */
+
+QHttpServerResponse UserAPI::gameCreateRpg(const QJsonObject &json, const QString &username, const int &campaign, const UserGame &game)
+{
+	QString character = json.value(QStringLiteral("character")).toString();
+	QString terrain = json.value(QStringLiteral("terrain")).toString();
+
+	if (character.isEmpty() || terrain.isEmpty())
+		return responseError("missing character/terrain");
+
+
+	LAMBDA_THREAD_BEGIN(campaign, game, username, character, terrain);
+
+	LOG_CDEBUG("client") << "Create RPG game for user:" << qPrintable(username) << "in campaign:" << campaign;
+
+	int level = -1;
+
+	const auto ptr = QueryBuilder::q(db)
+					 .addQuery("SELECT level FROM rpgCharacter WHERE username=").addValue(username)
+					 .addQuery(" AND character=").addValue(character)
+					 .execToValue("level", 0);
+
+	if (ptr)
+		level = ptr->toInt();
+
+	if (level <= 0) {
+		if (QueryBuilder::q(db)
+				.addQuery("SELECT character FROM rpgWeekly WHERE character=")
+				.addValue(character)
+				.execCheckExists())
+			level = 1;
+	}
+
+	LAMBDA_SQL_ERROR("invalid character", level > 0);
+
+	int id = -1;
+
+	response = gameCreate(username, campaign, game, &id);
+
+	if (id == -1)
+		return ret.reject();
+
+	LAMBDA_SQL_ASSERT(QueryBuilder::q(db)
+					  .addQuery("INSERT INTO rpgGame (").setFieldPlaceholder()
+					  .addQuery(") VALUES (").setValuePlaceholder()
+					  .addQuery(")")
+					  .addField("gameid", id)
+					  .addField("terrain", terrain)
+					  .addField("character", character)
+					  .addField("coinCharacter", 0)
+					  .addField("coinTarget", 0)
+					  .execInsert());
 
 	LAMBDA_THREAD_END;
 }
@@ -1012,12 +1051,6 @@ QHttpServerResponse UserAPI::gameUpdate(const Credential &credential, const int 
 	if (json.contains(QStringLiteral("statistics")))
 		_addStatistics(username, json.value(QStringLiteral("statistics")).toArray());
 
-	// Wallet, currency
-
-	/*_addWallet(username, id, json.value(QStringLiteral("wallet")).toArray());
-	if (json.contains(QStringLiteral("currency")))
-		_setCurrency(username, id, json.value(QStringLiteral("currency")).toInt());*/
-
 	// XP
 
 	LAMBDA_SQL_ASSERT(QueryBuilder::q(db).addQuery("UPDATE runningGame SET xp=").addValue(json.value(QStringLiteral("xp")).toInt())
@@ -1097,11 +1130,10 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 		g.campaign = qq.value("campaignid", -1).toInt();
 
 
-		// Wallet, currency
+		// Rpg
 
-		/*_addWallet(username, id, json.value(QStringLiteral("wallet")).toArray());
-		if (json.contains(QStringLiteral("currency")))
-			_setCurrency(username, id, json.value(QStringLiteral("currency")).toInt());*/
+		if (g.mode == GameMap::Rpg)
+			g.rpg = _finishRpgGame(username, id, json);
 
 		///LAMBDA_THREAD_END;				/// Nem lehet!!!
 
@@ -1113,13 +1145,13 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 	const int &duration = json.value(QStringLiteral("duration")).toInt();
 
 	if (ret.state() == QDeferredState::RESOLVED) {
-		const QJsonObject &inventory = json.value(QStringLiteral("extended")).toObject();
+		//const QJsonObject &inventory = json.value(QStringLiteral("extended")).toObject();
 		const bool &success = json.value(QStringLiteral("success")).toVariant().toBool();
 		const int &xp = json.value(QStringLiteral("xp")).toInt();
 
-		return gameFinish(username, id, g, inventory, statistics, success, xp, duration);
+		return gameFinish(username, id, g, statistics, success, xp, duration);
 	} else {
-		return gameFinish(username, id, g, {}, statistics, false, 0, duration);
+		return gameFinish(username, id, g, statistics, false, 0, duration);
 	}
 }
 
@@ -1136,7 +1168,7 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
  */
 
 QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, const UserGame &game,
-										const QJsonObject &inventory, const QJsonArray &statistics,
+										const QJsonArray &statistics,
 										const bool &success, const int &xp, const int &duration,
 										bool *okPtr, QPointer<RpgEngine> engine, const GameFinishMode &mode)
 {
@@ -1145,9 +1177,12 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 
 	LOG_CDEBUG("client") << "Finish game" << id << "for user:" << qPrintable(username) << "success:" << success;
 
-	LAMBDA_THREAD_BEGIN(username, statistics, id, inventory, xp, duration, success, game, okPtr, engine, mode);
+	LAMBDA_THREAD_BEGIN(username, statistics, id, xp, duration, success, game, okPtr, engine, mode);
 
 	QJsonObject retObj;
+
+	if (!game.rpg.isEmpty())
+		retObj[QStringLiteral("rpg")] = game.rpg;
 
 	if (mode & GameFinishGameOnly) {
 		// Statistics
@@ -1156,7 +1191,6 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 			_addStatistics(username, statistics);
 
 		int sumXP = xp;
-
 
 		const int &baseXP = m_service->config().get("gameBaseXP").toInt(100);
 		const int &oldSolved = _solverInfo(this, username, game.map, game.mission, game.level).value_or(0);
@@ -1422,30 +1456,6 @@ QHttpServerResponse UserAPI::permitUpload(const Credential &credential, const QJ
 
 
 
-/**
- * @brief UserAPI::inventory
- * @param credential
- * @return
- */
-
-QHttpServerResponse UserAPI::inventory(const Credential &credential)
-{
-	LOG_CTRACE("client") << "Get inventory" << credential.username();
-
-	LAMBDA_THREAD_BEGIN(credential);
-
-	const auto &list = QueryBuilder::q(db)
-					   .addQuery("SELECT key, value FROM inventory WHERE username=").addValue(credential.username())
-					   .execToJsonArray();
-
-	LAMBDA_SQL_ASSERT(list);
-
-	response = responseResult("list", *list);
-
-	LAMBDA_THREAD_END;
-}
-
-
 
 
 /**
@@ -1493,22 +1503,122 @@ QHttpServerResponse UserAPI::exam(const Credential &credential, const int &id)
 
 
 
-
-
-
 /**
- * @brief UserAPI::setCurrency
- * @param username
- * @param gameid
- * @param amount
+ * @brief UserAPI::rpg
+ * @param credential
+ * @return
  */
 
-void UserAPI::setCurrency(const QString &username, const int &gameid, const int &amount) const
+QHttpServerResponse UserAPI::rpg(const Credential &credential)
 {
-	databaseMainWorker()->execInThread([this, username, gameid, amount]() {
-		_setCurrency(username, gameid, amount);
-	});
+	LOG_CTRACE("client") << "Get user RPG info";
+
+	LAMBDA_THREAD_BEGIN(credential);
+
+	const auto &curr = QueryBuilder::q(db)
+					   .addQuery("SELECT SUM(amount) AS amount FROM currency WHERE username=")
+					   .addValue(credential.username())
+					   .execToValue("amount", 0);
+
+	LOG_CDEBUG("client") << ">>>" << credential.username() << "CURRENCY" << curr.value_or(-1);
+
+
+	const auto &chList = QueryBuilder::q(db)
+						 .addQuery("SELECT character, level, coin FROM rpgCharacter WHERE username=")
+						 .addValue(credential.username())
+						 .execToJsonArray();
+
+	LAMBDA_SQL_ASSERT(chList);
+
+	const auto &target = QueryBuilder::q(db)
+						 .addQuery("SELECT character, coin FROM rpgTarget WHERE username=")
+						 .addValue(credential.username())
+						 .execToJsonObject();
+
+	LAMBDA_SQL_ASSERT(target);
+
+
+	RpgUserData udata;
+
+	QMap<int, QString> avaliableTargets;
+
+	for (const auto &[ch, data] : m_service->rpgConfig()->characters().asKeyValueRange()) {
+		RpgUserCharacter character(data);
+
+		character.character = ch;
+
+		const auto it = std::find_if(chList->cbegin(),
+									 chList->cend(),
+									 [&ch](const QJsonValue &v) {
+			return v.toObject().value(QStringLiteral("character")).toString() == ch;
+		});
+
+		if (it != chList->cend()) {
+			character.level = it->toObject().value(QStringLiteral("level")).toInt();
+			character.point = it->toObject().value(QStringLiteral("coin")).toInt();
+		} else {
+			// Auto add free characters
+
+			if (data.unlock == 0) {
+				character.level = 1;
+				character.point = 0;
+
+				LAMBDA_SQL_ASSERT(QueryBuilder::q(db)
+								  .addQuery("INSERT INTO rpgCharacter(").setFieldPlaceholder()
+								  .addQuery(") VALUES (").setValuePlaceholder()
+								  .addQuery(")")
+								  .addField("username", credential.username())
+								  .addField("character", ch)
+								  .addField("level", character.level)
+								  .addField("coin", character.point)
+								  .exec());
+
+			} else {
+				avaliableTargets.insert(data.unlock, ch);
+			}
+		}
+
+		udata.characters.append(character);
+	}
+
+
+
+	// Auto select the lowest target
+
+	if (target->isEmpty()) {
+		if (avaliableTargets.isEmpty()) {
+			LOG_CWARNING("client") << "No available targets for user" << qPrintable(credential.username());
+		} else {
+			udata.target = avaliableTargets.first();
+			udata.token = 0;
+
+			LAMBDA_SQL_ASSERT(QueryBuilder::q(db)
+							  .addQuery("INSERT INTO rpgTarget(").setFieldPlaceholder()
+							  .addQuery(") VALUES (").setValuePlaceholder()
+							  .addQuery(")")
+							  .addField("username", credential.username())
+							  .addField("character", udata.target)
+							  .addField("coin", udata.token)
+							  .exec());
+
+			LOG_CINFO("client") << "Auto target" << udata.target << "for user" << qPrintable(credential.username());
+		}
+	} else {
+		udata.target = target->value(QStringLiteral("character")).toString();
+		udata.token = target->value(QStringLiteral("coin")).toInt();
+	}
+
+	LOG_CWARNING("client") << "***" << udata.toJson();
+
+	response = responseOk(udata.toJson());
+
+	LAMBDA_THREAD_END;
 }
+
+
+
+
+
 
 
 
@@ -1770,27 +1880,266 @@ void UserAPI::_addStatistics(const QString &username, const QJsonArray &list) co
 
 
 
+
 /**
- * @brief UserAPI::_setCurrency
+ * @brief UserAPI::_finishRpgGame
  * @param username
- * @param gameid
- * @param amount
+ * @param id
+ * @param json
  */
 
-void UserAPI::_setCurrency(const QString &username, const int &gameid, const int &amount) const
+QJsonObject UserAPI::_finishRpgGame(const QString &username, const int &id, const QJsonObject &json)
 {
 	QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 
 	QMutexLocker _locker(databaseMain()->mutex());
 
-	if (!QueryBuilder::q(db)
-			.addQuery("INSERT OR REPLACE INTO currency(").setFieldPlaceholder().addQuery(") VALUES (").setValuePlaceholder().addQuery(")")
-			.addField("username", username)
-			.addField("amount", amount)
-			.addField("gameid", gameid)
-			.exec()) {
-		LOG_CERROR("client") << "Game currency update error" << gameid << qPrintable(username);
+	QJsonObject ret;
+
+	QueryBuilder qq(db);
+
+	qq.addQuery("SELECT terrain, character FROM rpgGame WHERE gameid=").addValue(id);
+
+	if (!qq.exec() || !qq.sqlQuery().first())
+		return {};
+
+	const QString terrain = qq.value("terrain").toString();
+	const QString character = qq.value("character").toString();
+
+	int point = json.value(QStringLiteral("point")).toInt();
+	int token = json.value(QStringLiteral("token")).toInt();
+
+
+	ret[QStringLiteral("point")] = point;
+	ret[QStringLiteral("token")] = token;
+
+	LOG_CINFO("client") << "****" << username << id << terrain << character << point << token;
+
+	QueryBuilder::q(db)
+			.addQuery("UPDATE rpgGame SET ")
+			.setCombinedPlaceholder()
+			.addField("coinCharacter", point)
+			.addField("coinTarget", token)
+			.addQuery(" WHERE gameid=")
+			.addValue(id)
+			.exec();
+
+
+	const auto &ch = QueryBuilder::q(db)
+					 .addQuery("SELECT level, coin FROM rpgCharacter WHERE username=").addValue(username)
+					 .addQuery(" AND character=").addValue(character)
+					 .execToJsonObject();
+
+	if (!ch)
+		return {};
+
+
+	if (ch->isEmpty()) {
+		/// TODO: userWeekly
+		LOG_CERROR("client") << "Missing implementation";
+		return {};
 	}
+
+
+
+	int level = ch->value(QStringLiteral("level")).toInt();
+	point += ch->value(QStringLiteral("coin")).toInt();
+
+
+	///int token = target.value_or({}).value(QStringLiteral("coin")).toInt();
+
+	if (level < 1) {
+		LOG_CERROR("client") << "Invalid RPG character level:" << qPrintable(username) << character << level;
+		return {};
+	}
+
+	if (level >= CFG_POWER_LEVEL_COUNT) {
+		LOG_CWARNING("client") << "Invalid RPG character level:" << qPrintable(username) << character << level;
+	}
+
+	const RpgServerCharacter data = m_service->rpgConfig()->characters().value(character);
+
+	if (data.pwrUnlock.size() != CFG_POWER_LEVEL_COUNT) {
+		LOG_CERROR("client") << "Invalid RPG character:" << qPrintable(username) << character;
+		return {};
+	}
+
+	// Push up levels
+
+	while (point > 0 && level < CFG_POWER_LEVEL_COUNT) {
+		const int next = data.pwrUnlock.at(level);
+
+		if (point < next)
+			break;
+
+		++level;
+		point -= next;
+	}
+
+	// Convert to token
+
+	if (level >= CFG_POWER_LEVEL_COUNT) {
+		const int plus = (float) point / (float) CFG_POWER_POINT_TOKEN;
+
+		LOG_CINFO("client") << "Convert" << point << "to" << plus << "tokens";
+
+		token += plus;
+		point = 0;
+	}
+
+	ret[QStringLiteral("character")] = character;
+	ret[QStringLiteral("newLevel")] = level;
+	ret[QStringLiteral("newPoint")] = point;
+
+	if (!QueryBuilder::q(db)
+			.addQuery("UPDATE rpgCharacter SET ").setCombinedPlaceholder()
+			.addField("level", level)
+			.addField("coin", point)
+			.addQuery(" WHERE username=")
+			.addValue(username)
+			.addQuery(" AND character=")
+			.addValue(character)
+			.exec())
+		return {};
+
+
+	if (token > 0)
+		_addRpgToken(username, token, &ret);
+
+
+	LOG_CWARNING("client") << "##############" << ret;
+
+	return ret;
+}
+
+
+
+/**
+ * @brief UserAPI::_addRpgToken
+ * @param username
+ * @param token
+ * @param dst
+ * @return
+ */
+
+bool UserAPI::_addRpgToken(const QString &username, const int &token, QJsonObject *dst)
+{
+	if (token <= 0)
+		return true;
+
+	QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+	LOG_CINFO("client") << "++++" << username << token;
+
+	QMutexLocker _locker(databaseMain()->mutex());
+
+	const auto &target = QueryBuilder::q(db)
+						 .addQuery("SELECT character, coin FROM rpgTarget WHERE username=")
+						 .addValue(username)
+						 .execToJsonObject();
+
+	if (!target)
+		return false;
+
+	QString character = target->value(QStringLiteral("character")).toString();
+
+	int real = token + target->value(QStringLiteral("coin")).toInt();
+
+
+	// Unlock character
+
+	if (!character.isEmpty() && character != CHARACTER_PRESTIGE) {
+		const RpgServerCharacter data = m_service->rpgConfig()->characters().value(character);
+
+		if (real >= data.unlock) {
+			LOG_CINFO("client") << "Unlock character" << character << "for user" << qPrintable(username);
+
+			real -= data.unlock;
+
+			if (!QueryBuilder::q(db)
+					.addQuery("INSERT INTO rpgCharacter(").setFieldPlaceholder()
+					.addQuery(") VALUES (").setValuePlaceholder()
+					.addQuery(")")
+					.addField("username", username)
+					.addField("character", character)
+					.addField("level", 1)
+					.addField("coin", 0)
+					.exec())
+				return false;
+
+			if (dst) {
+				dst->insert(QStringLiteral("unlocked"), character);
+			}
+		}
+	}
+
+
+	// Store token value
+
+	if (!character.isEmpty() && real > 0) {
+		if (!QueryBuilder::q(db)
+				.addQuery("UPDATE rpgTarget SET ").setCombinedPlaceholder()
+				.addField("coin", real)
+				.addQuery(" WHERE username=")
+				.addValue(username)
+				.exec())
+			return {};
+	}
+
+
+
+	if (real <= 0)
+		character.clear();
+
+	// Auto select target
+
+	if (character.isEmpty()) {
+		QSet<QString> used;
+		QMap<int, QString> availableTargets;
+
+		QueryBuilder q(db);
+		q.addQuery("SELECT character FROM rpgCharacter WHERE username=").addValue(username);
+
+		if (!q.exec())
+			return false;
+
+		while (q.sqlQuery().next())
+			used.insert(q.value("character").toString());
+
+		for (const auto &[ch, data] : m_service->rpgConfig()->characters().asKeyValueRange()) {
+			if (data.unlock == 0 || used.contains(ch))
+				continue;
+
+			availableTargets.insert(data.unlock, ch);
+		}
+
+		if (availableTargets.isEmpty()) {
+			LOG_CWARNING("client") << "No available targets for user" << qPrintable(username);
+			character = CHARACTER_PRESTIGE;
+		} else {
+			character = availableTargets.first();
+		}
+
+		LOG_CDEBUG("client") << "Auto select target" << character << "for user" << qPrintable(username);
+
+		if (!QueryBuilder::q(db)
+				.addQuery("INSERT OR REPLACE INTO rpgTarget(").setFieldPlaceholder()
+				.addQuery(") VALUES (").setValuePlaceholder()
+				.addQuery(")")
+				.addField("username", username)
+				.addField("character", character)
+				.addField("coin", real)
+				.exec())
+			return false;
+
+
+		if (dst) {
+			dst->insert(QStringLiteral("target"), character);
+			dst->insert(QStringLiteral("targetToken"), real);
+		}
+	}
+
+	return true;
 }
 
 

@@ -185,8 +185,15 @@ std::optional<QSslConfiguration> WebServer::loadSslConfiguration(const ServerSet
 		return std::nullopt;
 	}
 
-	certFile.open(QIODevice::ReadOnly);
-	keyFile.open(QIODevice::ReadOnly);
+	if (!certFile.open(QIODevice::ReadOnly)) {
+		LOG_CERROR("websocket") << "Server certificate open error:" << qPrintable(certFile.fileName());
+		return std::nullopt;
+	}
+
+	if (!keyFile.open(QIODevice::ReadOnly)) {
+		LOG_CERROR("websocket") << "Server certificate key open error:" << qPrintable(certFile.fileName());
+		return std::nullopt;
+	}
 
 	QSslCertificate cert(&certFile, QSsl::Pem);
 	QSslKey key(&keyFile, QSsl::Rsa, QSsl::Pem);

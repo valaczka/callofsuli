@@ -199,7 +199,6 @@
         <file>RpgSelectView.qml</file>
         <file>PageMarket.qml</file>
         <file>RpgMarketCard.qml</file>
-        <file>RpgQuestsDialog.qml</file>
         <file>UserInfoNotification.qml</file>
         <file>RpgNpcMarker.qml</file>
         <file>RpgKeyboardInfoDialog.qml</file>
@@ -217,8 +216,6 @@
         <file>TiledVisualOutline.qml</file>
         <file>TiledImageFromLayer.qml</file>
         <file>RpgGameUserDialog.qml</file>
-        <file>RpgQuestHeader.qml</file>
-        <file>RpgQuestDelegate.qml</file>
         <file>RpgLobby.qml</file>
         <file>QUpgradeButton.qml</file>
         <file>RpgPlayerMarker.qml</file>
@@ -256,5 +253,6 @@
         <file>RpgFinishDialog.qml</file>
         <file>RpgQuestSelectDialog.qml</file>
         <file>RpgChangerTumbler.qml</file>
+        <file>RpgResult.qml</file>
     </qresource>
 </RCC>

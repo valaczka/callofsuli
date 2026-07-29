@@ -102,6 +102,9 @@ private:
 	void onConnectionFailed(const QString &err);
 	void onConnectionLost();
 
+	void downloadServerData();
+	void downloadStaticData();
+
 	void contentPrepare();
 	void onDownloaderStateChanged();
 	void onContentDownloaded();
@@ -119,6 +122,8 @@ private:
 
 	// Prepare
 
+	void waitForGameId();
+	void onGameIdReady();
 	void prepareGameItem();
 	void onGameItemPrepared();
 	void loadChunkGrid();
@@ -160,7 +165,7 @@ private:
 	void startGame(const quint32 &tick = 0);
 	void onBeforeWorldStep(const qint64 &tick);
 	void onAfterWorldStep(const RpgStream::FullState &full);
-	void finishGame();
+	void finishGame(const bool &abort);
 	QVariantMap getQuestResult(const RpgStream::Result &result, const RpgStream::PlayerResult &player) const;
 
 

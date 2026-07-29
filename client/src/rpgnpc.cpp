@@ -25,6 +25,7 @@
  */
 
 #include "rpgnpc.h"
+#include "rpgnpcmpleecher.h"
 #include "rpgnpctowerattacker.h"
 #include "tiledspritehandler.h"
 
@@ -44,11 +45,20 @@ RpgNpc::RpgNpc(RpgGameItem *gameItem, const cpVect &center)
 {
 	m_defaultMotor = std::make_unique<RpgMotorNpc>(this);
 
+	static const cpBitmask defaultBitmask =
+			RpgGameItem::FixturePlayerTarget |
+			RpgGameItem::FixtureDefender |
+			RpgGameItem::FixtureControl |
+			RpgGameItem::FixtureNpcTarget;
+
 	filterSet(RpgGameItem::FixtureNpcBody,
-			  RpgGameItem::FixtureGround);
+			  RpgGameItem::FixtureGround | defaultBitmask);
 
 	addTargetCircle(50, TiledObjectBody::getFilter(RpgGameItem::FixtureNpcTarget,
-												   RpgGameItem::FixtureAll));
+												   defaultBitmask |
+												   RpgGameItem::FixturePlayerBody |
+												   RpgGameItem::FixtureNpcBody |
+												   RpgGameItem::FixtureSensor));
 
 	connect(this, &RpgNpc::healed, this, [this](){ m_effectHealed.play(); });
 };
@@ -87,6 +97,10 @@ RpgNpc *RpgNpc::createNpc(const Rpg::Npc &npc, RpgGameItem *gameItem, TiledScene
 		case RpgStream::NpcData::TowerAttacker:
 			return gameItem->createObject<RpgNpcTowerAttacker>(RpgLogicObjectMapper::toObjectId(npc.idTag),
 															   scene, gameItem, pos);
+
+		case RpgStream::NpcData::MpLeecher:
+			return gameItem->createObject<RpgNpcMpLeecher>(RpgLogicObjectMapper::toObjectId(npc.idTag),
+														   scene, gameItem, pos);
 
 		case RpgStream::NpcData::None:
 			return gameItem->createObject<RpgNpc>(RpgLogicObjectMapper::toObjectId(npc.idTag),
@@ -405,6 +419,7 @@ bool RpgMotorNpc::beforeWorldStep(const qint64 &tick, entt::entity &entity)
 
 	if (!state) {
 		//LOG_CERROR("game") << "!!! STATE" << tick << jittered;
+		m_current.reset();
 		return false;
 	}
 
@@ -493,8 +508,15 @@ RpgMotorNpcControlled::RpgMotorNpcControlled(RpgNpc *npc)
 {
 	Q_ASSERT(m_npc);
 
-	m_npc->setSensorPolygon(400., M_PI * 0.5, RpgGameItem::FixtureSensor,
-							RpgGameItem::FixtureAll);
+	m_npc->setSensorPolygon(400., M_PI * 0.5,
+							TiledObjectBody::getFilter(RpgGameItem::FixtureSensor,
+													   RpgGameItem::FixturePlayerBody |
+													   RpgGameItem::FixturePlayerTarget |
+													   RpgGameItem::FixtureControl |
+													   RpgGameItem::FixtureDefender |
+													   RpgGameItem::FixtureNpcBody |
+													   RpgGameItem::FixtureNpcTarget)
+							);
 }
 
 

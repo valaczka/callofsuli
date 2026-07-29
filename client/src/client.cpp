@@ -676,12 +676,11 @@ void Client::onUserLoggedIn()
 			stackPushPage(QStringLiteral("PagePanel.qml"));
 		else if (server()->user()->roles().testFlag(Credential::Teacher) || server()->user()->roles().testFlag(Credential::Admin))
 			stackPushPage(QStringLiteral("PageTeacherDashboard.qml"));
-		///// TODO ///////////////////////////////////////////////////////////////
-		//else if (server()->offlineEngine())
-		//	server()->offlineEngine()->loadSyncMode(QStringLiteral("PageStudentDashboard.qml"));
+		else if (server()->offlineEngine())
+			server()->offlineEngine()->loadSyncMode(QStringLiteral("PageStudentDashboard.qml"));
 		else
-			/////stackPushPage(QStringLiteral("PageStudentDashboard.qml"));
-			loadDemoMap(/*QUrl("tutorial://test_tutorial1")*/);
+			stackPushPage(QStringLiteral("PageStudentDashboard.qml"));
+			////loadDemoMap(/*QUrl("tutorial://test_tutorial1")*/);
 	});
 }
 
@@ -1943,6 +1942,25 @@ QQuickItem* Client::loadDemoMap(const QUrl &url)
 	mapPlay.release();
 
 	return page;
+}
+
+
+/**
+ * @brief Client::run
+ * @param cmd
+ * @return
+ */
+
+bool Client::run(const QString &cmd)
+{
+	LOG_CINFO("client") << "Run:" << cmd;
+
+	if (cmd == QStringLiteral("rpg")) {
+		RpgGame::createEmptyGame(this);
+		return true;
+	}
+
+	return false;
 }
 
 

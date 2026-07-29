@@ -182,9 +182,6 @@ public:
 	static std::optional<float> _evaluateCriterionMissionLevels(const AbstractAPI *api, const QJsonObject &criterion, const QString &map,
 											 const QString &username);
 
-	static std::optional<int> _currency(const AbstractAPI *api, const QString &username);
-	static std::optional<int> _currency(const DatabaseMain *dbMain, const QString &username);
-
 	static bool _updatePassResultByExam(const AbstractAPI *api, const int &passitem, const int &exam);
 	static bool _updatePassResultByExam(const DatabaseMain *dbMain, const int &passitem, const int &exam);
 

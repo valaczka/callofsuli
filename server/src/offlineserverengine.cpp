@@ -374,7 +374,7 @@ std::optional<PermitResponse> OfflineServerEngine::uploadReceipts(UserAPI *api, 
 			game.timestamp = QDateTime::fromSecsSinceEpoch(permit.getClientTime(r)).toMSecsSinceEpoch();
 
 			int gameId = -1;
-			api->gameCreate(permit.username, permit.campaign, game, {}, &gameId);
+			api->gameCreate(permit.username, permit.campaign, game, &gameId);
 
 			if (gameId == -1) {
 				LOG_CERROR("client") << "Game create error" << permit.username;
@@ -383,7 +383,7 @@ std::optional<PermitResponse> OfflineServerEngine::uploadReceipts(UserAPI *api, 
 
 			bool ok = false;
 
-			api->gameFinish(permit.username, gameId, game, {}, r.stat,
+			api->gameFinish(permit.username, gameId, game, r.stat,
 							r.success, r.xp, r.duration, &ok, nullptr, UserAPI::GameFinishGameOnly);
 
 			if (!ok) {
@@ -405,7 +405,7 @@ std::optional<PermitResponse> OfflineServerEngine::uploadReceipts(UserAPI *api, 
 			UserAPI::UserGame game;
 			game.campaign = permit.campaign;
 
-			api->gameFinish(permit.username, 0, game, {}, {},
+			api->gameFinish(permit.username, 0, game, {},
 							true, 0, 0, &ok, nullptr, UserAPI::GameFinishCampaignOnly);
 
 			if (!ok) {

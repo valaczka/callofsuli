@@ -67,6 +67,7 @@ ServerService::ServerService(int &argc, char **argv)
 	, m_settings(new ServerSettings)
 	, m_networkManager(new QNetworkAccessManager(this))
 	//, m_engineHandler(new EngineHandler(this))
+	, m_rpgConfig(new RpgLogicServerConfig)
 {
 	Q_ASSERT(!m_instance);
 
@@ -432,6 +433,54 @@ void ServerService::loadSmtpServer()
 	m_smtpServer->setPassword(m_settings->smtpPassword());
 
 	LOG_CDEBUG("service") << "SMTP client started";
+}
+
+
+
+
+
+
+
+/**
+ * @brief ServerService::loadRpgData
+ */
+
+void ServerService::loadRpgData()
+{
+	LOG_CDEBUG("service") << "Download RPG data...";
+
+	static const QUrl url(QStringLiteral("http://localhost:8080/content/characters.json"));
+
+	QNetworkRequest req(url);
+	QNetworkReply *reply = m_networkManager->get(req);
+
+	QObject::connect(reply, &QNetworkReply::finished, reply, [reply, this]() {
+		if (reply->error() != QNetworkReply::NoError) {
+			LOG_CWARNING("service") << "Network error" << reply->error() << reply->url();
+			reply->deleteLater();
+			return;
+		}
+
+		const auto &ptr = Utils::byteArrayToJsonObject(reply->readAll());
+
+		if (!ptr) {
+			LOG_CWARNING("service") << "Invalid RPG data" << reply->url();
+			reply->deleteLater();
+			return;
+		}
+
+		RpgCharacterList list;
+
+		list.fromJson(ptr.value());
+
+		////m_rpgConfig->loadCharacterList(list);
+
+		AdminAPI::loadRpgData(this, list);
+
+		LOG_CDEBUG("service") << "RPG data loaded";
+
+		reply->deleteLater();
+	});
 }
 
 
@@ -1047,7 +1096,6 @@ bool ServerService::start()
 	m_mainTimer.start(m_mainTimerInterval, this);
 
 	AdminAPI::zapWallet(m_databaseMain.get());
-	//AdminAPI::fillCurrency(m_databaseMain.get());
 
 	if (!m_createToken.isEmpty()) {
 		if (const auto &cred = AuthAPI::getCredential(m_databaseMain.get(), m_createToken)) {
@@ -1080,6 +1128,7 @@ bool ServerService::start()
 		m_state = ServerRunning;
 	}
 
+	loadRpgData();
 
 	m_udpServer.reset(new UdpServer(this));
 
@@ -1164,6 +1213,24 @@ void ServerService::resume()
 	if (!start())
 		m_application->quit();
 }
+
+
+/**
+ * @brief ServerService::rpgConfig
+ * @return
+ */
+
+RpgLogicServerConfig*ServerService::rpgConfig() const
+{
+	return m_rpgConfig.get();
+}
+
+void ServerService::setRpgConfig(std::unique_ptr<RpgLogicServerConfig> newRpgConfig)
+{
+	m_rpgConfig = std::move(newRpgConfig);
+}
+
+
 
 
 

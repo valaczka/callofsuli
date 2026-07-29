@@ -138,6 +138,12 @@ public:
 	virtual RpgStream::GameConfig start();
 	RpgStream::GameConfig startGame();
 
+	virtual void overrideMapData(RpgStream::MapData &data);
+
+	RpgGame *game() const { return m_game; }
+
+	virtual RpgStream::Result getResult() override;
+
 protected:
 	virtual void eventRealized(entt::entity entity) override;
 	virtual void rewindStage(const RpgStream::GameConfig::Stage &oldStage) override;
@@ -163,12 +169,15 @@ public:
 	struct Tutorial {
 		QString character;
 		QString terrain;
+		int power = 1;
 
 		std::function<void(RpgLogicClientTutorial *)> fnInit;
 
 		std::optional<std::unordered_set<quint32> > towers;			// nullopt: default
 		std::optional<std::unordered_set<quint32> > emitters;		// nullopt: default
-		int chests = -1;											// -1: default
+		std::optional<std::unordered_set<QString> > chests;			// nullopt: default
+
+		QuestList questList;
 
 		struct Step {
 			QString message;
@@ -197,10 +206,19 @@ public:
 		}
 
 		void noEmitters() { emitters = std::unordered_set<quint32>{}; }
+
+		void addChest(const QString &entryPoint) {
+			if (!chests) chests = std::unordered_set<QString>{};
+			chests->insert(entryPoint);
+		}
+
+		void noChests() { chests = std::unordered_set<QString>{}; }
 	};
 
 	RpgLogicClientTutorial(RpgGame *game, std::unique_ptr<Tutorial> tutorial);
 	virtual ~RpgLogicClientTutorial();
+
+	virtual void overrideMapData(RpgStream::MapData &data) override;
 
 	bool loadGameData(RpgStream::CharacterSelectClient *dest);
 
@@ -210,6 +228,14 @@ public:
 
 	RpgPlayer *player() const;
 
+	void npcAddToPoint(const QString &character, const QStringList &entryPoint,
+					   const int &num = 1, const int &delay = 0);
+
+	void npcAddToPoint(const QString &character, const QString &entryPoint,
+					   const int &num = 1, const int &delay = 0) {
+		npcAddToPoint(character, QStringList{entryPoint}, num, delay);
+	}
+
 protected:
 	virtual void eventRealized(entt::entity entity) override;
 	virtual void onTargetEntityChanged();
@@ -218,6 +244,7 @@ protected:
 	virtual std::unordered_set<entt::entity> initializeTowers() override;
 	virtual std::unordered_set<entt::entity> initializeEmitters()override;
 	virtual std::vector<Chest> initializeChests() override;
+	virtual Rpg::QuestList getQuestList() const override;
 
 	int stepForward();
 

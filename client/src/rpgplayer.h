@@ -65,12 +65,24 @@ class RpgPlayer : public RpgEntity
 	Q_PROPERTY(RpgEntity *targetEntity READ targetEntity WRITE setTargetEntity NOTIFY targetEntityChanged FINAL)
 	Q_PROPERTY(RpgEntity *utilityEntity READ utilityEntity WRITE setUtilityEntity NOTIFY utilityEntityChanged FINAL)
 
+	Q_PROPERTY(JoystickMode joystickMode READ joystickMode WRITE setJoystickMode NOTIFY joystickModeChanged FINAL)
+
+	Q_PROPERTY(QUrl currentJoystickIcon READ currentJoystickIcon WRITE setCurrentJoystickIcon NOTIFY currentJoystickIconChanged FINAL)
+
 public:
 	RpgPlayer(RpgGameItem *gameItem, const cpVect &center = cpvzero);
 	virtual ~RpgPlayer();
 
 	virtual void initialize() override;
 	virtual void updateSprite() override;
+
+	enum JoystickMode {
+		JoystickModeControl,
+		JoystickModeTarget,
+		JoystickModeUtility
+	};
+
+	Q_ENUM(JoystickMode);
 
 	void load(const RpgPlayerDefinition &config);
 
@@ -117,6 +129,11 @@ public:
 	RpgEntity *utilityEntity() const;
 	void setUtilityEntity(RpgEntity *newUtilityEntity);
 
+	JoystickMode joystickMode() const;
+	void setJoystickMode(JoystickMode newJoystickMode);
+
+	QUrl currentJoystickIcon() const;
+	void setCurrentJoystickIcon(const QUrl &newCurrentJoystickIcon);
 
 signals:
 	void currentChunkChanged();
@@ -131,6 +148,8 @@ signals:
 	void hasUtilityChanged();
 	void canUseUtilityChanged();
 	void utilityEntityChanged();
+	void joystickModeChanged();
+	void currentJoystickIconChanged();
 
 protected:
 	void synchronize() override;
@@ -173,12 +192,14 @@ private:
 	RpgEntity *m_targetEntity = nullptr;
 	TiledObjectBody *m_targetControl = nullptr;
 
+	RpgEntity *m_utilityEntity = nullptr;
+	JoystickMode m_joystickMode = JoystickModeControl;
+	QUrl m_currentJoystickIcon;
 
 	friend class RpgPlayerPrivate;
 	friend class RpgMotorPlayer;
 	friend class RpgMotorPlayerControlled;
 
-	RpgEntity *m_utilityEntity = nullptr;
 };
 
 
@@ -264,7 +285,7 @@ public:
 	void updateUseUtility();
 	float utilityRequireTarget(cpBitmask *categoryPtr = nullptr) const;
 
-	void changeMpToBullet();
+	void changeMpToBullet(const bool &force = false);
 	void changeMpToDefender();
 	void changeMpToUtility();
 

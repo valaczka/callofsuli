@@ -201,6 +201,8 @@ const RpgGameItem::ProxyDirections &RpgGameItem::defaultProxyDirections()
 
 void RpgGameItem::onMouseClick(const qreal &x, const qreal &y, const int &buttons, const int &modifiers)
 {
+	setUsingGamepad(false);
+
 	if (m_paused || !m_game)
 		return;
 
@@ -753,7 +755,7 @@ void RpgGameItem::timeStepPrepareEvent()
 
 void RpgGameItem::timeBeforeWorldStepEvent(const qint64 &tick)
 {
-	if (m_game->gameState() == RpgGame::GameStateFinished)
+	if (m_game->gameState() >= RpgGame::GameStateFinished)
 		return;
 
 	d->onBeforeWorldStep(tick);
@@ -1304,4 +1306,21 @@ void RpgGameItem::setIsContentReady(bool newIsContentReady)
 
 
 
+/**
+ * @brief RpgGameItem::usingGamepad
+ * @return
+ */
 
+
+bool RpgGameItem::usingGamepad() const
+{
+	return m_usingGamepad;
+}
+
+void RpgGameItem::setUsingGamepad(bool newUsingGamepad)
+{
+	if (m_usingGamepad == newUsingGamepad)
+		return;
+	m_usingGamepad = newUsingGamepad;
+	emit usingGamepadChanged();
+}

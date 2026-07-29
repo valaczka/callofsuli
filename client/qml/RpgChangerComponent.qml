@@ -100,7 +100,7 @@ ColumnLayout {
 					   type == "utility" ?
 						   changer.useUtility() :
 						   type == "weapon" ?
-							   changer.useWeapon() :
+							   changer.useWeapon(true) :
 							   console.warn("Invalid type", type)
 
 		Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter

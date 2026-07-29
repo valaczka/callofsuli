@@ -1767,6 +1767,8 @@ bool AdminAPI::campaignFinish(const DatabaseMain *dbMain, const int &campaign)
 
 
 
+
+
 /**
  * @brief AdminAPI::zapWallet
  * @param api
@@ -1789,6 +1791,10 @@ bool AdminAPI::zapWallet(const AbstractAPI *api)
 bool AdminAPI::zapWallet(const DatabaseMain *dbMain)
 {
 	Q_ASSERT(dbMain);
+
+	LOG_CWARNING("service") << "Deprecated" << __PRETTY_FUNCTION__;
+
+	return true;
 
 	LOG_CDEBUG("service") << "Zap wallet";
 
@@ -1850,7 +1856,7 @@ bool AdminAPI::zapWallet(const DatabaseMain *dbMain)
 
 		// ZAP CURRENCY
 
-
+/*
 		db.transaction();
 
 		if (!QueryBuilder::q(db)
@@ -1893,66 +1899,7 @@ bool AdminAPI::zapWallet(const DatabaseMain *dbMain)
 		}
 
 		db.commit();
-
-		ret.resolve();
-	});
-
-	QDefer::await(ret);
-	return (ret.state() == RESOLVED);
-}
-
-
-
-/**
- * @brief AdminAPI::fillCurrency
- * @param api
- * @return
- */
-
-bool AdminAPI::fillCurrency(const AbstractAPI *api)
-{
-	Q_ASSERT(api);
-	return fillCurrency(api->databaseMain());
-}
-
-
-
-/**
- * @brief AdminAPI::fillCurrency
- * @param dbMain
- * @return
- */
-
-bool AdminAPI::fillCurrency(const DatabaseMain *dbMain)
-{
-	Q_ASSERT(dbMain);
-
-#define MIN_CURRENCY	500
-
-	LOG_CDEBUG("service") << "Fill currency to" << MIN_CURRENCY;
-
-	QDefer ret;
-
-	dbMain->worker()->execInThread([ret, dbMain]() mutable {
-		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
-
-		QMutexLocker _locker(dbMain->mutex());
-
-		db.transaction();
-
-		if (!QueryBuilder::q(db)
-				.addQuery("WITH t AS (SELECT user.username, ")
-				.addValue(MIN_CURRENCY)
-				.addQuery("-COALESCE(SUM(amount), 0) AS amount FROM user "
-						  "LEFT JOIN currency ON (currency.username=user.username) WHERE active=true GROUP BY user.username) "
-						  "INSERT INTO currency (username, amount) SELECT username, amount FROM t WHERE amount > 0"
-						  )
-				.exec()) {
-			db.rollback();
-			return ret.reject();
-		}
-
-		db.commit();
+*/
 
 		ret.resolve();
 	});
@@ -2085,6 +2032,38 @@ bool AdminAPI::zapUserData(const DatabaseMain *dbMain)
 				.exec()) {
 			return ret.reject();
 		}
+
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+	return (ret.state() == RESOLVED);
+}
+
+
+
+
+
+
+/**
+ * @brief AdminAPI::loadRpgData
+ * @param service
+ * @param newCharacterList
+ * @return
+ */
+
+bool AdminAPI::loadRpgData(ServerService *service, const RpgCharacterList &newCharacterList)
+{
+	Q_ASSERT(service);
+
+	QDefer ret;
+
+	service->databaseMainWorker()->execInThread([ret, service, &newCharacterList]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(service->databaseMain()->dbName());
+
+		QMutexLocker _locker(service->databaseMain()->mutex());
+
+		service->rpgConfig()->loadCharacterList(newCharacterList);
 
 		ret.resolve();
 	});

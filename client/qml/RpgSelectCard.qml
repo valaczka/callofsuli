@@ -11,11 +11,12 @@ Qaterial.Card {
 	property bool locked: false
 	property bool selected: false
 	property bool disabled: false
-	property int bulletCount: -1
 	property alias image: _image.source
 	property alias text: _label.text
 	property alias mouseArea: _area
-	property alias subImage: _subImage.source
+	property alias borderVisible: _border.visible
+
+	default property alias containerContent: _container.data
 
 	signal clicked()
 
@@ -67,57 +68,29 @@ Qaterial.Card {
 			}
 		}
 
+
 		Image
 		{
 			id: _image
 
-			fillMode: Image.PreserveAspectCrop
+			visible: !locked && !disabled
+
+			fillMode: Image.PreserveAspectFit
 			horizontalAlignment: Image.AlignHCenter
 			verticalAlignment: Image.AlignVCenter
 			width: Math.min(parent.width, sourceSize.width)
-			height: Math.min(parent.height, sourceSize.height)
-			anchors.centerIn: parent
-
-			visible: !locked && !disabled
+			height: Math.min(parent.height - _label.height, sourceSize.height)
+			anchors.horizontalCenter: parent.horizontalCenter
+			anchors.bottom: parent.bottom
 
 			opacity: selected ? 1.0 : 0.7
 
 			Behavior on opacity {
 				NumberAnimation { duration: 125 }
 			}
-
-			Image {
-				id: _subImage
-
-				visible: source != ""
-
-				readonly property real imgSize: Math.min(parent.width*0.35, parent.height*0.35)
-
-				width: imgSize
-				height: imgSize
-
-				anchors.right: parent.right
-				anchors.bottom: parent.bottom
-
-				anchors.rightMargin: parent.width*0.1
-				anchors.bottomMargin: parent.height*0.1
-
-				fillMode: Image.PreserveAspectFit
-			}
-
-			Rectangle {
-				anchors.fill: _subImage
-				visible: _subImage.visible
-				color: "transparent"
-				border.width: 2
-				border.color: control.locked ? Qaterial.Colors.black : Qaterial.Colors.cyan300
-			}
-
 		}
 
 		Desaturate {
-			id: _saturate
-
 			visible: locked || disabled
 
 			anchors.fill: _image
@@ -128,6 +101,12 @@ Qaterial.Card {
 			opacity: 0.4
 		}
 
+
+		Item {
+			id: _container
+
+			anchors.fill: parent
+		}
 
 		Qaterial.Icon {
 			anchors.centerIn: parent
@@ -145,10 +124,12 @@ Qaterial.Card {
 
 			anchors.left: parent.left
 			anchors.right: parent.right
-			anchors.bottom: parent.bottom
+			anchors.top: parent.top
 			anchors.leftMargin: Qaterial.Style.card.horizontalPadding
 			anchors.rightMargin: Qaterial.Style.card.horizontalPadding
-			anchors.bottomMargin: Qaterial.Style.card.verticalPadding
+			anchors.topMargin: Qaterial.Style.card.verticalPadding
+
+			//bottomPadding: 10 * Qaterial.Style.pixelSizeRatio
 
 			lineHeight: 0.8
 			textFormat: Text.StyledText
@@ -163,47 +144,6 @@ Qaterial.Card {
 		}
 
 
-		Rectangle {
-			color: "black"
-			anchors.centerIn: _bullet
-			width: _bullet.width + 2*Qaterial.Style.card.verticalPadding
-			height: _bullet.height + 2*Qaterial.Style.card.verticalPadding
-			opacity: 0.9
-			visible: _bullet.visible
-		}
-
-		Qaterial.Label {
-			id: _bullet
-
-			visible: bulletCount > -1
-
-			//icon.source: Qaterial.Icons.bullet
-			text: bulletCount
-
-			anchors.top: parent.top
-			anchors.right: parent.right
-			anchors.topMargin: Qaterial.Style.card.verticalPadding
-			anchors.rightMargin: Qaterial.Style.card.verticalPadding
-
-			color: Qaterial.Colors.blue500
-			font.family: Qaterial.Style.textTheme.body2.family
-			font.pixelSize: Qaterial.Style.textTheme.body2.pixelSize
-			font.weight: Font.DemiBold
-			/*icon.width: Qaterial.Style.textTheme.body2.pixelSize * 1.2
-			icon.height: Qaterial.Style.textTheme.body2.pixelSize * 1.2
-			spacing: 2 * Qaterial.Style.pixelSizeRatio*/
-		}
-
-		Glow {
-			anchors.fill: _bullet
-			source: _bullet
-			visible: _bullet.visible
-			color: "black"
-			radius: 1
-			spread: 0.9
-			samples: 5
-		}
-
 		Glow {
 			anchors.fill: _label
 			source: _label
@@ -215,6 +155,7 @@ Qaterial.Card {
 		}
 
 		Rectangle {
+			id: _border
 			anchors.fill: parent
 			color: "transparent"
 			radius: control.radius

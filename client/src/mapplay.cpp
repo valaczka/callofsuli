@@ -531,8 +531,6 @@ bool MapPlay::play(MapPlayMissionLevel *level, const GameMap::GameMode &mode, co
 
 	m_client->setCurrentGame(g);
 
-	m_extendedData = extended;
-
 	onCurrentGamePrepared();
 
 	return true;

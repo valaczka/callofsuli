@@ -25,6 +25,7 @@
  */
 
 #include "mapplaycampaign.h"
+#include "rpggame.h"
 
 
 /**
@@ -188,6 +189,8 @@ bool MapPlayCampaign::playMultiPlayer(MapPlayMissionLevel *level, const bool &fo
 
 
 
+
+
 /**
  * @brief MapPlayCampaign::onCurrentGamePrepared
  */
@@ -198,6 +201,21 @@ void MapPlayCampaign::onCurrentGamePrepared()
 		return;
 
 
+
+	if (RpgGame *rpgGame = qobject_cast<RpgGame*>(m_client->currentGame())) {
+		LOG_CWARNING("client") << "***************************************!!!";
+
+		if (m_client->currentGame()->load())
+			setGameState(StatePlay);
+		else {
+			setGameState(StateInvalid);
+			m_client->currentGame()->setReadyToDestroy(true);
+		}
+
+
+		return;
+	}
+
 	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
 	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_client->currentGame());
 
@@ -205,63 +223,6 @@ void MapPlayCampaign::onCurrentGamePrepared()
 		LOG_CERROR("client") << "Object cast error" << m_client->currentGame();
 		return;
 	}
-
-
-	/*
-	if (ActionRpgMultiplayerGame *agame = qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
-		RpgConfigBase gameData;
-		gameData.mapUuid = m_gameMap->uuid();
-		gameData.missionUuid = levelGame->uuid();
-		gameData.missionLevel = levelGame->level();
-		gameData.campaign = m_campaign ? m_campaign->campaignid() : 0;
-
-		m_client->send(HttpConnection::ApiUser, QStringLiteral("campaign/%1/game/token").arg(
-						   m_campaign ? m_campaign->campaignid() : 0
-										), gameData.toJson())
-				->error(this, [this](const QNetworkReply::NetworkError &){
-			m_client->messageError(tr("Hálózati hiba"), tr("Játék indítása sikertelen"));
-			destroyCurrentGame();
-		})
-				->fail(this, [this](const QString &err){
-			if (err.startsWith(QStringLiteral("active"))) {
-				QStringList f = err.split('/', Qt::SkipEmptyParts);
-
-				if (f.size() > 2) {
-					setActiveSeat(f.at(1).toUInt());
-					setActiveEngine(f.at(2).toInt());
-
-					m_client->messageError(tr("Be vagy jelentkezve egy aktív játékba/szobába. "
-											  "Próbáld újra úgy, hogy kiválasztod a lezárási lehetőséget."),
-										   tr("Aktív játék/szoba van folyamatban"));
-
-					destroyCurrentGame();
-					setGameState(StateSelect);
-					return;
-				}
-			}
-
-			m_client->messageError(err, tr("Játék indítása sikertelen"));
-			destroyCurrentGame();
-		})
-				->done(this, [this, agame](const QJsonObject &data){
-
-			const QByteArray &token = data.value(QStringLiteral("token")).toString().toLatin1();
-			if (token.isEmpty()) {
-				m_client->messageError(tr("Érvénytelen játékazonosító érekezett"), tr("Játék indítása sikertelen"));
-				destroyCurrentGame();
-				return;
-			}
-
-			LOG_CDEBUG("client") << "Game play (multiplayer)";
-
-			agame->setConnectionToken(token);
-			agame->load();
-			setGameState(StatePlay);
-		});
-
-		return;
-	}
-*/
 
 
 	setFinishedData({});
@@ -284,7 +245,7 @@ void MapPlayCampaign::onCurrentGamePrepared()
 						   { QStringLiteral("mission"), levelGame->uuid() },
 						   { QStringLiteral("level"), levelGame->level() },
 						   { QStringLiteral("mode"), levelGame->mode() },
-						   { QStringLiteral("extended"), m_extendedData }
+						   ///{ QStringLiteral("extended"), m_extendedData }
 					   })
 				->error(this, [this](const QNetworkReply::NetworkError &){
 			m_client->messageError(tr("Hálózati hiba"), tr("Játék indítása sikertelen"));
@@ -305,7 +266,7 @@ void MapPlayCampaign::onCurrentGamePrepared()
 			LOG_CDEBUG("client") << "Game play (campaign)" << gameId;
 
 			game->setGameId(gameId);
-			game->setServerExtended(data.value(QStringLiteral("extended")).toObject());
+			///game->setServerExtended(data.value(QStringLiteral("extended")).toObject());
 			levelGame->load();
 
 			setGameState(StatePlay);
@@ -314,6 +275,9 @@ void MapPlayCampaign::onCurrentGamePrepared()
 		});
 	}
 }
+
+
+
 
 
 /**
@@ -326,28 +290,40 @@ void MapPlayCampaign::onCurrentGameFinished()
 		return;
 
 
-	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
+	if (RpgGame *rpgGame = qobject_cast<RpgGame*>(m_client->currentGame())) {
+		LOG_CWARNING("client") << "***************************************!!!";
 
-
-	/*if (qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
-		if (levelGame->finishState() == AbstractGame::Neutral) {
+		if (rpgGame->finishState() == AbstractGame::Neutral) {
+			LOG_CINFO("client") << "NEUTRAL";
 			destroyCurrentGame();
 			setGameState(StateSelect);
 			return;
 		}
 
+		LOG_CINFO("client") << "FINISHED" << rpgGame->finishState();
+
+		const QJsonArray &stat = rpgGame->getStatistics();
+
 		m_finishObject = QJsonObject({
-										 { QStringLiteral("statistics"), levelGame->getStatistics() },
+										 { QStringLiteral("success"), rpgGame->finishState() == AbstractGame::Success },
+										 { QStringLiteral("xp"), rpgGame->questResultData().value(QStringLiteral("xpReal")).toInt() },
+										 { QStringLiteral("token"), rpgGame->questResultData().value(QStringLiteral("tokenReal")).toInt() },
+										 { QStringLiteral("point"), rpgGame->questResultData().value(QStringLiteral("pts")).toInt() },
+										 { QStringLiteral("duration"), rpgGame->elapsedMsec() },
+										 { QStringLiteral("statistics"), stat },
 									 });
+
+		rpgGame->clearStatistics(stat);
 
 		m_finishTries = 0;
 		onFinishTimerTimeout();
 		m_finishTimer.start();
 
 		return;
-	}*/
+	}
 
 
+	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
 	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_client->currentGame());
 
 	if (!levelGame || !game) {
@@ -360,13 +336,13 @@ void MapPlayCampaign::onCurrentGameFinished()
 		emit currentGameFailed();
 
 
-	if (levelGame->mode() == GameMap::Practice /*|| levelGame->mode() == GameMap::MultiPlayer*/) {
+	if (levelGame->mode() == GameMap::Practice) {
 		destroyCurrentGame();
 		//updateSolver();
 		setGameState(StateFinished);
 	} else {
 		const QJsonArray &stat = levelGame->getStatistics();
-		const QJsonObject &extended = levelGame->getExtendedData();
+		///const QJsonObject &extended = levelGame->getExtendedData();
 
 		if (LiteGame *lg = qobject_cast<LiteGame*>(m_client->currentGame()); lg && levelGame->mode() == GameMap::Lite) {
 			if (GameMapMissionLevel *ml = lg->missionLevel(); lg->shortTimeHelper() && ml) {
@@ -381,15 +357,8 @@ void MapPlayCampaign::onCurrentGameFinished()
 										 { QStringLiteral("xp"), levelGame->xp() },
 										 { QStringLiteral("duration"), levelGame->elapsedMsec() },
 										 { QStringLiteral("statistics"), stat },
-										 { QStringLiteral("extended"), extended },
+										 ///{ QStringLiteral("extended"), extended },
 									 });
-
-		/*if (ActionRpgGame *rpgGame = qobject_cast<ActionRpgGame*>(m_client->currentGame())) {
-			if (RpgGame *g = rpgGame->rpgGame()) {
-				m_finishObject.insert(QStringLiteral("wallet"), g->usedWalletAsArray());
-				m_finishObject.insert(QStringLiteral("currency"), g->currency());
-			}
-		}*/
 
 		levelGame->clearStatistics(stat);
 
@@ -424,11 +393,6 @@ void MapPlayCampaign::onUpdateTimerTimeout()
 	if (levelGame->mode() == GameMap::Practice)
 		return;
 
-	/*if (qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
-		/// ----- statistics!!!!
-		return;
-	}*/
-
 
 	const QJsonArray &stat = levelGame->getStatistics();
 	int xp = levelGame->xp();
@@ -438,12 +402,7 @@ void MapPlayCampaign::onUpdateTimerTimeout()
 		{ QStringLiteral("statistics"), stat }
 	};
 
-	/*if (ActionRpgGame *rpgGame = qobject_cast<ActionRpgGame*>(m_client->currentGame())) {
-		if (RpgGame *g = rpgGame->rpgGame()) {
-			data.insert(QStringLiteral("wallet"), g->usedWalletAsArray());
-			data.insert(QStringLiteral("currency"), g->currency());
-		}
-	} else*/ if (stat.isEmpty() && m_lastXP == xp) {
+	if (stat.isEmpty() && m_lastXP == xp) {
 		return;
 	}
 
@@ -477,39 +436,38 @@ void MapPlayCampaign::onFinishTimerTimeout()
 
 	LOG_CDEBUG("client") << "Try finishing game" << m_finishTries;
 
+	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
 
-	/*if (ActionRpgMultiplayerGame *game = qobject_cast<ActionRpgMultiplayerGame*>(m_client->currentGame())) {
-		if (const QJsonObject &data = game->finalData(); !data.isEmpty()) {
+	int gameId = -1;
+
+	if (CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_client->currentGame()))
+		gameId = game->gameId();
+	else if (RpgGame *rpgGame = qobject_cast<RpgGame*>(m_client->currentGame())) {
+		gameId = rpgGame->gameId();
+
+		/// Check to force....
+		/*if (RpgGame *rpgGame = qobject_cast<RpgGame*>(m_client->currentGame())) {
+			LOG_CERROR("client") << "Game finish FORCE";
+
 			m_finishTimer.stop();
 			m_finishObject = QJsonObject();
 
-			setFinishedData(data);
+			///setFinishedData(data);
 
 			destroyCurrentGame();
+
+			LOG_CERROR("client") << "Game finish FORCE FINISHED";
 
 			updateSolver();
 
 			setGameState(StateFinished);
 
 			m_client->reloadUser();
-
 			return;
-		}
+		}*/
+	}
 
-		if (++m_finishTries > 4) {
-			m_client->messageError(tr("Játék mentése sikertelen"));
-			m_finishTimer.stop();
-			setGameState(StateFinished);
-			destroyCurrentGame();
-		}
-
-		return;
-	}*/
-
-	AbstractLevelGame *levelGame = qobject_cast<AbstractLevelGame*>(m_client->currentGame());
-	CampaignGameIface *game = dynamic_cast<CampaignGameIface*>(m_client->currentGame());
-
-	if (!levelGame || !game || ++m_finishTries > 4) {
+	if (!levelGame || gameId < 0 || ++m_finishTries > 4) {
 		m_client->messageError(tr("Játék mentése sikertelen"));
 		m_finishTimer.stop();
 		setGameState(StateFinished);
@@ -517,23 +475,28 @@ void MapPlayCampaign::onFinishTimerTimeout()
 		return;
 	}
 
-	m_client->send(HttpConnection::ApiUser, QStringLiteral("game/%1/finish").arg(game->gameId()), m_finishObject)
+
+	m_client->send(HttpConnection::ApiUser, QStringLiteral("game/%1/finish").arg(gameId), m_finishObject)
 			->fail(this, [](const QString &err){
 		LOG_CERROR("client") << "Game finish error:" << qPrintable(err);
 	})
 			->done(this, [this](const QJsonObject &data){
+
 		m_finishTimer.stop();
 		m_finishObject = QJsonObject();
 
 		setFinishedData(data);
 
-		destroyCurrentGame();
+		if (RpgGame *rpgGame = qobject_cast<RpgGame*>(m_client->currentGame())) {
+			rpgGame->setGameResultData(data.toVariantMap());
+		}
 
 		updateSolver();
 
-		setGameState(StateFinished);
-
 		m_client->reloadUser();
+
+		setGameState(StateFinished);
+		destroyCurrentGame();
 	});
 }
 
@@ -560,10 +523,7 @@ AbstractLevelGame *MapPlayCampaign::createLevelGame(MapPlayMissionLevel *level, 
 
 	switch (mode) {
 		case GameMap::Rpg:
-			/*if (multi)
-				g = new CampaignActionRpgMultiplayerGame(level->missionLevel(), m_client);
-			else
-				g = new CampaignActionRpgGame(level->missionLevel(), m_client);*/
+			g = new RpgGame(level->missionLevel(), m_client, multi, nullptr);
 			break;
 
 		case GameMap::Lite:

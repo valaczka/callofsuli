@@ -70,9 +70,9 @@ Item {
 		const a = degToRad(action.angle)
 
 		return Qt.point(
-			root.width / 2 + Math.cos(a) * menuRadius,
-			root.height / 2 + Math.sin(a) * menuRadius
-		)
+					root.width / 2 + Math.cos(a) * menuRadius,
+					root.height / 2 + Math.sin(a) * menuRadius
+					)
 	}
 
 	function distance(x1, y1, x2, y2) {
@@ -242,8 +242,28 @@ Item {
 		border.width: root.menuVisible ? 3 : 2
 		border.color: root.menuVisible ? Qaterial.Style.iconColor() : fontImage.color
 
-		fontImage.icon: Qaterial.Icons.reload
-		fontImage.color: root.menuVisible ? Qaterial.Style.iconColor() : Qaterial.Colors.white
+		fontImage.icon: {
+			if (changer.game.controlledPlayer && changer.game.gameItem.usingGamepad) {
+				if (changer.game.controlledPlayer.currentJoystickIcon == "")
+					return "qrc:/internal/game/target1.svg"
+				else
+					return changer.game.controlledPlayer.currentJoystickIcon
+			} else {
+				return Qaterial.Icons.reload
+			}
+		}
+
+		fontImage.color: root.menuVisible ? Qaterial.Style.iconColor() :
+											(changer.game.controlledPlayer && changer.game.gameItem.usingGamepad) ?
+												(changer.game.controlledPlayer.joystickMode === RpgPlayer.JoystickModeControl ?
+													 Qaterial.Colors.green700 :
+													 changer.game.controlledPlayer.joystickMode === RpgPlayer.JoystickModeTarget ?
+														 Qaterial.Colors.red700 :
+														 changer.game.controlledPlayer.joystickMode === RpgPlayer.JoystickModeUtility ?
+															 Qaterial.Colors.amber700 :
+															 Qaterial.Colors.white) : Qaterial.Colors.white
+
+
 		fontImageScale: 0.7
 
 

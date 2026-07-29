@@ -203,12 +203,8 @@ public:
 	static cpShapeFilter getFilter(const cpBitmask &categories, const cpBitmask &collidesWith);
 
 
-	void setSensorPolygon(const float &length, const float &range,
-						  const cpBitmask &category, const cpBitmask &virtualCircleCategory);
-	void setSensorPolygon(const float &length, const float &range,
-						  const cpBitmask &category, const cpBitmask &virtualCircleCategory, const cpBitmask &collidesWith);
-	void addVirtualCircle(const cpBitmask &category, const float &length = 0.);
-	void addVirtualCircle(const cpBitmask &category, const cpBitmask &collidesWith, const float &length = 0.);
+	void setSensorPolygon(const float &length, const float &range, const cpShapeFilter &filter);
+	void addVirtualCircle(const cpShapeFilter &filter, const float &length = 0.);
 	void removeVirtualCircle();
 	void addTargetCircle(const float &length, const cpShapeFilter &filter);
 

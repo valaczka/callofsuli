@@ -1,0 +1,73 @@
+PRAGMA foreign_keys = OFF;
+
+----------------------------------
+--- Old wallet, currency
+----------------------------------
+
+--- CHANGE currency TO token;
+--- DROP TABLE wallet;
+--- DROP TABLE currency;
+--- DROP TABLE inventory;
+--- DROP TABLE inventoryLimit;
+
+----------------------------------
+--- Rpg
+----------------------------------
+
+DROP TABLE rpgDrop;
+
+DROP TABLE rpgGame;
+
+DROP TABLE rpgUserWeekly;
+
+DROP TABLE rpgWeekly;
+
+DROP TABLE rpgTarget;
+
+DROP TABLE rpgCharacter;
+
+CREATE TABLE rpgCharacter(
+	id INTEGER NOT NULL PRIMARY KEY,
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	character TEXT NOT NULL,
+	level INTEGER NOT NULL DEFAULT 1,
+	coin INTEGER,
+	UNIQUE (username, character)
+);
+
+CREATE TABLE rpgTarget(
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	character TEXT NOT NULL,
+	coin INTEGER,
+	UNIQUE (username)
+);
+
+CREATE TABLE rpgWeekly(
+	character TEXT NOT NULL,
+	timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE rpgUserWeekly(
+	id INTEGER NOT NULL PRIMARY KEY,
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	character TEXT NOT NULL REFERENCES rpgWeekly(character) ON UPDATE CASCADE ON DELETE CASCADE,
+	coin INTEGER
+);
+
+CREATE TABLE rpgGame(
+	id INTEGER NOT NULL PRIMARY KEY,
+	gameid INTEGER REFERENCES game(id) ON UPDATE CASCADE ON DELETE SET NULL,
+	terrain TEXT,
+	character TEXT,
+	coinCharacter INTEGER,
+	coinTarget INTEGER
+);
+
+CREATE TABLE rpgDrop(
+	id INTEGER NOT NULL PRIMARY KEY,
+	type INTEGER NOT NULL DEFAULT 0,
+	username TEXT NOT NULL REFERENCES user(username) ON UPDATE CASCADE ON DELETE CASCADE,
+	timestamp TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	terrain TEXT
+);
+

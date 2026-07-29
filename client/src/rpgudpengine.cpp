@@ -519,7 +519,7 @@ void RpgUdpEngine::updateResult(RpgStream::EngineDataStream &&stream)
 
 	l->loadResult(std::move(full));
 
-	m_gamePrivate->finishGame();
+	m_gamePrivate->finishGame(false);
 }
 
 

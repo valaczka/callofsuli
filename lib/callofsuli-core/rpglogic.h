@@ -184,6 +184,142 @@ public:
 
 
 
+
+
+
+
+
+/**
+ * @brief The RpgCharacter class
+ */
+
+class RpgCharacter : public QSerializer
+{
+	Q_GADGET
+
+public:
+	RpgCharacter()
+		: QSerializer()
+		, unlockCost(0)
+		, powerLevelCost(0)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(QString, name)
+	QS_FIELD(int, unlockCost)									// Token az unlockhoz
+	QS_FIELD(int, powerLevelCost)								// Az első power level lépés (aztán arányosan nő)
+};
+
+
+
+
+
+/**
+ * @brief The RpgCharacterList class
+ */
+
+class RpgCharacterList : public QSerializer
+{
+	Q_GADGET
+
+public:
+	RpgCharacterList() : QSerializer() {}
+
+	QS_SERIALIZABLE
+
+	QS_QT_DICT_OBJECTS(QMap, QString, RpgCharacter, characters)
+};
+
+
+
+
+
+
+/**
+ * @brief The RpgServerCharacter class
+ */
+
+class RpgServerCharacter : public QSerializer
+{
+	Q_GADGET
+
+public:
+	RpgServerCharacter()
+		: QSerializer()
+		, unlock(0)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(QString, name)
+	QS_FIELD(int, unlock)
+	QS_COLLECTION(QList, int, pwrUnlock)
+};
+
+
+
+
+
+/**
+ * @brief The RpgUserCharacter class
+ */
+
+class RpgUserCharacter : public RpgServerCharacter
+{
+	Q_GADGET
+
+public:
+	RpgUserCharacter()
+		: RpgServerCharacter()
+		, level(0)
+		, point(0)
+	{}
+
+
+	RpgUserCharacter(const RpgServerCharacter &o)
+		: RpgServerCharacter(o)
+		, level(0)
+		, point(0)
+	{}
+
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(QString, character)
+
+	QS_FIELD(int, level)
+	QS_FIELD(int, point)
+};
+
+
+
+
+/**
+ * @brief The RpgUserData class
+ */
+
+class RpgUserData : public QSerializer
+{
+	Q_GADGET
+
+public:
+	RpgUserData()
+		: QSerializer()
+		, token(0)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(QString, target)
+	QS_FIELD(int, token)
+	QS_COLLECTION_OBJECTS(QList, RpgUserCharacter, characters)
+};
+
+
+
+
+
 /**************************************************************
  * RPG LOGIC
  **************************************************************/
@@ -366,17 +502,27 @@ public:
 	BaseStatePull() = default;
 
 	void reset() { m_head = 0; }
-	void append(const T &content) {
-		if (m_head > 1 && m_list[(m_head-1) % PULL_SIZE] == content)
+	void append(const T &content, const bool &forced = false) {
+		if (m_head > 1 && m_list[(m_head-1) % PULL_SIZE] == content) {
+			if (forced) {
+				m_list[(m_head-1) % PULL_SIZE].setTick(content.tick());
+				m_maxTick = std::max(content.tick(), m_maxTick);
+			}
 			return;
+		}
 
 		m_list[m_head % PULL_SIZE] = content;
 		++m_head;
 		m_maxTick = std::max(content.tick(), m_maxTick);
 	}
-	void append(T &&content) {
-		if (m_head > 1 && m_list[(m_head-1) % PULL_SIZE] == content)
+	void append(T &&content, const bool &forced = false) {
+		if (m_head > 1 && m_list[(m_head-1) % PULL_SIZE] == content) {
+			if (forced) {
+				m_list[(m_head-1) % PULL_SIZE].setTick(content.tick());
+				m_maxTick = std::max(content.tick(), m_maxTick);
+			}
 			return;
+		}
 
 		m_list[m_head % PULL_SIZE] = std::move(content);
 		++m_head;
@@ -601,15 +747,6 @@ struct Npc
 {
 	quint32 idTag = 0;
 	RpgStream::NpcData data;
-};
-
-
-// Npc (TowerAttacker)
-
-struct NpcTowerAttacker
-{
-	quint32 destinationTower = 0;					// Ez nem itt kell...
-	cpVect destination = cpvzero;
 };
 
 
@@ -1133,6 +1270,15 @@ struct EventNpcAttackTower {
 };
 
 
+// Npc target player
+
+
+struct EventNpcAttackPlayer {
+	entt::entity npc;
+	entt::entity target;
+};
+
+
 // Tower activated
 
 struct EventTowerActiveChanged {
@@ -1257,6 +1403,7 @@ public:
 	// Player
 
 	entt::entity playerAdd(const RpgStream::PlayerData &data, quint32 *idPtr = nullptr, quint32 *tagIdPtr = nullptr);
+	void npcAdd(const RpgStream::HeatNpc &heatNpc);
 
 	// Common entity
 
@@ -1269,6 +1416,8 @@ public:
 	static cpVect decayKnockback(cpVect &knockback);
 
 	static RpgStream::Team oppositeTeam(const RpgStream::Team &team);
+
+	bool checkInFog(const cpVect &pos, const RpgStream::Team &team) const;
 
 
 	std::mt19937 &rnd() { return m_rnd; }
@@ -1458,7 +1607,7 @@ public:
 	static EventMpCreate createMp(const RpgStream::GameConfig::Stage &stage, const quint32 &tickNow);
 
 	entt::entity emitter = entt::null;
-	entt::entity player = entt::null;
+	entt::entity parent = entt::null;
 
 	float capacityRatio = 1.0;
 	float mpCount = 0;

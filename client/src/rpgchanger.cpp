@@ -33,14 +33,14 @@
 const QHash<RpgStream::PlayerConfig::Utility, QVariantMap> RpgChanger::m_dataUtilities = {
 	{ RpgStream::PlayerConfig::UtilityMissionary,
 	  {
-		  { "icon", "qrc:/internal/medal/Icon.1_04.png" },
+		  { "icon", "qrc:/rpg/castIcon/missionary.png" },
 		  { "description", tr("Missionary") },
 	  }
 	},
 
 	{ RpgStream::PlayerConfig::UtilitySniper,
 	  {
-		  { "icon", "qrc:/internal/medal/Icon.1_05.png" },
+		  { "icon", "qrc:/rpg/castIcon/sniper.png" },
 		  { "description", tr("Sniper") },
 	  }
 	},
@@ -52,7 +52,7 @@ const QHash<RpgStream::PlayerConfig::Utility, QVariantMap> RpgChanger::m_dataUti
 const QHash<RpgStream::BaseDefenderObject::Type, QVariantMap> RpgChanger::m_dataDefenders = {
 	{ RpgStream::BaseDefenderObject::Pulse,
 	  {
-		  { "icon", "qrc:/internal/medal/Icon.1_02.png" },
+		  { "icon", "qrc:/rpg/castIcon/pulse.png" },
 		  { "description", tr("Pulse") },
 	  }
 	},
@@ -66,7 +66,7 @@ const QHash<RpgStream::BaseDefenderObject::Type, QVariantMap> RpgChanger::m_data
 
 	{ RpgStream::BaseDefenderObject::Fog,
 	  {
-		  { "icon", "qrc:/internal/medal/Icon.1_03.png" },
+		  { "icon", "qrc:/rpg/castIcon/fog.png" },
 		  { "description", tr("Fog") },
 	  }
 	},
@@ -92,7 +92,7 @@ RpgChanger::RpgChanger(QQuickItem *parent)
  * @brief RpgChanger::useWeapon
  */
 
-void RpgChanger::useWeapon()
+void RpgChanger::useWeapon(const bool &force)
 {
 	RpgMotorPlayerControlled *motor = m_player ? dynamic_cast<RpgMotorPlayerControlled*>(m_player->currentMotor()) : nullptr;
 

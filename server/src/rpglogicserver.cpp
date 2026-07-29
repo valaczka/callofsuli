@@ -348,3 +348,33 @@ Logger *RpgLogicServer::_logger() const
 
 
 
+/**
+ * @brief RpgLogicServerConfig::loadCharacterList
+ * @param newCharacterList
+ */
+
+void RpgLogicServerConfig::loadCharacterList(const RpgCharacterList &newCharacterList)
+{
+	m_characters.clear();
+
+	for (const auto &[ch, data] : newCharacterList.characters.asKeyValueRange()) {
+		RpgServerCharacter c;
+
+		c.name = data.name;
+		c.unlock = data.unlockCost;
+		c.pwrUnlock.reserve(CFG_POWER_LEVEL_COUNT);
+
+		for (int i=1; i<=CFG_POWER_LEVEL_COUNT; ++i) {
+			c.pwrUnlock << CfgPowerLevel::powerLevelCostAt(data.powerLevelCost, i);
+		}
+
+		m_characters[ch] = c;
+	}
+}
+
+
+
+const QHash<QString, RpgServerCharacter> &RpgLogicServerConfig::characters() const
+{
+	return m_characters;
+}

@@ -48,9 +48,7 @@
 
 #define CFG_PLAYER_RESPAWN				300						// player respawn in tick
 
-#define CFG_PENALTY_TOWER				300						// player question penalty in tick after failed tower attack
 #define CFG_PENALTY_AUTO_UNLOCK			300						// player penalty after auto unlock (no answer)
-#define CFG_PENALTY_CHEST				300						// player penalty after failed chest opening
 
 #define CFG_TOWER_COUNT					3						// used towers
 #define CFG_TOWER_LOCK					60*30					// tower lock after activation in tick
@@ -76,7 +74,140 @@
 #define CFG_RESULT_WEIGHT_STREAK		0.1						// weight of question's streak
 #define CFG_RESULT_HEAT_RATIO			0.5						// heat ratio [ factor *= (1+ratio*heat) ]
 
+#define CFG_POWER_LEVEL_COUNT			8						// Character's maximum power level
+#define CFG_POWER_POINT_TOKEN			100						// x point = 1 token
+
 /// -----------------------------------------------------
+
+
+/// Character's power level details
+
+struct CfgPowerLevel {
+	int hp = 0;
+	int mp = 0;
+	int bullet = 0;
+	int towerPlus = 0;				// lépésszámot adunk meg, de az atLevel() már töltöttséget ad vissza!
+	int towerMinus = 0;				// lépésszámot adunk meg, de az atLevel() már töltöttséget ad vissza!
+	float penalty = 0;				// "static"
+	int push = 0;
+	int pushDist = 0;
+	int pushRest = 0;
+	int skipLock = 0;				// "static"
+	int defenderCount = 0;			// "static"
+	int utilityCount = 0;			// "static"
+
+
+
+
+	/**
+	 * @brief powerLevelCostAt
+	 * @param cost
+	 * @param level
+	 * @return
+	 */
+
+	static int powerLevelCostAt(const int &cost, const int &level) {
+		return level > 1 ? cost * (1.f + 0.25 * (level-2)) : 0;
+	}
+
+
+	/**
+	 * @brief fromPlayerConfig
+	 * @param cfg
+	 * @return
+	 */
+
+	static CfgPowerLevel fromPlayerConfig(const RpgStream::PlayerConfig &cfg)
+	{
+		CfgPowerLevel p;
+
+		p.hp = cfg.entity().maxHp();
+		p.mp = cfg.maxMp();
+		p.bullet = cfg.maxBullet();
+		p.towerPlus = cfg.towerPlus();
+		p.towerMinus = cfg.towerMinus();
+
+		p.push = cfg.entity().push();
+		p.pushDist = cfg.entity().pushDist();
+		p.pushRest = cfg.entity().resist();
+
+		return p.atLevel(cfg.power());
+	}
+
+
+	/**
+	 * @brief atLevel
+	 * @param level
+	 * @return
+	 */
+
+	CfgPowerLevel atLevel(const int &level)
+	{
+		CfgPowerLevel r;
+
+		if (level < 1 || level > CFG_POWER_LEVEL_COUNT)
+			return r;
+
+
+		// A lépésszámnak megfeleltetendő érték, amivel a tower töltöttsége változik (%)
+
+		static const std::array<int, CFG_POWER_LEVEL_COUNT> towerLevel = {
+			10, 20, 25, 33, 50, 75, 100
+		};
+
+
+		// A kezdő lépéshez képesti lépésszám-változás
+
+		static const std::array<int, CFG_POWER_LEVEL_COUNT> towerStepPlus = {
+			0, 0, 1, 1, 1, 2, 2, 3
+		};
+
+		static const std::array<int, CFG_POWER_LEVEL_COUNT> towerStepMinus = {
+			0, 0, 0, 1, 1, 1, 2, 2
+		};
+
+
+		r.hp = (float) this->hp * (1.0 + 0.2 * (level-1.));
+		r.mp = (float) this->mp * (1.0 + 0.2 * (level-1.));
+		r.bullet = (float) this->bullet * (1.0 + 0.25 * (level-1.));
+		r.push = (float) this->push * (1.0 + 0.02 * (level-1.));
+		r.pushDist = (float) this->pushDist * (1.0 + 0.1 * (level-1.));
+		r.pushRest = (float) this->pushRest * (1.0 + 0.3 * (level-1.));
+
+		const int tPlus = std::min(CFG_POWER_LEVEL_COUNT-1, this->towerPlus + towerStepPlus.at(level-1));
+		r.towerPlus = towerLevel.at(tPlus);
+
+		const int tMinus = std::max(CFG_POWER_LEVEL_COUNT-1, this->towerMinus + towerStepMinus.at(level-1));
+		r.towerMinus = towerLevel.at(tMinus);
+
+
+		// STATIC
+
+		static const std::array<float, CFG_POWER_LEVEL_COUNT> penaltyValue = {
+			5.f, 5.f, 4.5, 4.f, 3.5, 3.f, 2.5, 2.f
+		};
+
+		static const std::array<int, CFG_POWER_LEVEL_COUNT> dCountValue = {
+			1, 1, 2, 2, 2, 2, 3, 3
+		};
+
+		static const std::array<int, CFG_POWER_LEVEL_COUNT> uCountValue = {
+			0, 0, 0, 1, 1, 2, 2, 2
+		};
+
+		static const std::array<int, CFG_POWER_LEVEL_COUNT> sCountValue = {
+			5, 5, 5, 4, 4, 4, 3, 3
+		};
+
+		r.penalty = penaltyValue.at(level-1);
+		r.defenderCount = dCountValue.at(level-1);
+		r.utilityCount = uCountValue.at(level-1);
+		r.skipLock = sCountValue.at(level-1);
+
+		return r;
+	}
+};
+
 
 
 

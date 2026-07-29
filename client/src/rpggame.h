@@ -147,9 +147,9 @@ class RpgPlayerDefinition : public QSerializer
 
 public:
 	RpgPlayerDefinition() : QSerializer()
-	  , power(5)
+	  , power(1)
 	  , hp(5)
-	  , mp(15)
+	  , mp(12)
 	  , walk(90)
 	  , run(200)
 
@@ -157,7 +157,10 @@ public:
 	  , pushDistance(1000)
 	  , resist(100)
 
-	  , bullet(50)
+	  , towerPlus(2)
+	  , towerMinus(1)
+
+	  , bullet(5)
 	{}
 
 
@@ -203,6 +206,9 @@ public:
 	QS_FIELD(int, pushDistance)		// max. push distance
 	QS_FIELD(int, resist)			// slide resist
 
+	QS_FIELD(int, towerPlus)		// start step!!!
+	QS_FIELD(int, towerMinus)		// start step!!!
+
 
 	QS_COLLECTION(QList, RpgStream::BaseDefenderObject::Type, defender)				// available defenders
 	QS_COLLECTION(QList, RpgStream::PlayerConfig::Utility, utility)					// available utilities
@@ -231,6 +237,7 @@ public:
 	RpgNpcDefinition() : QSerializer()
 	  , type(RpgStream::NpcData::None)
 	  , hp(5)
+	  , mp(0)
 	  , walk(90)
 	  , run(200)
 
@@ -244,6 +251,7 @@ public:
 	QString prefixPath;
 
 	RpgStream::EntityConfig toEntityConfig() const;
+	RpgStream::NpcData toNpcData() const;
 
 	QS_SERIALIZABLE
 
@@ -258,6 +266,7 @@ public:
 	// Config
 
 	QS_FIELD(int, hp)
+	QS_FIELD(int, mp)				// gained mp on npc's death
 
 	QS_FIELD(int, walk)				// walk speed
 	QS_FIELD(int, run)				// run speed
@@ -270,8 +279,6 @@ public:
 
 	QS_FIELD(QJsonObject, data)
 };
-
-
 
 
 
@@ -322,11 +329,14 @@ class RpgGame : public AbstractLevelGame
 {
 	Q_OBJECT
 
+	Q_PROPERTY(bool isEmpty READ isEmpty CONSTANT FINAL)
 	Q_PROPERTY(GameState gameState READ gameState WRITE setGameState NOTIFY gameStateChanged FINAL)
 	Q_PROPERTY(GameMode gameMode READ gameMode WRITE setGameMode NOTIFY gameModeChanged FINAL)
 	Q_PROPERTY(QString errorString READ errorString WRITE setErrorString NOTIFY errorStringChanged FINAL)
 	Q_PROPERTY(RpgGameItem *gameItem READ gameItem WRITE setGameItem NOTIFY gameItemChanged FINAL)
 	Q_PROPERTY(RpgPlayer *controlledPlayer READ controlledPlayer WRITE setControlledPlayer NOTIFY controlledPlayerChanged FINAL)
+	Q_PROPERTY(int campaignId READ campaignId WRITE setCampaignId NOTIFY campaignIdChanged FINAL)
+	Q_PROPERTY(int gameId READ gameId WRITE setGameId NOTIFY gameIdChanged FINAL)
 
 	Q_PROPERTY(int ptsTeam READ ptsTeam WRITE setPtsTeam NOTIFY ptsTeamChanged FINAL)
 	Q_PROPERTY(int ptsOpponent READ ptsOpponent WRITE setPtsOpponent NOTIFY ptsOpponentChanged FINAL)
@@ -338,6 +348,7 @@ class RpgGame : public AbstractLevelGame
 
 	Q_PROPERTY(QSListModel* modelLobby READ modelLobby CONSTANT FINAL)
 	Q_PROPERTY(QSListModel* modelPlayer READ modelPlayer CONSTANT FINAL)
+	Q_PROPERTY(QSListModel* modelCharacters READ modelCharacters CONSTANT FINAL)
 
 	Q_PROPERTY(QString readableRoom READ readableRoom NOTIFY readableRoomChanged FINAL)
 	Q_PROPERTY(QString terrain READ terrain WRITE setTerrain NOTIFY terrainChanged FINAL)
@@ -350,6 +361,7 @@ class RpgGame : public AbstractLevelGame
 
 	Q_PROPERTY(QVariantMap questSelectData READ questSelectData WRITE setQuestSelectData NOTIFY questSelectDataChanged FINAL)
 	Q_PROPERTY(QVariantMap questResultData READ questResultData WRITE setQuestResultData NOTIFY questResultDataChanged FINAL)
+	Q_PROPERTY(QVariantMap gameResultData READ gameResultData WRITE setGameResultData NOTIFY gameResultDataChanged FINAL)
 
 public:
 	RpgGame(GameMapMissionLevel *missionLevel, Client *client, const bool &multiplayer,
@@ -366,7 +378,9 @@ public:
 		GameStateInit,
 		GameStatePlay,
 		GameStateFinished,
-		GameStateError
+		GameStateError,
+		GameStateResult,
+		GameStateAbort
 	};
 
 	Q_ENUM(GameState)
@@ -393,6 +407,12 @@ public:
 	Q_INVOKABLE void characterSelect(const QVariantMap &data);
 	Q_INVOKABLE void questSelect(const QVariantMap &data);
 
+	Q_INVOKABLE QUrl getCharacterImage(const QString &character) const;
+
+	Q_INVOKABLE bool loadTutorial(const QString &character);
+
+
+	static RpgGame *createEmptyGame(Client *client);
 
 	static const QHash<QString, RpgGameDefinition> &terrains() { return m_terrains; }
 	static void reloadTerrains();
@@ -440,6 +460,8 @@ public:
 
 	QSListModel* modelPlayer() const;
 
+	QSListModel* modelCharacters() const;
+
 	QString readableRoom() const;
 
 	QString terrain() const;
@@ -452,6 +474,8 @@ public:
 	QColor getColor(const RpgStream::Team &team, const QColor &neutral = m_colorOpponent) const;
 
 	static QColor colorGlow();
+
+	std::optional<QPointF> entryPoint(const QString &entry) const;
 
 	int heat() const;
 	void setHeat(int newHeat);
@@ -477,6 +501,17 @@ public:
 	QVariantMap questSelectData() const;
 	void setQuestSelectData(const QVariantMap &newQuestSelectData);
 
+	int gameId() const;
+	void setGameId(int newGameId);
+
+	int campaignId() const;
+	void setCampaignId(int newCampaignId);
+
+	QVariantMap gameResultData() const;
+	void setGameResultData(const QVariantMap &newGameResultData);
+
+	bool isEmpty() const;
+
 signals:
 	void downloadRequest(QString size);
 	void questSelectCompleted();
@@ -497,6 +532,9 @@ signals:
 	void questPtsRqChanged();
 	void questResultDataChanged();
 	void questSelectDataChanged();
+	void gameIdChanged();
+	void campaignIdChanged();
+	void gameResultDataChanged();
 
 protected:
 	virtual void timerEvent(QTimerEvent *) override;
@@ -518,6 +556,9 @@ private:
 	GameState m_gameState = GameStateInvalid;
 	QString m_errorString;
 
+	int m_campaignId = -1;
+	int m_gameId = -1;
+
 	int m_ptsTeam = 0;
 	int m_ptsOpponent = 0;
 	int m_heat = 0;
@@ -530,6 +571,7 @@ private:
 
 	QVariantMap m_questResultData;
 	QVariantMap m_questSelectData;
+	QVariantMap m_gameResultData;
 
 	static const QColor m_colorTeam;
 	static const QColor m_colorOpponent;
@@ -540,6 +582,7 @@ private:
 
 	std::unique_ptr<QSListModel> m_modelLobby;
 	std::unique_ptr<QSListModel> m_modelPlayer;
+	std::unique_ptr<QSListModel> m_modelCharacters;
 
 	static QHash<QString, RpgGameDefinition> m_terrains;
 	static QHash<QString, RpgPlayerDefinition> m_characters;

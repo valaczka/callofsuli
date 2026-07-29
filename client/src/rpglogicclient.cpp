@@ -242,6 +242,30 @@ RpgStream::GameConfig RpgLogicClientSingle::startGame()
 
 
 
+/**
+ * @brief RpgLogicClientSingle::overrideMapData
+ * @param data
+ */
+
+void RpgLogicClientSingle::overrideMapData(RpgStream::MapData &data)
+{
+	Q_UNUSED(data);
+}
+
+
+
+/**
+ * @brief RpgLogicClientSingle::getResult
+ * @return
+ */
+
+RpgStream::Result RpgLogicClientSingle::getResult()
+{
+	return getResultByTeam(RpgStream::TeamNone);
+}
+
+
+
 
 
 
@@ -859,6 +883,20 @@ RpgLogicClientTutorial::~RpgLogicClientTutorial()
 
 
 
+
+
+/**
+ * @brief RpgLogicClientTutorial::overrideMapData
+ * @param data
+ */
+
+void RpgLogicClientTutorial::overrideMapData(RpgStream::MapData &data)
+{
+	data.heat().clear();
+}
+
+
+
 /**
  * @brief RpgLogicClientTutorial::loadGameData
  * @param dest
@@ -882,6 +920,7 @@ bool RpgLogicClientTutorial::loadGameData(RpgStream::CharacterSelectClient *dest
 	}
 
 	dest->data().setConfig(def.toPlayerConfig());
+	dest->data().config().setPower(m_tutorial->power);
 	dest->data().setCharacterResolved(m_tutorial->character);
 
 	//m_characterSelect.data().setNickName(data.value(QStringLiteral("nickname")).toString().toUtf8());
@@ -918,13 +957,58 @@ RpgPlayer *RpgLogicClientTutorial::player() const
 
 
 /**
+ * @brief RpgLogicClientTutorial::npcAddToPoint
+ * @param character
+ * @param entryPoint
+ * @param num
+ * @param delay
+ */
+
+void RpgLogicClientTutorial::npcAddToPoint(const QString &character, const QStringList &entryPoint, const int &num, const int &delay)
+{
+	const auto &ptr = RpgGame::readNpcDefinition(character);
+
+	if (!ptr) {
+		LOG_CERROR("game") << "Invalid NPC type" << character;
+		return;
+	}
+
+	RpgStream::HeatNpc n;
+
+	n.setData(ptr->toNpcData());
+
+	n.data().setCharacterResolved(character);
+
+	n.setNum(num);
+	n.setDelay(delay);
+
+	for (const QString &entry : entryPoint) {
+		const auto pos = m_game->entryPoint(entry);
+
+		if (!pos) {
+			LOG_CERROR("game") << "Invalid entry point" << entry;
+			continue;
+		}
+
+		RpgStream::PlayerPosition p;
+		p.setPosXAsFloat(pos->x());
+		p.setPosYAsFloat(pos->y());
+
+		n.positionList().emplace_back(std::move(p));
+	}
+
+	this->npcAdd(n);
+}
+
+
+/**
  * @brief RpgLogicClientTutorial::eventRealized
  * @param entity
  */
 
 void RpgLogicClientTutorial::eventRealized(entt::entity entity)
 {
-	RpgLogicScope scope = getScope();
+	/*RpgLogicScope scope = getScope();
 
 	if (!scope.valid(entity))
 		return;
@@ -936,7 +1020,7 @@ void RpgLogicClientTutorial::eventRealized(entt::entity entity)
 	}
 
 	if (!m_currentStep)
-		return;
+		return;*/
 
 	checkEvent(entity);
 }
@@ -1022,8 +1106,44 @@ std::unordered_set<entt::entity> RpgLogicClientTutorial::initializeTowers()
 
 std::vector<Chest> RpgLogicClientTutorial::initializeChests()
 {
-	return RpgLogic::initializeChests();
+	if (!m_tutorial || !m_tutorial->chests)
+		return RpgLogic::initializeChests();
+
+	std::vector<Chest> r;
+
+	if (m_tutorial->chests->empty())
+		return r;
+
+	for (const QString &e : m_tutorial->chests.value()) {
+		auto ptr = m_game->entryPoint(e);
+
+		if (ptr) {
+			Chest c;
+			c.pos.x = ptr->x();
+			c.pos.y = ptr->y();
+			r.emplace_back(std::move(c));
+		}
+	}
+
+	return r;
 }
+
+
+
+/**
+ * @brief RpgLogicClientTutorial::getQuestList
+ * @return
+ */
+
+QuestList RpgLogicClientTutorial::getQuestList() const
+{
+	if (m_tutorial)
+		return m_tutorial->questList;
+	else
+		return {};
+}
+
+
 
 
 /**

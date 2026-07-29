@@ -54,7 +54,7 @@ public:
 
 	Q_INVOKABLE virtual void updateSolver() override;
 	Q_INVOKABLE virtual int getShortTimeHelper(MapPlayMissionLevel *missionLevel) const override;
-	Q_INVOKABLE bool playMultiPlayer(MapPlayMissionLevel *level, const bool &forced);
+	[[deprecated]] Q_INVOKABLE bool playMultiPlayer(MapPlayMissionLevel *level, const bool &forced);
 
 	qreal extraTimeFactor() const;
 	void setExtraTimeFactor(qreal newExtraTimeFactor);
@@ -109,12 +109,8 @@ public:
 	const int &gameId() const { return m_gameId; }
 	void setGameId(int newGameId) { m_gameId = newGameId; }
 
-	const QJsonObject &serverExtended() const { return m_serverExtended; }
-	void setServerExtended(const QJsonObject &newServerExtended) { m_serverExtended = newServerExtended; }
-
 protected:
 	int m_gameId = -1;
-	QJsonObject m_serverExtended;
 };
 
 

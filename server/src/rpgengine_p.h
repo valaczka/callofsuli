@@ -53,6 +53,9 @@ private:
 
 	struct RpgPeerData : public UdpPeerData
 	{
+		RpgPeerData() = default;
+		RpgPeerData(const UdpPeerData &p) : UdpPeerData(p) {}
+
 		RpgStream::ConnectionToken token;
 		RpgStream::Team team = RpgStream::TeamNone;
 		UdpServerPeer *peer = nullptr;

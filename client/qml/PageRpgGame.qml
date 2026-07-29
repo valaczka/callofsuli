@@ -14,11 +14,14 @@ Page {
 
 	property string closeQuestion: _rpgVisible && !_forceExit ? qsTr("Biztosan kilépsz a játékból?") : ""
 	property var onPageClose: function() {
-		if (game)
+		if (game && !game.isEmpty)
 			game.gameAbort()
 	}
 
 	property var stackPopFunction: function() {
+		if (game && game.isEmpty)
+			return true
+
 		if (_stack.activeComponent == _cmpRpg) {
 			if (_stack.currentItem.minimapVisible === true) {
 				_stack.currentItem.minimapVisible = false
@@ -47,15 +50,23 @@ Page {
 				game.gameItem.paused = true
 				return false
 			}
+
+			if (game.gameState == RpgGame.GameStateFinished && game.gameResultData.rpg !== undefined) {
+				console.info("****RESULT")
+
+				game.gameState = RpgGame.GameStateResult
+
+				return false
+			}
 		}
 
 		return true
 	}
 
 
-	readonly property bool _rpgVisible: game && (game.gameState == RpgGame.GameStatePrepare ||
-												 game.gameState == RpgGame.GameStateInit ||
-												 game.gameState == RpgGame.GameStatePlay)
+	readonly property bool _rpgVisible: game && !game.isEmpty && (game.gameState == RpgGame.GameStatePrepare ||
+																  game.gameState == RpgGame.GameStateInit ||
+																  game.gameState == RpgGame.GameStatePlay)
 
 
 	property bool _oldWindowState: Client.fullScreenHelper
@@ -108,8 +119,14 @@ Page {
 
 		RpgCharacterSelectTmp {
 			game: root.game
+		}
+	}
 
-			//onMarketRequest: Client.stackPushPage("PageMarket.qml")
+	Component {
+		id: _cmpResult
+
+		RpgResult {
+			game: root.game
 		}
 	}
 
@@ -201,14 +218,19 @@ Page {
 				break
 
 			case RpgGame.GameStateFinished:
+			case RpgGame.GameStateAbort:
 				//if (!_multiplayer)
 				//Client.stackPop(root)
 				console.info("QML change to Finish state.....")
-				return
+				break
+
+			case RpgGame.GameStateResult:
+				_stack.activeComponent = _cmpResult
+				break
 
 			case RpgGame.GameStateDownloadContent:
 				_stack.activeComponent = _cmpStaticDownload
-				return
+				break
 
 			case RpgGame.GameStateLobby:
 				_stack.activeComponent = _cmpLobby
@@ -241,6 +263,11 @@ Page {
 	StackView.onActivated: {
 		_notification.check()
 
+		console.info("#####", game, game.isEmpty)
+
+		if (game.isEmpty)
+			return
+
 		if (game)
 			game.menuBgMusicPlay()
 
@@ -251,6 +278,9 @@ Page {
 	}
 
 	StackView.onRemoved: {
+		if (game.isEmpty)
+			return
+
 		if (game)
 			game.menuBgMusicStop()
 

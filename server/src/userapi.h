@@ -50,6 +50,8 @@ public:
 		GameMap::GameMode mode = GameMap::Invalid;
 		int campaign = -1;
 		qint64 timestamp = 0;
+
+		QJsonObject rpg;
 	};
 
 	QHttpServerResponse update(const Credential &credential, const QJsonObject &json);
@@ -77,8 +79,8 @@ public:
 	QHttpServerResponse gameInfo(const Credential &credential, const QJsonObject &json);
 	QHttpServerResponse gameCreate(const Credential &credential, const int &campaign, const QJsonObject &json);
 	QHttpServerResponse gameCreate(const QString &username, const int &campaign,
-								   const UserGame &game, const QJsonObject &inventory,
-								   int *gameIdPtr = nullptr);
+								   const UserGame &game, int *gameIdPtr = nullptr);
+	QHttpServerResponse gameCreateRpg(const QJsonObject &json, const QString &username, const int &campaign, const UserGame &game);
 	QHttpServerResponse gameTokenCreate(const Credential &credential, const int &campaign, const QJsonObject &json);
 	QHttpServerResponse gameClose(const Credential &credential, const QJsonObject &json);
 	QHttpServerResponse gameUpdate(const Credential &credential, const int &id, const QJsonObject &json);
@@ -93,19 +95,16 @@ public:
 		GameFinishFull = GameFinishGameOnly | GameFinishCampaignOnly
 	};
 
-	QHttpServerResponse gameFinish(const QString &username, const int &id, const UserGame &game,
-								   const QJsonObject &inventory, const QJsonArray &statistics, const bool &success, const int &xp, const int &duration,
+	QHttpServerResponse gameFinish(const QString &username, const int &id, const UserGame &game, const QJsonArray &statistics, const bool &success, const int &xp, const int &duration,
 								   bool *okPtr = nullptr, QPointer<RpgEngine> engine = nullptr, const GameFinishMode &mode = GameFinishFull);
 
 	QHttpServerResponse permitCreate(const Credential &credential, const int &campaign, const QJsonObject &json);
 	QHttpServerResponse permitUpload(const Credential &credential, const QJsonObject &json);
 
-	QHttpServerResponse inventory(const Credential &credential);
-
 	QHttpServerResponse exam(const Credential &credential, const int &id);
 
-	void setCurrency(const QString &username, const int &gameid, const int &amount) const;
 
+	QHttpServerResponse rpg(const Credential &credential);
 
 	static std::optional<QMap<QString, GameMap::SolverInfo> > solverInfo(const DatabaseMain *dbMain, const QString &username, const QString &map);
 	static std::optional<QMap<QString, GameMap::SolverInfo> > solverInfo(const AbstractAPI *api, const QString &username, const QString &map);
@@ -121,7 +120,8 @@ public:
 
 private:
 	void _addStatistics(const QString &username, const QJsonArray &list) const;
-	void _setCurrency(const QString &username, const int &gameid, const int &amount) const;
+	QJsonObject _finishRpgGame(const QString &username, const int &id, const QJsonObject &json);
+	bool _addRpgToken(const QString &username, const int &token, QJsonObject *dst);
 
 };
 

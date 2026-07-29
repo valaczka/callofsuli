@@ -54,7 +54,7 @@ public:
 	Q_INVOKABLE void open() { setActive(true); }
 	Q_INVOKABLE void close() { setActive(false); }
 
-	Q_INVOKABLE void useWeapon();
+	Q_INVOKABLE void useWeapon(const bool &force = false);
 	Q_INVOKABLE void useDefender();
 	Q_INVOKABLE void useUtility();
 

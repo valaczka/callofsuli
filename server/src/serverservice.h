@@ -31,6 +31,7 @@
 #include "ColorConsoleAppender.h"
 #include <sodium.h>
 #include "qnetworkaccessmanager.h"
+#include "rpglogicserver.h"
 #include "server.h"
 #include "serversettings.h"
 #include "databasemain.h"
@@ -149,6 +150,9 @@ public:
 
 	UdpServer *udpServer() const;
 
+	RpgLogicServerConfig *rpgConfig() const;
+	void setRpgConfig(std::unique_ptr<RpgLogicServerConfig> newRpgConfig);
+
 	struct AgentSignature {
 		std::array<unsigned char, crypto_sign_PUBLICKEYBYTES> publicKey;
 		QHash<QByteArray, QSet<QByteArray>> platformProof;
@@ -172,6 +176,7 @@ protected:
 private:
 	static void processSignal(int sig);
 	void loadSmtpServer();
+	void loadRpgData();
 
 	bool start();
 	void resume();
@@ -198,6 +203,7 @@ private:
 	std::shared_ptr<WebServer> m_webServer;
 	std::unique_ptr<UdpServer> m_udpServer;
 	std::unique_ptr<SimpleMail::Server> m_smtpServer;
+	std::unique_ptr<RpgLogicServerConfig> m_rpgConfig;
 
 	QString m_loadedWasmResource;
 	QString m_importDb;
@@ -214,6 +220,7 @@ private:
 	QHash<QByteArray, AgentSignature> m_agentSignatures;
 
 
+
 #ifdef WITH_FTXUI
 	FtxServer m_localServer;
 
@@ -223,7 +230,6 @@ public:
 	void writeToSocket(const QCborValue &cbor);
 
 #endif
-
 };
 
 

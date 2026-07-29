@@ -1127,6 +1127,9 @@ EngineStream &PlayerConfig::operator<<(EngineStream &stream)
 	readDefenders(stream);
 	readUtilities(stream);
 
+	readTowerPlus(stream);
+	readTowerMinus(stream);
+
 	return stream;
 }
 
@@ -1147,6 +1150,9 @@ EngineStream &PlayerConfig::operator>>(EngineStream &stream) const
 
 	writeDefenders(stream);
 	writeUtilities(stream);
+
+	writeTowerPlus(stream);
+	writeTowerMinus(stream);
 
 	return stream;
 }
@@ -1476,8 +1482,10 @@ EngineStream &NpcData::operator<<(EngineStream &stream)
 	m_entity << stream;
 	readCharacter(stream);
 	readTeam(stream);
+	readMp(stream);
 
-	if (m_type == TowerAttacker)
+	if (m_type == TowerAttacker ||
+			m_type == MpLeecher)
 		readForce(stream);
 
 	return stream;
@@ -1497,8 +1505,10 @@ EngineStream &NpcData::operator>>(EngineStream &stream) const
 	m_entity >> stream;
 	writeCharacter(stream);
 	writeTeam(stream);
+	writeMp(stream);
 
-	if (m_type == TowerAttacker)
+	if (m_type == TowerAttacker ||
+			m_type == MpLeecher)
 		writeForce(stream);
 
 	return stream;
@@ -1526,6 +1536,10 @@ EngineStream &NpcState::operator<<(EngineStream &stream)
 
 	if (m_type == NpcData::TowerAttacker) {
 		readDestinationTowerDelta(stream);
+	}
+
+	if (m_type == NpcData::TowerAttacker ||
+			m_type == NpcData::MpLeecher) {
 		readDestinationXDelta(stream);
 		readDestinationYDelta(stream);
 	}
@@ -1556,10 +1570,13 @@ EngineStream &NpcState::operator>>(EngineStream &stream) const
 
 	if (m_type == NpcData::TowerAttacker) {
 		writeDestinationTowerDelta(stream);
+	}
+
+	if (m_type == NpcData::TowerAttacker ||
+			m_type == NpcData::MpLeecher) {
 		writeDestinationXDelta(stream);
 		writeDestinationYDelta(stream);
 	}
-
 	return stream;
 }
 

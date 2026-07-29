@@ -34,6 +34,25 @@ class RpgEngine;
 
 
 /**
+ * @brief The RpgLogicServerConfig class
+ */
+
+class RpgLogicServerConfig
+{
+public:
+	RpgLogicServerConfig() = default;
+
+	void loadCharacterList(const RpgCharacterList &newCharacterList);
+
+	const QHash<QString, RpgServerCharacter> &characters() const;
+
+private:
+	QHash<QString, RpgServerCharacter> m_characters;
+};
+
+
+
+/**
  * @brief The RpgLogicServer class
  */
 

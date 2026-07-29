@@ -33,6 +33,18 @@
 
 
 
+struct TutorialData {
+	static std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> testTutorial1();
+
+
+	static inline const QHash<QString, std::function<std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial>()> >
+	tutorials = {
+	{ QStringLiteral("test_tutorial1"), &TutorialData::testTutorial1 }
+				};
+};
+
+
+
 
 /**
  * @brief RpgMapPlayTutorial::RpgMapPlayTutorial
@@ -80,127 +92,12 @@ QQuickItem* RpgMapPlayTutorial::load(const QUrl &url)
 
 	const QList<GameMapMissionLevel *> &levels = m_gameMap->missions().first()->levels();
 
+	auto ptr = TutorialData::tutorials.value(url.host());
 
-	//////////////////////////////////////////
+	if (!ptr)
+		return nullptr;
 
-	std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> tutorial = std::make_unique<Rpg::RpgLogicClientTutorial::Tutorial>();
-	tutorial->character = "character01a";
-	tutorial->terrain = "test";
-
-	tutorial->addTower(120);
-	tutorial->addEmitter(127);
-
-
-	tutorial->fnInit = [](Rpg::RpgLogicClientTutorial *logic) {
-		Q_ASSERT(logic);
-		RpgStream::NpcData d;
-		d.setCharacterResolved("soldier04");
-		d.setTeam(RpgStream::TeamNone);
-		d.setType(RpgStream::NpcData::TowerAttacker);
-		RpgNpcDefinition def = RpgGame::readNpcDefinition("soldier04").value_or(RpgNpcDefinition{});
-		d.setEntity(def.toEntityConfig());
-
-		LOG_CINFO("game") << "TUTORIAL ADD NPC";
-
-		logic->addNpc(d, entt::null);
-	};
-
-	{
-		Rpg::RpgLogicClientTutorial::Tutorial::Step step;
-
-		step.message = "Jöhet mindjárt";
-
-		step.addTargetControlEvent([](TiledObjectBody *obj) {
-			LOG_CINFO("game") << "CHECK CONTROL" << obj;
-
-			if (dynamic_cast<RpgTower*>(obj))
-				return true;
-			else
-				return false;
-		});
-
-		step.fnNext = [](Rpg::RpgLogicClientTutorial *logic, const quint32 &tick) {
-			Q_ASSERT(logic);
-
-			cpVect pos = logic->player()->bodyPosition();
-
-
-			for (int i=1; i<6; ++i) {
-				Rpg::EventNpcCreate ev;
-				ev.data.setCharacterResolved("soldier04");
-				ev.data.setTeam(RpgStream::TeamNone);
-				ev.data.setType(RpgStream::NpcData::TowerAttacker);
-				RpgNpcDefinition def = RpgGame::readNpcDefinition("soldier04").value_or(RpgNpcDefinition{});
-				ev.data.setEntity(def.toEntityConfig());
-
-				ev.setTick(tick);
-
-				ev.pos.x = pos.x - i*25;
-				ev.pos.y = pos.y + i*20;
-
-				logic->eventStore(std::move(ev));
-			}
-
-			Rpg::RpgLogicScope scope = logic->getScope();
-
-			quint32 id = logic->getId(127);
-
-			LOG_CINFO("game") << "*******MP" << id;
-
-			Rpg::EventMpCreate ev;
-			ev.emitter = scope.entityFromIdTag(logic->getId(127));
-			ev.mpCount = 8;
-			ev.setTick(tick+120);
-
-			logic->eventStore(std::move(ev));
-		};
-
-		tutorial->steps.emplace_back(std::move(step));
-
-	}
-
-	{
-		Rpg::RpgLogicClientTutorial::Tutorial::Step step;
-
-		step.message = "Wait for start...";
-
-		auto ev = std::make_unique<RpgStream::EventStageChanged>();
-		ev->config().setStage(RpgStream::GameConfig::StageMain);
-
-		step.inputEvents.emplace_back(std::move(ev));
-
-		step.addTargetControlEvent([](TiledObjectBody *obj) {
-			LOG_CINFO("game") << "CHECK CONTROL" << obj;
-
-			if (dynamic_cast<RpgTower*>(obj))
-				return true;
-			else
-				return false;
-		});
-
-		step.fnNext = [](Rpg::RpgLogicClientTutorial *logic, const quint32 &tick) {
-			Q_ASSERT(logic);
-
-			Rpg::EventNpcCreate ev;
-			ev.data.setCharacterResolved("soldier04");
-			ev.data.setTeam(RpgStream::TeamNone);
-			ev.data.setType(RpgStream::NpcData::TowerAttacker);
-			RpgNpcDefinition def = RpgGame::readNpcDefinition("soldier04").value_or(RpgNpcDefinition{});
-			ev.data.setEntity(def.toEntityConfig());
-
-			ev.setTick(tick);
-
-			logic->eventStore(std::move(ev));
-		};
-
-
-
-		tutorial->steps.emplace_back(std::move(step));
-
-	}
-
-
-	/////////////////////////////
+	std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> tutorial = ptr();
 
 	m_game = new RpgGame(levels.at(QRandomGenerator::global()->bounded(levels.size())), m_client, false, std::move(tutorial));
 	setGameState(StateLoading);
@@ -234,4 +131,112 @@ void RpgMapPlayTutorial::onFinished(AbstractGame::FinishState)
 		m_game->setReadyToDestroy(true);
 
 	setGameState(StateFinished);
+}
+
+
+
+
+
+
+/**
+ * @brief TutorialData::testTutorial1
+ * @return
+ */
+
+
+std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> TutorialData::testTutorial1()
+{
+
+	std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> tutorial = std::make_unique<Rpg::RpgLogicClientTutorial::Tutorial>();
+	tutorial->character = "character01a";
+	tutorial->terrain = "test";
+	tutorial->power = 1;
+
+	tutorial->addTower(120);
+	tutorial->addEmitter(127);
+	tutorial->addChest("entry3");
+	tutorial->addChest("entry2");
+
+
+	tutorial->fnInit = [](Rpg::RpgLogicClientTutorial *logic) {
+		Q_ASSERT(logic);
+
+		LOG_CINFO("game") << "TUTORIAL ADD NPC";
+
+		logic->npcAddToPoint(QStringLiteral("soldier02"), "entry2");
+	};
+
+	{
+		Rpg::RpgLogicClientTutorial::Tutorial::Step step;
+
+		step.message = "Jöhet mindjárt";
+
+		step.addTargetControlEvent([](TiledObjectBody *obj) {
+			LOG_CINFO("game") << "CHECK CONTROL1" << obj;
+
+			if (dynamic_cast<RpgTower*>(obj))
+				return true;
+			else
+				return false;
+		});
+
+		step.fnNext = [](Rpg::RpgLogicClientTutorial *logic, const quint32 &tick) {
+			Q_ASSERT(logic);
+
+			logic->npcAddToPoint(QStringLiteral("soldier04"), "entry1", 6, 120);
+
+			cpVect pos = logic->player()->bodyPosition();
+
+
+			Rpg::RpgLogicScope scope = logic->getScope();
+
+			quint32 id = logic->getId(127);
+
+			LOG_CINFO("game") << "*******MP" << id;
+
+			Rpg::EventMpCreate ev;
+			ev.emitter = scope.entityFromIdTag(logic->getId(127));
+			ev.mpCount = 8;
+			ev.setTick(tick+120);
+
+			logic->eventStore(std::move(ev));
+		};
+
+		tutorial->steps.emplace_back(std::move(step));
+
+	}
+
+	{
+		Rpg::RpgLogicClientTutorial::Tutorial::Step step;
+
+		step.message = "Wait for start...";
+
+		/*auto ev = std::make_unique<RpgStream::EventStageChanged>();
+		ev->config().setStage(RpgStream::GameConfig::StageMain);
+
+		step.inputEvents.emplace_back(std::move(ev));*/
+
+		step.addTargetControlEvent([](TiledObjectBody *obj) {
+			LOG_CINFO("game") << "CHECK CONTROL2" << obj;
+
+			if (dynamic_cast<RpgTower*>(obj))
+				return true;
+			else
+				return false;
+		});
+
+		step.fnNext = [](Rpg::RpgLogicClientTutorial *logic, const quint32 &tick) {
+			Q_ASSERT(logic);
+
+			logic->npcAddToPoint(QStringLiteral("skeleton01"), {"entry1", "entry2", "entry3"}, 6, 120);
+		};
+
+
+
+		tutorial->steps.emplace_back(std::move(step));
+
+
+	}
+
+	return tutorial;
 }

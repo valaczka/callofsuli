@@ -259,6 +259,7 @@ SOURCES += \
 	rpgmapplaytutorial.cpp \
 	rpgmp.cpp \
 	rpgnpc.cpp \
+	rpgnpcmpleecher.cpp \
 	rpgnpctowerattacker.cpp \
 	rpgobject.cpp \
 	rpgplayer.cpp \
@@ -359,6 +360,7 @@ HEADERS += \
 	rpgmapplaytutorial.h \
 	rpgmp.h \
 	rpgnpc.h \
+	rpgnpcmpleecher.h \
 	rpgnpctowerattacker.h \
 	rpgobject.h \
 	rpgplayer.h \

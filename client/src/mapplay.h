@@ -156,7 +156,6 @@ protected:
 	GameState m_gameState = StateInvalid;
 	QJsonObject m_finishedData;
 	bool m_readOnly = false;
-	QJsonObject m_extendedData;
 };
 
 

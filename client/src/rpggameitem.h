@@ -68,6 +68,7 @@ class RpgGameItem : public TiledGame
 
 	Q_PROPERTY(RpgGame* game READ game WRITE setGame NOTIFY gameChanged FINAL)
 	Q_PROPERTY(bool isContentReady READ isContentReady NOTIFY isContentReadyChanged FINAL)
+	Q_PROPERTY(bool usingGamepad READ usingGamepad WRITE setUsingGamepad NOTIFY usingGamepadChanged FINAL)
 
 public:
 	RpgGameItem(QQuickItem *parent = nullptr);
@@ -128,6 +129,9 @@ public:
 	bool isContentReady() const;
 	void setIsContentReady(bool newIsContentReady);
 
+	bool usingGamepad() const;
+	void setUsingGamepad(bool newUsingGamepad);
+
 protected:
 	virtual void sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *scene) override;
 	virtual void loadTileLayer(TiledScene *scene, Tiled::TileLayer *layer, Tiled::MapRenderer *renderer) override;
@@ -153,6 +157,7 @@ signals:
 	void gameChanged();
 	void isContentReadyChanged();
 	void stageChanged();
+	void usingGamepadChanged();
 
 private:
 	void loadMp(Tiled::GroupLayer *group, TiledScene *scene, Tiled::MapRenderer *renderer);
@@ -165,6 +170,7 @@ private:
 
 	RpgGame *m_game = nullptr;
 	bool m_isContentReady = false;
+	bool m_usingGamepad = false;
 
 	friend class RpgGame;
 	friend class RpgGamePrivate;

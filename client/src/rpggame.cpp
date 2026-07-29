@@ -75,12 +75,14 @@ const QColor RpgGame::m_colorGlow = QColorConstants::Svg::wheat;
  * @param client
  */
 
-RpgGame::RpgGame(GameMapMissionLevel *missionLevel, Client *client, const bool &multiplayer, std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> tutorial)
+RpgGame::RpgGame(GameMapMissionLevel *missionLevel, Client *client, const bool &multiplayer,
+				 std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> tutorial)
 	: AbstractLevelGame(GameMap::Rpg, missionLevel, client)
 	, d(new RpgGamePrivate(this, multiplayer, std::move(tutorial)))
 	, m_gameMode(multiplayer ? MultiPlayer : SinglePlayer)
 	, m_modelLobby(new QSListModel)
 	, m_modelPlayer(new QSListModel)
+	, m_modelCharacters(new QSListModel)
 {
 	Q_ASSERT(client);
 
@@ -104,6 +106,11 @@ RpgGame::RpgGame(GameMapMissionLevel *missionLevel, Client *client, const bool &
 									QStringLiteral("team"),
 								});
 
+	m_modelCharacters->setRoleNames(Utils::getRolesFromObject(RpgUserCharacter().metaObject())
+									<< QStringLiteral("nextPoint")
+									<< QStringLiteral("isTarget")
+									<< QStringLiteral("targetToken")
+									);
 }
 
 
@@ -129,7 +136,9 @@ RpgGame::~RpgGame()
 
 void RpgGame::gameAbort()
 {
-	if (m_gameState == GameStateFinished)
+	if (m_gameState == GameStateFinished ||
+			m_gameState == GameStateResult ||
+			m_gameState == GameStateAbort)
 		return;
 
 	else if (m_gameState == GameStateConnect ||
@@ -145,14 +154,9 @@ void RpgGame::gameAbort()
 		return;
 	}
 
-	setFinishState(Fail);
-
 	LOG_CINFO("game") << "Game aborted:" << this;
 
-	gameFinish();
-
-	m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"), Sound::VoiceoverChannel);
-	m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/you_lose.mp3"), Sound::VoiceoverChannel);
+	d->finishGame(true);
 }
 
 
@@ -271,6 +275,64 @@ void RpgGame::questSelect(const QVariantMap &data)
 }
 
 
+/**
+ * @brief RpgGame::getCharacterImage
+ * @param character
+ * @return
+ */
+
+QUrl RpgGame::getCharacterImage(const QString &character) const
+{
+	return RpgGame::characters().value(character).image;
+}
+
+
+
+/**
+ * @brief RpgGame::loadTutorial
+ * @param character
+ * @return
+ */
+
+bool RpgGame::loadTutorial(const QString &character)
+{
+	if (m_client->loadDemoMap(QUrl("tutorial://test_tutorial1")))
+		return true;
+
+	return false;
+}
+
+
+/**
+ * @brief RpgGame::createEmptyGame
+ * @param client
+ * @return
+ */
+
+RpgGame *RpgGame::createEmptyGame(Client *client)
+{
+	Q_ASSERT(client);
+
+	std::unique_ptr<RpgGame> game = std::make_unique<RpgGame>(nullptr, client, false, nullptr);
+
+	if (!game->AbstractLevelGame::load()) {
+		client->messageError(tr("Nem lehet betölteni az oldalt!"));
+		return nullptr;
+	}
+
+
+	connect(game.get(), &AbstractGame::gameDestroyRequest, game.get(), &RpgGame::deleteLater);
+
+	connect(game.get(), &QObject::destroyed, client, []() {
+		LOG_CERROR("client") << "######################";
+	});
+
+	game->setReadyToDestroy(true);
+
+	return game.release();
+}
+
+
 
 /**
  * @brief RpgGame::load
@@ -289,10 +351,89 @@ bool RpgGame::load(const RpgGameDefinition &def)
 }
 
 
+/**
+ * @brief RpgGame::isEmpty
+ * @return
+ */
+
+bool RpgGame::isEmpty() const
+{
+	return !m_missionLevel;
+}
+
+QVariantMap RpgGame::gameResultData() const
+{
+	return m_gameResultData;
+}
+
+void RpgGame::setGameResultData(const QVariantMap &newGameResultData)
+{
+	if (m_gameResultData == newGameResultData)
+		return;
+	m_gameResultData = newGameResultData;
+	emit gameResultDataChanged();
+}
+
+int RpgGame::campaignId() const
+{
+	return m_campaignId;
+}
+
+void RpgGame::setCampaignId(int newCampaignId)
+{
+	if (m_campaignId == newCampaignId)
+		return;
+	m_campaignId = newCampaignId;
+	emit campaignIdChanged();
+}
+
+int RpgGame::gameId() const
+{
+	return m_gameId;
+}
+
+void RpgGame::setGameId(int newGameId)
+{
+	if (m_gameId == newGameId)
+		return;
+	m_gameId = newGameId;
+	emit gameIdChanged();
+}
+
+
+
+
+
+
+QSListModel* RpgGame::modelCharacters() const
+{
+	return m_modelCharacters.get();
+}
+
+
 
 QColor RpgGame::colorGlow()
 {
 	return m_colorGlow;
+}
+
+
+
+
+/**
+ * @brief RpgGame::entryPoint
+ * @param entry
+ * @return
+ */
+
+std::optional<QPointF> RpgGame::entryPoint(const QString &entry) const
+{
+	const auto it = d->m_entryPoint.find(entry);
+
+	if (it == d->m_entryPoint.cend())
+		return std::nullopt;
+	else
+		return *it;
 }
 
 
@@ -555,8 +696,6 @@ void RpgGame::connectGameQuestion()
 
 bool RpgGame::gameFinishEvent()
 {
-	LOG_CWARNING("game") << "GAME FINISH EVENT*****************************";
-
 	if (m_closedSuccesfully)
 		return false;
 
@@ -885,6 +1024,65 @@ void RpgGamePrivate::questSelectTimerSet(const qint64 msec)
 
 
 
+
+/**
+ * @brief RpgGamePrivate::waitForGameId
+ */
+
+void RpgGamePrivate::waitForGameId()
+{
+	if (!q->m_missionLevel) {
+		LOG_CINFO("game") << "RpgGame without MissionLevel";
+		onGameIdReady();
+		return;
+	}
+
+	q->m_client->send(HttpConnection::ApiUser, QStringLiteral("campaign/%1/game/create").arg(
+						  q->m_campaignId > 0 ? q->m_campaignId : 0
+												), {
+						  { QStringLiteral("map"), q->m_missionLevel->map()->uuid() },
+						  { QStringLiteral("mission"), q->uuid() },
+						  { QStringLiteral("level"), q->level() },
+						  { QStringLiteral("mode"), q->mode() },
+						  { QStringLiteral("terrain"), m_characterSelect.gameConfig().terrainResolved(m_terrainHash) },
+						  { QStringLiteral("character"), m_characterSelect.data().characterResolved(m_characterHash) },
+					  })
+			->error(this, [this](const QNetworkReply::NetworkError &){
+		q->setError(tr("Játék indítása sikertelen"));
+	})
+			->fail(this, [this](const QString &err){
+		q->setError(err);
+	})
+			->done(this, [this](const QJsonObject &data){
+		const int &gameId = data.value(QStringLiteral("id")).toInt(-1);
+		if (gameId < 0) {
+			q->setError(tr("Érvénytelen játékazonosító érkezett"));
+			return;
+		}
+
+		LOG_CDEBUG("client") << "Game play (campaign)" << gameId;
+
+		q->setGameId(gameId);
+
+		QMetaObject::invokeMethod(this, &RpgGamePrivate::onGameIdReady);
+	});
+}
+
+
+/**
+ * @brief RpgGamePrivate::onGameIdReady
+ */
+
+
+void RpgGamePrivate::onGameIdReady()
+{
+	LOG_CDEBUG("game") << "GAME ID READ" << q->m_gameId;
+
+	q->m_gameItem->setIsContentReady(true);
+}
+
+
+
 /**
  * @brief RpgGamePrivate::prepareGameItem
  */
@@ -962,7 +1160,7 @@ void RpgGamePrivate::prepareGameItem()
 
 	if (q->load(def)) {
 		m_gameDefinition = def;
-		q->m_gameItem->setIsContentReady(true);
+		waitForGameId();
 	} else {
 		q->setError(tr("Nem sikerült betölteni a terepet"));
 		return;
@@ -1018,6 +1216,8 @@ void RpgGamePrivate::onGameItemPrepared()
 		q->setError(tr("Belső hiba"));
 		return;
 	}
+
+	logic->overrideMapData(m_mapData);
 
 	logic->loadMapData(m_mapData);
 	m_isMapLoaded = true;
@@ -1104,9 +1304,9 @@ void RpgGamePrivate::loadHeat()
 				continue;
 			}
 
+			n.setData(ptr->toNpcData());
+
 			n.data().setCharacterResolved(npc.type);
-			n.data().setType(ptr->type);
-			n.data().setEntity(ptr->toEntityConfig());
 
 			n.setNum(npc.num);
 			n.setDelay(AbstractGame::TickTimer::msecToTick(npc.delay));
@@ -1328,11 +1528,13 @@ void RpgGamePrivate::setJoystickState(RpgPlayer *player, const TiledGame::Joysti
 
 	bool gamepad = setFromGamepad(motor);
 
-	if (joystick == TiledGame::JoystickA && (!gamepad || state.hasKeyboard))
+	if (joystick == TiledGame::JoystickA && (!gamepad || state.hasKeyboard || state.hasTouch))
 		motor->setCurrentJoystickState(state);
-	else if (joystick == TiledGame::JoystickB && (!gamepad || state.hasKeyboard))
+	/*else if (joystick == TiledGame::JoystickB && (!gamepad || state.hasKeyboard || state.hasTouch))
 		motor->setControlJoystickState(state);
-	else if (joystick == TiledGame::JoystickC && (!gamepad || state.hasKeyboard))
+	else if (joystick == TiledGame::JoystickC && (!gamepad || state.hasKeyboard || state.hasTouch))
+		motor->setTargetJoystickState(state);*/
+	else if (joystick == TiledGame::JoystickB && (!gamepad || state.hasKeyboard || state.hasTouch))
 		motor->setTargetJoystickState(state);
 
 }
@@ -1353,6 +1555,13 @@ bool RpgGamePrivate::setFromGamepad(RpgMotorPlayerControlled *motor)
 		TiledGame::JoystickState stateB;
 		TiledGame::JoystickState stateC;
 
+		if (std::abs(m_gamePad->axisLeftX()) > 0.1 ||
+				std::abs(m_gamePad->axisLeftY()) > 0.1 ||
+				std::abs(m_gamePad->axisRightX()) > 0.1 ||
+				std::abs(m_gamePad->axisRightY()) > 0.1) {
+			q->m_gameItem->setUsingGamepad(true);
+		}
+
 
 		if (m_gamePad->buttonL3() || m_gamePad->buttonL1()) {
 			stateB.hasTouch = true;
@@ -1368,7 +1577,7 @@ bool RpgGamePrivate::setFromGamepad(RpgMotorPlayerControlled *motor)
 		}
 
 		motor->setCurrentJoystickState(stateA);
-		motor->setControlJoystickState(stateB);
+		//motor->setControlJoystickState(stateB);
 
 
 
@@ -1426,7 +1635,12 @@ void RpgGamePrivate::joystickClickedB(const bool &clicked)
 	if (!motor)
 		return;
 
-	motor->putDefender(clicked);
+	if (q->m_controlledPlayer->joystickMode() == RpgPlayer::JoystickModeControl)
+		motor->putDefender(clicked);
+	else if (q->m_controlledPlayer->joystickMode() == RpgPlayer::JoystickModeTarget)
+		motor->attackCurrentTarget();
+	else if (q->m_controlledPlayer->joystickMode() == RpgPlayer::JoystickModeUtility)
+		motor->useCurrentUtility();
 }
 
 
@@ -1437,7 +1651,7 @@ void RpgGamePrivate::joystickClickedB(const bool &clicked)
 
 void RpgGamePrivate::joystickClickedC(const bool &/*clicked*/)
 {
-	if (!q->m_controlledPlayer)
+	/*if (!q->m_controlledPlayer)
 		return;
 
 	RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(q->m_controlledPlayer->currentMotor());
@@ -1445,7 +1659,7 @@ void RpgGamePrivate::joystickClickedC(const bool &/*clicked*/)
 	if (!motor)
 		return;
 
-	motor->attackCurrentTarget();
+	motor->attackCurrentTarget();*/
 }
 
 
@@ -1658,7 +1872,7 @@ void RpgGamePrivate::onQuestionFailed(const QVariantMap &answer)
 
 void RpgGamePrivate::onQuestionStarted()
 {
-	q->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/fight.mp3"), Sound::VoiceoverChannel);
+	///q->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/fight.mp3"), Sound::VoiceoverChannel);
 }
 
 
@@ -1690,6 +1904,7 @@ void RpgGamePrivate::startGame(const quint32 &tick)
 	q->m_gameItem->tickTimer()->start(q, tick);
 	emit q->questSelectCompleted();
 	questSelectTimerSet(0);
+	q->gameStart();
 }
 
 
@@ -1757,8 +1972,33 @@ void RpgGamePrivate::onAfterWorldStep(const RpgStream::FullState &full)
  * @brief RpgGamePrivate::finishGame
  */
 
-void RpgGamePrivate::finishGame()
+void RpgGamePrivate::finishGame(const bool &abort)
 {
+	if (abort) {
+		LOG_CERROR("game") << "***ABORTED***";
+
+		if (Rpg::RpgLogicClientSingle *logic = dynamic_cast<Rpg::RpgLogicClientSingle*>(m_logic.get())) {
+			RpgStream::Result r = logic->getResult();
+			for (const RpgStream::PlayerResult &p : r.players()) {
+				if (p.playerId() == RpgLogicObjectMapper::getId(q->m_controlledPlayer)) {
+					q->setQuestResultData(getQuestResult(r, p));
+					break;
+				}
+			}
+		}
+
+		q->setGameState(RpgGame::GameStateAbort);
+		q->m_gameItem->tickTimer()->stop();
+		q->setFinishState(AbstractGame::Fail);
+
+		q->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/game_over.mp3"), Sound::VoiceoverChannel);
+		q->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/you_lose.mp3"), Sound::VoiceoverChannel);
+
+		q->gameFinish();
+
+		return;
+	}
+
 	if (!q->m_questResultData.isEmpty())
 		return;
 
@@ -1782,6 +2022,7 @@ void RpgGamePrivate::finishGame()
 
 	q->setGameState(RpgGame::GameStateFinished);
 	q->m_gameItem->tickTimer()->stop();
+
 
 	RpgStream::Result *r = scope.getCtx<RpgStream::Result>();
 
@@ -1906,7 +2147,7 @@ void RpgGamePrivate::syncGameConfig(const RpgStream::GameConfig &config, const q
 			q->m_gameItem->message(QObject::tr("FINISHED****"));
 
 			cfg->setStage(config.stage());
-			finishGame();
+			finishGame(false);
 		}
 
 		cfg->setStage(config.stage());
@@ -3190,7 +3431,6 @@ void RpgGamePrivate::connectionReady()
 
 		m_characterSelect.data().flags().setFlag(RpgStream::PlayerData::FlagCompleted);
 
-		LOG_CINFO("game") << "*****" << m_characterSelect.gameConfig().terrain();
 		QMetaObject::invokeMethod(this, &RpgGamePrivate::updateCharacterSelect, Qt::QueuedConnection);
 
 		return;
@@ -3256,12 +3496,65 @@ void RpgGamePrivate::onConnectionLost()
 
 
 
-
 /**
- * @brief RpgGamePrivate::contentPrepare
+ * @brief RpgGamePrivate::downloadServerData
  */
 
-void RpgGamePrivate::contentPrepare()
+void RpgGamePrivate::downloadServerData()
+{
+	q->m_client->send(HttpConnection::ApiUser, QStringLiteral("rpg"))/*.arg(
+									   m_campaign ? m_campaign->campaignid() : 0
+													), {
+									   { QStringLiteral("map"), m_gameMap->uuid() },
+									   { QStringLiteral("mission"), levelGame->uuid() },
+									   { QStringLiteral("level"), levelGame->level() },
+									   { QStringLiteral("mode"), levelGame->mode() },
+									   { QStringLiteral("extended"), m_extendedData }
+								   })*/
+			->error(this, [this](const QNetworkReply::NetworkError &){
+		q->setError(tr("Játék indítása sikertelen"));
+	})
+			->fail(this, [this](const QString &err){
+		q->setError(tr("Játék indítása sikertelen: %1").arg(err));
+	})
+			->done(this, [this](const QJsonObject &data){
+		LOG_CDEBUG("client") << "RPG DATA LOADED" << data;
+
+		RpgUserData udata;
+		udata.fromJson(data);
+
+		QVariantList out;
+		out.reserve(udata.characters.size());
+
+		for (const RpgUserCharacter &ch : udata.characters) {
+			QJsonObject obj = ch.toJson();
+
+			int to = ch.level > 0 && ch.level < ch.pwrUnlock.size() ? ch.pwrUnlock.at(ch.level) : 0;
+
+			obj[QStringLiteral("nextPoint")] = to;
+			obj[QStringLiteral("isTarget")] = ch.character == udata.target;
+			obj[QStringLiteral("targetToken")] = ch.unlock;
+
+			out.append(obj.toVariantMap());
+		}
+
+
+		Utils::patchSListModel(q->m_modelCharacters.get(),
+							   out,
+							   QStringLiteral("character"));
+
+		QMetaObject::invokeMethod(this, &RpgGamePrivate::downloadStaticData, Qt::QueuedConnection);
+	});
+
+}
+
+
+
+/**
+ * @brief RpgGamePrivate::downloadStaticData
+ */
+
+void RpgGamePrivate::downloadStaticData()
 {
 	q->m_client->downloader()->check();
 
@@ -3277,6 +3570,24 @@ void RpgGamePrivate::contentPrepare()
 		emit q->downloadRequest(QLocale::system().formattedDataSize(size));
 	else
 		q->downloadAccepted();
+}
+
+
+
+
+
+
+/**
+ * @brief RpgGamePrivate::contentPrepare
+ */
+
+void RpgGamePrivate::contentPrepare()
+{
+	/// TODO: check demo mode,...etc.
+
+	downloadServerData();
+
+	//downloadStaticData();
 }
 
 
@@ -3503,11 +3814,6 @@ std::optional<RpgNpcDefinition> RpgGame::readNpcDefinition(const QString &name)
 		config.updateSfxPath(config.prefixPath);
 	}
 
-
-	LOG_CERROR("game") << "<<<<<<<<<<<<<< REMOVE";
-	config.type = RpgStream::NpcData::TowerAttacker;
-	//////////////////////////////////////////////
-
 	RpgGamePrivate::m_npcDefinitions.insert(name, config);
 	RpgGamePrivate::m_npcHash.insert(name);
 
@@ -3575,6 +3881,9 @@ RpgStream::PlayerConfig RpgPlayerDefinition::toPlayerConfig() const
 	for (const RpgStream::PlayerConfig::Utility &t : utility)
 		cfg.utilities().push_back(t);
 
+	cfg.setTowerPlus(towerPlus);
+	cfg.setTowerPlus(towerMinus);
+
 	return cfg;
 }
 
@@ -3608,6 +3917,9 @@ void RpgPlayerDefinition::loadPlayerConfig(const RpgStream::PlayerConfig &cfg)
 
 	for (const RpgStream::PlayerConfig::Utility &t : cfg.utilities())
 		utility.append(t);
+
+	towerPlus = cfg.towerPlus();
+	towerMinus = cfg.towerMinus();
 }
 
 
@@ -3716,6 +4028,23 @@ RpgStream::EntityConfig RpgNpcDefinition::toEntityConfig() const
 	cfg.setResist(resist);
 
 	return cfg;
+}
+
+
+/**
+ * @brief RpgNpcDefinition::toNpcData
+ * @return
+ */
+
+RpgStream::NpcData RpgNpcDefinition::toNpcData() const
+{
+	RpgStream::NpcData d;
+
+	d.setType(type);
+	d.setEntity(toEntityConfig());
+	d.setMp(mp);
+
+	return d;
 }
 
 QColor RpgGame::colorTeam()

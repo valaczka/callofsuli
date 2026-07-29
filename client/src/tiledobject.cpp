@@ -2000,40 +2000,19 @@ void TiledObjectBody::deleteBody()
  */
 
 void TiledObjectBody::setSensorPolygon(const float &length, const float &range,
-									   const cpBitmask &category, const cpBitmask &virtualCircleCategory)
+									   const cpShapeFilter &filter)
 {
 	CHECK_LOCK();
 
-	std::optional<cpShapeFilter> collidesWith = std::nullopt;
+	/*std::optional<cpShapeFilter> collidesWith = std::nullopt;
 
 	if (d->m_sensorPolygon)
-		collidesWith = cpShapeGetFilter(d->m_sensorPolygon);
+		collidesWith = cpShapeGetFilter(d->m_sensorPolygon);*/
 
-	d->setSensorPolygon(length, range, category, virtualCircleCategory);
+	d->setSensorPolygon(length, range, filter);
 
-	if (collidesWith.has_value())
-		cpShapeSetFilter(d->m_sensorPolygon, collidesWith.value());
-}
-
-
-
-/**
- * @brief TiledObjectBody::setSensorPolygon
- * @param length
- * @param range
- * @param categories
- */
-
-void TiledObjectBody::setSensorPolygon(const float &length, const float &range,
-									   const cpBitmask &category, const cpBitmask &virtualCircleCategory, const cpBitmask &collidesWith)
-{
-	CHECK_LOCK();
-
-	d->setSensorPolygon(length, range, category, virtualCircleCategory);
-
-	auto filter = cpShapeGetFilter(d->m_sensorPolygon);
-	filter.mask = collidesWith;
-	cpShapeSetFilter(d->m_sensorPolygon, filter);
+	/*if (collidesWith.has_value())
+		cpShapeSetFilter(d->m_sensorPolygon, collidesWith.value());*/
 }
 
 
@@ -2042,39 +2021,22 @@ void TiledObjectBody::setSensorPolygon(const float &length, const float &range,
  * @brief TiledObjectBody::addVirtualCircle
  */
 
-void TiledObjectBody::addVirtualCircle(const cpBitmask &category, const float &length)
+void TiledObjectBody::addVirtualCircle(const cpShapeFilter &filter, const float &length)
 {
 	CHECK_LOCK();
 
-	std::optional<cpShapeFilter> collidesWith = std::nullopt;
+	/*std::optional<cpShapeFilter> collidesWith = std::nullopt;
 
 	if (d->m_virtualCircle)
-		collidesWith = cpShapeGetFilter(d->m_virtualCircle);
+		collidesWith = cpShapeGetFilter(d->m_virtualCircle);*/
 
-	d->addVirtualCircle(length > 0 ? length : d->m_sensorLength, category);
+	d->addVirtualCircle(length > 0 ? length : d->m_sensorLength, filter);
 
-	if (collidesWith.has_value() && d->m_virtualCircle)
-		cpShapeSetFilter(d->m_virtualCircle, collidesWith.value());
+	/*if (collidesWith.has_value() && d->m_virtualCircle)
+		cpShapeSetFilter(d->m_virtualCircle, collidesWith.value());*/
 }
 
 
-/**
- * @brief TiledObjectBody::addVirtualCircle
- * @param collidesWith
- */
-
-void TiledObjectBody::addVirtualCircle(const cpBitmask &category, const cpBitmask &collidesWith, const float &length)
-{
-	CHECK_LOCK();
-
-	d->addVirtualCircle(length > 0 ? length : d->m_sensorLength, category);
-
-	if (d->m_virtualCircle) {
-		auto filter = cpShapeGetFilter(d->m_virtualCircle);
-		filter.mask = collidesWith;
-		cpShapeSetFilter(d->m_virtualCircle, filter);
-	}
-}
 
 
 /**
@@ -2579,8 +2541,7 @@ void TiledObjectBodyPrivate::createBody(const cpBodyType &type, const cpFloat &m
  * @param range
  */
 
-void TiledObjectBodyPrivate::setSensorPolygon(const float &length, const float &range,
-											  const cpBitmask &category, const cpBitmask &virtualCircleCategory)
+void TiledObjectBodyPrivate::setSensorPolygon(const float &length, const float &range, const cpShapeFilter &filter)
 {
 	if (!m_bodyRef) {
 		LOG_CERROR("scene") << "Missing body";
@@ -2608,7 +2569,7 @@ void TiledObjectBodyPrivate::setSensorPolygon(const float &length, const float &
 
 	m_sensorPolygon = cpPolyShapeNew(m_bodyRef, points.size(), points.data(), cpTransformIdentity, 0.);
 	cpShapeSetSensor(m_sensorPolygon, true);
-	cpShapeSetFilter(m_sensorPolygon, TiledObjectBody::getFilter(category));
+	cpShapeSetFilter(m_sensorPolygon, filter);
 
 	if (m_bodyRef->space != NULL) {
 		cpSpaceAddShape(m_bodyRef->space, m_sensorPolygon);
@@ -2616,8 +2577,10 @@ void TiledObjectBodyPrivate::setSensorPolygon(const float &length, const float &
 
 	m_sensorLength = length;
 
-	if (m_virtualCircle)
-		addVirtualCircle(m_sensorLength, virtualCircleCategory);
+	if (m_virtualCircle) {
+		const auto filter = cpShapeGetFilter(m_virtualCircle);
+		addVirtualCircle(m_sensorLength, filter);
+	}
 
 }
 
@@ -2626,7 +2589,7 @@ void TiledObjectBodyPrivate::setSensorPolygon(const float &length, const float &
  * @brief TiledObjectBodyPrivate::addVirtualCircle
  */
 
-void TiledObjectBodyPrivate::addVirtualCircle(const float &length, const cpBitmask &category)
+void TiledObjectBodyPrivate::addVirtualCircle(const float &length, const cpShapeFilter &filter)
 {
 	if (!m_bodyRef) {
 		LOG_CERROR("scene") << "Missing body";
@@ -2642,7 +2605,7 @@ void TiledObjectBodyPrivate::addVirtualCircle(const float &length, const cpBitma
 
 	m_virtualCircle = cpCircleShapeNew(m_bodyRef, length, {0.f , 0.f});
 	cpShapeSetSensor(m_virtualCircle, true);
-	cpShapeSetFilter(m_virtualCircle, TiledObjectBody::getFilter(category));
+	cpShapeSetFilter(m_virtualCircle, filter);
 
 	if (m_bodyRef->space != NULL) {
 		cpSpaceAddShape(m_bodyRef->space, m_virtualCircle);

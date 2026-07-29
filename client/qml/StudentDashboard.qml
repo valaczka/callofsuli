@@ -304,7 +304,7 @@ QItemGradient {
 
 				textColor: Qaterial.Colors.yellow400
 
-				onClicked: Client.stackPushPage("PageMarket.qml")
+				onClicked: Client.run("rpg")
 			}
 
 			QUpgradeButton { }

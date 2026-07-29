@@ -334,7 +334,6 @@ void RpgMotorNpcTowerAttacker::onShapeContactEnd(cpShape *self, cpShape *other)
 				m_targetTower = nullptr;
 				m_targetDefender = nullptr;
 				m_targetTowerReached = 0;
-				LOG_CINFO("game") << "SHAPE CONTACT TOWER END";
 			}
 		}
 
@@ -343,7 +342,6 @@ void RpgMotorNpcTowerAttacker::onShapeContactEnd(cpShape *self, cpShape *other)
 			if (m_targetTowerReached && m_targetTower == tower) {
 				m_targetTowerReached = 0;
 				m_targetDefender = nullptr;
-				LOG_CINFO("game") << "SHAPE CONTACT DEFENDER END";
 			}
 		}
 	}

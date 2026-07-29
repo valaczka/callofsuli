@@ -53,7 +53,6 @@ public:
 		, duration(0)
 		, success(false)
 		, xp(0)
-		, currency(0)
 	{}
 
 	QS_SERIALIZABLE
@@ -69,7 +68,6 @@ public:
 	QS_FIELD(quint32, duration)
 	QS_FIELD(bool, success)
 	QS_FIELD(quint32, xp)
-	QS_FIELD(quint32, currency)
 	QS_FIELD(QJsonArray, stat)
 	QS_FIELD(QJsonObject, extended)
 };

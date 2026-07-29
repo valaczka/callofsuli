@@ -136,18 +136,56 @@ RpgDialog {
 	}
 
 	Component.onCompleted: {
-		for (let i=0; i<questData.defenders.length; ++i)
-			_modelDefender.append(questData.defenders[i])
+		let idxD = -1
+		let idxU = -1
+		let idxQ = -1
 
-		for (let i=0; i<questData.utilities.length; ++i)
+		let keyD = -1
+		let keyU = -1
+
+		for (let i=0; i<questData.defenders.length; ++i) {
+			_modelDefender.append(questData.defenders[i])
+			if (i==0 || questData.defenders[i].key == keyD)
+				idxD = i
+		}
+
+		for (let i=0; i<questData.utilities.length; ++i) {
 			_modelUtility.append(questData.utilities[i])
+
+			if (i==0 || questData.utilities[i].key == keyU)
+				idxD = i
+		}
 
 		for (let i=0; i<questData.quests.length; ++i) {
 			_modelQuest.append({
 								   icon: Qaterial.Icons.abacus,
 								   description: "Szia "+i+": "+questData.quests[i].xp+" XP"
 							   })
+
+			if (i==0)
+				idxQ = i
 		}
+
+		if (idxD != -1) {
+			game.questSelect({defender: idxD})
+			_tumblerDefender.positionViewAtIndex(idxD, Tumbler.Center)
+		}
+
+
+		if (idxU != -1) {
+			game.questSelect({utility: idxU})
+			_tumblerUtility.positionViewAtIndex(idxU, Tumbler.Center)
+		}
+
+		if (idxQ != -1) {
+			game.questSelect({quest: idxQ})
+			_tumblerQuest.positionViewAtIndex(idxQ, Tumbler.Center)
+		}
+
+		if (questData.quests.length < 2 &&
+				questData.utilities.length < 2 &&
+				questData.defenders.length < 2)
+			game.questSelect({ ready: true })
 	}
 
 }

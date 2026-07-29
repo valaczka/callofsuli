@@ -5365,48 +5365,6 @@ std::optional<float> TeacherAPI::_evaluateCriterionMissionLevels(const AbstractA
 
 
 
-/**
- * @brief TeacherAPI::_currency
- * @param api
- * @param username
- * @return
- */
-
-std::optional<int> TeacherAPI::_currency(const AbstractAPI *api, const QString &username)
-{
-	Q_ASSERT(api);
-	return _currency(api->databaseMain(), username);
-}
-
-
-
-/**
- * @brief TeacherAPI::_currency
- * @param dbMain
- * @param username
- * @return
- */
-
-std::optional<int> TeacherAPI::_currency(const DatabaseMain *dbMain, const QString &username)
-{
-	Q_ASSERT(dbMain);
-
-	QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
-
-	QMutexLocker _locker(dbMain->mutex());
-
-	const auto ptr = QueryBuilder::q(db)
-					 .addQuery("SELECT SUM(amount) AS amount FROM currency WHERE username=").addValue(username)
-					 .execToValue("amount", 0)
-					 ;
-
-	if (!ptr)
-		return std::nullopt;
-
-	return ptr->toInt();
-}
-
-
 
 /**
  * @brief TeacherAPI::_updatePassResultByExam

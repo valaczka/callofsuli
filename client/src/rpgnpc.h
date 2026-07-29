@@ -75,7 +75,6 @@ public:
 
 signals:
 	void targetEntityChanged();
-
 	void isFriendChanged();
 
 protected:

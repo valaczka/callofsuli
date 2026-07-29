@@ -35,7 +35,7 @@ FocusScope {
 
 		joystickA: _gameJoystickMove
 		joystickB: _gameJoystickControl
-		joystickC: _gameJoystickShot
+		//joystickC: _gameJoystickShot
 
 		readonly property bool multiplayer: game && game.gameMode == RpgGame.MultiPlayer
 
@@ -205,7 +205,7 @@ FocusScope {
 	}
 
 
-	GameButton {
+	/*GameButton {
 		id: _utilityButton
 		size: 40
 
@@ -226,7 +226,7 @@ FocusScope {
 		onClicked: {
 			game.controlledPlayer.useCurrentUtility()
 		}
-	}
+	}*/
 
 
 
@@ -258,11 +258,17 @@ FocusScope {
 		bounding: Qt.rect(0, parent.height*0.5, parent.width*0.5, parent.height*0.5)
 
 		moveToTap: true
+
+		opacity: _item.usingGamepad ? 0.0 : 1.0
+
+		Behavior on opacity {
+			NumberAnimation { duration: 250; easing.type: Easing.OutQuad }
+		}
 	}
 
 
 
-	GameJoystick {
+	/*GameJoystick {
 		id: _gameJoystickShot
 
 		anchors.right: parent.right
@@ -281,7 +287,7 @@ FocusScope {
 		thumb.border.color: Qaterial.Colors.black
 
 		bounding: Qt.rect(parent.width*0.6, parent.height*0.5, parent.width*0.4, parent.height*0.5)
-	}
+	}*/
 
 
 	GameJoystick {
@@ -291,18 +297,43 @@ FocusScope {
 		anchors.bottom: parent.bottom
 
 		visible: game && game.controlledPlayer && game.controlledPlayer.hp > 0 && _item.isContentReady &&
-				 game.controlledPlayer.hasDefender
+				 ((game.controlledPlayer.joystickMode === RpgPlayer.JoystickModeControl && game.controlledPlayer.hasDefender) ||
+				  (game.controlledPlayer.joystickMode === RpgPlayer.JoystickModeTarget && game.controlledPlayer.bullet > 0) ||
+				  (game.controlledPlayer.joystickMode === RpgPlayer.JoystickModeUtility && game.controlledPlayer.hasUtility)
+				  )
 
 		size: 90 * Qaterial.Style.pixelSizeRatio * gameControlRatio
 		thumbSize: 40 * Qaterial.Style.pixelSizeRatio * gameControlRatio
 
-		//fontImage.icon: "qrc:/internal/game/target1.svg"
-		//fontImage.color: Qaterial.Colors.white
+		fontImageScale: 0.5
 
-		thumb.color: Qaterial.Colors.green700
+		fontImage.icon: {
+			if (!game.controlledPlayer || game.controlledPlayer.currentJoystickIcon == "")
+				return "qrc:/internal/game/target1.svg"
+			else
+				return game.controlledPlayer.currentJoystickIcon
+		}
+		fontImage.color: Qaterial.Colors.white
+
+		thumb.color: {
+			if (!game.controlledPlayer)
+				return "transparent"
+			else if (game.controlledPlayer.joystickMode === RpgPlayer.JoystickModeControl)
+				Qaterial.Colors.green700
+			else if (game.controlledPlayer.joystickMode === RpgPlayer.JoystickModeTarget)
+				return Qaterial.Colors.red700
+			else if (game.controlledPlayer.joystickMode === RpgPlayer.JoystickModeUtility)
+				return Qaterial.Colors.amber700
+		}
 		thumb.border.color: Qaterial.Colors.black
 
 		bounding: Qt.rect(parent.width*0.6, parent.height*0.5, parent.width*0.4, parent.height*0.5)
+
+		opacity: _item.usingGamepad ? 0.0 : 1.0
+
+		Behavior on opacity {
+			NumberAnimation { duration: 250; easing.type: Easing.OutQuad }
+		}
 	}
 
 
@@ -434,6 +465,8 @@ FocusScope {
 		progressBar.to: game && game.controlledPlayer ? game.controlledPlayer.maxMp : 0
 		progressBar.value: game && game.controlledPlayer ? game.controlledPlayer.mp : 0
 		progressBar.width: Math.min(root.width*0.3, 60)
+
+		progressBar.onValueChanged: marked = true
 	}
 
 
@@ -780,7 +813,7 @@ FocusScope {
 		}
 
 		function onQuestResultDataChanged() {
-			if (!game.questResultData)
+			if (!game.questResultData || game.gameState == RpgGame.GameStateAbort)
 				return
 
 			_dialogLoader.sourceComponent = _finishDialog
