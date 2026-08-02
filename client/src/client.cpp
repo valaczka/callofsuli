@@ -35,7 +35,6 @@
 #include "pass.h"
 #include "qquickwindow.h"
 #include "rpgmapplaytutorial.h"
-#include "rpguserwallet.h"
 #include "studentgroup.h"
 #include "teachergroup.h"
 #include "httpconnection.h"
@@ -611,9 +610,6 @@ void Client::onServerDisconnected()
 	stackPopToStartPage();
 
 	m_cache.clear();
-
-	if (server())
-		server()->user()->wallet()->unloadWorld();
 }
 
 
@@ -670,7 +666,6 @@ void Client::onUserLoggedIn()
 			return;
 
 		server()->user()->loadFromJson(json);
-		server()->user()->wallet()->reload();
 
 		if (server()->user()->roles().testFlag(Credential::Panel))
 			stackPushPage(QStringLiteral("PagePanel.qml"));
@@ -1068,8 +1063,8 @@ void Client::connectToServer(Server *server)
 		if (!hasNetwork) {
 			m_httpConnection->setServer(server);
 			m_httpConnection->setState(HttpConnection::Connecting);
-			engine->loadOfflineMode();
-			return;
+			if (engine->loadOfflineMode())
+				return;
 		}
 	}
 
@@ -1370,14 +1365,16 @@ void Client::parseUrl()
 
 
 	if (!server()) {
-		Server *server = serverAddWithUrl(m_parseUrl);
+		/*Server *server = serverAddWithUrl(m_parseUrl);
 
 		if (server) {
 			connectToServer(server);
 			return;
 		} else {
 			snack(tr("Érvénytelen URL"));
-		}
+		}*/
+
+		snack(tr("Érvénytelen URL"));
 	}
 
 
@@ -1407,7 +1404,7 @@ void Client::parseUrl()
 		}
 	} else {
 
-		messageWarning(tr("A link másik szerverhez vezet. Előbb zárd le a kapcsolatot!"), tr("Csatlakozás"));
+		messageWarning(tr("A link másik szerverhez vezet!"), tr("Csatlakozás"));
 	}
 
 
@@ -2010,6 +2007,26 @@ void Client::onDemoMapDestroyed()
 		LOG_CINFO("client") << "Disconnect from static server";
 		m_httpConnection->close();
 	}*/
+}
+
+
+/**
+ * @brief Client::setWorld
+ * @param newWorld
+ */
+
+void Client::setWorld(std::unique_ptr<RpgUserWorld> newWorld)
+{
+	if (m_world == newWorld)
+		return;
+	m_world = std::move(newWorld);
+	emit worldChanged();
+}
+
+
+RpgUserWorld* Client::world() const
+{
+	return m_world.get();
 }
 
 

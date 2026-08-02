@@ -20,9 +20,8 @@ RpgDialog {
 	Qaterial.LabelBody2 {
 		anchors.fill: parent
 		wrapMode: Text.Wrap
-		text: JSON.stringify(result)
+		text: (result.isTutorial === true ? "TUTORIAL\n" : "---\n") + JSON.stringify(result)
 	}
-
 
 }
 

@@ -111,11 +111,10 @@ void RpgUdpEngine::onDataReceived(std::unique_ptr<UdpBitStream> data)
 			m_room = r.room();
 
 			m_gamePrivate->m_characterSelect.setGameConfig(r.gameConfig());
-			m_gamePrivate->updateCharacterSelect();
+			m_gamePrivate->updateCharacterSelectServer(r);
 		}
 
 		setIsHost(m_room->hostId() == peerId());
-
 
 		updateRoom();
 
@@ -144,6 +143,18 @@ void RpgUdpEngine::onDataReceived(std::unique_ptr<UdpBitStream> data)
 		r << stream;
 		if (!r.questList().empty())
 			m_gamePrivate->loadQuests(r.questList(), r.msecLeft());
+	} else if (stream.dataOperation() == RpgStream::EngineDataStream::DataOperationJsonResult) {
+		RpgStream::JsonResult r;
+		r << stream;
+
+		if (!r.json().isEmpty()) {
+			QJsonObject o = QJsonDocument::fromJson(r.json()).object();
+			if (o.empty()) {
+				LOG_CWARNING("game") << "Invalid JSON result";
+			} else {
+				m_gamePrivate->setFinishResult(o);
+			}
+		}
 	}
 }
 
@@ -168,11 +179,15 @@ void RpgUdpEngine::updateRoom()
 		l.append(QVariantMap{
 					 { QStringLiteral("playerId"),				d.playerId() },
 					 { QStringLiteral("username"),				QString::fromUtf8(d.userName()) },
-					 { QStringLiteral("nickname"),				QString::fromUtf8(d.nickName())+(m_isHost ? " HOST" : "") },
+					 { QStringLiteral("nickname"),				QString::fromUtf8(d.nickName()) },
 					 { QStringLiteral("character"),				d.characterResolved(m_gamePrivate->m_characterHash) },
 					 { QStringLiteral("power"),					d.config().power() },
 					 { QStringLiteral("team"),					d.team() },
+					 { QStringLiteral("onboard"),				d.flags().testFlag(RpgStream::PlayerData::FlagOnboard) },
 				 });
+
+		if (d.playerId() == peerId())
+			m_gamePrivate->m_characterSelect.data().setTeam(d.team());
 	}
 
 
@@ -194,13 +209,8 @@ void RpgUdpEngine::onBeforeWorldStep(const qint64 &tick)
 	if (m_gameFlags == RpgStream::PlayerData::FlagNull)
 		return;
 
-	if (m_fullReceived) {
-		if (!m_gameFlags.testFlag(RpgStream::PlayerData::FlagGamePrepared)) {
-			LOG_CINFO("game") << "******************* PREAPRED *********************";
-		}
-
+	if (m_fullReceived)
 		m_gameFlags.setFlag(RpgStream::PlayerData::FlagGamePrepared);
-	}
 
 	RpgStream::EngineDataStream stream = getDataStream(RpgStream::EngineDataStream::DataOperationPlayerData);
 
@@ -338,7 +348,6 @@ void RpgUdpEngine::updateMapData(RpgStream::EngineDataStream &&stream)
 
 	if (m_isHost && m_isMapReady) {
 		if (m.forceReload() && !m_isMapReloaded && m_gamePrivate->m_isMapLoaded && m_gamePrivate->m_isMapSynchronized) {
-			LOG_CINFO("game") << "Reload map data";
 			m_gamePrivate->loadChunkGrid();
 
 			m_isMapReloaded = true;
@@ -479,8 +488,6 @@ void RpgUdpEngine::sendState(const RpgStream::FullState &data)
 		s2.setFlags(RpgStream::FullState::Null | RpgStream::FullState::Event);
 
 		RpgStream::EngineDataStream st2 = getDataStream(RpgStream::EngineDataStream::DataOperationState);
-
-		LOG_CINFO("game") << "SEND EVENT" << s2.flags() << s2.events().size();
 
 		s2 >> st2;
 

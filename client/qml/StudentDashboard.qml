@@ -295,7 +295,7 @@ QItemGradient {
 
 
 			QDashboardButton {
-				text: qsTr("Vásárlás")
+				text: qsTr("Akciójáték")
 				visible: !_grid.showPlaceholders
 				icon.source: Qaterial.Icons.cartOutline
 				highlighted: false

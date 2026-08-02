@@ -179,7 +179,7 @@ RpgLogicClientSingle::RpgLogicClientSingle(RpgGame *game)
 	Q_ASSERT(m_game);
 
 	QObject::connect(m_game, &RpgGame::heatChanged, m_game, [this]() {
-		m_game->gameItem()->messageColor(QObject::tr("Heat upgraded: %1").arg(m_game->heat()),
+		m_game->gameItem()->messageColor(QObject::tr("Danger upgraded: %1").arg(m_game->heat()),
 										 QColorConstants::Svg::orangered);
 	});
 }
@@ -248,6 +248,17 @@ RpgStream::GameConfig RpgLogicClientSingle::startGame()
  */
 
 void RpgLogicClientSingle::overrideMapData(RpgStream::MapData &data)
+{
+	Q_UNUSED(data);
+}
+
+
+/**
+ * @brief RpgLogicClientSingle::overrideResultData
+ * @param data
+ */
+
+void RpgLogicClientSingle::overrideResultData(QVariantMap &data)
 {
 	Q_UNUSED(data);
 }
@@ -373,7 +384,8 @@ void RpgLogicClientSingle::rewindStage(const RpgStream::GameConfig::Stage &oldSt
 
 QuestList RpgLogicClientSingle::getQuestList() const
 {
-	QuestList list;
+	if (!m_game->rpgUserData().quests.isEmpty())
+		return m_game->rpgUserData().getQuests();
 
 	static const std::vector<std::array<int, 5> > data = {
 		{ 4,	3,	200,	540,	15 },
@@ -381,6 +393,7 @@ QuestList RpgLogicClientSingle::getQuestList() const
 		{ 13,	6,	900,	1540,	215 },
 	};
 
+	QuestList list;
 
 	for (const auto &a : data) {
 		RpgStream::Quest q;
@@ -896,6 +909,17 @@ void RpgLogicClientTutorial::overrideMapData(RpgStream::MapData &data)
 }
 
 
+/**
+ * @brief RpgLogicClientTutorial::overrideResultData
+ * @param data
+ */
+
+void RpgLogicClientTutorial::overrideResultData(QVariantMap &data)
+{
+	data[QStringLiteral("isTutorial")] = true;
+}
+
+
 
 /**
  * @brief RpgLogicClientTutorial::loadGameData
@@ -1008,10 +1032,12 @@ void RpgLogicClientTutorial::npcAddToPoint(const QString &character, const QStri
 
 void RpgLogicClientTutorial::eventRealized(entt::entity entity)
 {
-	/*RpgLogicScope scope = getScope();
+	RpgLogicScope scope = getScope();
 
 	if (!scope.valid(entity))
 		return;
+
+	// Ezzel indul el a tutorial:
 
 	if (RpgStream::EventStageChanged *ev = scope.try_get<RpgStream::EventStageChanged>(entity)) {
 		if (ev->config().stage() == RpgStream::GameConfig::StageWarmingUp) {
@@ -1020,7 +1046,7 @@ void RpgLogicClientTutorial::eventRealized(entt::entity entity)
 	}
 
 	if (!m_currentStep)
-		return;*/
+		return;
 
 	checkEvent(entity);
 }
@@ -1126,6 +1152,27 @@ std::vector<Chest> RpgLogicClientTutorial::initializeChests()
 	}
 
 	return r;
+}
+
+
+
+
+/**
+ * @brief RpgLogicClientTutorial::initializeStages
+ */
+
+void RpgLogicClientTutorial::initializeStages()
+{
+	if (m_tutorial->duration == 0) {
+		RpgLogicClientSingle::initializeStages();
+		return;
+	}
+
+	ELOG_INFO << "Set game duration" << m_tutorial->duration;
+
+	RpgLogicScope scope = getScope();
+
+	scope.getCtx<RpgStream::GameConfig>()->setDuration(m_tutorial->duration);
 }
 
 

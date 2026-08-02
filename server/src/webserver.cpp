@@ -195,13 +195,15 @@ std::optional<QSslConfiguration> WebServer::loadSslConfiguration(const ServerSet
 		return std::nullopt;
 	}
 
-	QSslCertificate cert(&certFile, QSsl::Pem);
+	//QSslCertificate cert(&certFile, QSsl::Pem);
+	const QList<QSslCertificate> chain = QSslCertificate::fromData(certFile.readAll(), QSsl::Pem);
+
 	QSslKey key(&keyFile, QSsl::Rsa, QSsl::Pem);
 
 	certFile.close();
 	keyFile.close();
 
-	if (cert.isNull()) {
+	if (chain.isEmpty()) {
 		LOG_CERROR("websocket") << "Invalid certificate:" << qPrintable(certFile.fileName());
 		return std::nullopt;
 	}
@@ -213,7 +215,8 @@ std::optional<QSslConfiguration> WebServer::loadSslConfiguration(const ServerSet
 
 	QSslConfiguration c;
 
-	c.setLocalCertificate(cert);
+	//c.setLocalCertificate(cert);
+	c.setLocalCertificateChain(chain);
 	c.setPrivateKey(key);
 	c.setPeerVerifyMode(QSslSocket::VerifyNone);
 

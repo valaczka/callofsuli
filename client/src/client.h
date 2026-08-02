@@ -37,6 +37,7 @@
 #include <QAbstractSocket>
 #include <QNetworkReply>
 #include "QQuickWindow"
+#include "rpgworldlanddata.h"
 #include "sound.h"
 
 
@@ -91,6 +92,7 @@ class Client : public QObject
 	Q_PROPERTY(Updater *updater READ updater CONSTANT)
 
 	Q_PROPERTY(AbstractGame* currentGame READ currentGame NOTIFY currentGameChanged)
+	Q_PROPERTY(RpgUserWorld* world READ world NOTIFY worldChanged FINAL)
 
 	Q_PROPERTY(qreal safeMarginLeft READ safeMarginLeft NOTIFY safeMarginLeftChanged)
 	Q_PROPERTY(qreal safeMarginRight READ safeMarginRight NOTIFY safeMarginRightChanged)
@@ -101,7 +103,6 @@ class Client : public QObject
 	Q_PROPERTY(Server *server READ server NOTIFY serverChanged)
 	Q_PROPERTY(Sound *sound READ sound NOTIFY soundChanged)
 	Q_PROPERTY(Downloader *downloader READ downloader CONSTANT FINAL)
-
 
 
 
@@ -268,6 +269,10 @@ public:
 	virtual bool fullScreenHelper() const;
 	virtual void setFullScreenHelper(bool newFullScreenHelper);
 
+	RpgUserWorld *world() const;
+
+	void setWorld(std::unique_ptr<RpgUserWorld> newWorld);
+
 public slots:
 	virtual void onHttpConnectionError(const QNetworkReply::NetworkError &code);
 
@@ -318,6 +323,8 @@ signals:
 	void soundChanged();
 	void fullScreenHelperChanged();
 
+	void worldChanged();
+
 private:
 	void startCache();
 	void onSoundEffectTimeout();
@@ -353,6 +360,7 @@ protected:
 	std::unique_ptr<Updater> m_updater;
 	std::unique_ptr<QTranslator> m_translator;
 	std::unique_ptr<Downloader> m_downloader;
+	std::unique_ptr<RpgUserWorld> m_world;
 
 private:
 	std::unique_ptr<Sound> m_sound;

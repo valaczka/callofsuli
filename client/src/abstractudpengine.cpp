@@ -87,12 +87,8 @@ AbstractUdpEngine::~AbstractUdpEngine()
 
 	stop();
 
-	LOG_CDEBUG("client") << "Stopped udp engine";
-
 	delete d;
 	d = nullptr;
-
-	LOG_CDEBUG("client") << "Udp engine destroyed";
 }
 
 
@@ -105,12 +101,8 @@ void AbstractUdpEngine::stop()
 {
 #ifndef Q_OS_WASM
 
-	LOG_CWARNING("client") << "STOP THREAD";
-
 	if (m_worker->getThread()->isFinished())
 		return;
-
-	LOG_CWARNING("client") << "STOP THREAD REALLY";
 
 	disconnect(d, nullptr, this, nullptr);
 
@@ -120,8 +112,6 @@ void AbstractUdpEngine::stop()
 
 	m_worker->quitThread();
 	m_worker->getThread()->wait();
-
-	LOG_CWARNING("client") << "STOPPED THREAD";
 #endif
 
 }
@@ -255,7 +245,7 @@ void AbstractUdpEngine::onPacketReceived()
 AbstractUdpEnginePrivate::AbstractUdpEnginePrivate(AbstractUdpEngine *engine)
 	: q(engine)
 {
-	LOG_CDEBUG("game") << "UDP PRIVATE" << this;
+
 }
 
 
@@ -265,7 +255,7 @@ AbstractUdpEnginePrivate::AbstractUdpEnginePrivate(AbstractUdpEngine *engine)
 
 AbstractUdpEnginePrivate::~AbstractUdpEnginePrivate()
 {
-	LOG_CDEBUG("game") << "UDP PRIVATE DESTROY" << this;
+
 }
 
 
@@ -277,8 +267,6 @@ AbstractUdpEnginePrivate::~AbstractUdpEnginePrivate()
 void AbstractUdpEnginePrivate::run()
 {
 	Q_ASSERT(QThread::currentThread() == this->thread());
-
-	LOG_CDEBUG("game") << "RUN...";
 
 #ifndef Q_OS_WASM
 	m_running.storeRelease(1);
@@ -407,8 +395,6 @@ void AbstractUdpEnginePrivate::run()
 		QThread::msleep(1);
 	}
 
-	LOG_CDEBUG("game") << "STOP...";
-
 	destroyHostAndPeer();
 
 #endif
@@ -466,9 +452,9 @@ void AbstractUdpEnginePrivate::runWebSocket()
 #endif
 
 	connect(m_webSocket.get(), &QWebSocket::binaryMessageReceived, this, &AbstractUdpEnginePrivate::messageReceived);
-	connect(m_webSocket.get(), &QWebSocket::textMessageReceived, this, [](const QString &text) {
+	/*connect(m_webSocket.get(), &QWebSocket::textMessageReceived, this, [](const QString &text) {
 		LOG_CDEBUG("client") << "***" << text;
-	});
+	});*/
 }
 
 
@@ -701,20 +687,13 @@ void AbstractUdpEnginePrivate::messageReceived(const QByteArray &data)
 
 
 	if (stream->type() == UdpBitStream::MessageConnect) {
-		LOG_CWARNING("client") << "MESSAGE CONNECT";
-
 		sendConnectionToken();
-
 		return;
 
 	} else if (stream->type() == UdpBitStream::MessageConnected || stream->type() >= UdpBitStream::MessageUser) {
 
 		if (stream->type() == UdpBitStream::MessageConnected) {
-			LOG_CINFO("client") << "MESSAGE CONNECTED";
-
 			stream->getConnected(&m_peerId, &m_peerIndex);
-
-			LOG_CINFO("client") << "#####" << m_peerId << m_peerIndex;
 		}
 
 		m_cacheRcv.push(UdpPacketRcv(std::move(stream), -1));
@@ -730,7 +709,6 @@ void AbstractUdpEnginePrivate::messageReceived(const QByteArray &data)
 
 	} else if (stream->type() == UdpBitStream::MessageServerFull) {
 		m_udpState = UdpBitStream::MessageRejected;
-		LOG_CWARNING("client") << "MESSAGE SERVERFULL";
 		emit q->serverConnectFailed(tr("Server full"));
 		return;
 
@@ -779,31 +757,21 @@ bool AbstractUdpEnginePrivate::packetReceived(const ENetEvent &event)
 
 
 	if (stream->type() == UdpBitStream::MessageConnect) {
-		LOG_CWARNING("client") << "MESSAGE CONNECT";
-
 		sendConnectionToken();
-
 		return true;
 
 	} else if (stream->type() == UdpBitStream::MessageChallenge) {
-
 		packetChallengeReceived(stream);
-
 		return true;
 
 
 	} else if (stream->type() == UdpBitStream::MessageConnected || stream->type() >= UdpBitStream::MessageUser) {
-
 		const unsigned int rtt = m_enet_peer->roundTripTime;
 
 		m_speed.addRtt(rtt);
 
 		if (stream->type() == UdpBitStream::MessageConnected) {
-			LOG_CINFO("client") << "MESSAGE CONNECTED";
-
 			stream->getConnected(&m_peerId, &m_peerIndex);
-
-			LOG_CINFO("client") << "#####" << m_peerId << m_peerIndex;
 		}
 
 		m_cacheRcv.push(UdpPacketRcv(std::move(stream), rtt));
@@ -817,7 +785,6 @@ bool AbstractUdpEnginePrivate::packetReceived(const ENetEvent &event)
 
 	} else if (stream->type() == UdpBitStream::MessageServerFull) {
 		m_udpState = UdpBitStream::MessageRejected;
-		LOG_CWARNING("client") << "MESSAGE SERVERFULL";
 		emit q->serverConnectFailed(tr("Server full"));
 		return true;
 

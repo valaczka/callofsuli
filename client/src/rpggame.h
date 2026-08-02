@@ -38,6 +38,7 @@
 class RpgGamePrivate;
 class RpgGameItem;
 class RpgPlayer;
+class RpgUdpEngine;
 
 #ifndef OPAQUE_PTR_RpgGameItem
 #define OPAQUE_PTR_RpgGameItem
@@ -50,6 +51,10 @@ Q_DECLARE_OPAQUE_POINTER(RpgGameItem*)
 Q_DECLARE_OPAQUE_POINTER(RpgPlayer*)
 #endif
 
+#ifndef OPAQUE_PTR_RpgUdpEngine
+#define OPAQUE_PTR_RpgUdpEngine
+Q_DECLARE_OPAQUE_POINTER(RpgUdpEngine*)
+#endif
 
 
 
@@ -330,6 +335,7 @@ class RpgGame : public AbstractLevelGame
 	Q_OBJECT
 
 	Q_PROPERTY(bool isEmpty READ isEmpty CONSTANT FINAL)
+	Q_PROPERTY(bool isTutorial READ isTutorial CONSTANT FINAL)
 	Q_PROPERTY(GameState gameState READ gameState WRITE setGameState NOTIFY gameStateChanged FINAL)
 	Q_PROPERTY(GameMode gameMode READ gameMode WRITE setGameMode NOTIFY gameModeChanged FINAL)
 	Q_PROPERTY(QString errorString READ errorString WRITE setErrorString NOTIFY errorStringChanged FINAL)
@@ -346,9 +352,11 @@ class RpgGame : public AbstractLevelGame
 	Q_PROPERTY(QColor colorNeutral READ colorNeutral CONSTANT FINAL)
 	Q_PROPERTY(QColor colorGlow READ colorGlow CONSTANT FINAL)
 
+	Q_PROPERTY(RpgUserData rpgUserData READ rpgUserData WRITE setRpgUserData NOTIFY rpgUserDataChanged FINAL)
 	Q_PROPERTY(QSListModel* modelLobby READ modelLobby CONSTANT FINAL)
 	Q_PROPERTY(QSListModel* modelPlayer READ modelPlayer CONSTANT FINAL)
 	Q_PROPERTY(QSListModel* modelCharacters READ modelCharacters CONSTANT FINAL)
+	Q_PROPERTY(RpgUdpEngine* engine READ engine NOTIFY engineChanged FINAL)
 
 	Q_PROPERTY(QString readableRoom READ readableRoom NOTIFY readableRoomChanged FINAL)
 	Q_PROPERTY(QString terrain READ terrain WRITE setTerrain NOTIFY terrainChanged FINAL)
@@ -362,6 +370,10 @@ class RpgGame : public AbstractLevelGame
 	Q_PROPERTY(QVariantMap questSelectData READ questSelectData WRITE setQuestSelectData NOTIFY questSelectDataChanged FINAL)
 	Q_PROPERTY(QVariantMap questResultData READ questResultData WRITE setQuestResultData NOTIFY questResultDataChanged FINAL)
 	Q_PROPERTY(QVariantMap gameResultData READ gameResultData WRITE setGameResultData NOTIFY gameResultDataChanged FINAL)
+
+	Q_PROPERTY(bool isRoomCompleted READ isRoomCompleted WRITE setIsRoomCompleted NOTIFY isRoomCompletedChanged FINAL)
+	Q_PROPERTY(bool isCharacterSelect READ isCharacterSelect WRITE setIsCharacterSelect NOTIFY isCharacterSelectChanged FINAL)
+	Q_PROPERTY(bool isAllOnboard READ isAllOnboard WRITE setIsAllOnboard NOTIFY isAllOnboardChanged FINAL)
 
 public:
 	RpgGame(GameMapMissionLevel *missionLevel, Client *client, const bool &multiplayer,
@@ -398,6 +410,7 @@ public:
 	Q_INVOKABLE void loadGameItem();
 	Q_INVOKABLE void gameItemPrepared();
 	Q_INVOKABLE void downloadAccepted();
+	Q_INVOKABLE void reloadRpgData();
 
 	Q_INVOKABLE void menuBgMusicPlay();
 	Q_INVOKABLE void menuBgMusicStop();
@@ -410,6 +423,9 @@ public:
 	Q_INVOKABLE QUrl getCharacterImage(const QString &character) const;
 
 	Q_INVOKABLE bool loadTutorial(const QString &character);
+
+	Q_INVOKABLE QVariantMap getCharactersMetric() const;
+	Q_INVOKABLE QVariantMap getCharacterMetricAtLevel(const QString &character, const int &level) const;
 
 
 	static RpgGame *createEmptyGame(Client *client);
@@ -434,6 +450,8 @@ public:
 	bool loadNextQuestion();
 
 	virtual int msecLeft() const override;
+
+	const QJsonObject &getFinishResult() const;
 
 	GameState gameState() const;
 	void setGameState(const GameState &newGameState);
@@ -512,8 +530,25 @@ public:
 
 	bool isEmpty() const;
 
+	bool isTutorial() const;
+
+	RpgUserData rpgUserData() const;
+	void setRpgUserData(const RpgUserData &newRpgUserData);
+
+	bool isRoomCompleted() const;
+	void setIsRoomCompleted(bool newIsRoomCompleted);
+
+	bool isCharacterSelect() const;
+	void setIsCharacterSelect(bool newIsCharacterSelect);
+
+	RpgUdpEngine *engine() const;
+
+	bool isAllOnboard() const;
+	void setIsAllOnboard(bool newIsAllOnboard);
+
 signals:
 	void downloadRequest(QString size);
+	void finishDataReceived(const QJsonObject &data);
 	void questSelectCompleted();
 	void gameStateChanged();
 	void errorStringChanged();
@@ -535,6 +570,11 @@ signals:
 	void gameIdChanged();
 	void campaignIdChanged();
 	void gameResultDataChanged();
+	void rpgUserDataChanged();
+	void isRoomCompletedChanged();
+	void isCharacterSelectChanged();
+	void engineChanged();
+	void isAllOnboardChanged();
 
 protected:
 	virtual void timerEvent(QTimerEvent *) override;
@@ -583,6 +623,11 @@ private:
 	std::unique_ptr<QSListModel> m_modelLobby;
 	std::unique_ptr<QSListModel> m_modelPlayer;
 	std::unique_ptr<QSListModel> m_modelCharacters;
+
+	RpgUserData m_rpgUserData;
+	bool m_isRoomCompleted = false;
+	bool m_isCharacterSelect = false;
+	bool m_isAllOnboard = false;
 
 	static QHash<QString, RpgGameDefinition> m_terrains;
 	static QHash<QString, RpgPlayerDefinition> m_characters;

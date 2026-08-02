@@ -52,7 +52,7 @@ public:
 
 	static void peerWithoutRoomHandle(std::unique_ptr<UdpBitStream> &&data, UdpServerPeer *peer, const QSet<RpgEngine*> &engines);
 	static void sendRoomList(UdpServer *server, const QSet<RpgEngine*> &engines, const bool &reliable = false);
-	static RpgStream::RoomList toRoomList(const QSet<RpgEngine*> &engines);
+	static RpgStream::RoomList toRoomList(const QSet<RpgEngine*> &engines, const int &availablePeerCount);
 	static RpgEngine* findEngine(UdpServer *server, const quint32 &id);
 	static bool peerConnectToEngine(UdpServerPeer *peer, RpgEngine *engine);
 

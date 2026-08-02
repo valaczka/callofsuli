@@ -11,10 +11,13 @@ Qaterial.Card {
 	property bool locked: false
 	property bool selected: false
 	property bool disabled: false
+	property bool fullBg: false
 	property alias image: _image.source
 	property alias text: _label.text
 	property alias mouseArea: _area
 	property alias borderVisible: _border.visible
+	property alias iconLockColor: _iconLock.color
+	readonly property alias labelHeight: _label.height
 
 	default property alias containerContent: _container.data
 
@@ -75,11 +78,11 @@ Qaterial.Card {
 
 			visible: !locked && !disabled
 
-			fillMode: Image.PreserveAspectFit
+			fillMode: fullBg ? Image.PreserveAspectCrop : Image.PreserveAspectFit
 			horizontalAlignment: Image.AlignHCenter
 			verticalAlignment: Image.AlignVCenter
 			width: Math.min(parent.width, sourceSize.width)
-			height: Math.min(parent.height - _label.height, sourceSize.height)
+			height: Math.min(parent.height - (fullBg ? 0 : _label.height), sourceSize.height)
 			anchors.horizontalCenter: parent.horizontalCenter
 			anchors.bottom: parent.bottom
 
@@ -101,6 +104,22 @@ Qaterial.Card {
 			opacity: 0.4
 		}
 
+		MouseArea {
+			id: _area
+			anchors.fill: parent
+			acceptedButtons: Qt.LeftButton
+
+			onClicked: control.clicked()
+		}
+
+		Qaterial.Icon {
+			id: _iconLock
+			anchors.centerIn: parent
+			icon: Qaterial.Icons.lockOutline
+			visible: locked
+			size: parent.height*0.4
+			color: Qaterial.Colors.cyan800
+		}
 
 		Item {
 			id: _container
@@ -108,13 +127,6 @@ Qaterial.Card {
 			anchors.fill: parent
 		}
 
-		Qaterial.Icon {
-			anchors.centerIn: parent
-			icon: Qaterial.Icons.lock
-			visible: locked
-			size: parent.height*0.4
-			color: Qaterial.Colors.cyan800
-		}
 
 		Qaterial.Label
 		{
@@ -175,13 +187,6 @@ Qaterial.Card {
 			color: Qaterial.Colors.red600
 		}
 
-		MouseArea {
-			id: _area
-			anchors.fill: parent
-			acceptedButtons: Qt.LeftButton
-
-			onClicked: control.clicked()
-		}
 	}
 
 

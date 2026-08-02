@@ -284,6 +284,7 @@ private:
 	void renderEvents(EventNpcAttackTower *event);
 	void renderEvents(EventNpcAttackPlayer *event);
 	void renderEvents(EventDefenderStep *event);
+	void renderEvents(EventPatchPlayer *event);
 
 	void renderEntityKnockbacks();
 
@@ -641,6 +642,37 @@ std::unordered_set<entt::entity> RpgLogic::initializeEmitters()
 	}
 
 	return r;
+}
+
+
+
+/**
+ * @brief RpgLogic::initializeStages
+ */
+
+void RpgLogic::initializeStages()
+{
+	// Stage main
+
+	EventStageChange ev;
+	ev.setTick(CFG_GAME_STAGE_MAIN);
+	ev.stage = RpgStream::GameConfig::StageMain;
+
+	eventStore(std::move(ev));
+
+	// Stage last
+
+	EventStageChange ev2;
+	ev2.setTick(CFG_GAME_STAGE_LAST);
+	ev2.stage = RpgStream::GameConfig::StageLast;
+
+	eventStore(std::move(ev2));
+
+
+	// Heat initiliazie
+
+	d->loadHeat(0);
+
 }
 
 
@@ -4607,6 +4639,9 @@ void RpgLogicPrivate::renderEvents()
 		else if (EventDefenderStep *event = q->m_registry.try_get<EventDefenderStep>(e))
 			renderEvents(event);
 
+		else if (EventPatchPlayer *event = q->m_registry.try_get<EventPatchPlayer>(e))
+			renderEvents(event);
+
 		else
 			ELOG_ERROR << "Invalid event";
 	}
@@ -4675,13 +4710,15 @@ void RpgLogicPrivate::renderEvents(entt::entity mpent, const std::vector<EventMp
 
 	// Register event
 
+	const Player &p = q->m_registry.get<Player>(final->player);
+
 	RpgStream::EventPlayer e(RpgStream::EventPlayer::EventMpPick);
-	e.setTagId(q->m_registry.get<Player>(final->player).idTag());
+	e.setTagId(p.idTag());
 	e.setTarget(mp->idTag);
 
 	eventRealStore(std::move(e));
 
-	ELOG_DEBUG << "Player" << e.tagId() << "picked MP" << mp->idTag << "at" << st.tick();
+	ELOG_DEBUG << "Player" << p.playerData.playerId() << "picked MP" << mp->idTag << "at" << st.tick();
 
 
 	// Next emitter event
@@ -5731,6 +5768,41 @@ void RpgLogicPrivate::renderEvents(EventDefenderStep *event)
 	}
 
 	eventRealStore(std::move(ev));
+}
+
+
+
+/**
+ * @brief RpgLogicPrivate::renderEvents
+ * @param event
+ */
+
+void RpgLogicPrivate::renderEvents(EventPatchPlayer *event)
+{
+	if (!event)
+		return;
+
+	QMutexLocker locker(&q->m_mutex);
+
+	entt::entity player = q->entityFromIdTag(event->tagId);
+
+	if (!q->m_registry.valid(player)) {
+		ELOG_WARNING << "Player entity not found" << event->tagId;
+		return;
+	}
+
+	Player *p = q->m_registry.try_get<Player>(player);
+
+	if (!p) {
+		ELOG_WARNING << "Invalid player entity" << event->tagId;
+		return;
+	}
+
+	RpgStream::PlayerState &st = getEditableCurrentState<RpgStream::PlayerState>(player);
+
+	ELOG_DEBUG << "Player" << p->playerData.playerId() << "patch state" << "at" << q->lastAuthTick();
+
+	st.loadFromDelta(event->deltaState, true);
 }
 
 
@@ -7322,33 +7394,13 @@ bool RpgLogic::initialize()
 		return false;
 	}
 
-	// Duration
+	m_registry.ctx().get<RpgStream::GameState>().setHeat(0);
 
 	cfg.setDuration(CFG_GAME_DURATION);
 
-	m_registry.ctx().get<RpgStream::GameState>().setHeat(0);
+	// Stages, heat initialize
 
-
-	// Stage main
-
-	EventStageChange ev;
-	ev.setTick(CFG_GAME_STAGE_MAIN);
-	ev.stage = RpgStream::GameConfig::StageMain;
-
-	eventStore(std::move(ev));
-
-	// Stage last
-
-	EventStageChange ev2;
-	ev2.setTick(CFG_GAME_STAGE_LAST);
-	ev2.stage = RpgStream::GameConfig::StageLast;
-
-	eventStore(std::move(ev2));
-
-
-	// Heat initiliazie
-
-	d->loadHeat(0);
+	initializeStages();
 
 	// Map initialize
 
@@ -7647,7 +7699,6 @@ void RpgLogicPrivate::preRenderEvents()
 		} else if (EventStageChange *event = q->m_registry.try_get<EventStageChange>(e)) {
 			changeStage(event->stage);
 		} else {
-			ELOG_DEBUG << "Forced event.......................";
 			q->m_registry.emplace<EventProcessingTag>(e);
 
 			continue;			// Nem teszünk DeleteTag-et, majd a renderEvents();
@@ -8333,22 +8384,55 @@ RpgStream::ControlData Control::toRpgStream() const
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 }		// end namespace
+
+
+
+
+/**
+ * @brief RpgUserData::setQuests
+ * @param list
+ */
+
+void RpgUserData::setQuests(const std::vector<RpgStream::Quest> &list)
+{
+	quests.clear();
+	quests.reserve(list.size());
+
+	for (const RpgStream::Quest &q : list) {
+		RpgQuestData d;
+		d.question = q.question();
+		d.streak = q.streak();
+		d.pts = q.pts();
+		d.xp = q.xp();
+		d.token = q.token();
+		quests.emplaceBack(std::move(d));
+	}
+}
+
+
+/**
+ * @brief RpgUserData::getQuests
+ * @return
+ */
+
+std::vector<RpgStream::Quest> RpgUserData::getQuests() const
+{
+	std::vector<RpgStream::Quest> list;
+
+	list.reserve(quests.size());
+
+	for (const RpgQuestData &q : quests) {
+		RpgStream::Quest d;
+		d.setQuestion(q.question);
+		d.setStreak(q.streak);
+		d.setPts(q.pts);
+		d.setXp(q.xp);
+		d.setToken(q.token);
+		list.emplace_back(std::move(d));
+	}
+
+	return list;
+}
+
+

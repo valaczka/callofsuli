@@ -243,7 +243,6 @@
         <file>QMapPathSelector.qml</file>
         <file>QMapTagDialog.qml</file>
         <file>RpgTowerMarker.qml</file>
-        <file>RpgCharacterSelectTmp.qml</file>
         <file>RpgDefenderFogVisual.qml</file>
         <file>RpgDefenderMarker.qml</file>
         <file>RpgChangerDialog.qml</file>
@@ -254,5 +253,7 @@
         <file>RpgQuestSelectDialog.qml</file>
         <file>RpgChangerTumbler.qml</file>
         <file>RpgResult.qml</file>
+        <file>PageRpgDrop.qml</file>
+        <file>RpgCharacterSelectMulti.qml</file>
     </qresource>
 </RCC>

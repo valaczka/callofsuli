@@ -27,7 +27,6 @@
 #include "user.h"
 #include "application.h"
 #include "server.h"
-#include "rpguserwallet.h"
 
 
 
@@ -39,11 +38,9 @@ class UserPrivate
 {
 private:
 	UserPrivate()
-		: m_wallet(new RpgUserWalletList)
 	{}
 	~UserPrivate() = default;
 
-	std::unique_ptr<RpgUserWalletList> m_wallet;
 
 	friend class User;
 };
@@ -270,19 +267,9 @@ void User::clear()
 	setRank(Rank());
 	setRoles(Credential::None);
 	setLoginState(LoggedOut);
-	d->m_wallet->clear();
 }
 
 
-/**
- * @brief User::wallet
- * @return
- */
-
-RpgUserWalletList* User::wallet() const
-{
-	return d->m_wallet.get();
-}
 
 qreal User::dailyRate() const
 {

@@ -43,12 +43,6 @@ Q_DECLARE_METATYPE(UserList*)
 
 
 class UserPrivate;
-class RpgUserWalletList;
-
-#ifndef OPAQUE_PTR_RpgUserWalletList
-#define OPAQUE_PTR_RpgUserWalletList
-  Q_DECLARE_OPAQUE_POINTER(RpgUserWalletList*)
-#endif
 
 
 /**
@@ -82,7 +76,6 @@ class User : public SelectableObject
 	Q_PROPERTY(QString oauth READ oauth WRITE setOauth NOTIFY oauthChanged)
 
 	Q_PROPERTY(QString className READ className NOTIFY classNameChanged)
-	Q_PROPERTY(RpgUserWalletList* wallet READ wallet STORED false CONSTANT FINAL)
 
 public:
 	explicit User(QObject *parent = nullptr);
@@ -157,8 +150,6 @@ public:
 
 	int dailyLimit() const;
 	void setDailyLimit(int newDailyLimit);
-
-	RpgUserWalletList* wallet() const;
 
 public slots:
 	void clear();

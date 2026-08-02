@@ -54,6 +54,8 @@ public:
 	const QString &dbStatFile() const;
 	void setDbStatFile(const QString &newDbStatFile);
 
+	ServerService *service() const { return m_service; }
+
 private:
 	bool databaseMapsPrepare();
 	bool databaseStatPrepare();

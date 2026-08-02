@@ -97,6 +97,8 @@ public:
 
 	void sendRoomList(const UdpType &type, const bool &reliable = false);
 
+	quint32 availablePeerCount() const;
+
 	quint32 addPeer(const QString &username, const QDateTime &expired);
 
 	QString dumpPeers() const;

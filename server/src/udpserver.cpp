@@ -134,6 +134,18 @@ void UdpServer::sendRoomList(const UdpType &type, const bool &reliable)
 
 
 /**
+ * @brief UdpServer::availablePeerCount
+ * @return
+ */
+
+quint32 UdpServer::availablePeerCount() const
+{
+	return d->m_lobby->availablePeerCount();
+}
+
+
+
+/**
  * @brief UdpServer::send
  * @param peer
  * @param data
@@ -1248,8 +1260,6 @@ void UdpServerPrivate::peerWithoutRoomHandle(std::unique_ptr<UdpBitStream> &&dat
 	if (!peer)
 		return;
 
-	LOG_CDEBUG("engine") << "HANDLE" << data.get() << peer << peer->peerData().type;
-
 	switch (peer->peerData().type) {
 		case EngineRpg:
 			RpgEngine::peerWithoutRoomHandle(std::move(data), peer, m_lobby->engines<RpgEngine>(EngineRpg));
@@ -1413,8 +1423,6 @@ void UdpServerPrivate::deliverPackets()
 void UdpServerPrivate::disconnectUnusedPeers()
 {
 	/*for (const auto &ptr : q->m_peerList) {
-		if (ptr->m_isRejected)
-			sendPacket(ptr->peer(), UdpBitStream(UdpBitStream::MessageRejected).data(), true);
 
 		UdpEngine *e = ptr->engine().get();
 		if (!e)
@@ -1651,6 +1659,26 @@ Lobby::Lobby(UdpServerPrivate *server, const quint32 &size)
 	, m_size(std::min(UdpBitStream::peerCapacity(), size))
 {
 	Q_ASSERT(size > 0);
+}
+
+
+
+/**
+ * @brief Lobby::availablePeerCount
+ * @return
+ */
+
+quint32 Lobby::availablePeerCount() const
+{
+	if (engines().size() >= m_size)
+		return 0;
+
+	QMutexLocker l(&m_mutex);
+
+	if (m_indexMap.size() >= m_size)
+		return 0;
+
+	return (quint32) m_size - (quint32) m_indexMap.size();
 }
 
 
@@ -2029,6 +2057,8 @@ std::optional<UdpBitStream> Lobby::updateChallenge(const UdpConnectionToken &con
 		d.signer = std::move(signer);
 
 		LOG_CINFO("engine") << "Peer connected:" << connToken.peer << connToken.user << qPrintable(UdpServerPeer::address(peer));
+
+		d.deadline.setRemainingTime(0);
 	}
 
 	return std::optional<UdpBitStream>(std::in_place, d.peerId, idx.value());
@@ -2067,27 +2097,23 @@ QString Lobby::dumpPeers() const
 
 	QString txt;
 
-	txt += QStringLiteral("ROOMS\n");
-	txt += QStringLiteral("==================================================================\n");
-
 	int count = 0;
 
-	const auto fnPrintSeats = [this, &count](const UdpRoom *room) -> QString {
-		QString s;
+	for (const UdpRoom &r : m_rooms) {
+		if (!r.engine())
+			continue;
+
 		for (size_t i=0; i<m_data.size(); ++i) {
 			const PeerData &d = m_data[i];
 
 			if (d.peerId == 0)
 				continue;
 
-			if (d.room != room)
-				continue;
-
 			++count;
 
 			UdpEngine *e = d.room ? d.room->engine() : nullptr;
 
-			s += QStringLiteral("%1 [%2]: (%3%4) e%5 [%6] %7\n")
+			txt += QStringLiteral("%1 [%2]: (%3%4) e%5 [%6] %7\n")
 				 .arg(d.peerId, 12)
 				 .arg(i, 4)
 				 .arg(d.hasChallenge ? '*' : ' ')
@@ -2097,25 +2123,12 @@ QString Lobby::dumpPeers() const
 				 .arg(d.username)
 				 ;
 		}
-
-		return s;
-	};
-
-
-	txt += fnPrintSeats(nullptr);
-	txt += QStringLiteral(" \n \n");
-
-
-	for (const UdpRoom &r : m_rooms) {
-		if (!r.engine())
-			continue;
-
-		txt += fnPrintSeats(&r);
-		txt += QStringLiteral(" \n \n");
 	}
 
 
-	txt.prepend(QStringLiteral("PEERS %1/%2\n").arg(count).arg(m_size));
+	txt += QStringLiteral(" \n \n");
+
+	txt.prepend(QStringLiteral("PEERS %1/%2\n==================================================================\n \n").arg(count).arg(m_size));
 
 	return txt;
 }

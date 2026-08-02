@@ -148,47 +148,6 @@ int MapPlayCampaign::getShortTimeHelper(MapPlayMissionLevel *missionLevel) const
 
 
 
-/**
- * @brief MapPlayCampaign::playMultiPlayer
- * @param level
- * @return
- */
-
-bool MapPlayCampaign::playMultiPlayer(MapPlayMissionLevel *level, const bool &forced)
-{
-	if (forced && (m_activeEngine > 0 || m_activeSeat > 0)) {
-		m_client->send(HttpConnection::ApiUser, QStringLiteral("campaign/%1/game/close").arg(
-						   m_campaign ? m_campaign->campaignid() : 0
-										), QJsonObject {
-						   { QStringLiteral("seat"), (qint64) m_activeSeat },
-						   { QStringLiteral("engine"), m_activeEngine }
-					   })
-				->error(this, [this](const QNetworkReply::NetworkError &){
-			m_client->messageError(tr("Hálózati hiba"), tr("Játék lezárása sikertelen"));
-		})
-				->fail(this, [this](const QString &err){
-
-			m_client->messageError(err, tr("Játék lezárása sikertelen"));
-		})
-				->done(this, [this, l = QPointer<MapPlayMissionLevel>(level)](const QJsonObject &){
-
-			LOG_CDEBUG("client") << "Restart multiplayer";
-
-			if (l)
-				playMultiPlayer(l, false);
-
-			setActiveEngine(0);
-			setActiveSeat(0);
-		});
-
-		return false;
-	}
-
-	return play(level, GameMap::Rpg, QJsonObject(), true);
-}
-
-
-
 
 
 /**
@@ -203,7 +162,8 @@ void MapPlayCampaign::onCurrentGamePrepared()
 
 
 	if (RpgGame *rpgGame = qobject_cast<RpgGame*>(m_client->currentGame())) {
-		LOG_CWARNING("client") << "***************************************!!!";
+		if (m_campaign)
+			rpgGame->setCampaignId(m_campaign->campaignid());
 
 		if (m_client->currentGame()->load())
 			setGameState(StatePlay);
@@ -211,7 +171,6 @@ void MapPlayCampaign::onCurrentGamePrepared()
 			setGameState(StateInvalid);
 			m_client->currentGame()->setReadyToDestroy(true);
 		}
-
 
 		return;
 	}
@@ -291,16 +250,29 @@ void MapPlayCampaign::onCurrentGameFinished()
 
 
 	if (RpgGame *rpgGame = qobject_cast<RpgGame*>(m_client->currentGame())) {
-		LOG_CWARNING("client") << "***************************************!!!";
-
 		if (rpgGame->finishState() == AbstractGame::Neutral) {
-			LOG_CINFO("client") << "NEUTRAL";
 			destroyCurrentGame();
 			setGameState(StateSelect);
 			return;
 		}
 
-		LOG_CINFO("client") << "FINISHED" << rpgGame->finishState();
+		if (rpgGame->gameMode() == RpgGame::MultiPlayer) {
+			if (rpgGame->gameState() == RpgGame::GameStateAbort) {
+				LOG_CERROR("game") << "!!! ABORT";
+				destroyCurrentGame();
+				setGameState(StateSelect);
+				return;
+			}
+
+			if (const QJsonObject &data = rpgGame->getFinishResult(); !data.isEmpty())
+				onFinishDataReceived(data);
+			else
+				connect(rpgGame, &RpgGame::finishDataReceived, this, &MapPlayCampaign::onFinishDataReceived);
+
+			// TODO: statistics
+
+			return;
+		}
 
 		const QJsonArray &stat = rpgGame->getStatistics();
 
@@ -444,27 +416,6 @@ void MapPlayCampaign::onFinishTimerTimeout()
 		gameId = game->gameId();
 	else if (RpgGame *rpgGame = qobject_cast<RpgGame*>(m_client->currentGame())) {
 		gameId = rpgGame->gameId();
-
-		/// Check to force....
-		/*if (RpgGame *rpgGame = qobject_cast<RpgGame*>(m_client->currentGame())) {
-			LOG_CERROR("client") << "Game finish FORCE";
-
-			m_finishTimer.stop();
-			m_finishObject = QJsonObject();
-
-			///setFinishedData(data);
-
-			destroyCurrentGame();
-
-			LOG_CERROR("client") << "Game finish FORCE FINISHED";
-
-			updateSolver();
-
-			setGameState(StateFinished);
-
-			m_client->reloadUser();
-			return;
-		}*/
 	}
 
 	if (!levelGame || gameId < 0 || ++m_finishTries > 4) {
@@ -480,24 +431,34 @@ void MapPlayCampaign::onFinishTimerTimeout()
 			->fail(this, [](const QString &err){
 		LOG_CERROR("client") << "Game finish error:" << qPrintable(err);
 	})
-			->done(this, [this](const QJsonObject &data){
+			->done(this, &MapPlayCampaign::onFinishDataReceived);
+}
 
-		m_finishTimer.stop();
-		m_finishObject = QJsonObject();
 
-		setFinishedData(data);
 
-		if (RpgGame *rpgGame = qobject_cast<RpgGame*>(m_client->currentGame())) {
-			rpgGame->setGameResultData(data.toVariantMap());
-		}
 
-		updateSolver();
+/**
+ * @brief MapPlayCampaign::onFinishDataReceived
+ * @param data
+ */
 
-		m_client->reloadUser();
+void MapPlayCampaign::onFinishDataReceived(const QJsonObject &data)
+{
+	m_finishTimer.stop();
+	m_finishObject = QJsonObject();
 
-		setGameState(StateFinished);
-		destroyCurrentGame();
-	});
+	setFinishedData(data);
+
+	if (RpgGame *rpgGame = qobject_cast<RpgGame*>(m_client->currentGame())) {
+		rpgGame->setGameResultData(data.toVariantMap());
+	}
+
+	updateSolver();
+
+	m_client->reloadUser();
+
+	setGameState(StateFinished);
+	destroyCurrentGame();
 }
 
 

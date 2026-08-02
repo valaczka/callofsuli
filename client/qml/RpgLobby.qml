@@ -1,6 +1,8 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Layouts
 import CallOfSuli
+import SortFilterProxyModel
 import Qaterial as Qaterial
 import "./QaterialHelper" as Qaterial
 import "JScript.js" as JS
@@ -10,15 +12,7 @@ QItemGradient {
 
     property RpgGame game: null
 
-    property bool _isFirst: true
-
     title: game ? game.name + qsTr(" – level %1").arg(game.level): ""
-
-    /*Qaterial.BusyIndicator {
-        id: _busyIndicator
-        anchors.centerIn: parent
-        visible: false
-    }
 
     Item {
         id: _content
@@ -34,6 +28,7 @@ QItemGradient {
         anchors.fill: parent
 
         Qaterial.Card {
+
             outlined: true
 
             width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
@@ -41,135 +36,70 @@ QItemGradient {
 
             anchors.centerIn: parent
 
-            contentItem: QListView {
-                id: _view
+            contentItem: ColumnLayout {
+                id: _grid1
 
-                anchors.fill: parent
-                anchors.leftMargin: Qaterial.Style.card.horizontalPadding
-                anchors.rightMargin: Qaterial.Style.card.horizontalPadding
-                anchors.topMargin: Qaterial.Style.card.verticalPadding
-                anchors.bottomMargin: Qaterial.Style.card.verticalPadding
+                spacing: 10
+                width: parent.width - 2 * Qaterial.Style.card.horizontalPadding
+                height: parent.height - 2 * Qaterial.Style.card.verticalPadding
 
-                model: game ? game.enginesModel : null
 
-                delegate: Qaterial.ItemDelegate {
-                    width: ListView.view.width
+                RpgSelectTitle {
+                    Layout.fillHeight: false
+                    Layout.fillWidth: true
 
-                    text: game ? game.toReadableEngineId(readableId) : readableId
+                    icon.source: Qaterial.Icons.roomService
+                    text: qsTr("Rooms")
+                }
 
-                    secondaryText: owner.nickName + (players.length > 1 ? " +" + (players.length-1) : "")
+                ListView {
+                    id: _viewRooms
 
-                    icon.source: Qaterial.Icons.accountMultiple
+                    Layout.fillHeight: true
+                    Layout.fillWidth: true
 
-                    onClicked: {
-                        game.connectToEngine(id)
+                    //implicitHeight: Math.max(contentHeight, 50)
+                    //implicitWidth: 50
+
+                    snapMode: ListView.SnapToItem
+
+                    clip: true
+                    model: game ? game.modelLobby : null
+
+                    delegate: Qaterial.ItemDelegate {
+                        width: ListView.view.width
+
+                        text: readableId
+
+                        secondaryText: model
+
+                        //secondaryText: owner.nickName + (players.length > 1 ? " +" + (players.length-1) : "")
+
+                        icon.source: Qaterial.Icons.accountMultiple
+
+                        onClicked: {
+                            game.connectLobby(model)
+                        }
                     }
                 }
 
-                header: Qaterial.ItemDelegate {
-                    width: ListView.view.width
-                    font: Qaterial.Style.textTheme.headline6
-                    visible: !_labelFull.visible
-                    text: qsTr("Válassz szobát")
-                }
+                QButton {
+                    Layout.fillHeight: false
+                    Layout.fillWidth: true
+                    Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 
-                footer: Qaterial.ItemDelegate {
-                    width: ListView.view.width
-                    height: visible ? implicitHeight : 0
-                    visible: game && game.canAddEngine
-                    textColor: Qaterial.Colors.green500
-                    iconColor: textColor
                     icon.source: Qaterial.Icons.plus
                     text: qsTr("Új szoba létrehozása")
 
-                    onClicked: game.connectToEngine(0)
+                    onClicked: game.connectLobby({})
                 }
 
-
-            }
-        }
-
-        Qaterial.LabelHeadline6 {
-            id: _labelFull
-
-            ///visible: !game || (game.enginesModel.maxPlayer === 0 && !game.canAddEngine)
-            anchors.centerIn: parent
-            text: qsTr("A szerver tele van, jelenleg nem tudsz új szobát létrehozni")
-            color: Qaterial.Style.accentColor
-            wrapMode: Text.Wrap
-            horizontalAlignment: Text.AlignHCenter
-            width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
-            leftPadding: 15 * Qaterial.Style.pixelSizeRatio
-            rightPadding: 15 * Qaterial.Style.pixelSizeRatio
-        }
-    }*/
-
-    QScrollable {
-        anchors.fill: parent
-        spacing: 15
-        //contentCentered: true
-        topPadding: Math.max(verticalPadding, Client.safeMarginTop, root.paddingTop)
-
-        /*refreshEnabled: true
-
-        onRefreshRequest: reload()*/
-
-        Qaterial.LabelHeadline4 {
-            id: _rooms
-        }
-
-
-        QListView {
-            id: _view
-
-            width: parent.width
-            height: contentHeight
-
-            /*anchors.leftMargin: Qaterial.Style.card.horizontalPadding
-            anchors.rightMargin: Qaterial.Style.card.horizontalPadding
-            anchors.topMargin: Qaterial.Style.card.verticalPadding
-            anchors.bottomMargin: Qaterial.Style.card.verticalPadding*/
-
-            model: game ? game.modelLobby : null
-
-            delegate: Qaterial.ItemDelegate {
-                width: ListView.view.width
-
-                text: readableId
-
-                secondaryText: model
-
-                //secondaryText: owner.nickName + (players.length > 1 ? " +" + (players.length-1) : "")
-
-                icon.source: Qaterial.Icons.accountMultiple
-
-                onClicked: {
-                    game.connectLobby(model)
-                }
-            }
-
-            /*header: Qaterial.ItemDelegate {
-                width: ListView.view.width
-                font: Qaterial.Style.textTheme.headline6
-                visible: !_labelFull.visible
-                text: qsTr("Válassz szobát")
-            }*/
-
-            footer: Qaterial.ItemDelegate {
-                width: ListView.view.width
-                height: visible ? implicitHeight : 0
-                //visible: game && game.canAddEngine
-                textColor: Qaterial.Colors.green500
-                iconColor: textColor
-                icon.source: Qaterial.Icons.plus
-                text: qsTr("Új szoba létrehozása")
-
-                onClicked: game.connectLobby({})
             }
 
 
         }
     }
+
 
     Timer {
         interval: 1250

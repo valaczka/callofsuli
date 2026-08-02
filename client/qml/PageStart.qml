@@ -32,6 +32,7 @@ QPage {
 		QMenu {
 			id: menu
 
+			QMenuItem { action: actionAddDefault}
 			QMenuItem { action: actionAdd }
 			//QMenuItem { action: actionQR }
 			Qaterial.MenuSeparator {}
@@ -46,6 +47,7 @@ QPage {
 		QMenu {
 			id: menuDesktop
 
+			QMenuItem { action: actionAddDefault }
 			QMenuItem { action: actionAdd }
 			//QMenuItem { action: actionQR }
 			Qaterial.MenuSeparator {}
@@ -110,7 +112,12 @@ QPage {
 		id: view
 
 		currentIndex: -1
-		anchors.fill: parent
+
+		width: Math.min(parent.width, Qaterial.Style.maxContainerSize)
+		height: parent.height
+
+		anchors.horizontalCenter: parent.horizontalCenter
+
 		visible: false
 		autoSelectChange: true
 
@@ -126,8 +133,8 @@ QPage {
 			highlighted: ListView.isCurrentItem
 			highlightedIcon: server ? server.autoConnect : false
 			iconSource:  isOffline ?
-							Qaterial.Icons.cloudCheckVariant :
-							Qaterial.Icons.desktopClassic
+							 Qaterial.Icons.cloudCheckVariant :
+							 Qaterial.Icons.desktopClassic
 			text: server ? server.serverName : ""
 			secondaryText: server ? (server.user.username.length ? server.user.username + " @ " : "") + server.url
 								  : ""
@@ -146,6 +153,7 @@ QPage {
 			QMenuItem { action: view.actionSelectAll }
 			QMenuItem { action: view.actionSelectNone }
 			Qaterial.MenuSeparator {}
+			QMenuItem { action: actionAddDefault }
 			QMenuItem { action: actionAdd }
 			QMenuItem { action: actionEdit }
 			QMenuItem { action: actionAutoConnect }
@@ -207,17 +215,17 @@ QPage {
 		anchors.top: parent.top
 		width: parent.width
 		drawSeparator: true
-		text: qsTr("Még egyetlen szerver sincsen felvéve, adj hozzá egyet")
+		text: qsTr("Még egyetlen fiók sincsen felvéve, adj hozzá egyet")
 		iconSource: Qaterial.Icons.desktopClassic
 		fillIcon: false
 		outlinedIcon: true
 		highlightedIcon: true
 
 		//action1: qsTr("QR-kód")
-		action1: qsTr("Hozzáadás")
+		action1: qsTr("Új fiók")
 
 		//onAction1Clicked: actionQR.trigger()
-		onAction1Clicked: actionAdd.trigger()
+		onAction1Clicked: actionAddDefault.trigger()
 
 		enabled: !Client.serverList.length
 		visible: !Client.serverList.length
@@ -259,22 +267,15 @@ QPage {
 		visible: !Client.serverList.length
 		anchors.centerIn: parent
 
-		action: actionAdd
-		text: qsTr("Új szerver")
+		action: actionAddDefault
+		text: qsTr("Új fiók")
 		icon.source: action.icon.source
-		/*highlighted: false
-		outlined: true
-		flat: true
-
-		textColor: Qaterial.Colors.yellow400
-
-		onClicked: Client.stackPushPage("PageMarket.qml")*/
 	}
 
 	QFabButton {
 		id: _fab
 		visible: Client.serverList.length
-		action: actionAdd
+		action: actionAddDefault
 	}
 
 
@@ -293,19 +294,19 @@ QPage {
 			for (let i=0; i<Client.authorizedServers.length; ++i) {
 				let l = Client.authorizedServers[i]
 				_authServersModel.append({
-							  text: l.name,
-							  secondaryText: l.url,
-							  icon: Qaterial.Icons.desktopClassic,
-							  url: l.url
-						  })
+											 text: l.name,
+											 secondaryText: l.url,
+											 icon: Qaterial.Icons.desktopClassic,
+											 url: l.url
+										 })
 			}
 
 			_authServersModel.append({
-						  text: qsTr("-- saját szerver --"),
-						  secondaryText: "",
-						  icon: Qaterial.Icons.serverPlusOutline,
-						  url: ""
-					  })
+										 text: qsTr("-- saját szerver --"),
+										 secondaryText: "",
+										 icon: Qaterial.Icons.serverPlusOutline,
+										 url: ""
+									 })
 
 
 			Qaterial.DialogManager.openListView(
@@ -333,6 +334,17 @@ QPage {
 							model: _authServersModel
 						})
 
+		}
+	}
+
+
+	Action {
+		id: actionAddDefault
+		text: qsTr("Új fiók")
+		icon.source: Qaterial.Icons.accountPlus
+		onTriggered: {
+			let s = Client.serverAddDefault()
+			Client.connectToServer(s)
 		}
 	}
 

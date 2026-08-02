@@ -40,7 +40,9 @@
 #endif
 
 
-#define _URL_SERVERS QStringLiteral("https://valaczka.github.io/callofsuli/servers.json")
+//#define _URL_SERVERS QStringLiteral("https://valaczka.github.io/callofsuli/servers.json")
+
+#define _SENTINEL_NAME		QStringLiteral(".migrated_5.3")
 
 
 /**
@@ -177,12 +179,12 @@ void StandaloneClient::onStartPageLoaded()
 
 		LOG_CTRACE("client") << "Try connect to command line URL:" << m_parseUrl;
 
-		Server *s = serverAddWithUrl(m_parseUrl);
+		/*Server *s = serverAddWithUrl(m_parseUrl);
 
 		if (s) {
 			connectToServer(s);
 			return;
-		}
+		}*/
 
 	}
 
@@ -195,13 +197,13 @@ void StandaloneClient::onStartPageLoaded()
 	}
 
 
-	bool hasNetwork = QNetworkInformation::instance() &&
+	/*bool hasNetwork = QNetworkInformation::instance() &&
 			QNetworkInformation::instance()->reachability() == QNetworkInformation::Reachability::Online;
 
 	if (hasNetwork) {
 		LOG_CERROR("client") << "<<<<<<<<<<<<<<<<<<<< REMOVE reset";
 		//authorizedServersGet();
-	}
+	}*/
 
 
 	for (Server *s : *m_serverList) {
@@ -297,6 +299,37 @@ void StandaloneClient::onUserLoggedIn()
 
 void StandaloneClient::serverListLoad(const QDir &dir)
 {
+	/// Migrate
+
+	if (!QFile::exists(dir.absoluteFilePath(_SENTINEL_NAME))) {
+		LOG_CWARNING("client") << "Migrate to new version, clear servers and cache";
+
+		QDirIterator it(dir.absolutePath(), {QStringLiteral("config.json")}, QDir::Files, QDirIterator::Subdirectories);
+
+		while (it.hasNext()) {
+			const QString &realname = it.next();
+
+			QDir dir = realname.section('/', 0, -2);
+
+			if (dir.removeRecursively())
+				LOG_CINFO("client") << "Delete server directory" << dir.absolutePath();
+			else
+				LOG_CERROR("client") << "Unable to delete server directory" << dir.absolutePath();
+		}
+
+		Utils::clearDiskCache();
+
+
+		QFile f(dir.absoluteFilePath(_SENTINEL_NAME));
+		if (f.open(QIODevice::WriteOnly)) {
+			f.write(0);
+			f.close();
+		} else {
+			LOG_CERROR("client") << "Unable to create file" << dir.absoluteFilePath(_SENTINEL_NAME);
+		}
+	}
+
+
 	LOG_CDEBUG("client") << "Load servers from:" << qPrintable(dir.absolutePath());
 
 	m_serverList->clear();
@@ -328,6 +361,14 @@ void StandaloneClient::serverListLoad(const QDir &dir)
 	}
 
 	LOG_CDEBUG("client") << "Servers loaded:" << m_serverList->size();
+
+
+
+	if (m_serverList->empty()) {
+		LOG_CINFO("client")	<< "Add default server";
+
+		serverAddDefault();
+	}
 }
 
 
@@ -366,7 +407,9 @@ void StandaloneClient::serverListSave(const QDir &dir)
 
 void StandaloneClient::authorizedServersGet()
 {
-	if (QNetworkInformation::instance() &&
+	LOG_CWARNING("client") << "Depracated function" << __PRETTY_FUNCTION__;
+
+	/*if (QNetworkInformation::instance() &&
 			QNetworkInformation::instance()->reachability() != QNetworkInformation::Reachability::Online)
 		return;
 
@@ -392,7 +435,7 @@ void StandaloneClient::authorizedServersGet()
 	})
 			->error(this, [](const QNetworkReply::NetworkError &err){
 		LOG_CERROR("client") << "Authorized servers download error:" << err;
-	});
+	});*/
 
 }
 
@@ -660,6 +703,24 @@ Server *StandaloneClient::serverAddWithUrl(const QUrl &url)
 		server->setTemporary(true);
 	}
 
+	return server;
+}
+
+
+
+
+
+/**
+ * @brief StandaloneClient::serverAddDefault
+ * @return
+ */
+
+Server *StandaloneClient::serverAddDefault()
+{
+	Server *server = serverAdd();
+	server->setUrl(QStringLiteral("https://vjpvm.piarista.hu:10102"));
+	server->setServerName(tr("-- default --"));
+	server->setAutoConnect(true);
 	return server;
 }
 

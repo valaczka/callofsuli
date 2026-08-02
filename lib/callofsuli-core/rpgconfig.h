@@ -29,6 +29,7 @@
 
 #include "qtypes.h"
 #include "rpgstream.h"
+#include <random>
 
 /// Config ----------------------------------------------
 
@@ -141,7 +142,7 @@ struct CfgPowerLevel {
 	 * @return
 	 */
 
-	CfgPowerLevel atLevel(const int &level)
+	CfgPowerLevel atLevel(const int &level) const
 	{
 		CfgPowerLevel r;
 
@@ -207,6 +208,131 @@ struct CfgPowerLevel {
 		return r;
 	}
 };
+
+
+
+
+/// Rpg Drop
+
+
+struct CfgDrop
+{
+	enum Tier {
+		Common = 0,
+		Uncommon,
+		Rare,
+		Epic,
+		Legendary
+	};
+
+	enum Type {
+		DropInvalid = 0,
+		DropGame = 1,
+		DropTerrain = 2,
+	};
+
+	Tier tier = Common;
+
+	quint32 xp = 0;
+	quint32 point = 0;
+	quint32 token = 0;
+};
+
+
+
+
+/**
+ * @brief The CfgDropRange class
+ */
+
+struct CfgDropRange
+{
+	std::vector<quint32> xp;
+	std::vector<quint32> point;
+	std::vector<quint32> token;
+};
+
+static inline const QHash<CfgDrop::Tier, CfgDropRange> cfgDropRange = {
+	{ CfgDrop::Common, {
+		  .xp = {500, 550, 600, 650, 700, 750, 800},
+		  .point = {250, 300, 350, 400, 450, 500, 550, 600},
+		  .token = {50, 60, 70, 80, 90}
+	  }	},
+
+	{ CfgDrop::Uncommon, {
+		  .xp = {700, 750, 800, 850, 900, 950, 1000, 1050},
+		  .point = {500, 550, 600, 650, 700, 750, 800, 850},
+		  .token = {80, 90, 100, 110, 120, 130}
+	  }	},
+
+	{ CfgDrop::Rare, {
+		  .xp = {1000, 1100, 1200, 1300, 1400},
+		  .point = {800, 900, 1000, 1100, 1200},
+		  .token = {120, 130, 140, 150, 160}
+	  }	},
+
+	{ CfgDrop::Epic, {
+		  .xp = {1500, 1750, 2000, 2250, 2500},
+		  .point = {1300, 1500, 1700, 1900},
+		  .token = {180, 200, 220, 240, 260}
+	  }	},
+
+	{ CfgDrop::Legendary, {
+		  .xp = {3000, 3500, 4000, 4500},
+		  .point = {2000, 2500, 3000, 3500, 4000},
+		  .token = {300, 350, 400, 450, 500}
+	  }	},
+};
+
+static inline std::discrete_distribution<int> cfgDropDistributionNormal = { 50, 28, 15, 5, 2 };
+static inline std::discrete_distribution<int> cfgDropDistributionMedium = { 0, 50, 30, 15, 5 };
+static inline std::discrete_distribution<int> cfgDropDistributionHeigh =  { 0, 0, 50, 40, 10 };
+
+
+
+/**
+ * @brief The CfgDropGenerator class
+ */
+
+struct CfgDropGenerator
+{
+	static inline CfgDrop generate(std::mt19937 &rnd, std::discrete_distribution<int> &dist) {
+		CfgDrop d;
+		d.tier = static_cast<CfgDrop::Tier>(dist(rnd));
+
+		const CfgDropRange &r = cfgDropRange.value(d.tier);
+
+		if (!r.xp.empty()) {
+			std::uniform_int_distribution<int> dist(0, r.xp.size()-1);
+			d.xp = r.xp.at(dist(rnd));
+		}
+
+		if (!r.point.empty()) {
+			std::uniform_int_distribution<int> dist(0, r.point.size()-1);
+			d.point = r.point.at(dist(rnd));
+		}
+
+		if (!r.token.empty()) {
+			std::uniform_int_distribution<int> dist(0, r.token.size()-1);
+			d.token = r.token.at(dist(rnd));
+		}
+
+		return d;
+	}
+
+	static inline CfgDrop generate(std::mt19937 &rnd) {
+		return generate(rnd, cfgDropDistributionNormal);
+	}
+};
+
+
+
+/**
+ * @brief cfgDropDay
+ */
+
+static inline const std::vector<int> cfgDropDay = { 1, 3, 5 };				// Napi győzelem
+static inline const std::vector<int> cfgDropTerrain = { 5, 10, 15, 20, 25, 30 };				// Terep győzelem
 
 
 

@@ -1,4 +1,3 @@
-
 /*
  * ---- Call of Suli ----
  *
@@ -54,7 +53,7 @@
 #include "rpgnpc.h"
 #include "rpgplayer.h"
 #include "rpgtower.h"
-#include "rpguserwallet.h"
+#include "rpgudpengine.h"
 #include "rpgworldlanddata.h"
 #include "scorelist.h"
 #include "studentgroup.h"
@@ -383,13 +382,13 @@ void Application::registerQmlTypes()
 	qmlRegisterUncreatableType<MapPlayMissionLevel>("CallOfSuli", 1, 0, "MapPlayMissionLevel", "MapPlayMissionLevel is uncreatable");
 	qmlRegisterUncreatableType<MapPlayOffline>("CallOfSuli", 1, 0, "MapPlayOffline", "MapPlayOffline is uncreatable");
 	qmlRegisterUncreatableType<OfflineClientEngine>("CallOfSuli", 1, 0, "OfflineClientEngine", "OfflineClientEngine is uncreatable");
+	qmlRegisterUncreatableType<RpgUdpEngine>("CallOfSuli", 1, 0, "RpgUdpEngine", "RpgUdpEngine is uncreatable");
 	qmlRegisterUncreatableType<RpgDefender>("CallOfSuli", 1, 0, "RpgDefender", "RpgDefender is uncreatable");
 	qmlRegisterUncreatableType<RpgEntity>("CallOfSuli", 1, 0, "RpgEntity", "RpgEntity is uncreatable");
 	qmlRegisterUncreatableType<RpgGame>("CallOfSuli", 1, 0, "RpgGame", "RpgGame is uncreatable");
 	qmlRegisterUncreatableType<RpgNpc>("CallOfSuli", 1, 0, "RpgNpc", "RpgNpc is uncreatable");
 	qmlRegisterUncreatableType<RpgPlayer>("CallOfSuli", 1, 0, "RpgPlayer", "RpgPlayer is uncreatable");
 	qmlRegisterUncreatableType<RpgTower>("CallOfSuli", 1, 0, "RpgTower", "RpgTower is uncreatable");
-	qmlRegisterUncreatableType<RpgUserWallet>("CallOfSuli", 1, 0, "RpgUserWallet", "RpgUserWallet is uncreatable");
 	qmlRegisterUncreatableType<Server>("CallOfSuli", 1, 1, "Server", "Server is uncreatable");
 	qmlRegisterUncreatableType<Sound>("CallOfSuli", 1, 1, "Sound", "Server is uncreatable");
 	qmlRegisterUncreatableType<TestGame>("CallOfSuli", 1, 0, "TestGame", "TestGame is uncreatable");
@@ -444,7 +443,6 @@ void Application::registerQmlTypes()
 	qmlRegisterType<PassItemList>("CallOfSuli", 1, 0, "PassItemList");
 	qmlRegisterType<RpgChanger>("CallOfSuli", 1, 0, "RpgChangerImpl");
 	qmlRegisterType<RpgGameItem>("CallOfSuli", 1, 0, "RpgGameItemImpl");
-	qmlRegisterType<RpgUserWalletList>("CallOfSuli", 1, 0, "RpgUserWalletList");
 	qmlRegisterType<ScoreList>("CallOfSuli", 1, 0, "ScoreListImpl");
 	qmlRegisterType<SelectableObject>("CallOfSuli", 1, 0, "SelectableObject");
 	qmlRegisterType<StudentCampaignOffsetModel>("CallOfSuli", 1, 0, "StudentCampaignOffsetModelImpl");

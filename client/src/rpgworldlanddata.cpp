@@ -26,12 +26,12 @@
 
 #include "rpgworldlanddata.h"
 #include "Logger.h"
-#include "rpgworldlanddata_p.h"
-#include "rpguserwallet.h"
+#include "application.h"
+#include "rpggame.h"
+
 
 RpgWorldLandData::RpgWorldLandData(RpgUserWorld *world, QObject *parent)
 	: QObject{parent}
-	, d(new RpgWorldLandDataPrivate(this))
 	, m_world(world)
 {
 	Q_ASSERT(world);
@@ -44,11 +44,11 @@ RpgWorldLandData::RpgWorldLandData(RpgUserWorld *world, QObject *parent)
  * @param binding
  */
 
-void RpgWorldLandData::setMapBinding(const RpgWorldMapBinding &binding, RpgUserWalletList *walletList)
+void RpgWorldLandData::setMapBinding(const RpgWorldMapBinding &binding)
 {
 	m_mapBinding = binding;
 
-	updateWallet(walletList);
+	resetLands(QStringList());
 }
 
 
@@ -70,34 +70,26 @@ void RpgWorldLandData::setLandGeometry(const RpgWorldLandGeometry &geometry)
 
 
 /**
- * @brief RpgWorldLandData::updateWallet
- * @param walletList
+ * @brief RpgWorldLandData::updateLands
+ * @param terrainList
  */
 
-void RpgWorldLandData::updateWallet(RpgUserWalletList *walletList)
+void RpgWorldLandData::resetLands(const QStringList &achieved)
 {
-	/*if (walletList && !m_mapBinding.map.isEmpty()) {
-		const auto it = std::find_if(walletList->cbegin(), walletList->cend(), [this](RpgUserWallet *w){
-						return w->market().type == RpgMarket::Map && w->market().name == m_mapBinding.map;
-	});
+	if (!m_mapBinding.map.isEmpty() && RpgGame::terrains().contains(m_mapBinding.map)) {
+		if (achieved.contains(m_mapBinding.map))
+			setLandState(LandAchieved);
+		else if (m_mapBinding.free)
+			setLandState(LandSelectable);
+		else
+			setLandState(LandLocked);
+		emit nameChanged();
+		emit backgroundSourceChanged();
 
-		if (it != walletList->cend()) {
-			d->m_walletMap = *it;
-			if ((*it)->available())
-				setLandState(LandAchieved);
-			else if (m_mapBinding.free)
-				setLandState(LandSelectable);
-			else
-				setLandState(LandLocked);
-			emit nameChanged();
-			emit backgroundSourceChanged();
+		LOG_CTRACE("game") << "Update land" << m_landId << m_mapBinding.map << m_landState;
+		return;
+	}
 
-			LOG_CTRACE("game") << "Update land" << m_landId << m_mapBinding.map << m_landState;
-			return;
-		}
-	}*/
-
-	d->m_walletMap = nullptr;
 	setLandState(LandUnused);
 	emit nameChanged();
 	emit backgroundSourceChanged();
@@ -154,17 +146,6 @@ qreal RpgWorldLandData::textY() const
 
 
 
-/**
- * @brief RpgWorldLandDataPrivate::RpgWorldLandDataPrivate
- * @param q
- */
-
-RpgWorldLandDataPrivate::RpgWorldLandDataPrivate(RpgWorldLandData *data)
-	: q(data)
-{
-
-}
-
 
 /**
  * @brief RpgWorldLandData::name
@@ -173,7 +154,7 @@ RpgWorldLandDataPrivate::RpgWorldLandDataPrivate(RpgWorldLandData *data)
 
 QString RpgWorldLandData::name() const
 {
-	return d->m_walletMap ? d->m_walletMap->readableName() : QString{};
+	return RpgGame::terrains().value(m_mapBinding.map).name;
 }
 
 QString RpgWorldLandData::landId() const
@@ -226,7 +207,9 @@ RpgUserWorld *RpgWorldLandData::world() const
 
 QString RpgWorldLandData::backgroundSource() const
 {
-	return d->m_walletMap ? d->m_walletMap->image() : QString{};
+	return RpgGame::terrains().contains(m_mapBinding.map) ?
+				QStringLiteral("qrc:/map/%1/thumbnail.png").arg(m_mapBinding.map) :
+				QString{};
 }
 
 QString RpgWorldLandData::bindedMap() const
@@ -237,4 +220,260 @@ QString RpgWorldLandData::bindedMap() const
 qreal RpgWorldLandData::rotate() const
 {
 	return m_geometry.rotate;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+/**
+ * @brief RpgUserWorld::RpgUserWorld
+ * @param parent
+ */
+
+RpgUserWorld::RpgUserWorld(const RpgWorld &worldData, QObject *parent)
+	: QObject(parent)
+	, RpgWorld(worldData)
+	, m_landList(std::make_unique<RpgWorldLandDataList>())
+{
+	setWorldSize(QSize(worldData.orig.width, worldData.orig.height));
+}
+
+
+
+/**
+ * @brief RpgUserWorld::~RpgUserWorld
+ */
+
+RpgUserWorld::~RpgUserWorld()
+{
+	m_landList->clear();
+	setSelectedLand(nullptr);
+
+	if (m_cachedMapItem) {
+		m_cachedMapItem->setProperty("world", QVariant::fromValue(nullptr));
+		m_cachedMapItem->deleteLater();
+		m_cachedMapItem = nullptr;
+	}
+}
+
+
+/**
+ * @brief RpgUserWorld::reloadLands
+ */
+
+void RpgUserWorld::reloadLands(const QString &path)
+{
+	LOG_CDEBUG("game") << "Reload land list:" << qPrintable(orig.description);
+	m_landList->clear();
+
+	setBasePath(path);
+
+	for (const auto &[id, geom] : lands.asKeyValueRange()) {
+		RpgWorldLandData *land = new RpgWorldLandData(this);
+		land->setLandId(id);
+		land->setLandGeometry(geom);
+		land->setMapBinding(binding.value(id));
+
+		m_landList->append(land);
+	}
+
+	LOG_CDEBUG("game") << "Loaded" << m_landList->size() << "lands";
+
+	emit imageBackgroundChanged();
+	emit imageOverChanged();
+
+}
+
+
+/**
+ * @brief RpgUserWorld::resetLands
+ * @param achieved
+ */
+
+void RpgUserWorld::resetLands(const QStringList &achieved)
+{
+	LOG_CDEBUG("game") << "Reset Lands" << achieved;
+
+	for (RpgWorldLandData *land : *m_landList) {
+		land->resetLands(achieved);
+	}
+
+	// Open adjacent lands
+
+	LOG_CTRACE("game") << "Open adjacent lands";
+
+	for (RpgWorldLandData *land : *m_landList) {
+		if (land->landState() != RpgWorldLandData::LandAchieved)
+			continue;
+
+		const QJsonArray array = orig.adjacency.value(land->landId());
+		for (const QJsonValue &v : array) {
+			const QString &id = v.toString();
+
+			const auto it = std::find_if(m_landList->constBegin(), m_landList->constEnd(), [&id](RpgWorldLandData *d){
+							return d->landId() == id;
+							});
+
+			if (it != m_landList->constEnd() && (*it)->landState() == RpgWorldLandData::LandLocked)
+				(*it)->setLandState(RpgWorldLandData::LandSelectable);
+		}
+	}
+}
+
+
+
+
+/**
+ * @brief RpgUserWorld::select
+ * @param map
+ */
+
+void RpgUserWorld::select(const QString &map, const bool &forced)
+{
+	const auto it = std::find_if(m_landList->constBegin(), m_landList->constEnd(),
+								 [&map, forced](RpgWorldLandData *d){
+		return d->bindedMap() == map &&
+				(d->landState() == RpgWorldLandData::LandSelectable ||
+				 d->landState() == RpgWorldLandData::LandAchieved ||
+				 forced);
+	});
+
+	if (it != m_landList->constEnd())
+		return setSelectedLand(*it);
+
+	setSelectedLand(nullptr);
+}
+
+
+/**
+ * @brief RpgUserWorld::selectLand
+ * @param land
+ */
+
+void RpgUserWorld::selectLand(RpgWorldLandData *land)
+{
+	if (land && (land->landState() == RpgWorldLandData::LandSelectable ||
+				 land->landState() == RpgWorldLandData::LandAchieved))
+		setSelectedLand(land);
+	else
+		setSelectedLand(nullptr);
+}
+
+
+
+
+QSize RpgUserWorld::worldSize() const
+{
+	return m_worldSize;
+}
+
+void RpgUserWorld::setWorldSize(const QSize &newWorldSize)
+{
+	if (m_worldSize == newWorldSize)
+		return;
+	m_worldSize = newWorldSize;
+	emit worldSizeChanged();
+}
+
+QString RpgUserWorld::basePath() const
+{
+	return m_basePath;
+}
+
+void RpgUserWorld::setBasePath(const QString &newBasePath)
+{
+	if (m_basePath == newBasePath)
+		return;
+	m_basePath = newBasePath;
+	emit basePathChanged();
+}
+
+
+/**
+ * @brief RpgUserWorld::landList
+ * @return
+ */
+
+RpgWorldLandDataList *RpgUserWorld::landList() const
+{
+	return m_landList.get();
+}
+
+
+/**
+ * @brief RpgUserWorld::selectedLand
+ * @return
+ */
+
+RpgWorldLandData *RpgUserWorld::selectedLand() const
+{
+	return m_selectedLand;
+}
+
+void RpgUserWorld::setSelectedLand(RpgWorldLandData *newSelectedLand)
+{
+	if (m_selectedLand == newSelectedLand)
+		return;
+	m_selectedLand = newSelectedLand;
+	emit selectedLandChanged();
+}
+
+
+
+/**
+ * @brief RpgUserWorld::imageBackground
+ * @return
+ */
+
+QUrl RpgUserWorld::imageBackground() const
+{
+	return orig.background.isEmpty() ? QUrl() : m_basePath+QStringLiteral("/")+orig.background;
+}
+
+
+/**
+ * @brief RpgUserWorld::imageOver
+ * @return
+ */
+
+QUrl RpgUserWorld::imageOver() const
+{
+	return orig.over.isEmpty() ? QUrl() : m_basePath+QStringLiteral("/")+orig.over;
+}
+
+
+
+/**
+ * @brief RpgUserWorld::getCachedMapItem
+ * @return
+ */
+
+QQuickItem *RpgUserWorld::getCachedMapItem()
+{
+	if (!m_cachedMapItem)
+	{
+		LOG_CDEBUG("client") << "Create RpgUserWorld cached map";
+
+		QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/RpgUserWorldMap.qml"), this);
+
+		m_cachedMapItem = qobject_cast<QQuickItem*>(component.create());
+
+		if (!m_cachedMapItem) {
+			LOG_CERROR("client") << "RpgUserWorld cached map create error" << component.errorString();
+			return nullptr;
+		}
+
+		m_cachedMapItem->setParent(this);
+		m_cachedMapItem->setProperty("world", QVariant::fromValue(this));
+	}
+
+	return m_cachedMapItem;
 }

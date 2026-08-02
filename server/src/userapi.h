@@ -80,12 +80,13 @@ public:
 	QHttpServerResponse gameCreate(const Credential &credential, const int &campaign, const QJsonObject &json);
 	QHttpServerResponse gameCreate(const QString &username, const int &campaign,
 								   const UserGame &game, int *gameIdPtr = nullptr);
-	QHttpServerResponse gameCreateRpg(const QJsonObject &json, const QString &username, const int &campaign, const UserGame &game);
-	QHttpServerResponse gameTokenCreate(const Credential &credential, const int &campaign, const QJsonObject &json);
-	QHttpServerResponse gameClose(const Credential &credential, const QJsonObject &json);
+	QHttpServerResponse gameCreateRpg(const QJsonObject &json, const QString &username, const int &campaign,
+									  const UserGame &game, int *gameIdPtr = nullptr);
+	QHttpServerResponse gameTokenCreate(const Credential &credential, const QJsonObject &json);
 	QHttpServerResponse gameUpdate(const Credential &credential, const int &id, const QJsonObject &json);
 	QHttpServerResponse gameUpdateStatistics(const QString &username, const QJsonArray &statistics);
-	QHttpServerResponse gameFinish(const Credential &credential, const int &id, const QJsonObject &json);
+	QHttpServerResponse gameFinish(const Credential &credential, const int &id, const QJsonObject &json,
+								   QJsonObject *dst = nullptr);
 
 	enum GameFinishMode {
 		GameFinishNone = 0,
@@ -96,7 +97,8 @@ public:
 	};
 
 	QHttpServerResponse gameFinish(const QString &username, const int &id, const UserGame &game, const QJsonArray &statistics, const bool &success, const int &xp, const int &duration,
-								   bool *okPtr = nullptr, QPointer<RpgEngine> engine = nullptr, const GameFinishMode &mode = GameFinishFull);
+								   bool *okPtr = nullptr, QJsonObject *dst = nullptr, const GameFinishMode &mode = GameFinishFull,
+								   const QJsonObject &src = {});
 
 	QHttpServerResponse permitCreate(const Credential &credential, const int &campaign, const QJsonObject &json);
 	QHttpServerResponse permitUpload(const Credential &credential, const QJsonObject &json);
@@ -105,24 +107,41 @@ public:
 
 
 	QHttpServerResponse rpg(const Credential &credential);
+	QHttpServerResponse rpgTarget(const Credential &credential, const QString &target);
+	QHttpServerResponse rpgBuy(const Credential &credential, const QString &target);
+	QHttpServerResponse rpgDrop(const Credential &credential, const int &id);
+	QHttpServerResponse rpgUpgrade(const Credential &credential, const QJsonObject &json);
+
+	static QHttpServerResponse gameCreate(const DatabaseMain *dbMain, const QString &username, const int &campaign,
+										  const UserGame &game, int *gameIdPtr);
+	static QHttpServerResponse gameCreateRpg(const DatabaseMain *dbMain, const QString &username, const int &campaign,
+											 const UserGame &game, const QString &character, const quint64 &terrainHash, int *gameIdPtr);
+
+	static std::optional<QJsonObject> _openRpgDrop(DatabaseMain *database, const int &id, const QString &username);
 
 	static std::optional<QMap<QString, GameMap::SolverInfo> > solverInfo(const DatabaseMain *dbMain, const QString &username, const QString &map);
 	static std::optional<QMap<QString, GameMap::SolverInfo> > solverInfo(const AbstractAPI *api, const QString &username, const QString &map);
 	static std::optional<GameMap::SolverInfo> solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission);
 	static std::optional<int> solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission,
-									 const int &level);
+										 const int &level);
 
 	static std::optional<QJsonArray> getGroupScore(const DatabaseMain *database, const int &id);
 
 
 	static std::optional<int> _solverInfo(const AbstractAPI *api, const QString &username, const QString &map, const QString &mission,
-						   const int &level);
+										  const int &level);
+
 
 private:
 	void _addStatistics(const QString &username, const QJsonArray &list) const;
 	QJsonObject _finishRpgGame(const QString &username, const int &id, const QJsonObject &json);
-	bool _addRpgToken(const QString &username, const int &token, QJsonObject *dst);
+	bool _createRpgDrops(const QString &username, const QString &terrain, const int &gameid, QJsonObject *dst);
 
+	static bool _addRpgCoin(DatabaseMain *database, const QString &username, const QString &character,
+							const int &point, QJsonObject *dst, int *tokenPtr);
+	static bool _addRpgToken(DatabaseMain *database, const QString &username, const int &token, QJsonObject *dst);
+
+	std::mt19937 m_rnd;
 };
 
 #endif // USERAPI_H

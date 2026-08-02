@@ -182,10 +182,6 @@ RpgDialog {
 			_tumblerQuest.positionViewAtIndex(idxQ, Tumbler.Center)
 		}
 
-		if (questData.quests.length < 2 &&
-				questData.utilities.length < 2 &&
-				questData.defenders.length < 2)
-			game.questSelect({ ready: true })
 	}
 
 }

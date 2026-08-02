@@ -1220,7 +1220,7 @@ void ServerService::resume()
  * @return
  */
 
-RpgLogicServerConfig*ServerService::rpgConfig() const
+RpgLogicServerConfig* ServerService::rpgConfig() const
 {
 	return m_rpgConfig.get();
 }

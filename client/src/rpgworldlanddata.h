@@ -27,6 +27,7 @@
 #ifndef RPGWORLDLANDDATA_H
 #define RPGWORLDLANDDATA_H
 
+#include "qquickitem.h"
 #include "rpglogic.h"
 #include <QObject>
 
@@ -43,15 +44,65 @@ using RpgWorldLandDataList = qolm::QOlm<RpgWorldLandData>;
 Q_DECLARE_METATYPE(RpgWorldLandDataList*)
 
 
-class RpgUserWorld;
-class RpgUserWalletList;
-class RpgWorldLandDataPrivate;
 
 
-#ifndef OPAQUE_PTR_RpgUserWorld
-#define OPAQUE_PTR_RpgUserWorld
-  Q_DECLARE_OPAQUE_POINTER(RpgUserWorld*)
-#endif
+
+/**
+ * @brief The RpgUserWorld class
+ */
+
+class RpgUserWorld : public QObject, public RpgWorld
+{
+	Q_OBJECT
+
+	Q_PROPERTY(QString basePath READ basePath WRITE setBasePath NOTIFY basePathChanged FINAL)
+	Q_PROPERTY(QSize worldSize READ worldSize WRITE setWorldSize NOTIFY worldSizeChanged FINAL)
+	Q_PROPERTY(RpgWorldLandDataList *landList READ landList CONSTANT FINAL)
+	Q_PROPERTY(RpgWorldLandData *selectedLand READ selectedLand WRITE setSelectedLand NOTIFY selectedLandChanged FINAL)
+	Q_PROPERTY(QUrl imageBackground READ imageBackground NOTIFY imageBackgroundChanged FINAL)
+	Q_PROPERTY(QUrl imageOver READ imageOver NOTIFY imageOverChanged FINAL)
+
+public:
+	RpgUserWorld(const RpgWorld &worldData, QObject *parent = nullptr);
+	virtual ~RpgUserWorld();
+
+	void reloadLands(const QString &path);
+
+	Q_INVOKABLE void resetLands(const QStringList &achieved);
+	Q_INVOKABLE void select(const QString &map, const bool &forced = false);
+	Q_INVOKABLE void selectLand(RpgWorldLandData *land);
+
+	QSize worldSize() const;
+	void setWorldSize(const QSize &newWorldSize);
+
+	QString basePath() const;
+	void setBasePath(const QString &newBasePath);
+
+	RpgWorldLandDataList *landList() const;
+
+	RpgWorldLandData *selectedLand() const;
+	void setSelectedLand(RpgWorldLandData *newSelectedLand);
+
+	QUrl imageBackground() const;
+	QUrl imageOver() const;
+
+	Q_INVOKABLE QQuickItem *getCachedMapItem();
+
+signals:
+	void worldSizeChanged();
+	void basePathChanged();
+	void selectedLandChanged();
+	void imageBackgroundChanged();
+	void imageOverChanged();
+
+private:
+	QString m_basePath;
+	QSize m_worldSize;
+	std::unique_ptr<RpgWorldLandDataList> m_landList;
+	QPointer<RpgWorldLandData> m_selectedLand;
+	QQuickItem *m_cachedMapItem = nullptr;
+};
+
 
 
 /**
@@ -88,9 +139,9 @@ public:
 
 	Q_ENUM(LandState)
 
-	void setMapBinding(const RpgWorldMapBinding &binding, RpgUserWalletList *walletList = nullptr);
+	void setMapBinding(const RpgWorldMapBinding &binding);
 	void setLandGeometry(const RpgWorldLandGeometry &geometry);
-	void updateWallet(RpgUserWalletList *walletList);
+	void resetLands(const QStringList &achieved);
 
 	LandState landState() const;
 	void setLandState(LandState newLandState);
@@ -116,7 +167,7 @@ public:
 
 	QString backgroundSource() const;
 
-	QString bindedMap() const;
+	Q_INVOKABLE QString bindedMap() const;
 
 	qreal rotate() const;
 
@@ -134,7 +185,6 @@ signals:
 	void rotateChanged();
 
 private:
-	RpgWorldLandDataPrivate *d;
 	RpgUserWorld *const m_world;
 	QString m_landId;
 	LandState m_landState = LandInvalid;
@@ -143,5 +193,15 @@ private:
 	QUrl m_imageSource;
 	QUrl m_borderSource;
 };
+
+
+
+
+
+
+
+
+
+
 
 #endif // RPGWORLDLANDDATA_H

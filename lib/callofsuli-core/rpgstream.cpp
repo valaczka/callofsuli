@@ -1255,6 +1255,7 @@ EngineStream RoomList::toStream() const
 EngineStream &Room::operator<<(EngineStream &stream)
 {
 	readId(stream);
+	readCompleted(stream);
 	readReadableId(stream);
 	readHostId(stream);
 	readPlayers(stream);
@@ -1265,6 +1266,7 @@ EngineStream &Room::operator<<(EngineStream &stream)
 EngineStream &Room::operator>>(EngineStream &stream) const
 {
 	writeId(stream);
+	writeCompleted(stream);
 	writeReadableId(stream);
 	writeHostId(stream);
 	writePlayers(stream);
@@ -1284,6 +1286,12 @@ EngineStream &CharacterSelectServer::operator<<(EngineStream &stream)
 	m_room << stream;
 	m_gameConfig << stream;
 
+	readCharactersA(stream);
+	readCharactersB(stream);
+
+	readSelectA(stream);
+	readSelectB(stream);
+
 	return stream;
 }
 
@@ -1293,6 +1301,12 @@ EngineStream &CharacterSelectServer::operator>>(EngineStream &stream) const
 {
 	m_room >> stream;
 	m_gameConfig >> stream;
+
+	writeCharactersA(stream);
+	writeCharactersB(stream);
+
+	writeSelectA(stream);
+	writeSelectB(stream);
 
 	return stream;
 }
@@ -1307,6 +1321,8 @@ EngineStream &CharacterSelectServer::operator>>(EngineStream &stream) const
 
 EngineStream &CharacterSelectClient::operator<<(EngineStream &stream)
 {
+	readCompleted(stream);
+
 	m_gameConfig << stream;
 	m_data << stream;
 
@@ -1322,6 +1338,8 @@ EngineStream &CharacterSelectClient::operator<<(EngineStream &stream)
 
 EngineStream &CharacterSelectClient::operator>>(EngineStream &stream) const
 {
+	writeCompleted(stream);
+
 	m_gameConfig >> stream;
 	m_data >> stream;
 
@@ -2043,6 +2061,68 @@ EngineStream &QuestSelect::operator>>(EngineStream &stream) const
 	writeQuest(stream);
 	writeQuestList(stream);
 	writeMsecLeft(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief JsonResult::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &JsonResult::operator<<(EngineStream &stream)
+{
+	readJson(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief JsonResult::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &JsonResult::operator>>(EngineStream &stream) const
+{
+	writeJson(stream);
+
+	return stream;
+}
+
+
+
+/**
+ * @brief Character::operator <<
+ * @param stream
+ * @return
+ */
+
+EngineStream &Character::operator<<(EngineStream &stream)
+{
+	readCharacter(stream);
+	readPicked(stream);
+	readDisabled(stream);
+
+	return stream;
+}
+
+
+/**
+ * @brief Character::operator >>
+ * @param stream
+ * @return
+ */
+
+EngineStream &Character::operator>>(EngineStream &stream) const
+{
+	writeCharacter(stream);
+	writePicked(stream);
+	writeDisabled(stream);
 
 	return stream;
 }

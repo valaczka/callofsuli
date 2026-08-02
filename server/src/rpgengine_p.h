@@ -29,6 +29,7 @@
 
 
 #include "rpgengine.h"
+#include <queue>
 
 
 
@@ -65,6 +66,9 @@ private:
 		quint32 rpgId = 0;										// A hosszú peerId helyett ez lesz az RpgLogic-ban a player sorszáma (PlayerData::playerId)
 		quint32 playerTag = 0;
 
+		int gameId = -1;
+		QJsonObject result;
+
 		Rpg::EventWindowHash acceptedTags;
 
 		void loadToken() {
@@ -88,6 +92,8 @@ private:
 		return t;
 	}
 
+
+	bool loadRpgConfig(RpgLogicServerConfig *config);
 
 	RpgPeerData *getPlayer(UdpServerPeer *peer);
 
@@ -114,6 +120,7 @@ private:
 	void onDataReceived();
 	void sendFull();
 	void sendResult();
+	QJsonObject getResultForPlayer(const RpgStream::Result &result, const quint32 &playerTag) const;
 	void addMapTagsToStream(RpgStream::Full &stream) const;
 
 	void checkPrepared();
@@ -145,9 +152,11 @@ private:
 
 	quint32 m_wsCounter = 0;
 
-
 	inline static quint32 m_engineId = 1;
 
+	bool m_boardingCompleted = false;
+	QHash<RpgStream::Team, std::vector<RpgStream::Character> > m_characters;
+	QHash<RpgStream::Team, std::queue<quint32> > m_selector;
 
 
 

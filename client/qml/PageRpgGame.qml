@@ -42,22 +42,19 @@ Page {
 			if (game.gameQuestion && game.gameQuestion.objectiveUuid != "")
 				return true
 
+			if (game.gameState == RpgGame.GameStateFinished && game.gameResultData.rpg !== undefined) {
+				game.gameState = RpgGame.GameStateResult
+				return false
+			}
+
 			if (game.gameMode == RpgGame.MultiPlayer)
 				return true
-
 
 			if (_rpgVisible && !game.gameItem.paused && !_forceExit) {
 				game.gameItem.paused = true
 				return false
 			}
 
-			if (game.gameState == RpgGame.GameStateFinished && game.gameResultData.rpg !== undefined) {
-				console.info("****RESULT")
-
-				game.gameState = RpgGame.GameStateResult
-
-				return false
-			}
 		}
 
 		return true
@@ -117,7 +114,16 @@ Page {
 	Component {
 		id: _cmpCharacterSelect
 
-		RpgCharacterSelectTmp {
+		RpgCharacterSelect {
+			game: root.game
+			parentPage: root
+		}
+	}
+
+	Component {
+		id: _cmpCharacterSelectMulti
+
+		RpgCharacterSelectMulti {
 			game: root.game
 		}
 	}
@@ -136,7 +142,7 @@ Page {
 		RpgGameItem {
 			game: root.game
 
-			onCloseRequest: Client.stackPop(root)
+			onCloseRequest: Client.stackPop()
 		}
 	}
 
@@ -214,14 +220,15 @@ Page {
 				break
 
 			case RpgGame.GameStateCharacterSelect:
-				_stack.activeComponent = _cmpCharacterSelect
+				if (game.gameMode == RpgGame.MultiPlayer)
+					_stack.activeComponent = _cmpCharacterSelectMulti
+				else
+					_stack.activeComponent = _cmpCharacterSelect
 				break
 
 			case RpgGame.GameStateFinished:
 			case RpgGame.GameStateAbort:
-				//if (!_multiplayer)
-				//Client.stackPop(root)
-				console.info("QML change to Finish state.....")
+				//console.info("QML change to Finish state.....")
 				break
 
 			case RpgGame.GameStateResult:
@@ -262,8 +269,6 @@ Page {
 
 	StackView.onActivated: {
 		_notification.check()
-
-		console.info("#####", game, game.isEmpty)
 
 		if (game.isEmpty)
 			return

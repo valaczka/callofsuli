@@ -43,6 +43,8 @@ public:
 	explicit RpgUdpEngine(class RpgGamePrivate *game, const PublicKeySigner &signer, QObject *parent = nullptr);
 	virtual ~RpgUdpEngine();
 
+	Q_INVOKABLE quint32 getPeerId() const { return peerId(); }
+
 	PublicKeySigner signer() const { return m_signer; }
 
 	RpgStream::EngineStream getStream(const RpgStream::EngineStream::Operation &operation) const {

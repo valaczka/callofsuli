@@ -104,6 +104,8 @@ public:
 
 	quint32 size() { return m_size; }
 
+	quint32 availablePeerCount() const;
+
 	std::optional<PeerData> at(const quint32 &index) const;
 	std::optional<PeerData> get(const quint32 &peerId) const;
 

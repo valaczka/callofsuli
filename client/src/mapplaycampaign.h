@@ -54,7 +54,6 @@ public:
 
 	Q_INVOKABLE virtual void updateSolver() override;
 	Q_INVOKABLE virtual int getShortTimeHelper(MapPlayMissionLevel *missionLevel) const override;
-	[[deprecated]] Q_INVOKABLE bool playMultiPlayer(MapPlayMissionLevel *level, const bool &forced);
 
 	qreal extraTimeFactor() const;
 	void setExtraTimeFactor(qreal newExtraTimeFactor);
@@ -79,6 +78,7 @@ protected:
 private:
 	void onUpdateTimerTimeout();
 	void onFinishTimerTimeout();
+	void onFinishDataReceived(const QJsonObject &data);
 	void destroyCurrentGame();
 
 	QPointer<StudentMapHandler> m_handler = nullptr;

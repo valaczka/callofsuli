@@ -104,6 +104,7 @@ private:
 
 	void downloadServerData();
 	void downloadStaticData();
+	void resolveTerrainHash();
 
 	void contentPrepare();
 	void onDownloaderStateChanged();
@@ -115,6 +116,7 @@ private:
 
 	void characterSelect(const QVariantMap &data);
 	void updateCharacterSelect();
+	void updateCharacterSelectServer(const RpgStream::CharacterSelectServer &stream);
 
 	void loadQuests(const Rpg::QuestList &list, const quint32 &msecLeft);
 	void questSelect(const QVariantMap &data);
@@ -167,7 +169,7 @@ private:
 	void onAfterWorldStep(const RpgStream::FullState &full);
 	void finishGame(const bool &abort);
 	QVariantMap getQuestResult(const RpgStream::Result &result, const RpgStream::PlayerResult &player) const;
-
+	void setFinishResult(const QJsonObject &data);
 
 	// Synchronize
 
@@ -232,7 +234,6 @@ private:
 	QVector<Question> m_questionList;
 	QVector<Question>::const_iterator m_questionIterator;
 	bool m_questionInitialized = false;
-	quint32 m_questionDuration = 0;					// todo: csökkenteni a kérdések számát...
 
 
 	RpgStream::MapData m_mapData;
@@ -241,6 +242,9 @@ private:
 	QHash<QString, QPointF> m_entryPoint;
 	std::vector<std::unique_ptr<TiledGameSfxLocation>> m_sfxLocations;
 	QList<QScatterSeries*> m_scatters;
+	QJsonObject m_finishResult;
+
+	QVariantMap m_metric;
 
 
 

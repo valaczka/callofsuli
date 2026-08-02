@@ -656,7 +656,8 @@ public:
 		DataOperationFull,
 		DataOperationPlayerData,
 		DataOperationState,
-		DataOperationResult
+		DataOperationResult,
+		DataOperationJsonResult,
 	};
 
 	EngineDataStream(const DataOperation &dataOperation)
@@ -1248,14 +1249,15 @@ public:
 
 	enum Flag {
 		FlagNull				= 0,
-		FlagCompleted			= 1 << 0,				// a karakterválasztás befejeződött, rányomott a play-re
-		FlagLoadStarted			= 1 << 1,				// a játék betöltése helyben elkezdődőtt
-		FlagLoadCompleted		= 1 << 2,				// a játék betöltése helyben befejeződött
-		FlagGamePrepared		= 1 << 3,				// a játék teljesen elkészült (a szervertől kapottak alapján)
-		FlagGameStarted			= 1 << 4,				// a játék elkezdődött
-		FlagGameFinished		= 1 << 5,				// a játék befejeződött
-		FlagPlayerOnline		= 1 << 6,				// a játékos elérhető (van udp-kapcsolat)
-		FlagQuestSelected		= 1 << 7,				// a játékos kiválasztott a quest-et
+		FlagOnboard				= 1 << 0,				// a csapatválasztás befejeződött, rányomott a play-re
+		FlagCompleted			= 1 << 1,				// a karakterválasztás befejeződött, rányomott a play-re
+		FlagLoadStarted			= 1 << 2,				// a játék betöltése helyben elkezdődőtt
+		FlagLoadCompleted		= 1 << 3,				// a játék betöltése helyben befejeződött
+		FlagGamePrepared		= 1 << 4,				// a játék teljesen elkészült (a szervertől kapottak alapján)
+		FlagGameStarted			= 1 << 5,				// a játék elkezdődött
+		FlagGameFinished		= 1 << 6,				// a játék befejeződött
+		FlagPlayerOnline		= 1 << 7,				// a játékos elérhető (van udp-kapcsolat)
+		FlagQuestSelected		= 1 << 8,				// a játékos kiválasztotta a quest-et
 	};
 
 	Q_DECLARE_FLAGS(Flags, Flag)
@@ -1333,6 +1335,27 @@ public:
 
 
 
+
+/**
+ * @brief The JsonResult class
+ */
+
+class JsonResult
+{
+public:
+	JsonResult() = default;
+
+	TO_DATA_STREAM(EngineDataStream::DataOperationJsonResult)
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER_BYTEARRAY(json, Json)
+};
+
+
+
+
 /**
  * @brief The Engine class
  */
@@ -1347,6 +1370,7 @@ public:
 	EngineStream& operator>>(EngineStream &stream) const;
 
 	STREAM_MEMBER(ENGINE_ID_TYPE, id, Id, ENGINE_ID_BITS, 0);
+	STREAM_MEMBER_CAST(bool, completed, Completed, quint8, 1, false);
 	STREAM_MEMBER(ENGINE_READABLE_ID_TYPE, readableId, ReadableId, ENGINE_READABLE_ID_BITS, 0);
 	STREAM_MEMBER(quint32, hostId, HostId, 32, 0)
 	STREAM_MEMBER_VECTOR(PlayerData, players, Players, quint32, PEER_INDEX_BITS)
@@ -1377,6 +1401,26 @@ public:
 
 
 
+/**
+ * @brief The Character class
+ */
+
+class Character
+{
+public:
+	Character() = default;
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER_RESOLVED(character, Character)
+	STREAM_MEMBER_CAST(bool, picked, Picked, quint8, 1, false)
+	STREAM_MEMBER_CAST(bool, disabled, Disabled, quint8, 1, false)
+};
+
+
+
+
 
 /**
  * @brief The CharacterSelect class
@@ -1394,6 +1438,10 @@ public:
 
 	STREAM_FIELD(Room, room, Room, {})
 	STREAM_FIELD(GameConfig, gameConfig, GameConfig, {})
+	STREAM_MEMBER_VECTOR(Character, charactersA, CharactersA, quint32, 32)
+	STREAM_MEMBER_VECTOR(Character, charactersB, CharactersB, quint32, 32)
+	STREAM_MEMBER(quint32, selectA, SelectA, 32, 0)
+	STREAM_MEMBER(quint32, selectB, SelectB, 32, 0)
 };
 
 
@@ -1415,6 +1463,7 @@ public:
 
 	STREAM_FIELD(PlayerData, data, Data, {})
 	STREAM_FIELD(GameConfig, gameConfig, GameConfig, {})
+	STREAM_MEMBER_CAST(bool, completed, Completed, quint8, 1, false)
 };
 
 

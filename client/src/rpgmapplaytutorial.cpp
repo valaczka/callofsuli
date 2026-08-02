@@ -34,12 +34,14 @@
 
 
 struct TutorialData {
-	static std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> testTutorial1();
+	static std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> testTutorial1(const QUrl &url);
+	static std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> testCharacter(const QUrl &url);
 
 
-	static inline const QHash<QString, std::function<std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial>()> >
+	static inline const QHash<QString, std::function<std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial>(const QUrl &)> >
 	tutorials = {
-	{ QStringLiteral("test_tutorial1"), &TutorialData::testTutorial1 }
+	{ QStringLiteral("test_tutorial1"), &TutorialData::testTutorial1 },
+	{ QStringLiteral("character"), &TutorialData::testCharacter }
 				};
 };
 
@@ -97,7 +99,7 @@ QQuickItem* RpgMapPlayTutorial::load(const QUrl &url)
 	if (!ptr)
 		return nullptr;
 
-	std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> tutorial = ptr();
+	std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> tutorial = ptr(url);
 
 	m_game = new RpgGame(levels.at(QRandomGenerator::global()->bounded(levels.size())), m_client, false, std::move(tutorial));
 	setGameState(StateLoading);
@@ -144,13 +146,14 @@ void RpgMapPlayTutorial::onFinished(AbstractGame::FinishState)
  */
 
 
-std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> TutorialData::testTutorial1()
+std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> TutorialData::testTutorial1(const QUrl &url)
 {
 
 	std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> tutorial = std::make_unique<Rpg::RpgLogicClientTutorial::Tutorial>();
 	tutorial->character = "character01a";
 	tutorial->terrain = "test";
 	tutorial->power = 1;
+	tutorial->duration = CFG_GAME_DURATION;
 
 	tutorial->addTower(120);
 	tutorial->addEmitter(127);
@@ -235,6 +238,85 @@ std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> TutorialData::testTutoria
 
 		tutorial->steps.emplace_back(std::move(step));
 
+
+	}
+
+	return tutorial;
+}
+
+
+
+/**
+ * @brief TutorialData::testCharacter
+ * @param url
+ * @return
+ */
+
+std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> TutorialData::testCharacter(const QUrl &url)
+{
+	std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> tutorial = std::make_unique<Rpg::RpgLogicClientTutorial::Tutorial>();
+	tutorial->character = url.path().mid(1);
+	tutorial->terrain = "test";
+	tutorial->power = 8;
+	tutorial->duration = 5*60*60;
+
+	tutorial->addTower(120);
+	tutorial->addEmitter(127);
+
+
+	tutorial->fnInit = [](Rpg::RpgLogicClientTutorial *logic) {
+		Q_ASSERT(logic);
+
+		Rpg::RpgLogicScope scope = logic->getScope();
+
+		Rpg::EventPatchPlayer ev;
+		ev.tagId = Rpg::RpgLogic::packId(0, 1, 0);
+		ev.deltaState.setBulletDelta(5, true);
+		ev.deltaState.setMpDelta(15, true);
+		ev.setTick(1);
+
+		logic->eventStore(std::move(ev));
+
+		logic->npcAddToPoint(QStringLiteral("soldier02"), "entry2");
+	};
+
+	{
+		Rpg::RpgLogicClientTutorial::Tutorial::Step step;
+
+		step.message = "Csak egy lépés";
+
+		step.addTargetControlEvent([](TiledObjectBody *obj) {
+			LOG_CINFO("game") << "CHECK CONTROL1" << obj;
+
+			if (dynamic_cast<RpgTower*>(obj))
+				return true;
+			else
+				return false;
+		});
+
+		/*step.fnNext = [](Rpg::RpgLogicClientTutorial *logic, const quint32 &tick) {
+			Q_ASSERT(logic);
+
+			logic->npcAddToPoint(QStringLiteral("soldier04"), "entry1", 6, 120);
+
+			cpVect pos = logic->player()->bodyPosition();
+
+
+			Rpg::RpgLogicScope scope = logic->getScope();
+
+			quint32 id = logic->getId(127);
+
+			LOG_CINFO("game") << "*******MP" << id;
+
+			Rpg::EventMpCreate ev;
+			ev.emitter = scope.entityFromIdTag(logic->getId(127));
+			ev.mpCount = 8;
+			ev.setTick(tick+120);
+
+			logic->eventStore(std::move(ev));
+		};*/
+
+		tutorial->steps.emplace_back(std::move(step));
 
 	}
 

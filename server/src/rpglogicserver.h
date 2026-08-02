@@ -45,9 +45,11 @@ public:
 	void loadCharacterList(const RpgCharacterList &newCharacterList);
 
 	const QHash<QString, RpgServerCharacter> &characters() const;
+	const RpgStream::HashFnv1A64 &characterHash() const;
 
 private:
 	QHash<QString, RpgServerCharacter> m_characters;
+	RpgStream::HashFnv1A64 m_characterHash;
 };
 
 

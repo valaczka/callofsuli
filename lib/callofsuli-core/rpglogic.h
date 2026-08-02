@@ -296,6 +296,67 @@ public:
 
 
 /**
+ * @brief The RpgUserDrop class
+ */
+
+class RpgUserDrop : public QSerializer
+{
+	Q_GADGET
+
+public:
+	RpgUserDrop()
+		: QSerializer()
+		, id(0)
+		, type(CfgDrop::DropInvalid)
+		, tier(CfgDrop::Common)
+		, xp(0)
+		, point(0)
+		, token(0)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(int, id)
+	QS_FIELD(CfgDrop::Type, type)
+	QS_FIELD(CfgDrop::Tier, tier)
+	QS_FIELD(int, xp)
+	QS_FIELD(int, point)
+	QS_FIELD(int, token)
+};
+
+
+
+
+/**
+ * @brief The RpgQuestData class
+ */
+
+class RpgQuestData : public QSerializer
+{
+	Q_GADGET
+
+public:
+	RpgQuestData()
+		: QSerializer()
+		, question(0)
+		, streak(0)
+		, pts(0)
+		, xp(0)
+		, token(0)
+	{}
+
+	QS_SERIALIZABLE
+
+	QS_FIELD(int, question)
+	QS_FIELD(int, streak)
+	QS_FIELD(int, pts)
+	QS_FIELD(int, xp)
+	QS_FIELD(int, token)
+};
+
+
+
+/**
  * @brief The RpgUserData class
  */
 
@@ -307,13 +368,25 @@ public:
 	RpgUserData()
 		: QSerializer()
 		, token(0)
+		, oldCurrency(0)
 	{}
+
+	void setQuests(const std::vector<RpgStream::Quest> &list);
+	std::vector<RpgStream::Quest> getQuests() const;
 
 	QS_SERIALIZABLE
 
 	QS_FIELD(QString, target)
 	QS_FIELD(int, token)
+	QS_FIELD(QString, lastCharacter)
+	QS_FIELD(QString, lastTerrain)
 	QS_COLLECTION_OBJECTS(QList, RpgUserCharacter, characters)
+	QS_COLLECTION(QList, QString, terrains)
+	QS_COLLECTION_OBJECTS(QList, RpgUserDrop, drops)
+
+	QS_COLLECTION_OBJECTS(QList, RpgQuestData, quests)
+
+	QS_FIELD(int, oldCurrency)
 };
 
 
@@ -1319,6 +1392,7 @@ struct EventChangeUtility {
 
 
 
+
 class RpgLogicPrivate;
 class RpgLogicScope;
 
@@ -1437,6 +1511,7 @@ protected:
 	virtual std::unordered_set<entt::entity> initializeTowers();
 	virtual std::unordered_set<entt::entity> initializeEmitters();
 	virtual std::vector<Chest> initializeChests();
+	virtual void initializeStages();
 	virtual void checkState(const RpgStream::GameState &state);
 
 	entt::entity npcAdd(const RpgStream::NpcData &data, entt::entity owner, const cpVect &pos = cpvzero, quint32 *tagIdPtr = nullptr);
@@ -1664,6 +1739,22 @@ public:
 
 };
 
+
+
+
+
+
+// Patch player state
+
+class EventPatchPlayer : public RpgStream::BaseTickState
+{
+public:
+	EventPatchPlayer() : RpgStream::BaseTickState() {}
+
+	quint32 tagId = 0;
+
+	RpgStream::PlayerState deltaState;
+};
 
 
 

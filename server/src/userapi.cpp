@@ -48,6 +48,7 @@
 
 UserAPI::UserAPI(Handler *handler, ServerService *service)
 	: AbstractAPI("user", handler, service)
+	, m_rnd(std::random_device{}())
 {
 	auto server = m_handler->httpServer();
 
@@ -196,20 +197,6 @@ UserAPI::UserAPI(Handler *handler, ServerService *service)
 		return gameCreate(*credential, id, *jsonObject);
 	});
 
-	server->route(path+"campaign/<arg>/game/token", QHttpServerRequest::Method::Post,
-				  [this](const int &id, const QHttpServerRequest &request){
-		AUTHORIZE_API();
-		JSON_OBJECT_ASSERT();
-		return gameTokenCreate(*credential, id, *jsonObject);
-	});
-
-	server->route(path+"campaign/<arg>/game/close", QHttpServerRequest::Method::Post,
-				  [this](const int &/*id*/, const QHttpServerRequest &request){
-		AUTHORIZE_API();
-		JSON_OBJECT_ASSERT();
-		return gameClose(*credential, *jsonObject);
-	});
-
 	server->route(path+"game/<arg>/update", QHttpServerRequest::Method::Post,
 				  [this](const int &id, const QHttpServerRequest &request){
 		AUTHORIZE_API();
@@ -237,6 +224,37 @@ UserAPI::UserAPI(Handler *handler, ServerService *service)
 	server->route(path+"rpg", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get, [this](const QHttpServerRequest &request){
 		AUTHORIZE_API();
 		return rpg(*credential);
+	});
+
+	server->route(path+"rpg/token", QHttpServerRequest::Method::Post,
+				  [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return gameTokenCreate(*credential, *jsonObject);
+	});
+
+	server->route(path+"rpg/target/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const QString &target, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return rpgTarget(*credential, target);
+	});
+
+	server->route(path+"rpg/buy/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const QString &target, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return rpgBuy(*credential, target);
+	});
+
+	server->route(path+"rpg/drop/", QHttpServerRequest::Method::Post|QHttpServerRequest::Method::Get,
+				  [this](const int &id, const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		return rpgDrop(*credential, id);
+	});
+
+	server->route(path+"rpg/upgrade", QHttpServerRequest::Method::Post, [this](const QHttpServerRequest &request){
+		AUTHORIZE_API();
+		JSON_OBJECT_ASSERT();
+		return rpgUpgrade(*credential, *jsonObject);
 	});
 }
 
@@ -727,121 +745,7 @@ QHttpServerResponse UserAPI::gameCreate(const QString &username, const int &camp
 	if (gameIdPtr)
 		*gameIdPtr = -1;
 
-	LAMBDA_THREAD_BEGIN(campaign, game, username, gameIdPtr);
-
-	LOG_CDEBUG("client") << "Create game for user:" << qPrintable(username) << "in campaign:" << campaign;
-
-	if (campaign > 0) {
-		LAMBDA_SQL_ERROR("invalid campaign",
-						 QueryBuilder::q(db)
-						 .addQuery("SELECT id FROM campaign WHERE started=true AND finished=false AND groupid IN "
-								   "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(username)
-						 .addQuery(")")
-						 .execCheckExists());
-	}
-
-
-
-	db.transaction();
-
-	// Close running games
-
-	const auto &list = QueryBuilder::q(db)
-					   .addQuery("SELECT gameid, xp FROM runningGame LEFT JOIN game ON (game.id=runningGame.gameid) WHERE username=")
-					   .addValue(username)
-					   .execToJsonArray();
-
-	LAMBDA_SQL_ASSERT_ROLLBACK(list);
-
-
-	for (const QJsonValue &v : std::as_const(*list)) {
-		const QJsonObject &o = v.toObject();
-		const int &gid = o.value(QStringLiteral("gameid")).toInt();
-		const int &xp = o.value(QStringLiteral("xp")).toInt();
-
-		LOG_CDEBUG("client") << "Close running game " << gid << "for user:" << qPrintable(username);
-
-		int scoreId = -1;
-
-		if (xp > 0) {
-			const auto &s = QueryBuilder::q(db)
-							.addQuery("INSERT INTO score (").setFieldPlaceholder()
-							.addQuery(") VALUES (").setValuePlaceholder()
-							.addQuery(")")
-							.addField("username", username)
-							.addField("xp", xp)
-							.execInsertAsInt();
-
-			LAMBDA_SQL_ASSERT_ROLLBACK(s);
-
-			scoreId = *s;
-		}
-
-		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
-								   .addQuery("UPDATE game SET duration=NULL, success=false, "
-											 "scoreid=")
-								   .addValue(scoreId > 0 ? scoreId : QVariant(QMetaType::fromType<int>()))
-								   .addQuery(" WHERE id=")
-								   .addValue(gid)
-								   .exec());
-	}
-
-
-	LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
-							   .addQuery("DELETE FROM runningGame WHERE gameid IN "
-										 "(SELECT gameid FROM runningGame LEFT JOIN game ON (game.id=runningGame.gameid) WHERE username=")
-							   .addValue(username)
-							   .addQuery(")")
-							   .exec());
-
-	// Create game
-
-	QueryBuilder q(db);
-
-	q.addQuery("INSERT INTO game (").setFieldPlaceholder()
-			.addQuery(") VALUES (").setValuePlaceholder()
-			.addQuery(")")
-			.addField("username", username)
-			.addField("mapid", game.map)
-			.addField("missionid", game.mission)
-			.addField("campaignid", campaign > 0 ? campaign : QVariant(QMetaType::fromType<int>()))
-			.addField("level", game.level)
-			.addField("success", false)
-			.addField("mode", game.mode)
-			;
-
-	if (game.timestamp > 0) {
-		QDateTime dt = QDateTime::fromMSecsSinceEpoch(game.timestamp).toUTC();
-		q.addField("timestamp", dt.toString(QStringLiteral("yyyy-MM-dd HH:mm:ss")));
-	}
-
-	const auto &gameId = q.execInsertAsInt();
-
-	LAMBDA_SQL_ASSERT_ROLLBACK(gameId);
-
-	LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
-							   .addQuery("INSERT INTO runningGame (").setFieldPlaceholder()
-							   .addQuery(") VALUES (").setValuePlaceholder()
-							   .addQuery(")")
-							   .addField("gameid", *gameId)
-							   .addField("xp", 0)
-							   .execInsert());
-
-
-
-	QJsonObject obj;
-	obj.insert(QStringLiteral("id"), *gameId);
-	obj.insert(QStringLiteral("closedGames"), *list);
-
-
-	db.commit();
-
-	response = QHttpServerResponse(obj);
-
-	if (gameIdPtr)
-		*gameIdPtr = *gameId;
-
-	LAMBDA_THREAD_END;
+	return gameCreate(databaseMain(), username, campaign, game, gameIdPtr);
 }
 
 
@@ -856,7 +760,8 @@ QHttpServerResponse UserAPI::gameCreate(const QString &username, const int &camp
  * @return
  */
 
-QHttpServerResponse UserAPI::gameCreateRpg(const QJsonObject &json, const QString &username, const int &campaign, const UserGame &game)
+QHttpServerResponse UserAPI::gameCreateRpg(const QJsonObject &json, const QString &username, const int &campaign,
+										   const UserGame &game, int *gameIdPtr)
 {
 	QString character = json.value(QStringLiteral("character")).toString();
 	QString terrain = json.value(QStringLiteral("terrain")).toString();
@@ -864,50 +769,9 @@ QHttpServerResponse UserAPI::gameCreateRpg(const QJsonObject &json, const QStrin
 	if (character.isEmpty() || terrain.isEmpty())
 		return responseError("missing character/terrain");
 
-
-	LAMBDA_THREAD_BEGIN(campaign, game, username, character, terrain);
-
-	LOG_CDEBUG("client") << "Create RPG game for user:" << qPrintable(username) << "in campaign:" << campaign;
-
-	int level = -1;
-
-	const auto ptr = QueryBuilder::q(db)
-					 .addQuery("SELECT level FROM rpgCharacter WHERE username=").addValue(username)
-					 .addQuery(" AND character=").addValue(character)
-					 .execToValue("level", 0);
-
-	if (ptr)
-		level = ptr->toInt();
-
-	if (level <= 0) {
-		if (QueryBuilder::q(db)
-				.addQuery("SELECT character FROM rpgWeekly WHERE character=")
-				.addValue(character)
-				.execCheckExists())
-			level = 1;
-	}
-
-	LAMBDA_SQL_ERROR("invalid character", level > 0);
-
-	int id = -1;
-
-	response = gameCreate(username, campaign, game, &id);
-
-	if (id == -1)
-		return ret.reject();
-
-	LAMBDA_SQL_ASSERT(QueryBuilder::q(db)
-					  .addQuery("INSERT INTO rpgGame (").setFieldPlaceholder()
-					  .addQuery(") VALUES (").setValuePlaceholder()
-					  .addQuery(")")
-					  .addField("gameid", id)
-					  .addField("terrain", terrain)
-					  .addField("character", character)
-					  .addField("coinCharacter", 0)
-					  .addField("coinTarget", 0)
-					  .execInsert());
-
-	LAMBDA_THREAD_END;
+	return gameCreateRpg(this->databaseMain(), username, campaign, game, character,
+						 RpgStream::HashFnv1A64::hashFnv1a64(terrain.toStdString()),
+						 gameIdPtr);
 }
 
 
@@ -920,12 +784,11 @@ QHttpServerResponse UserAPI::gameCreateRpg(const QJsonObject &json, const QStrin
  * @return
  */
 
-QHttpServerResponse UserAPI::gameTokenCreate(const Credential &credential, const int &campaign, const QJsonObject &json)
+QHttpServerResponse UserAPI::gameTokenCreate(const Credential &credential, const QJsonObject &json)
 {
 	RpgStream::ConnectionToken token;
 
 	token.fromJson(json);
-	token.campaign = campaign;
 	token.type = EngineRpg;
 
 	if (token.mapUuid.isEmpty() || token.missionUuid.isEmpty())
@@ -935,7 +798,7 @@ QHttpServerResponse UserAPI::gameTokenCreate(const Credential &credential, const
 		return responseError("invalid level");
 
 	if (token.campaign < 0)
-		return responseError("invalid campaign");
+		token.campaign = 0;
 
 	UdpServer *udpServer = m_service->udpServer();
 
@@ -981,39 +844,6 @@ QHttpServerResponse UserAPI::gameTokenCreate(const Credential &credential, const
 }
 
 
-
-/**
- * @brief UserAPI::gameClose
- * @param credential
- * @param campaign
- * @param json
- * @return
- */
-
-QHttpServerResponse UserAPI::gameClose(const Credential &credential, const QJsonObject &json)
-{
-	UdpServer *udpServer = m_service->udpServer();
-
-	if (!udpServer)
-		return responseError("internal error");
-
-	const quint32 id = (quint32) json.value(QStringLiteral("seat")).toInteger();
-	const int engineId = json.value(QStringLiteral("engine")).toInteger();
-
-	quint32 idPtr = 0;
-
-	/*std::shared_ptr<RpgEngine> engine = RpgEngine::peerFind(udpServer, credential.username(), &idPtr);
-
-	LOG_CINFO("engine") << "???" << id << idPtr << engineId << engine->id();
-
-	if (idPtr == 0 || !engine || idPtr != id || engine->id() != engineId) {
-		return responseError("invalid id");
-	}
-
-	QMetaObject::invokeMethod(engine.get(), std::bind(&RpgEngine::peerAbort, engine.get(), id), Qt::QueuedConnection);*/
-
-	return responseOk();
-}
 
 
 
@@ -1097,7 +927,8 @@ QHttpServerResponse UserAPI::gameUpdateStatistics(const QString &username, const
  * @return
  */
 
-QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int &id, const QJsonObject &json)
+QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int &id, const QJsonObject &json,
+										QJsonObject *dst)
 {
 	const QString &username = credential.username();
 	UserGame g;
@@ -1129,12 +960,6 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 		g.mode = qq.value("mode").value<GameMap::GameMode>();
 		g.campaign = qq.value("campaignid", -1).toInt();
 
-
-		// Rpg
-
-		if (g.mode == GameMap::Rpg)
-			g.rpg = _finishRpgGame(username, id, json);
-
 		///LAMBDA_THREAD_END;				/// Nem lehet!!!
 
 		ret.resolve();
@@ -1149,9 +974,9 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 		const bool &success = json.value(QStringLiteral("success")).toVariant().toBool();
 		const int &xp = json.value(QStringLiteral("xp")).toInt();
 
-		return gameFinish(username, id, g, statistics, success, xp, duration);
+		return gameFinish(username, id, g, statistics, success, xp, duration, nullptr, dst, GameFinishFull, json);
 	} else {
-		return gameFinish(username, id, g, statistics, false, 0, duration);
+		return gameFinish(username, id, g, statistics, false, 0, duration, nullptr, dst, GameFinishFull, json);
 	}
 }
 
@@ -1170,19 +995,16 @@ QHttpServerResponse UserAPI::gameFinish(const Credential &credential, const int 
 QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, const UserGame &game,
 										const QJsonArray &statistics,
 										const bool &success, const int &xp, const int &duration,
-										bool *okPtr, QPointer<RpgEngine> engine, const GameFinishMode &mode)
+										bool *okPtr, QJsonObject *dst, const GameFinishMode &mode, const QJsonObject &src)
 {
 	if (okPtr)
 		*okPtr = false;
 
 	LOG_CDEBUG("client") << "Finish game" << id << "for user:" << qPrintable(username) << "success:" << success;
 
-	LAMBDA_THREAD_BEGIN(username, statistics, id, xp, duration, success, game, okPtr, engine, mode);
+	LAMBDA_THREAD_BEGIN(username, statistics, id, xp, duration, success, game, okPtr, mode, dst, src);
 
 	QJsonObject retObj;
-
-	if (!game.rpg.isEmpty())
-		retObj[QStringLiteral("rpg")] = game.rpg;
 
 	if (mode & GameFinishGameOnly) {
 		// Statistics
@@ -1303,35 +1125,15 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 		}
 
 
-
-
-
-		/*if (success && game.mode == GameMap::Rpg) {
-			QJsonArray iList;
-
-			for (auto it = inventory.constBegin(); it != inventory.constEnd(); ++it) {
-				if (it.key() == QStringLiteral("map")) {
-					LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
-											   .addQuery("INSERT OR IGNORE INTO wallet(").setFieldPlaceholder()
-											   .addQuery(") VALUES (").setValuePlaceholder().addQuery(")")
-											   .addField("username", username)
-											   .addField("type", (int) RpgMarket::Map)
-											   .addField("name", it.value().toString())
-											   .addField("amount", 1)
-											   .exec()
-											   );
-
-
-					LOG_CDEBUG("client") << "Achieved map:" << it.value().toString() << qPrintable(username);
-				}
-			}
-		}*/
-
 		db.commit();
 
 
 
 
+		// Rpg
+
+		if (game.mode == GameMap::Rpg)
+			retObj[QStringLiteral("rpg")] = _finishRpgGame(username, id, src);
 	}
 
 
@@ -1348,8 +1150,8 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 		*okPtr = true;
 
 
-	/*if (engine)
-		QMetaObject::invokeMethod(engine, std::bind(&RpgEngine::playerSetFinal, engine, id, retObj), Qt::QueuedConnection);*/
+	if (dst)
+		*dst = retObj;
 
 	LAMBDA_THREAD_END;
 }
@@ -1515,12 +1317,23 @@ QHttpServerResponse UserAPI::rpg(const Credential &credential)
 
 	LAMBDA_THREAD_BEGIN(credential);
 
-	const auto &curr = QueryBuilder::q(db)
-					   .addQuery("SELECT SUM(amount) AS amount FROM currency WHERE username=")
-					   .addValue(credential.username())
-					   .execToValue("amount", 0);
+	// Open old drops
 
-	LOG_CDEBUG("client") << ">>>" << credential.username() << "CURRENCY" << curr.value_or(-1);
+
+	const auto &dList = QueryBuilder::q(db)
+						.addQuery("SELECT id FROM rpgDrop WHERE finished=FALSE AND timestamp<datetime('now', '-1 day') "
+								  "AND username=").addValue(credential.username())
+						.execToJsonArray();
+
+	LAMBDA_SQL_ASSERT(dList);
+
+	for (const QJsonValue &v : dList.value()) {
+		const int id = v.toObject().value(QStringLiteral("id")).toInt();
+
+		LOG_CDEBUG("client") << "Open old drop" << id << "automatically";
+
+		_openRpgDrop(databaseMain(), id, credential.username());
+	}
 
 
 	const auto &chList = QueryBuilder::q(db)
@@ -1540,60 +1353,125 @@ QHttpServerResponse UserAPI::rpg(const Credential &credential)
 
 	RpgUserData udata;
 
-	QMap<int, QString> avaliableTargets;
 
-	for (const auto &[ch, data] : m_service->rpgConfig()->characters().asKeyValueRange()) {
-		RpgUserCharacter character(data);
+	// DEPRECATED
 
-		character.character = ch;
+	const auto &curr = QueryBuilder::q(db)
+					   .addQuery("SELECT SUM(amount) AS amount FROM currency WHERE username=")
+					   .addValue(credential.username())
+					   .execToValue("amount", 0);
 
-		const auto it = std::find_if(chList->cbegin(),
-									 chList->cend(),
-									 [&ch](const QJsonValue &v) {
-			return v.toObject().value(QStringLiteral("character")).toString() == ch;
-		});
+	LAMBDA_SQL_ASSERT(curr);
 
-		if (it != chList->cend()) {
-			character.level = it->toObject().value(QStringLiteral("level")).toInt();
-			character.point = it->toObject().value(QStringLiteral("coin")).toInt();
-		} else {
-			// Auto add free characters
+	udata.oldCurrency = curr->toInt();
 
-			if (data.unlock == 0) {
-				character.level = 1;
-				character.point = 0;
 
-				LAMBDA_SQL_ASSERT(QueryBuilder::q(db)
-								  .addQuery("INSERT INTO rpgCharacter(").setFieldPlaceholder()
-								  .addQuery(") VALUES (").setValuePlaceholder()
-								  .addQuery(")")
-								  .addField("username", credential.username())
-								  .addField("character", ch)
-								  .addField("level", character.level)
-								  .addField("coin", character.point)
-								  .exec());
 
-			} else {
-				avaliableTargets.insert(data.unlock, ch);
-			}
+
+	// Load
+
+	QSet<QString> terrains;
+
+	{
+		QueryBuilder q(db);
+		q.addQuery("SELECT terrain, character FROM rpgGame "
+				   "LEFT JOIN game ON (game.id=rpggame.gameid) "
+				   "WHERE username=").addValue(credential.username())
+				.addQuery(" ORDER BY timestamp DESC")
+				.exec();
+
+		LAMBDA_SQL_ASSERT(q.exec());
+
+		while (q.sqlQuery().next()) {
+			terrains.insert(q.value("terrain").toString());
+
+			if (udata.lastCharacter.isEmpty())
+				udata.lastCharacter = q.value("character").toString();
+
+			if (udata.lastTerrain.isEmpty())
+				udata.lastTerrain = q.value("terrain").toString();
 		}
-
-		udata.characters.append(character);
 	}
 
+	udata.terrains.assign(terrains.cbegin(), terrains.cend());
+
+	QMap<int, QString> avaliableTargets;
+	QSet<QString> unlockedCharacters;
+
+	if (m_service->rpgConfig()->characters().empty()) {
+		LOG_CERROR("client") << "Missing RPG character data";
+
+	} else {
+		for (const auto &[ch, data] : m_service->rpgConfig()->characters().asKeyValueRange()) {
+			RpgUserCharacter character(data);
+
+			character.character = ch;
+
+			const auto it = std::find_if(chList->cbegin(),
+										 chList->cend(),
+										 [&ch](const QJsonValue &v) {
+				return v.toObject().value(QStringLiteral("character")).toString() == ch;
+			});
+
+			if (it != chList->cend()) {
+				character.level = it->toObject().value(QStringLiteral("level")).toInt();
+				character.point = it->toObject().value(QStringLiteral("coin")).toInt();
+
+				unlockedCharacters.insert(ch);
+			} else {
+				// Auto add free characters
+
+				if (data.unlock == 0) {
+					character.level = 1;
+					character.point = 0;
+
+					unlockedCharacters.insert(ch);
+
+					LAMBDA_SQL_ASSERT(QueryBuilder::q(db)
+									  .addQuery("INSERT INTO rpgCharacter(").setFieldPlaceholder()
+									  .addQuery(") VALUES (").setValuePlaceholder()
+									  .addQuery(")")
+									  .addField("username", credential.username())
+									  .addField("character", ch)
+									  .addField("level", character.level)
+									  .addField("coin", character.point)
+									  .exec());
+
+				} else {
+					avaliableTargets.insert(data.unlock, ch);
+				}
+			}
+
+			udata.characters.append(character);
+		}
+	}
+
+
+	// Check if target is invalid
+
+	udata.target = target->value(QStringLiteral("character")).toString();
+	udata.token = target->value(QStringLiteral("coin")).toInt();
+
+	if (!udata.target.isEmpty() &&
+			(m_service->rpgConfig()->characters().value(udata.target).unlock == 0 ||
+			 unlockedCharacters.contains(udata.target))) {
+		LOG_CWARNING("client") << "Invalid target" << udata.target << "for user" << qPrintable(credential.username());
+
+		udata.target.clear();
+	}
 
 
 	// Auto select the lowest target
 
-	if (target->isEmpty()) {
+	if (udata.target.isEmpty()) {
 		if (avaliableTargets.isEmpty()) {
 			LOG_CWARNING("client") << "No available targets for user" << qPrintable(credential.username());
 		} else {
 			udata.target = avaliableTargets.first();
-			udata.token = 0;
+
 
 			LAMBDA_SQL_ASSERT(QueryBuilder::q(db)
-							  .addQuery("INSERT INTO rpgTarget(").setFieldPlaceholder()
+							  .addQuery("INSERT OR REPLACE INTO rpgTarget(").setFieldPlaceholder()
 							  .addQuery(") VALUES (").setValuePlaceholder()
 							  .addQuery(")")
 							  .addField("username", credential.username())
@@ -1603,16 +1481,597 @@ QHttpServerResponse UserAPI::rpg(const Credential &credential)
 
 			LOG_CINFO("client") << "Auto target" << udata.target << "for user" << qPrintable(credential.username());
 		}
-	} else {
-		udata.target = target->value(QStringLiteral("character")).toString();
-		udata.token = target->value(QStringLiteral("coin")).toInt();
 	}
 
-	LOG_CWARNING("client") << "***" << udata.toJson();
+
+
+	// Get Drops
+
+	const auto &dropList = QueryBuilder::q(db)
+						   .addQuery("SELECT id, type, tier, xp, coinCharacter AS point, coinTarget AS token "
+									 "FROM rpgDrop WHERE username=").addValue(credential.username())
+						   .addQuery(" AND finished=false")
+						   .execToJsonArray();
+
+	LAMBDA_SQL_ASSERT(dropList);
+
+	udata.drops.reserve(dropList->size());
+
+	for (const QJsonValue &v : dropList.value()) {
+		RpgUserDrop drop;
+		drop.fromJson(v.toObject());
+		udata.drops.append(drop);
+	}
 
 	response = responseOk(udata.toJson());
 
 	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief UserAPI::rpgTarget
+ * @param credential
+ * @param target
+ * @return
+ */
+
+QHttpServerResponse UserAPI::rpgTarget(const Credential &credential, const QString &target)
+{
+	LOG_CTRACE("client") << "New RPG target for user" << qPrintable(credential.username()) << target;
+
+	LAMBDA_THREAD_BEGIN(credential, target);
+
+
+	db.transaction();
+
+	const auto &chList = QueryBuilder::q(db)
+						 .addQuery("SELECT character, level, coin FROM rpgCharacter WHERE username=")
+						 .addValue(credential.username())
+						 .execToJsonArray();
+
+	LAMBDA_SQL_ASSERT_ROLLBACK(chList);
+
+
+	QSet<QString> avaliableTargets;
+
+	if (m_service->rpgConfig()->characters().empty()) {
+		LOG_CERROR("client") << "Missing RPG character data";
+
+	} else {
+		for (const auto &[ch, data] : m_service->rpgConfig()->characters().asKeyValueRange()) {
+			const auto it = std::find_if(chList->cbegin(),
+										 chList->cend(),
+										 [&ch](const QJsonValue &v) {
+				return v.toObject().value(QStringLiteral("character")).toString() == ch;
+			});
+
+			if (it == chList->cend() && data.unlock > 0)
+				avaliableTargets.insert(ch);
+		}
+	}
+
+
+	if (avaliableTargets.isEmpty()) {
+		LOG_CWARNING("client") << "No available targets for user" << qPrintable(credential.username());
+		response = responseError("no available target");
+	} else if (!avaliableTargets.contains(target)) {
+		LOG_CWARNING("client") << "Targets can't be selected for user" << qPrintable(credential.username()) << target;
+		response = responseError("invalid target");
+	} else {
+		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+								   .addQuery("UPDATE rpgTarget SET ")
+								   .setCombinedPlaceholder()
+								   .addField("character", target)
+								   .addQuery(" WHERE username =").addValue(credential.username())
+								   .exec());
+
+		LOG_CINFO("client") << "New target" << target << "for user" << qPrintable(credential.username());
+
+		response = responseOk(QJsonObject{
+								  { QStringLiteral("target"), target }
+							  });
+	}
+
+	db.commit();
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief UserAPI::rpgBuy
+ * @param credential
+ * @param target
+ * @return
+ */
+
+QHttpServerResponse UserAPI::rpgBuy(const Credential &credential, const QString &target)
+{
+	LOG_CTRACE("client") << "Buy RPG target for user" << qPrintable(credential.username()) << target;
+
+	LAMBDA_THREAD_BEGIN(credential, target);
+
+
+	db.transaction();
+
+	const auto &chList = QueryBuilder::q(db)
+						 .addQuery("SELECT character, level, coin FROM rpgCharacter WHERE username=")
+						 .addValue(credential.username())
+						 .execToJsonArray();
+
+	LAMBDA_SQL_ASSERT_ROLLBACK(chList);
+
+	const auto &coin = QueryBuilder::q(db)
+					   .addQuery("SELECT coin FROM rpgTarget WHERE username=")
+					   .addValue(credential.username())
+					   .execToValue("coin", 0);
+
+	LAMBDA_SQL_ASSERT_ROLLBACK(coin);
+
+
+	int value = 0;
+
+	if (m_service->rpgConfig()->characters().empty()) {
+		LOG_CERROR("client") << "Missing RPG character data";
+
+	} else {
+		for (const auto &[ch, data] : m_service->rpgConfig()->characters().asKeyValueRange()) {
+			const auto it = std::find_if(chList->cbegin(),
+										 chList->cend(),
+										 [&ch](const QJsonValue &v) {
+				return v.toObject().value(QStringLiteral("character")).toString() == ch;
+			});
+
+			if (it == chList->cend() && data.unlock > 0 && data.unlock <= coin->toInt() && ch == target) {
+				value = data.unlock;
+				break;
+			}
+		}
+	}
+
+
+	if (value == 0) {
+		LOG_CWARNING("client") << "Targets can't be sell to user" << qPrintable(credential.username()) << target;
+		response = responseError("invalid target");
+	} else {
+		const int token = coin->toInt() - value;
+
+		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+								   .addQuery("UPDATE rpgTarget SET ")
+								   .setCombinedPlaceholder()
+								   .addField("coin", token)
+								   .addQuery(" WHERE username =").addValue(credential.username())
+								   .exec());
+
+		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+								   .addQuery("INSERT INTO rpgCharacter(").setFieldPlaceholder()
+								   .addQuery(") VALUES (").setValuePlaceholder()
+								   .addQuery(")")
+								   .addField("username", credential.username())
+								   .addField("character", target)
+								   .addField("level", 1)
+								   .addField("coin", 0)
+								   .exec());
+
+		LOG_CINFO("client") << "New target" << target << "for user" << qPrintable(credential.username());
+
+
+		response = responseOk(QJsonObject{
+								  { QStringLiteral("target"), target },
+								  { QStringLiteral("token"), token },
+							  });
+	}
+
+	db.commit();
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+/**
+ * @brief UserAPI::rpgDrop
+ * @param credential
+ * @param id
+ * @return
+ */
+
+QHttpServerResponse UserAPI::rpgDrop(const Credential &credential, const int &id)
+{
+	LOG_CTRACE("client") << "Player" << credential.username() << "opens drop" << id;
+
+	if (id <= 0)
+		return responseError("invalid id");
+
+	LAMBDA_THREAD_BEGIN(credential, id);
+
+	const auto &r = _openRpgDrop(databaseMain(), id, credential.username());
+
+	LAMBDA_SQL_ASSERT(r);
+
+	LOG_CDEBUG("client") << "User" << qPrintable(credential.username()) << "opened RPG drop" << id;
+
+	response = responseOk(r.value());
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+
+
+
+/**
+ * @brief UserAPI::rpgUpgrade
+ * @param credential
+ * @param json
+ * @return
+ */
+
+QHttpServerResponse UserAPI::rpgUpgrade(const Credential &credential, const QJsonObject &json)
+{
+	QJsonArray list = json.value(QStringLiteral("list")).toArray();
+
+	LOG_CTRACE("client") << "Player" << credential.username() << "upgrade" << list;
+
+	if (list.empty())
+		return responseError("missing list");
+
+	LAMBDA_THREAD_BEGIN(credential, list);
+
+	const auto &curr = QueryBuilder::q(db)
+					   .addQuery("SELECT SUM(amount) AS amount FROM currency WHERE username=")
+					   .addValue(credential.username())
+					   .execToValue("amount", 0);
+
+	LAMBDA_SQL_ASSERT(curr);
+
+	int amount = curr->toInt();
+
+	LAMBDA_SQL_ERROR("no currency", amount > 0);
+
+	QStringList ch;
+
+	if (m_service->rpgConfig()->characters().empty()) {
+		LOG_CERROR("client") << "Missing RPG character data";
+
+		for (const QJsonValue &v : list)
+			ch.append(v.toString());
+
+	} else {
+		for (const QJsonValue &v : list) {
+			const QString character = v.toString();
+
+			LAMBDA_SQL_ERROR("invalid character", m_service->rpgConfig()->characters().contains(character));
+
+			ch.append(character);
+		}
+	}
+
+	LAMBDA_SQL_ERROR("sql error", !ch.isEmpty());
+
+	LAMBDA_SQL_ERROR("no currency", amount > ch.size());
+
+	amount /= ch.size();
+
+	LOG_CTRACE("client") << "Player" << qPrintable(credential.username()) << "upgrade to RPG characters" << ch << "with amount" << amount;
+
+	db.transaction();
+
+	for (const QString &character : ch) {
+		int t = 0;
+		LAMBDA_SQL_ASSERT_ROLLBACK(_addRpgCoin(databaseMain(), credential.username(), character, amount, nullptr, &t));
+		LAMBDA_SQL_ASSERT_ROLLBACK(_addRpgToken(databaseMain(), credential.username(), t, nullptr));
+	}
+
+	LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+							   .addQuery("DELETE FROM currency WHERE username=")
+							   .addValue(credential.username())
+							   .exec());
+
+	db.commit();
+
+	response = responseOk();
+
+	LAMBDA_THREAD_END;
+}
+
+
+
+
+
+
+/**
+ * @brief UserAPI::gameCreate
+ * @param dbMain
+ * @param username
+ * @param campaign
+ * @param game
+ * @param gameIdPtr
+ * @return
+ */
+
+QHttpServerResponse UserAPI::gameCreate(const DatabaseMain *dbMain, const QString &username, const int &campaign,
+										const UserGame &game, int *gameIdPtr)
+{
+	Q_ASSERT (dbMain);
+
+	QDefer ret;
+	QHttpServerResponse response(QHttpServerResponse::StatusCode::InternalServerError);
+
+	dbMain->worker()->execInThread([dbMain, campaign, game, username, gameIdPtr, ret, &response]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
+
+		QMutexLocker _locker(dbMain->mutex());
+
+		LOG_CDEBUG("client") << "Create game for user:" << qPrintable(username) << "in campaign:" << campaign;
+
+		if (campaign > 0) {
+			LAMBDA_SQL_ERROR("invalid campaign",
+							 QueryBuilder::q(db)
+							 .addQuery("SELECT id FROM campaign WHERE started=true AND finished=false AND groupid IN "
+									   "(SELECT id FROM studentGroupInfo WHERE active=true AND username=").addValue(username)
+							 .addQuery(")")
+							 .execCheckExists());
+		}
+
+
+
+		db.transaction();
+
+		// Close running games
+
+		const auto &list = QueryBuilder::q(db)
+						   .addQuery("SELECT gameid, xp FROM runningGame LEFT JOIN game ON (game.id=runningGame.gameid) WHERE username=")
+						   .addValue(username)
+						   .execToJsonArray();
+
+		LAMBDA_SQL_ASSERT_ROLLBACK(list);
+
+
+		for (const QJsonValue &v : std::as_const(*list)) {
+			const QJsonObject &o = v.toObject();
+			const int &gid = o.value(QStringLiteral("gameid")).toInt();
+			const int &xp = o.value(QStringLiteral("xp")).toInt();
+
+			LOG_CDEBUG("client") << "Close running game " << gid << "for user:" << qPrintable(username);
+
+			int scoreId = -1;
+
+			if (xp > 0) {
+				const auto &s = QueryBuilder::q(db)
+								.addQuery("INSERT INTO score (").setFieldPlaceholder()
+								.addQuery(") VALUES (").setValuePlaceholder()
+								.addQuery(")")
+								.addField("username", username)
+								.addField("xp", xp)
+								.execInsertAsInt();
+
+				LAMBDA_SQL_ASSERT_ROLLBACK(s);
+
+				scoreId = *s;
+			}
+
+			LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+									   .addQuery("UPDATE game SET duration=NULL, success=false, "
+												 "scoreid=")
+									   .addValue(scoreId > 0 ? scoreId : QVariant(QMetaType::fromType<int>()))
+									   .addQuery(" WHERE id=")
+									   .addValue(gid)
+									   .exec());
+		}
+
+
+		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+								   .addQuery("DELETE FROM runningGame WHERE gameid IN "
+											 "(SELECT gameid FROM runningGame LEFT JOIN game ON (game.id=runningGame.gameid) WHERE username=")
+								   .addValue(username)
+								   .addQuery(")")
+								   .exec());
+
+		// Create game
+
+		QueryBuilder q(db);
+
+		q.addQuery("INSERT INTO game (").setFieldPlaceholder()
+				.addQuery(") VALUES (").setValuePlaceholder()
+				.addQuery(")")
+				.addField("username", username)
+				.addField("mapid", game.map)
+				.addField("missionid", game.mission)
+				.addField("campaignid", campaign > 0 ? campaign : QVariant(QMetaType::fromType<int>()))
+				.addField("level", game.level)
+				.addField("success", false)
+				.addField("mode", game.mode)
+				;
+
+		if (game.timestamp > 0) {
+			QDateTime dt = QDateTime::fromMSecsSinceEpoch(game.timestamp).toUTC();
+			q.addField("timestamp", dt.toString(QStringLiteral("yyyy-MM-dd HH:mm:ss")));
+		}
+
+		const auto &gameId = q.execInsertAsInt();
+
+		LAMBDA_SQL_ASSERT_ROLLBACK(gameId);
+
+		LAMBDA_SQL_ASSERT_ROLLBACK(QueryBuilder::q(db)
+								   .addQuery("INSERT INTO runningGame (").setFieldPlaceholder()
+								   .addQuery(") VALUES (").setValuePlaceholder()
+								   .addQuery(")")
+								   .addField("gameid", *gameId)
+								   .addField("xp", 0)
+								   .execInsert());
+
+
+
+		QJsonObject obj;
+		obj.insert(QStringLiteral("id"), *gameId);
+		obj.insert(QStringLiteral("closedGames"), *list);
+
+
+		db.commit();
+
+		response = QHttpServerResponse(obj);
+
+		if (gameIdPtr)
+			*gameIdPtr = *gameId;
+
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+
+	return response;
+
+}
+
+
+
+/**
+ * @brief UserAPI::gameCreateRpg
+ * @param dbMain
+ * @param username
+ * @param campaign
+ * @param game
+ * @param character
+ * @param terrain
+ * @param gameIdPtr
+ * @return
+ */
+
+QHttpServerResponse UserAPI::gameCreateRpg(const DatabaseMain *dbMain, const QString &username, const int &campaign,
+										   const UserGame &game, const QString &character, const quint64 &terrainHash,
+										   int *gameIdPtr)
+{
+	Q_ASSERT (dbMain);
+
+	QDefer ret;
+	QHttpServerResponse response(QHttpServerResponse::StatusCode::InternalServerError);
+
+	dbMain->worker()->execInThread([dbMain, campaign, game, username, character, terrainHash, gameIdPtr, ret, &response]() mutable {
+		QSqlDatabase db = QSqlDatabase::database(dbMain->dbName());
+
+
+		QMutexLocker _locker(dbMain->mutex());
+
+		LOG_CDEBUG("client") << "Create RPG game for user:" << qPrintable(username) << "in campaign:" << campaign;
+
+		int level = -1;
+
+		const auto ptr = QueryBuilder::q(db)
+						 .addQuery("SELECT level FROM rpgCharacter WHERE username=").addValue(username)
+						 .addQuery(" AND character=").addValue(character)
+						 .execToValue("level", 0);
+
+		if (ptr)
+			level = ptr->toInt();
+
+		if (level <= 0) {
+			if (QueryBuilder::q(db)
+					.addQuery("SELECT character FROM rpgWeekly WHERE character=")
+					.addValue(character)
+					.execCheckExists())
+				level = 1;
+		}
+
+		LAMBDA_SQL_ERROR("invalid character", level > 0);
+
+		int id = -1;
+
+		response = gameCreate(dbMain, username, campaign, game, &id);
+
+		if (id == -1)
+			return ret.reject();
+
+		if (gameIdPtr)
+			*gameIdPtr = id;
+
+		LAMBDA_SQL_ASSERT(QueryBuilder::q(db)
+						  .addQuery("INSERT INTO rpgGame (").setFieldPlaceholder()
+						  .addQuery(") VALUES (").setValuePlaceholder()
+						  .addQuery(")")
+						  .addField("gameid", id)
+						  .addField("terrain", QString::number(terrainHash))
+						  .addField("character", character)
+						  .addField("coinCharacter", 0)
+						  .addField("coinTarget", 0)
+						  .execInsert());
+
+		ret.resolve();
+	});
+
+	QDefer::await(ret);
+
+	return response;
+}
+
+
+
+/**
+ * @brief UserAPI::_openRpgDrop
+ * @param database
+ * @param id
+ * @return
+ */
+
+std::optional<QJsonObject> UserAPI::_openRpgDrop(DatabaseMain *database, const int &id, const QString &username)
+{
+	Q_ASSERT(database);
+
+	QSqlDatabase db = QSqlDatabase::database(database->dbName());
+
+	QMutexLocker _locker(database->mutex());
+
+	std::optional<QJsonObject> r;
+
+	{
+		QueryBuilder q(db);
+		q.addQuery("SELECT tier, xp, rpgDrop.coinCharacter AS point, rpgDrop.coinTarget AS token, character "
+				   "FROM rpgDrop LEFT JOIN rpgGame ON (rpgGame.id=rpgDrop.gameid) "
+				   "WHERE finished=false AND rpgDrop.id=").addValue(id);
+
+		if (!username.isEmpty())
+			q.addQuery(" AND username=").addValue(username);
+
+		r = q.execToJsonObject();
+
+		if (!r || r->isEmpty())
+			return std::nullopt;
+	}
+
+	int point = r->value(QStringLiteral("point")).toInt();
+	int token = r->value(QStringLiteral("token")).toInt();
+	int xp = r->value(QStringLiteral("xp")).toInt();
+	int t = 0;
+
+	if (point > 0)
+		_addRpgCoin(database, username, r->value(QStringLiteral("character")).toString(), point, &r.value(), &t);
+
+	token += t;
+
+	if (token > 0)
+		_addRpgToken(database, username, token, &r.value());
+
+	if (xp > 0) {
+		if (!QueryBuilder::q(db)
+				.addQuery("INSERT INTO score (").setFieldPlaceholder()
+				.addQuery(") VALUES (").setValuePlaceholder()
+				.addQuery(")")
+				.addField("username", username)
+				.addField("xp", xp)
+				.exec())
+			return std::nullopt;
+	}
+
+	QueryBuilder::q(db)
+			.addQuery("UPDATE rpgDrop SET finished=TRUE WHERE id=").addValue(id)
+			.exec();
+
+
+	return r;
 }
 
 
@@ -1896,15 +2355,20 @@ QJsonObject UserAPI::_finishRpgGame(const QString &username, const int &id, cons
 
 	QJsonObject ret;
 
-	QueryBuilder qq(db);
+	QString terrain;
+	QString character;
 
-	qq.addQuery("SELECT terrain, character FROM rpgGame WHERE gameid=").addValue(id);
+	{
+		QueryBuilder qq(db);
 
-	if (!qq.exec() || !qq.sqlQuery().first())
-		return {};
+		qq.addQuery("SELECT terrain, character FROM rpgGame WHERE gameid=").addValue(id);
 
-	const QString terrain = qq.value("terrain").toString();
-	const QString character = qq.value("character").toString();
+		if (!qq.exec() || !qq.sqlQuery().first())
+			return {};
+
+		terrain = qq.value("terrain").toString();
+		character = qq.value("character").toString();
+	}
 
 	int point = json.value(QStringLiteral("point")).toInt();
 	int token = json.value(QStringLiteral("token")).toInt();
@@ -1913,7 +2377,6 @@ QJsonObject UserAPI::_finishRpgGame(const QString &username, const int &id, cons
 	ret[QStringLiteral("point")] = point;
 	ret[QStringLiteral("token")] = token;
 
-	LOG_CINFO("client") << "****" << username << id << terrain << character << point << token;
 
 	QueryBuilder::q(db)
 			.addQuery("UPDATE rpgGame SET ")
@@ -1925,91 +2388,137 @@ QJsonObject UserAPI::_finishRpgGame(const QString &username, const int &id, cons
 			.exec();
 
 
+	int t = 0;
+
+	if (point > 0)
+		_addRpgCoin(databaseMain(), username, character, point, &ret, &t);
+
+	token += t;
+
+	if (token > 0)
+		_addRpgToken(databaseMain(), username, token, &ret);
+
+	_createRpgDrops(username, terrain, id, &ret);
+
+	return ret;
+}
+
+
+
+/**
+ * @brief UserAPI::_addRpgCoin
+ * @param username
+ * @param character
+ * @param point
+ * @param dst
+ * @param tokenPtr
+ * @return
+ */
+
+bool UserAPI::_addRpgCoin(DatabaseMain *database, const QString &username, const QString &character,
+						  const int &point, QJsonObject *dst, int *tokenPtr)
+{
+	Q_ASSERT(database);
+
+	if (point <= 0)
+		return true;
+
+	QSqlDatabase db = QSqlDatabase::database(database->dbName());
+
+	QMutexLocker _locker(database->mutex());
+
 	const auto &ch = QueryBuilder::q(db)
 					 .addQuery("SELECT level, coin FROM rpgCharacter WHERE username=").addValue(username)
 					 .addQuery(" AND character=").addValue(character)
 					 .execToJsonObject();
 
 	if (!ch)
-		return {};
+		return false;
 
+	int token = 0;
 
 	if (ch->isEmpty()) {
 		/// TODO: userWeekly
 		LOG_CERROR("client") << "Missing implementation";
-		return {};
-	}
 
-
-
-	int level = ch->value(QStringLiteral("level")).toInt();
-	point += ch->value(QStringLiteral("coin")).toInt();
-
-
-	///int token = target.value_or({}).value(QStringLiteral("coin")).toInt();
-
-	if (level < 1) {
-		LOG_CERROR("client") << "Invalid RPG character level:" << qPrintable(username) << character << level;
-		return {};
-	}
-
-	if (level >= CFG_POWER_LEVEL_COUNT) {
-		LOG_CWARNING("client") << "Invalid RPG character level:" << qPrintable(username) << character << level;
-	}
-
-	const RpgServerCharacter data = m_service->rpgConfig()->characters().value(character);
-
-	if (data.pwrUnlock.size() != CFG_POWER_LEVEL_COUNT) {
-		LOG_CERROR("client") << "Invalid RPG character:" << qPrintable(username) << character;
-		return {};
-	}
-
-	// Push up levels
-
-	while (point > 0 && level < CFG_POWER_LEVEL_COUNT) {
-		const int next = data.pwrUnlock.at(level);
-
-		if (point < next)
-			break;
-
-		++level;
-		point -= next;
-	}
-
-	// Convert to token
-
-	if (level >= CFG_POWER_LEVEL_COUNT) {
 		const int plus = (float) point / (float) CFG_POWER_POINT_TOKEN;
 
 		LOG_CINFO("client") << "Convert" << point << "to" << plus << "tokens";
 
 		token += plus;
-		point = 0;
+
+	} else {
+
+
+		int level = ch->value(QStringLiteral("level")).toInt();
+		int rpoint = point + ch->value(QStringLiteral("coin")).toInt();
+
+
+		///int token = target.value_or({}).value(QStringLiteral("coin")).toInt();
+
+		if (level < 1) {
+			LOG_CERROR("client") << "Invalid RPG character level:" << qPrintable(username) << character << level;
+			return false;
+		}
+
+
+		if (database->service()->rpgConfig()->characters().empty()) {
+			LOG_CERROR("client") << "Missing RPG character data";
+		} else {
+			const RpgServerCharacter data = database->service()->rpgConfig()->characters().value(character);
+
+			if (data.pwrUnlock.size() != CFG_POWER_LEVEL_COUNT) {
+				LOG_CERROR("client") << "Invalid RPG character:" << qPrintable(username) << character;
+				return false;
+			}
+
+			// Push up levels
+
+			while (rpoint > 0 && level < CFG_POWER_LEVEL_COUNT) {
+				const int next = data.pwrUnlock.at(level);
+
+				if (rpoint < next)
+					break;
+
+				++level;
+				rpoint -= next;
+			}
+
+			// Convert to token
+
+			if (level >= CFG_POWER_LEVEL_COUNT) {
+				const int plus = (float) rpoint / (float) CFG_POWER_POINT_TOKEN;
+
+				LOG_CINFO("client") << "Convert" << rpoint << "to" << plus << "tokens";
+
+				token += plus;
+				rpoint = 0;
+			}
+		}
+
+		if (dst) {
+			dst->insert(QStringLiteral("character"), character);
+			dst->insert(QStringLiteral("newLevel"), level);
+			dst->insert(QStringLiteral("newPoint"), rpoint);
+		}
+
+		if (!QueryBuilder::q(db)
+				.addQuery("UPDATE rpgCharacter SET ").setCombinedPlaceholder()
+				.addField("level", level)
+				.addField("coin", rpoint)
+				.addQuery(" WHERE username=")
+				.addValue(username)
+				.addQuery(" AND character=")
+				.addValue(character)
+				.exec())
+			return false;
 	}
 
-	ret[QStringLiteral("character")] = character;
-	ret[QStringLiteral("newLevel")] = level;
-	ret[QStringLiteral("newPoint")] = point;
 
-	if (!QueryBuilder::q(db)
-			.addQuery("UPDATE rpgCharacter SET ").setCombinedPlaceholder()
-			.addField("level", level)
-			.addField("coin", point)
-			.addQuery(" WHERE username=")
-			.addValue(username)
-			.addQuery(" AND character=")
-			.addValue(character)
-			.exec())
-		return {};
+	if (tokenPtr)
+		*tokenPtr = token;
 
-
-	if (token > 0)
-		_addRpgToken(username, token, &ret);
-
-
-	LOG_CWARNING("client") << "##############" << ret;
-
-	return ret;
+	return true;
 }
 
 
@@ -2022,16 +2531,16 @@ QJsonObject UserAPI::_finishRpgGame(const QString &username, const int &id, cons
  * @return
  */
 
-bool UserAPI::_addRpgToken(const QString &username, const int &token, QJsonObject *dst)
+bool UserAPI::_addRpgToken(DatabaseMain *database, const QString &username, const int &token, QJsonObject *dst)
 {
+	Q_ASSERT(database);
+
 	if (token <= 0)
 		return true;
 
-	QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+	QSqlDatabase db = QSqlDatabase::database(database->dbName());
 
-	LOG_CINFO("client") << "++++" << username << token;
-
-	QMutexLocker _locker(databaseMain()->mutex());
+	QMutexLocker _locker(database->mutex());
 
 	const auto &target = QueryBuilder::q(db)
 						 .addQuery("SELECT character, coin FROM rpgTarget WHERE username=")
@@ -2049,9 +2558,11 @@ bool UserAPI::_addRpgToken(const QString &username, const int &token, QJsonObjec
 	// Unlock character
 
 	if (!character.isEmpty() && character != CHARACTER_PRESTIGE) {
-		const RpgServerCharacter data = m_service->rpgConfig()->characters().value(character);
+		const RpgServerCharacter data = database->service()->rpgConfig()->characters().value(character);
 
-		if (real >= data.unlock) {
+		if (data.pwrUnlock.size() != CFG_POWER_LEVEL_COUNT) {
+			LOG_CERROR("client") << "Invalid RPG character:" << qPrintable(username) << character;
+		} else if (real >= data.unlock) {
 			LOG_CINFO("client") << "Unlock character" << character << "for user" << qPrintable(username);
 
 			real -= data.unlock;
@@ -2088,6 +2599,12 @@ bool UserAPI::_addRpgToken(const QString &username, const int &token, QJsonObjec
 
 
 
+	if (database->service()->rpgConfig()->characters().empty()) {
+		LOG_CERROR("client") << "Missing RPG character data";
+		return true;
+	}
+
+
 	if (real <= 0)
 		character.clear();
 
@@ -2106,7 +2623,7 @@ bool UserAPI::_addRpgToken(const QString &username, const int &token, QJsonObjec
 		while (q.sqlQuery().next())
 			used.insert(q.value("character").toString());
 
-		for (const auto &[ch, data] : m_service->rpgConfig()->characters().asKeyValueRange()) {
+		for (const auto &[ch, data] : database->service()->rpgConfig()->characters().asKeyValueRange()) {
 			if (data.unlock == 0 || used.contains(ch))
 				continue;
 
@@ -2138,6 +2655,144 @@ bool UserAPI::_addRpgToken(const QString &username, const int &token, QJsonObjec
 			dst->insert(QStringLiteral("targetToken"), real);
 		}
 	}
+
+	return true;
+}
+
+
+
+/**
+ * @brief UserAPI::_createRpgDrops
+ * @param username
+ * @param terrain
+ * @param dst
+ * @return
+ */
+
+bool UserAPI::_createRpgDrops(const QString &username, const QString &terrain, const int &gameid, QJsonObject *dst)
+{
+	QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
+
+	QMutexLocker _locker(databaseMain()->mutex());
+
+	const auto &num = QueryBuilder::q(db)
+					  .addQuery("SELECT COUNT(*) AS num FROM rpgGame "
+								"LEFT JOIN game ON (rpgGame.gameid=game.id) "
+								"WHERE game.success=true AND date(game.timestamp)=date('now') AND username=").addValue(username)
+					  .execToValue("num", 0);
+
+	if (!num)
+		return false;
+
+	LOG_CINFO("client") << "USER STREAK" << username << num.value();
+
+	const auto &dcount = QueryBuilder::q(db)
+						 .addQuery("SELECT COUNT(*) AS num FROM rpgDrop "
+								   "WHERE type=").addValue(CfgDrop::DropGame)
+						 .addQuery(" AND date(timestamp)=date('now') AND username=").addValue(username)
+						 .execToValue("num", 0);
+
+	if (!dcount)
+		return false;
+
+	QJsonArray dropList;
+
+	for (int i=0; i<(int) cfgDropDay.size(); ++i) {
+		const int n = cfgDropDay.at(i);
+
+		if (n > num->toInt())
+			break;
+
+		if (i < dcount->toInt())
+			continue;
+
+
+		LOG_CINFO("client") << "ADD DROP" << n;
+
+		const CfgDrop drop = CfgDropGenerator::generate(m_rnd);
+
+		LOG_CWARNING("client") << "DROP" << drop.tier << drop.xp << drop.token << drop.point;
+
+		if (auto v = QueryBuilder::q(db)
+				.addQuery("INSERT INTO rpgDrop(").setFieldPlaceholder()
+				.addQuery(") VALUES (").setValuePlaceholder()
+				.addQuery(")")
+				.addField("type", CfgDrop::DropGame)
+				.addField("tier", drop.tier)
+				.addField("username", username)
+				.addField("gameid", gameid > 0 ? gameid : QVariant(QMetaType::fromType<int>()))
+				.addField("xp", drop.xp)
+				.addField("coinCharacter", drop.point)
+				.addField("coinTarget", drop.token)
+				.execInsertAsInt(); v) {
+			dropList << v.value();
+		} else {
+			return false;
+		}
+	}
+
+
+	// Terrain drop
+
+	const auto &tnum = QueryBuilder::q(db)
+					   .addQuery("SELECT COUNT(*) AS num FROM rpgGame "
+								 "LEFT JOIN game ON (rpgGame.gameid=game.id) "
+								 "WHERE game.success=true AND username=").addValue(username)
+					   .addQuery(" AND terrain=").addValue(terrain)
+					   .execToValue("num", 0);
+
+	if (!tnum)
+		return false;
+
+	LOG_CINFO("client") << "USER TERRAIN STREAK" << username << tnum.value();
+
+	const auto &tcount = QueryBuilder::q(db)
+						 .addQuery("SELECT COUNT(*) AS num FROM rpgDrop "
+								   "WHERE type=").addValue(CfgDrop::DropTerrain)
+						 .addQuery(" AND username=").addValue(username)
+						 .addQuery(" AND terrain=").addValue(terrain)
+						 .execToValue("num", 0);
+
+
+	for (int i=0; i<(int) cfgDropTerrain.size(); ++i) {
+		const int n = cfgDropTerrain.at(i);
+
+		if (n > tnum->toInt())
+			break;
+
+		if (i < tcount->toInt())
+			continue;
+
+
+		LOG_CINFO("client") << "ADD TERRAIN DROP" << n;
+
+		const CfgDrop drop = CfgDropGenerator::generate(m_rnd, cfgDropDistributionMedium);
+
+		LOG_CWARNING("client") << "DROP" << drop.tier << drop.xp << drop.token << drop.point;
+
+		if (auto v = QueryBuilder::q(db)
+				.addQuery("INSERT INTO rpgDrop(").setFieldPlaceholder()
+				.addQuery(") VALUES (").setValuePlaceholder()
+				.addQuery(")")
+				.addField("type", CfgDrop::DropTerrain)
+				.addField("tier", drop.tier)
+				.addField("username", username)
+				.addField("gameid", gameid > 0 ? gameid : QVariant(QMetaType::fromType<int>()))
+				.addField("terrain", terrain)
+				.addField("xp", drop.xp)
+				.addField("coinCharacter", drop.point)
+				.addField("coinTarget", drop.token)
+				.execInsertAsInt(); v) {
+			dropList << v.value();
+		} else {
+			return false;
+		}
+	}
+
+	LOG_CERROR("client") << "DROPS" << dropList;
+
+	if (dst)
+		dst->insert(QStringLiteral("dropList"), dropList);
 
 	return true;
 }

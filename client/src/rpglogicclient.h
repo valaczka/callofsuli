@@ -139,6 +139,7 @@ public:
 	RpgStream::GameConfig startGame();
 
 	virtual void overrideMapData(RpgStream::MapData &data);
+	virtual void overrideResultData(QVariantMap &data);
 
 	RpgGame *game() const { return m_game; }
 
@@ -170,6 +171,8 @@ public:
 		QString character;
 		QString terrain;
 		int power = 1;
+		quint32 duration = 0;										// 0 = default
+
 
 		std::function<void(RpgLogicClientTutorial *)> fnInit;
 
@@ -219,6 +222,7 @@ public:
 	virtual ~RpgLogicClientTutorial();
 
 	virtual void overrideMapData(RpgStream::MapData &data) override;
+	virtual void overrideResultData(QVariantMap &data) override;
 
 	bool loadGameData(RpgStream::CharacterSelectClient *dest);
 
@@ -244,6 +248,7 @@ protected:
 	virtual std::unordered_set<entt::entity> initializeTowers() override;
 	virtual std::unordered_set<entt::entity> initializeEmitters()override;
 	virtual std::vector<Chest> initializeChests() override;
+	virtual void initializeStages() override;
 	virtual Rpg::QuestList getQuestList() const override;
 
 	int stepForward();

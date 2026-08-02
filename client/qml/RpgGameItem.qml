@@ -809,6 +809,18 @@ FocusScope {
 			if (!game.questSelectData)
 				return
 
+			if (game.isTutorial) {
+				console.debug("Select tutorial quest")
+
+				game.questSelect({
+									 defender: 0,
+									 utility: 0,
+									 quest: 0,
+									 ready: true
+								 })
+				return
+			}
+
 			_dialogLoader.sourceComponent = _questSelectDialog
 		}
 

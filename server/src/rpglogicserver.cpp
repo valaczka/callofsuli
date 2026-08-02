@@ -356,6 +356,7 @@ Logger *RpgLogicServer::_logger() const
 void RpgLogicServerConfig::loadCharacterList(const RpgCharacterList &newCharacterList)
 {
 	m_characters.clear();
+	m_characterHash.clear();
 
 	for (const auto &[ch, data] : newCharacterList.characters.asKeyValueRange()) {
 		RpgServerCharacter c;
@@ -369,6 +370,8 @@ void RpgLogicServerConfig::loadCharacterList(const RpgCharacterList &newCharacte
 		}
 
 		m_characters[ch] = c;
+
+		m_characterHash.insert(ch);
 	}
 }
 
@@ -377,4 +380,9 @@ void RpgLogicServerConfig::loadCharacterList(const RpgCharacterList &newCharacte
 const QHash<QString, RpgServerCharacter> &RpgLogicServerConfig::characters() const
 {
 	return m_characters;
+}
+
+const RpgStream::HashFnv1A64 &RpgLogicServerConfig::characterHash() const
+{
+	return m_characterHash;
 }

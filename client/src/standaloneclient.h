@@ -61,6 +61,8 @@ public:
 	Q_INVOKABLE bool serverDeleteSelected();
 	Q_INVOKABLE Server *serverAddWithUrl(const QUrl &url) override;
 
+	Q_INVOKABLE Server *serverAddDefault();
+
 	int serverListSelectedCount() const;
 
 	bool vibrate() const;
