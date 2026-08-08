@@ -140,7 +140,7 @@ FocusScope {
 
 		spacing: 5
 
-		GameButton {
+		/*GameButton {
 			id: _setttingsButton
 			size: Qt.platform.os === "android" || Qt.platform.os === "ios" ? 40 : 30
 
@@ -157,7 +157,7 @@ FocusScope {
 			onClicked: {
 				///Qaterial.DialogManager.openFromComponent(_settingsDialog)
 			}
-		}
+		}*/
 
 		GameButton {
 			id: _mapButton
@@ -403,7 +403,7 @@ FocusScope {
 
 			readonly property bool success: game && game.questQuestionRq > 0 && game.questQuestion >= game.questQuestionRq
 
-			color: success ? Qaterial.Colors.green400 :Qaterial.Colors.cyan400
+			color: success ? Qaterial.Colors.green400 : Qaterial.Colors.cyan400
 			iconLabel.icon.source: success ? Qaterial.Icons.checkCircle : Qaterial.Icons.headQuestionOutline
 
 			visible: game && game.controlledPlayer && _item.isContentReady
@@ -853,13 +853,16 @@ FocusScope {
 		id: _dialogLoader
 
 		anchors.fill: parent
+
+		onLoaded: item.active = true
 	}
 
 	Component {
 		id: _finishDialog
 
 		RpgFinishDialog {
-			result: game.questResultData
+			result: root.game.questResultData
+			game: root.game
 
 			onCloseRequest: root.closeRequest()
 		}

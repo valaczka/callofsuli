@@ -47,6 +47,8 @@ ColumnLayout {
 	Qaterial.IconLabel {
 		id: _content
 
+		readonly property bool _hasNoUtility: type == "utility" && _model.count == 0
+
 		visible: !replaceMode
 
 		display: IconLabel.Display.TextUnderIcon
@@ -54,15 +56,19 @@ ColumnLayout {
 		font: Qaterial.Style.textTheme.body1
 		icon.width: 32 * Qaterial.Style.pixelSizeRatio
 		icon.height: 32 * Qaterial.Style.pixelSizeRatio
-		icon.source: modelIdx >= 0 ? _model.get(modelIdx).icon : ""
+		icon.source: _hasNoUtility ? Qaterial.Icons.lockOutline
+								   : modelIdx >= 0 ? _model.get(modelIdx).icon : ""
 
-		text: modelIdx >= 0 ? _model.get(modelIdx).description : ""
+		text: _hasNoUtility ? qsTr("Unlock at power level 4") :
+							  modelIdx >= 0 ? _model.get(modelIdx).description : ""
 
 
 		Layout.fillHeight: true
 		Layout.fillWidth: true
 
-		color: mainColor
+		color: _hasNoUtility ? Qaterial.Colors.gray500 : mainColor
+
+		wrapMode: Text.Wrap
 	}
 
 

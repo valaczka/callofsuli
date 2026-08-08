@@ -2357,17 +2357,19 @@ QJsonObject UserAPI::_finishRpgGame(const QString &username, const int &id, cons
 
 	QString terrain;
 	QString character;
+	int rpgId = -1;
 
 	{
 		QueryBuilder qq(db);
 
-		qq.addQuery("SELECT terrain, character FROM rpgGame WHERE gameid=").addValue(id);
+		qq.addQuery("SELECT id, terrain, character FROM rpgGame WHERE gameid=").addValue(id);
 
 		if (!qq.exec() || !qq.sqlQuery().first())
 			return {};
 
 		terrain = qq.value("terrain").toString();
 		character = qq.value("character").toString();
+		rpgId = qq.value("id").toInt();
 	}
 
 	int point = json.value(QStringLiteral("point")).toInt();
@@ -2398,7 +2400,7 @@ QJsonObject UserAPI::_finishRpgGame(const QString &username, const int &id, cons
 	if (token > 0)
 		_addRpgToken(databaseMain(), username, token, &ret);
 
-	_createRpgDrops(username, terrain, id, &ret);
+	_createRpgDrops(username, terrain, rpgId, &ret);
 
 	return ret;
 }
@@ -2684,8 +2686,6 @@ bool UserAPI::_createRpgDrops(const QString &username, const QString &terrain, c
 	if (!num)
 		return false;
 
-	LOG_CINFO("client") << "USER STREAK" << username << num.value();
-
 	const auto &dcount = QueryBuilder::q(db)
 						 .addQuery("SELECT COUNT(*) AS num FROM rpgDrop "
 								   "WHERE type=").addValue(CfgDrop::DropGame)
@@ -2707,11 +2707,9 @@ bool UserAPI::_createRpgDrops(const QString &username, const QString &terrain, c
 			continue;
 
 
-		LOG_CINFO("client") << "ADD DROP" << n;
+		LOG_CINFO("client") << "Create RPG daily drop for user" << qPrintable(username);
 
 		const CfgDrop drop = CfgDropGenerator::generate(m_rnd);
-
-		LOG_CWARNING("client") << "DROP" << drop.tier << drop.xp << drop.token << drop.point;
 
 		if (auto v = QueryBuilder::q(db)
 				.addQuery("INSERT INTO rpgDrop(").setFieldPlaceholder()
@@ -2744,8 +2742,6 @@ bool UserAPI::_createRpgDrops(const QString &username, const QString &terrain, c
 	if (!tnum)
 		return false;
 
-	LOG_CINFO("client") << "USER TERRAIN STREAK" << username << tnum.value();
-
 	const auto &tcount = QueryBuilder::q(db)
 						 .addQuery("SELECT COUNT(*) AS num FROM rpgDrop "
 								   "WHERE type=").addValue(CfgDrop::DropTerrain)
@@ -2764,11 +2760,9 @@ bool UserAPI::_createRpgDrops(const QString &username, const QString &terrain, c
 			continue;
 
 
-		LOG_CINFO("client") << "ADD TERRAIN DROP" << n;
+		LOG_CINFO("client") << "Create RPG terrain drop for user" << qPrintable(username);
 
 		const CfgDrop drop = CfgDropGenerator::generate(m_rnd, cfgDropDistributionMedium);
-
-		LOG_CWARNING("client") << "DROP" << drop.tier << drop.xp << drop.token << drop.point;
 
 		if (auto v = QueryBuilder::q(db)
 				.addQuery("INSERT INTO rpgDrop(").setFieldPlaceholder()
@@ -2788,8 +2782,6 @@ bool UserAPI::_createRpgDrops(const QString &username, const QString &terrain, c
 			return false;
 		}
 	}
-
-	LOG_CERROR("client") << "DROPS" << dropList;
 
 	if (dst)
 		dst->insert(QStringLiteral("dropList"), dropList);

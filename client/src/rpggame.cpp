@@ -972,18 +972,18 @@ void RpgGamePrivate::characterSelect(const QVariantMap &data)
 			return;
 		}
 
-		///////////////////////////////////////////
-		LOG_CERROR("game") << "<<<<<<<<<<<<<<<<<<<<< REMOVE";
-		def.defender.append(RpgStream::BaseDefenderObject::Pulse);
-		def.defender.append(RpgStream::BaseDefenderObject::Fog);
-		def.defender.append(RpgStream::BaseDefenderObject::Multiplier1);
-		def.utility.append(RpgStream::PlayerConfig::UtilityMissionary);
-		def.utility.append(RpgStream::PlayerConfig::UtilitySniper);
-		//////////////////////////////////
+		int level = 1;
 
+		for (const RpgUserCharacter &ch : q->m_rpgUserData.characters) {
+			if (ch.character == character) {
+				level = ch.level;
+				break;
+			}
+		}
 
 		m_characterSelect.data().setConfig(def.toPlayerConfig());
 		m_characterSelect.data().setCharacterResolved(character);
+		m_characterSelect.data().config().setPower(level);
 		m_characterSelect.data().flags().setFlag(RpgStream::PlayerData::FlagCompleted);
 	}
 
@@ -2227,6 +2227,8 @@ void RpgGamePrivate::onAfterWorldStep(const RpgStream::FullState &full)
 
 void RpgGamePrivate::finishGame(const bool &abort)
 {
+	q->m_gameQuestion->forceDestroy();
+
 	if (abort) {
 		LOG_CERROR("game") << "Abort game";
 

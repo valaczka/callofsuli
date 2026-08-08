@@ -1349,6 +1349,7 @@ struct EventNpcAttackTower {
 struct EventNpcAttackPlayer {
 	entt::entity npc;
 	entt::entity target;
+	bool withSuccess = false;
 };
 
 

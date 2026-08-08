@@ -21,6 +21,7 @@ Rectangle {
     default property alias _contentData: realContent.data
 
     signal closeRequest()
+    signal activated()
 
     visible: false
 
@@ -101,9 +102,9 @@ Rectangle {
             anchors.fill: parent
             visible: true
 
-            anchors.topMargin: 5
-            anchors.leftMargin: 5
-            anchors.rightMargin: 5
+            anchors.topMargin: 10
+            anchors.leftMargin: 10
+            anchors.rightMargin: 10
             anchors.bottomMargin: 10
         }
 
@@ -167,8 +168,12 @@ Rectangle {
                 PropertyAnimation {
                     target: root
                     property: "opacity"
-                    duration: 75
+                    duration: 175
                     easing.type: Easing.OutQuad
+                }
+
+                ScriptAction {
+                    script: root.activated()
                 }
             }
         },
@@ -181,7 +186,7 @@ Rectangle {
                 PropertyAnimation {
                     target: root
                     property: "opacity"
-                    duration: 125
+                    duration: 250
                     easing.type: Easing.OutQuad
                 }
 

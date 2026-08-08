@@ -33,10 +33,10 @@
 
 /// Config ----------------------------------------------
 
-#define	CFG_GAME_DURATION				1*60*60					// duration in tick
-#define CFG_GAME_STAGE_MAIN				10*60 //60*60					// start stage main in tick
-#define CFG_GAME_STAGE_LAST				CFG_GAME_DURATION-30*60	// start last stage in tick
-#define CFG_GAME_STAGE_SELECT			15000					// stage select max. length in msec
+#define	CFG_GAME_DURATION				5*60*60					// duration in tick
+#define CFG_GAME_STAGE_MAIN				60*60					// start stage main in tick
+#define CFG_GAME_STAGE_LAST				CFG_GAME_DURATION-60*60	// start last stage in tick
+#define CFG_GAME_STAGE_SELECT			30000					// stage select max. length in msec
 
 #define	CFG_EMITTER_CAPACITY_STAGE_WU	0.75					// mp emitter capacity ratio in stage Warming Up
 #define	CFG_EMITTER_DELAY_STAGE_WU		5*60					// mp emitter delay in tick in stage Warming Up
@@ -48,6 +48,10 @@
 #define	CFG_EMITTER_DELAY_STAGE_L		1						// mp emitter delay in tick in stage Last
 
 #define CFG_PLAYER_RESPAWN				300						// player respawn in tick
+
+#define	CFG_NPC_RESPAWN_STAGE_WU		45*60					// NPC respawn in tick in stage Warming Up
+#define	CFG_NPC_RESPAWN_STAGE_M			30*60					// NPC respawn in tick in stage Main
+#define	CFG_NPC_RESPAWN_STAGE_L			15*60					// NPC respawn in tick in stage Last
 
 #define CFG_PENALTY_AUTO_UNLOCK			300						// player penalty after auto unlock (no answer)
 
@@ -68,7 +72,7 @@
 
 #define CFG_MP_CHANGE_BULLET			1//8					// mp cost of bullet change
 
-#define CFG_QUESTION_MAX_DURATION		10*60	// 30*60		// question's max. duration in tick
+#define CFG_QUESTION_MAX_DURATION		30*60					// question's max. duration in tick
 
 #define CFG_RESULT_WEIGHT_QUESTION		0.6						// weight of question ratio
 #define CFG_RESULT_WEIGHT_PTS			0.3						// weight of points
@@ -347,12 +351,12 @@ struct CfgRewardStreak {
 };
 
 static const QHash<quint32, CfgRewardStreak> cfgRewardStreak = {
-	{ 3, {.point=15, .hp=0} },
-	{ 5, {.point=20, .hp=1} },
-	{ 7, {.point=30, .hp=1} },
-	{ 10, {.point=50, .hp=2} },
-	{ 12, {.point=75, .hp=2} },
-	{ 15, {.point=100, .hp=3} },
+	{ 3, {.point=15, .hp=1} },
+	{ 5, {.point=20, .hp=2} },
+	{ 7, {.point=30, .hp=3} },
+	{ 10, {.point=50, .hp=4} },
+	{ 12, {.point=75, .hp=5} },
+	{ 15, {.point=100, .hp=6} },
 };
 
 
@@ -381,14 +385,14 @@ struct CfgDefenderBase
 struct CfgDefenderPulse
 {
 	const CfgDefenderBase base = {
-		.maxHp = 3,
+		.maxHp = 4,
 		.radius = 150,
 		.repeaterDelay = 20,
-		.actionsToHpLoss = 12,
+		.actionsToHpLoss = 2,
 	};
 
-	const quint32 push = 400;
-	const quint32 pushDist = base.radius * 1.75;
+	const quint32 push = 700;
+	const quint32 pushDist = base.radius * 2;
 
 	RpgStream::EntityConfig toEntityConfig() const {
 		RpgStream::EntityConfig cfg;
@@ -403,12 +407,14 @@ struct CfgDefenderPulse
 
 static inline const CfgDefenderPulse cfgDefenderPulse = {};
 static inline const CfgDefenderBase cfgDefenderFog = { .radius = 250 };
-static inline const CfgDefenderBase cfgDefenderMultiplier = { .maxHp = 4 };
+static inline const CfgDefenderBase cfgDefenderMultiplier = { .maxHp = 2 };
+static inline const CfgDefenderBase cfgDefenderElectric = { .maxHp = 5, .actionsToHpLoss = 1 };
 
 static inline const QHash<RpgStream::BaseDefenderObject::Type, int> cfgRequiredMpDefender = {
 	{ RpgStream::BaseDefenderObject::Fog,					5 },
 	{ RpgStream::BaseDefenderObject::Multiplier1,			1 },
 	{ RpgStream::BaseDefenderObject::Pulse,					2 },
+	{ RpgStream::BaseDefenderObject::Electric,				2 },
 };
 
 

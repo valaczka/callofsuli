@@ -53,6 +53,7 @@ QItemGradient {
 
 			secondaryText: username+" "+playerId
 
+			icon.color: onboard ? Qaterial.Colors.green500 : Qaterial.Style.iconColor()
 			icon.source: onboard ? Qaterial.Icons.checkCircle : Qaterial.Icons.accountOutline
 
 			highlighted: game && game.engine && game.engine.getPeerId() == playerId
@@ -79,13 +80,18 @@ QItemGradient {
 
 			outlined: true
 
-			width: Math.min(parent.width, 800)
-			height: Math.min(parent.height, 600)
+			width: parent.width > parent.height ? Math.min(parent.width, 1000) : parent.width
+			height: parent.width > parent.height ? Math.min(parent.height, 600) : parent.height
 
 			anchors.centerIn: parent
 
-			contentItem: RowLayout {
-				spacing: 5
+			contentItem: GridLayout {
+				id: _grid1
+				columnSpacing: 5
+				rowSpacing: 5
+
+				flow: width > height ? GridLayout.LeftToRight : GridLayout.TopToBottom
+
 
 				ColumnLayout {
 					Layout.fillWidth: true
@@ -121,8 +127,15 @@ QItemGradient {
 
 
 				Qaterial.VerticalLineSeparator {
+					visible: _grid1.flow == GridLayout.LeftToRight
 					Layout.fillHeight: true
 					Layout.fillWidth: false
+				}
+
+				Qaterial.HorizontalLineSeparator {
+					visible: _grid1.flow == GridLayout.TopToBottom
+					Layout.fillHeight: false
+					Layout.fillWidth: true
 				}
 
 				Column {
@@ -147,13 +160,23 @@ QItemGradient {
 
 						enabled: game && game.engine && (!game.engine.isHost || (game.isAllOnboard && _selectTerrain._selected))
 
-						onClicked: game.characterSelect({ onboard: true })
+						onClicked: {
+							game.characterSelect({ onboard: true })
+							enabled = false
+						}
 					}
 				}
 
 				Qaterial.VerticalLineSeparator {
+					visible: _grid1.flow == GridLayout.LeftToRight
 					Layout.fillHeight: true
 					Layout.fillWidth: false
+				}
+
+				Qaterial.HorizontalLineSeparator {
+					visible: _grid1.flow == GridLayout.TopToBottom
+					Layout.fillHeight: false
+					Layout.fillWidth: true
 				}
 
 
@@ -191,17 +214,27 @@ QItemGradient {
 				}
 
 				Qaterial.VerticalLineSeparator {
+					visible: _grid1.flow == GridLayout.LeftToRight
 					Layout.fillHeight: true
 					Layout.fillWidth: false
 				}
 
+				Qaterial.HorizontalLineSeparator {
+					visible: _grid1.flow == GridLayout.TopToBottom
+					Layout.fillHeight: false
+					Layout.fillWidth: true
+				}
+
 
 				ColumnLayout {
-					Layout.fillWidth: false
-					Layout.fillHeight: true
+					Layout.fillWidth: _grid1.flow == GridLayout.TopToBottom
+					Layout.fillHeight: _grid1.flow == GridLayout.LeftToRight
 					Layout.preferredWidth: 200
+					Layout.preferredHeight: 200
 
 					RpgSelectTitle {
+						visible: _grid1.flow == GridLayout.LeftToRight
+
 						Layout.fillWidth: true
 						Layout.fillHeight: false
 
@@ -264,7 +297,7 @@ QItemGradient {
 			anchors.centerIn: parent
 
 			contentItem: GridLayout {
-				id: _grid1
+				id: _grid2
 
 				columns: 2//width > height ? 3 : 2
 				columnSpacing: 10

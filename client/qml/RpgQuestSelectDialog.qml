@@ -15,8 +15,6 @@ RpgDialog {
 
 	anchors.fill: parent
 
-	active: true
-
 	ListModel {
 		id: _modelDefender
 	}
@@ -54,6 +52,115 @@ RpgDialog {
 			Layout.fillWidth: true
 
 			model: _modelQuest
+
+			delegate: Rectangle {
+				id: _delegateQuest
+				readonly property bool isCurrent: Tumbler.displacement === 0
+
+				color: isCurrent ? _tumblerQuest.mainColor : "transparent"
+
+				RowLayout {
+					anchors.fill: parent
+					spacing: 20
+
+					Qaterial.LabelBody1 {
+						Layout.fillHeight: false
+						Layout.fillWidth: false
+						Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+						text: model.description
+
+						color: _delegateQuest.isCurrent ? Qaterial.Colors.black : _tumblerQuest.mainColor
+					}
+
+					Qaterial.IconLabel {
+						Layout.fillHeight: false
+						Layout.fillWidth: false
+						Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+						visible: model.pts > 0
+
+						icon.source: "qrc:/rpg/coin/coins.png"
+						icon.color: "transparent"
+						text: model.pts
+
+						font: Qaterial.Style.textTheme.body1
+						icon.width: 32 * Qaterial.Style.pixelSizeRatio
+						icon.height: 32 * Qaterial.Style.pixelSizeRatio
+
+						color: Qaterial.Colors.amber500//_delegateQuest.isCurrent ? Qaterial.Colors.black : _tumblerQuest.mainColor
+					}
+
+					Qaterial.IconLabel {
+						Layout.fillHeight: false
+						Layout.fillWidth: false
+						Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+						icon.source: Qaterial.Icons.headQuestionOutline
+						text: model.question
+
+						font: Qaterial.Style.textTheme.body1
+						icon.width: 32 * Qaterial.Style.pixelSizeRatio
+						icon.height: 32 * Qaterial.Style.pixelSizeRatio
+
+						color: _delegateQuest.isCurrent ? Qaterial.Colors.black : _tumblerQuest.mainColor
+					}
+
+					Qaterial.IconLabel {
+						Layout.fillHeight: false
+						Layout.fillWidth: false
+						Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+						icon.source: Qaterial.Icons.abacus
+						text: model.streak
+
+						font: Qaterial.Style.textTheme.body1
+						icon.width: 32 * Qaterial.Style.pixelSizeRatio
+						icon.height: 32 * Qaterial.Style.pixelSizeRatio
+
+						color: Qaterial.Colors.yellow500// _delegateQuest.isCurrent ? Qaterial.Colors.black : _tumblerQuest.mainColor
+					}
+
+					Item {
+						Layout.fillHeight: true
+						Layout.fillWidth: true
+
+						Qaterial.Icon {
+							anchors.centerIn: parent
+
+							icon: Qaterial.Icons.arrowRightThin
+						}
+					}
+
+					Qaterial.IconLabel {
+						Layout.fillHeight: false
+						Layout.fillWidth: false
+						Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+						icon.source: Qaterial.Icons.abacus
+						text: model.token
+
+						font: Qaterial.Style.textTheme.body1
+						icon.width: 32 * Qaterial.Style.pixelSizeRatio
+						icon.height: 32 * Qaterial.Style.pixelSizeRatio
+
+						color: _delegateQuest.isCurrent ? Qaterial.Colors.black : Qaterial.Colors.blue500
+					}
+
+					Qaterial.LabelBody1 {
+						Layout.fillHeight: false
+						Layout.fillWidth: false
+						Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+						text: model.xp+" XP"
+
+						color: _delegateQuest.isCurrent ? Qaterial.Colors.black : Qaterial.Style.textColor
+					}
+				}
+
+
+				opacity: 1.0 - Math.abs(Tumbler.displacement) / (_tumblerQuest.visibleItemCount / 2)
+			}
 
 			visible: true
 
@@ -143,6 +250,18 @@ RpgDialog {
 		let keyD = -1
 		let keyU = -1
 
+		let levelNames = [
+				qsTr("Easy"),
+				qsTr("Tricky"),
+				qsTr("Insane"),
+				qsTr("Hyper hard"),
+				qsTr("Scary"),
+				qsTr("Impossible"),
+				qsTr("Death"),
+				qsTr("Null"),
+				qsTr("Easy")
+			]
+
 		for (let i=0; i<questData.defenders.length; ++i) {
 			_modelDefender.append(questData.defenders[i])
 			if (i==0 || questData.defenders[i].key == keyD)
@@ -157,10 +276,9 @@ RpgDialog {
 		}
 
 		for (let i=0; i<questData.quests.length; ++i) {
-			_modelQuest.append({
-								   icon: Qaterial.Icons.abacus,
-								   description: "Szia "+i+": "+questData.quests[i].xp+" XP"
-							   })
+			let m = questData.quests[i]
+			m.description = levelNames[i]
+			_modelQuest.append(m)
 
 			if (i==0)
 				idxQ = i

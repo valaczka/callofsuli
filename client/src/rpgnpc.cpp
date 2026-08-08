@@ -27,6 +27,7 @@
 #include "rpgnpc.h"
 #include "rpgnpcmpleecher.h"
 #include "rpgnpctowerattacker.h"
+#include "rpgnpcplayerattacker.h"
 #include "tiledspritehandler.h"
 
 
@@ -101,6 +102,10 @@ RpgNpc *RpgNpc::createNpc(const Rpg::Npc &npc, RpgGameItem *gameItem, TiledScene
 		case RpgStream::NpcData::MpLeecher:
 			return gameItem->createObject<RpgNpcMpLeecher>(RpgLogicObjectMapper::toObjectId(npc.idTag),
 														   scene, gameItem, pos);
+
+		case RpgStream::NpcData::PlayerAttacker:
+			return gameItem->createObject<RpgNpcPlayerAttacker>(RpgLogicObjectMapper::toObjectId(npc.idTag),
+																scene, gameItem, pos);
 
 		case RpgStream::NpcData::None:
 			return gameItem->createObject<RpgNpc>(RpgLogicObjectMapper::toObjectId(npc.idTag),

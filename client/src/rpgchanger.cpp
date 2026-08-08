@@ -70,6 +70,13 @@ const QHash<RpgStream::BaseDefenderObject::Type, QVariantMap> RpgChanger::m_data
 		  { "description", tr("Fog") },
 	  }
 	},
+
+	{ RpgStream::BaseDefenderObject::Electric,
+	  {
+		  { "icon", "qrc:/rpg/castIcon/pulse.png" },
+		  { "description", tr("Electric") },
+	  }
+	},
 };
 
 
@@ -101,7 +108,7 @@ void RpgChanger::useWeapon(const bool &force)
 		return;
 	}
 
-	motor->changeMpToBullet();
+	motor->changeMpToBullet(force);
 
 	close();
 }

@@ -260,6 +260,7 @@ SOURCES += \
 	rpgmp.cpp \
 	rpgnpc.cpp \
 	rpgnpcmpleecher.cpp \
+	rpgnpcplayerattacker.cpp \
 	rpgnpctowerattacker.cpp \
 	rpgobject.cpp \
 	rpgplayer.cpp \
@@ -360,6 +361,7 @@ HEADERS += \
 	rpgmp.h \
 	rpgnpc.h \
 	rpgnpcmpleecher.h \
+	rpgnpcplayerattacker.h \
 	rpgnpctowerattacker.h \
 	rpgobject.h \
 	rpgplayer.h \

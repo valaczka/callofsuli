@@ -35,7 +35,7 @@
 
 
 
-// Chest
+// Pulse
 
 static struct {
 	QSize size = {192, 210};
@@ -81,6 +81,56 @@ static struct {
 	};
 } defenderPulse;
 
+
+
+
+
+
+// Electric
+
+static struct {
+	QSize size = {192, 210};
+	int height = 0;
+
+	TiledObjectSprite spriteNormal = {
+		"normal",
+		2,
+		0, 630, size.width(), size.height(),
+		30,
+		0,
+		true
+	};
+
+	TiledObjectSprite spriteActive = {
+		"active",
+		20,
+		0, 0, size.width(), size.height(),
+		15,
+		0,
+		true,
+		true			// reverse
+	};
+
+	TiledObjectSprite spriteDestroyed = {
+		"destroyed",
+		1,
+		384, 630, size.width(), size.height(),
+		30,
+		1,
+		true
+	};
+
+	QString source = ":/rpg/defenderPulse/spritesheet.png";
+	RpgControlCommon::SpriteAnimations animations = RpgControlCommon::AnimationNone;
+	QPointF offset = { 100-((float) size.width()/2),
+					   153-((float) size.height()/2) };
+
+	TiledObjectSpriteList spriteList() const {
+		TiledObjectSpriteList l;
+		l.sprites << spriteNormal << spriteActive << spriteDestroyed;
+		return l;
+	};
+} defenderElectric;
 
 
 
@@ -175,6 +225,14 @@ RpgDefender *RpgDefender::createDefender(const Rpg::DefenderObject &defender, Rp
 
 		case RpgStream::BaseDefenderObject::Multiplier1:
 			common = QStringLiteral("def_multiplier1.tmx");
+			break;
+
+		case RpgStream::BaseDefenderObject::Electric:
+			spriteList = defenderElectric.spriteList();
+			spriteSource = defenderElectric.source;
+			animations = defenderElectric.animations;
+			offset = defenderElectric.offset;
+			height = defenderElectric.height;
 			break;
 
 

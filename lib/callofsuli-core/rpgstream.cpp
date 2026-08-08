@@ -47,6 +47,7 @@ BaseDefenderObject::PlacementFlags BaseDefenderObject::placementFlags(const Type
 	switch (type) {
 		case Fog:
 		case Pulse:
+		case Electric:
 			return PlacementTower | PlacementChunk;
 
 		case Multiplier1:
@@ -1503,7 +1504,8 @@ EngineStream &NpcData::operator<<(EngineStream &stream)
 	readMp(stream);
 
 	if (m_type == TowerAttacker ||
-			m_type == MpLeecher)
+			m_type == MpLeecher ||
+			m_type == PlayerAttacker)
 		readForce(stream);
 
 	return stream;
@@ -1526,7 +1528,8 @@ EngineStream &NpcData::operator>>(EngineStream &stream) const
 	writeMp(stream);
 
 	if (m_type == TowerAttacker ||
-			m_type == MpLeecher)
+			m_type == MpLeecher ||
+			m_type == PlayerAttacker)
 		writeForce(stream);
 
 	return stream;
@@ -1557,7 +1560,8 @@ EngineStream &NpcState::operator<<(EngineStream &stream)
 	}
 
 	if (m_type == NpcData::TowerAttacker ||
-			m_type == NpcData::MpLeecher) {
+			m_type == NpcData::MpLeecher ||
+			m_type == NpcData::PlayerAttacker) {
 		readDestinationXDelta(stream);
 		readDestinationYDelta(stream);
 	}
@@ -1591,7 +1595,8 @@ EngineStream &NpcState::operator>>(EngineStream &stream) const
 	}
 
 	if (m_type == NpcData::TowerAttacker ||
-			m_type == NpcData::MpLeecher) {
+			m_type == NpcData::MpLeecher ||
+			m_type == NpcData::PlayerAttacker) {
 		writeDestinationXDelta(stream);
 		writeDestinationYDelta(stream);
 	}

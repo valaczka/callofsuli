@@ -42,8 +42,15 @@ Page {
 			if (game.gameQuestion && game.gameQuestion.objectiveUuid != "")
 				return true
 
-			if (game.gameState == RpgGame.GameStateFinished && game.gameResultData.rpg !== undefined) {
-				game.gameState = RpgGame.GameStateResult
+			if (game.gameState == RpgGame.GameStateFinished) {
+				if (game.gameResultData.rpg !== undefined || _forceExit) {
+					game.gameState = RpgGame.GameStateResult
+					game.reloadRpgData()
+				} else {
+					console.warn("Result data not received")
+					_forceExit = true
+				}
+
 				return false
 			}
 

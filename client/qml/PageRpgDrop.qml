@@ -250,7 +250,13 @@ Page {
 	}
 
 	function openCurrent() {
-		console.debug("OPEN", currentDrop)
+		if (currentDrop >= 0 && currentDrop < drops.length) {
+			Client.send(HttpConnection.ApiUser, "rpg/drop/%1".arg(drops[currentDrop].id))
+			.done(root, function(r){
+				game.reloadRpgData()
+			})
+			.fail(root, JS.failMessage(qsTr("Hiba történt")))
+		}
 	}
 
 	function finish() {

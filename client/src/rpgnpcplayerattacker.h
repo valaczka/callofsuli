@@ -1,12 +1,12 @@
 /*
  * ---- Call of Suli ----
  *
- * rpgnpcmpleecher.h
+ * rpgnpcplayerattacker.h
  *
- * Created on: 2026. 07. 27.
+ * Created on: 2026. 08. 08.
  *     Author: Valaczka János Pál <valaczka.janos@piarista.hu>
  *
- * RpgNpcMpLeecher
+ * RpgNpcPlayerAttacker
  *
  *  This file is part of Call of Suli.
  *
@@ -24,11 +24,12 @@
  *  along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-#ifndef RPGNPCMPLEECHER_H
-#define RPGNPCMPLEECHER_H
+#ifndef RPGNPCPLAYERATTACKER_H
+#define RPGNPCPLAYERATTACKER_H
 
 #include "rpgnpc.h"
 #include <QQmlEngine>
+
 
 
 
@@ -36,13 +37,13 @@
  * @brief The RpgNpcMpLeecherDefinition class
  */
 
-class RpgNpcMpLeecherDefinition : public QSerializer
+class RpgNpcPlayerAttackerDefinition : public QSerializer
 {
 	Q_GADGET
 
 public:
-	RpgNpcMpLeecherDefinition() : QSerializer()
-	  , attackDelay(1000)					// Delay between attacks (msec)
+	RpgNpcPlayerAttackerDefinition() : QSerializer()
+	  , attackDelay(2000)					// Delay between attacks (msec)
 	{}
 
 
@@ -58,14 +59,14 @@ public:
  * @brief The RpgNpcMpLeecher class
  */
 
-class RpgNpcMpLeecher : public RpgNpc
+class RpgNpcPlayerAttacker : public RpgNpc
 {
 	Q_OBJECT
 	QML_ELEMENT
 
 public:
-	RpgNpcMpLeecher(RpgGameItem *gameItem, const cpVect &center = cpvzero);
-	virtual ~RpgNpcMpLeecher();
+	RpgNpcPlayerAttacker(RpgGameItem *gameItem, const cpVect &center = cpvzero);
+	virtual ~RpgNpcPlayerAttacker();
 
 	class Motor : public RpgMotorNpc
 	{
@@ -89,10 +90,10 @@ public:
  * @brief The RpgMotorNpcMpLeecher class
  */
 
-class RpgMotorNpcMpLeecher : public RpgMotorNpcControlled
+class RpgMotorNpcPlayerAttacker : public RpgMotorNpcControlled
 {
 public:
-	RpgMotorNpcMpLeecher(RpgNpc *npc);
+	RpgMotorNpcPlayerAttacker(RpgNpc *npc);
 
 protected:
 	virtual void updateTarget() override;
@@ -108,11 +109,13 @@ protected:
 private:
 	void attackTarget();
 
-	qint64 m_targetReached = 0;
+	QList<RpgEntity*> m_targetList;
+	int m_head = 0;
+	bool m_pursuit = false;
 	qint64 m_lastAttack = 0;
 
-	RpgNpcMpLeecherDefinition m_config;
+	RpgNpcPlayerAttackerDefinition m_config;
 };
 
 
-#endif // RPGNPCMPLEECHER_H
+#endif // RPGNPCPLAYERATTACKER_H

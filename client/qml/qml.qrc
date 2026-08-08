@@ -215,7 +215,6 @@
         <file>TiledVisualLight.qml</file>
         <file>TiledVisualOutline.qml</file>
         <file>TiledImageFromLayer.qml</file>
-        <file>RpgGameUserDialog.qml</file>
         <file>RpgLobby.qml</file>
         <file>QUpgradeButton.qml</file>
         <file>RpgPlayerMarker.qml</file>

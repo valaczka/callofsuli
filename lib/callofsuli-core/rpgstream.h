@@ -911,7 +911,8 @@ public:
 		None = 0,
 		Multiplier1,
 		Fog,
-		Pulse
+		Pulse,
+		Electric
 	};
 
 	enum PlacementFlag {
@@ -1013,6 +1014,7 @@ public:
 		None = 0,
 		MpLeecher,
 		TowerAttacker,
+		PlayerAttacker
 	};
 
 	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
@@ -1024,6 +1026,7 @@ public:
 
 	// TowerAttacker -> load
 	// MpLeecher -> mp
+	// PlayerAttacker -> hp
 
 	STREAM_MEMBER(quint32, force, Force, 32, 0);
 };

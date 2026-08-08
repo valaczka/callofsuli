@@ -83,7 +83,6 @@ public:
 	};
 
 
-
 	virtual std::unique_ptr<RpgMotorNpcControlled> getControlledMotor() override;
 };
 

@@ -82,19 +82,21 @@ RpgMotorNpcMpLeecher::RpgMotorNpcMpLeecher(RpgNpc *npc)
 
 void RpgMotorNpcMpLeecher::updateTarget()
 {
-	if (!m_target)
+	RpgPlayer *p = qobject_cast<RpgPlayer*>(m_npc->targetEntity());
+
+	if (!p)
 		return;
 
-	if (m_target && (!m_target->isAlive() || m_target->mp() <= 0 || m_target->team() == m_npc->team())) {
-		m_target = nullptr;
+	if (!p->isAlive() || p->mp() <= 0 || p->team() == m_npc->team()) {
+		m_npc->setTargetEntity(nullptr);
 		m_targetReached = 0;
 		return;
 	}
 
 	{
 		Rpg::RpgLogicScope scope = m_game->rpgLogicClient()->getScope();
-		if (scope.logic()->checkInFog(m_target->bodyPosition(), m_target->team())) {
-			m_target = nullptr;
+		if (scope.logic()->checkInFog(p->bodyPosition(), p->team())) {
+			m_npc->setTargetEntity(nullptr);
 			m_targetReached = 0;
 			return;
 		}
@@ -103,7 +105,7 @@ void RpgMotorNpcMpLeecher::updateTarget()
 	if (m_targetReached) {
 		clearDestination();
 
-		m_npc->rotateToPoint(m_target->bodyPosition());
+		m_npc->rotateToPoint(p->bodyPosition());
 		return attackTarget();
 	}
 
@@ -112,15 +114,15 @@ void RpgMotorNpcMpLeecher::updateTarget()
 
 	// body radius = 25
 
-	if (m_npc->distanceToPointSq(m_target->bodyPosition()) < POW2(50)) {
+	if (m_npc->distanceToPointSq(p->bodyPosition()) < POW2(50)) {
 		m_targetReached = m_currentTick;
 		return;
 	}
 
-	if (dest && m_target->distanceToPointSq(dest->last()) < POW2(75))
+	if (dest && p->distanceToPointSq(dest->last()) < POW2(75))
 		return;
 
-	const auto path = m_gameItem->findShortestPath(m_npc, m_target->bodyPosition());
+	const auto path = m_gameItem->findShortestPath(m_npc, p->bodyPosition());
 
 	if (!path) {
 		LOG_CERROR("game") << "No available path";
@@ -144,7 +146,7 @@ void RpgMotorNpcMpLeecher::updateMotor()
 	if (m_destinationPoint || m_destinationMotor)
 		return;
 
-	if (m_target)
+	if (m_npc->targetEntity())
 		return;
 
 	RpgMotorNpcControlled::updateMotor();
@@ -163,8 +165,8 @@ void RpgMotorNpcMpLeecher::saveState(RpgStream::NpcState &dest)
 {
 	dest.setType(RpgStream::NpcData::MpLeecher);
 
-	if (m_target)
-		dest.setTarget(RpgLogicObjectMapper::getId(m_target->objectId()));
+	if (m_npc->targetEntity())
+		dest.setTarget(RpgLogicObjectMapper::getId(m_npc->targetEntity()->objectId()));
 	else
 		dest.setTarget(0u);
 
@@ -186,7 +188,7 @@ void RpgMotorNpcMpLeecher::saveState(RpgStream::NpcState &dest)
 
 int RpgMotorNpcMpLeecher::getMovementSpeed()
 {
-	if (m_target)
+	if (m_npc->targetEntity())
 		return m_npc->config().run;
 	else
 		return m_npc->config().walk;
@@ -213,8 +215,8 @@ void RpgMotorNpcMpLeecher::onShapeContactBegin(cpShape *self, cpShape *other)
 
 	if (self == m_npc->sensorPolygon()) {
 		if (RpgPlayer *player = dynamic_cast<RpgPlayer*>(otherBody)) {
-			if (!m_target && player->isAlive() && player->team() != m_npc->team() && player->mp() > 0) {
-				m_target = player;
+			if (!m_npc->targetEntity() && player->isAlive() && player->team() != m_npc->team() && player->mp() > 0) {
+				m_npc->setTargetEntity(player);
 				m_targetReached = 0;
 				m_lastAttack = 0;
 			}
@@ -278,13 +280,15 @@ void RpgMotorNpcMpLeecher::onShapeContactEnd(cpShape *self, cpShape *other)
 
 void RpgMotorNpcMpLeecher::attackTarget()
 {
-	if (!m_target)
+	RpgPlayer *p = qobject_cast<RpgPlayer*>(m_npc->targetEntity());
+
+	if (!p)
 		return;
 
 	if (m_currentTick < m_lastAttack + AbstractGame::TickTimer::msecToTick(m_config.attackDelay))
 		return;
 
-	if (m_target->locked())
+	if (p->locked())
 		return;
 
 	QSet<TiledObjectBody*> list;
@@ -294,7 +298,7 @@ void RpgMotorNpcMpLeecher::attackTarget()
 												RpgGameItem::FixtureGround,
 												0., { RpgMotorEntity::QueryBody | RpgMotorEntity::QueryTarget });
 
-	if (!list.contains(m_target)) {
+	if (!list.contains(p)) {
 		m_targetReached = 0;
 		return;
 	}
@@ -304,8 +308,8 @@ void RpgMotorNpcMpLeecher::attackTarget()
 
 	RpgStream::EventNpc e(RpgStream::EventNpc::EventAttack);
 
-	if (m_target && m_target->isAlive() && m_target->mp() > 0)
-		e.setTargetId(RpgLogicObjectMapper::getId(m_target->objectId()));
+	if (p && p->isAlive() && p->mp() > 0)
+		e.setTargetId(RpgLogicObjectMapper::getId(p->objectId()));
 	else
 		return;
 
