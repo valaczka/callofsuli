@@ -966,18 +966,17 @@ struct DefenderObject
 
 
 
-/**
- * @brief The DefenderDummyObject class
- */
-/*
-struct DefenderDummyObject
-{
-	quint32 dummy = 0;
 
-	static DefenderDummyObject fromRpgStream(const RpgStream::BaseDefenderObject &stream);
-	void toRpgStream(RpgStream::BaseDefenderObject &stream) const;
+
+/**
+ * @brief The DefenderQuestionnaireObject class
+ */
+
+struct DefenderQuestionnaireObject
+{
+	std::unordered_map<entt::entity, quint32> lastTick;
 };
-*/
+
 
 
 
@@ -1516,6 +1515,9 @@ protected:
 	virtual void checkState(const RpgStream::GameState &state);
 
 	entt::entity npcAdd(const RpgStream::NpcData &data, entt::entity owner, const cpVect &pos = cpvzero, quint32 *tagIdPtr = nullptr);
+	entt::entity defenderAdd(const RpgStream::BaseDefenderObject::Type &type, const RpgStream::Team &team,
+							 entt::entity defEnt, Defender *defender, const Chunk &chunk = {});
+	void towerSet(entt::entity tower, const RpgStream::Team &team, const quint32 &load);
 
 	virtual void onNpcCreated(entt::entity entity, const quint32 &idTag, Player *player);
 	virtual bool onControlStateChange(entt::entity entity, Control *control, const bool &isAlive, const quint32 &state);

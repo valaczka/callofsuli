@@ -61,7 +61,7 @@ RpgDialog {
 
 			Qaterial.Icon {
 				color: _rowPts._success ? Qaterial.Colors.green500 : Qaterial.Colors.red500
-				icon: "qrc:/rpg/coin/coins.png"
+				icon: Qaterial.Icons.flashCircle//"qrc:/rpg/coin/coins.png"
 				anchors.verticalCenter: parent.verticalCenter
 			}
 
@@ -106,7 +106,7 @@ RpgDialog {
 
 			Qaterial.Icon {
 				color: _rowQuestion._success ? Qaterial.Colors.green500 : Qaterial.Colors.red500
-				icon: Qaterial.Icons.abacus
+				icon: Qaterial.Icons.headQuestionOutline
 				anchors.verticalCenter: parent.verticalCenter
 			}
 
@@ -152,7 +152,7 @@ RpgDialog {
 
 			Qaterial.Icon {
 				color: _rowStreak._success ? Qaterial.Colors.green500 : Qaterial.Colors.red500
-				icon: Qaterial.Icons.abacus
+				icon: Qaterial.Icons.chartTimelineVariantShimmer
 				anchors.verticalCenter: parent.verticalCenter
 			}
 
@@ -213,8 +213,10 @@ RpgDialog {
 				spacing: 5
 
 				Qaterial.Icon {
-					icon: "qrc:/rpg/coin/coins.png"
-					color: "transparent"
+					//icon: "qrc:/rpg/coin/coins.png"
+					//color: "transparent"
+					icon: Qaterial.Icons.flashCircle
+					color: Qaterial.Colors.amber400
 					anchors.verticalCenter: parent.verticalCenter
 				}
 
@@ -235,8 +237,8 @@ RpgDialog {
 				spacing: 5
 
 				Qaterial.Icon {
-					color: Qaterial.Colors.blue400
-					icon: Qaterial.Icons.abacus
+					color: Qaterial.Colors.blue500
+					icon: Qaterial.Icons.shieldCrown
 					anchors.verticalCenter: parent.verticalCenter
 				}
 
@@ -244,7 +246,7 @@ RpgDialog {
 					property int pts: _active ? result.tokenReal : 0
 					anchors.verticalCenter: parent.verticalCenter
 					text: pts
-					color: Qaterial.Colors.blue400
+					color: Qaterial.Colors.blue500
 
 					Behavior on pts {
 						NumberAnimation { duration: 1250; easing.type: Easing.OutQuad }

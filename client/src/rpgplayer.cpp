@@ -54,7 +54,7 @@ class RpgPlayerPrivate
 private:
 	RpgPlayerPrivate(RpgPlayer *player) : q(player) {}
 
-	void updateLock(const qint64 &tick);
+	void updateLock(const qint64 &tick, const quint32 &lockId);
 	void resetLock(const RpgStream::EventPlayer &event);
 
 	void applyKnockback();
@@ -636,7 +636,7 @@ void RpgMotorPlayerControlled::updateBody(TiledObject *)
 
 	// Moving (JoystickA)
 
-	if (d->m_lockedEvent) {
+	if (d->m_lockId > 0) {
 		m_player->stop();
 		d->applyKnockback();
 		m_player->setCurrentChunk({-1,-1});
@@ -1095,9 +1095,9 @@ bool RpgMotorPlayerControlled::beforeWorldStep(const qint64 &tick, entt::entity 
 	bool oldLock = m_player->locked();
 
 	m_player->setLocked(state->lock() > 0 || d->m_lockedEvent);
-	d->m_lockId = state->lock();
+	//d->m_lockId = state->lock();
 	d->m_penalty = state->penalty();
-	d->updateLock(tick);
+	d->updateLock(tick, state->lock());
 
 	// Ha a locked status váltott
 
@@ -1316,6 +1316,8 @@ void RpgMotorPlayerControlled::useCurrentControl()
 		e.setSeq(m_player->nextEventId());
 		e.setTarget(RpgLogicObjectMapper::getId(tower->objectId()));
 
+		LOG_CDEBUG("game") << "Lock request" << e.seq();
+
 		d->m_lockedEvent = e;
 		d->m_waitForLock = tick + 5*60;			// Wait for lockId from server
 
@@ -1330,6 +1332,8 @@ void RpgMotorPlayerControlled::useCurrentControl()
 		e.setSeq(m_player->nextEventId());
 		e.setTarget(RpgLogicObjectMapper::getId(p->objectId()));
 
+		LOG_CDEBUG("game") << "Lock request" << e.seq();
+
 		d->m_lockedEvent = e;
 		d->m_waitForLock = tick + 5*60;			// Wait for lockId from server
 
@@ -1343,6 +1347,8 @@ void RpgMotorPlayerControlled::useCurrentControl()
 		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventUseControl);
 		e.setSeq(m_player->nextEventId());
 		e.setTarget(RpgLogicObjectMapper::getId(p->objectId()));
+
+		LOG_CDEBUG("game") << "Lock request" << e.seq();
 
 		d->m_lockedEvent = e;
 		d->m_waitForLock = tick + 5*60;			// Wait for lockId from server
@@ -1518,6 +1524,8 @@ void RpgMotorPlayerControlled::changeMpToBullet(const bool &force)
 
 	e.setSeq(m_player->nextEventId());
 
+	LOG_CDEBUG("game") << "Lock request" << e.seq();
+
 	d->m_lockedEvent = e;
 	d->m_waitForLock = tick + 5*60;			// Wait for lockId from server
 
@@ -1558,6 +1566,8 @@ void RpgMotorPlayerControlled::changeMpToDefender()
 
 	e.setSeq(m_player->nextEventId());
 
+	LOG_CDEBUG("game") << "Lock request" << e.seq();
+
 	d->m_lockedEvent = e;
 	d->m_waitForLock = tick + 5*60;			// Wait for lockId from server
 
@@ -1597,6 +1607,8 @@ void RpgMotorPlayerControlled::changeMpToUtility()
 	RpgStream::EventPlayer e(RpgStream::EventPlayer::EventChangeUtility);
 
 	e.setSeq(m_player->nextEventId());
+
+	LOG_CDEBUG("game") << "Lock request" << e.seq();
 
 	d->m_lockedEvent = e;
 	d->m_waitForLock = tick + 5*60;			// Wait for lockId from server
@@ -1809,10 +1821,10 @@ void RpgMotorPlayerControlled::setTargetJoystickState(const TiledGame::JoystickS
 
 void RpgMotorPlayerControlled::questionFinished(const bool &success)
 {
-	if (!d->m_lockedEvent) {
+	/*if (!d->m_lockedEvent) {
 		LOG_CERROR("game") << "Missing locked event";
 		return;
-	}
+	}*/
 
 	if (d->m_lockId == 0) {
 		LOG_CERROR("game") << "Invalid lock id";
@@ -1822,21 +1834,50 @@ void RpgMotorPlayerControlled::questionFinished(const bool &success)
 
 
 	if (success) {
-		RpgStream::EventPlayer e = d->m_lockedEvent.value();
-		e.setSeq(m_player->nextEventId());
-		e.setLockId(d->m_lockId);
+		if (d->m_lockedEvent) {
+			RpgStream::EventPlayer e = d->m_lockedEvent.value();
+			e.setSeq(m_player->nextEventId());
+			e.setLockId(d->m_lockId);
 
-		d->m_eventList.emplace_back(std::move(e));
+			d->m_eventList.emplace_back(std::move(e));
+		} else {
+			LOG_CWARNING("game") << "Missing locked event" << d->m_lockId;
+
+			RpgStream::EventPlayer e(RpgStream::EventPlayer::EventUnlock);
+			e.setSeq(m_player->nextEventId());
+			e.setLockId(d->m_lockId);
+
+			d->m_eventList.emplace_back(std::move(e));
+		}
 	} else {
+		LOG_CERROR("game") << "Event failed" << d->m_lockId;
+
 		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventFailed);
 		e.setSeq(m_player->nextEventId());
 		e.setLockId(d->m_lockId);
-		e.setTarget(d->m_lockedEvent->target());
+
+		if (d->m_lockedEvent)
+			e.setTarget(d->m_lockedEvent->target());
 
 		d->m_eventList.emplace_back(std::move(e));
 	}
 
 	d->m_lockedEvent = std::nullopt;
+}
+
+
+
+
+
+/**
+ * @brief RpgMotorPlayerControlled::questionLoadedChanged
+ * @param loaded
+ */
+
+void RpgMotorPlayerControlled::questionLoadedChanged(const bool &loaded)
+{
+	if (loaded)
+		d->m_gameQuestionLoaded = true;
 }
 
 
@@ -2271,23 +2312,32 @@ void RpgPlayer::synchronize()
  * @brief RpgPlayerPrivate::updateLock
  */
 
-void RpgPlayerPrivate::updateLock(const qint64 &tick)
+void RpgPlayerPrivate::updateLock(const qint64 &tick, const quint32 &lockId)
 {
 	if (m_lockedEvent && m_lockId == 0 && !m_gameQuestionLoaded && m_waitForLock < tick) {
 		LOG_CERROR("game") << "Wait for lockId timeout";
 		m_lockedEvent = std::nullopt;
 	}
 
+	if (m_lockedEvent && m_lockId > 0 && lockId > 0 && lockId != m_lockId) {
+		LOG_CERROR("game") << "LockId mismatch" << lockId << "!=" << m_lockId;
+		m_lockedEvent = std::nullopt;
+	}
+
+	m_lockId = lockId;
+
 
 	if (m_lockId > 0 && !m_gameQuestionLoaded) {
-		q->m_rpgGame->loadNextQuestion();
-		m_gameQuestionLoaded = true;
+		if (q->m_rpgGame->loadNextQuestion()) {
+			////m_gameQuestionLoaded = true;
+			///
 
-		static const QColor iconColor = QColorConstants::Svg::cyan;
-		if (GameQuestion *gq = q->m_rpgGame->gameQuestion()) {
-			gq->setProperty("progressColor", iconColor);
-			gq->setProperty("msecLeft", q->m_rpgGame->msecLeft()
-							-AbstractGame::TickTimer::tickToMsec(CFG_QUESTION_MAX_DURATION));
+			static const QColor iconColor = QColorConstants::Svg::cyan;
+			if (GameQuestion *gq = q->m_rpgGame->gameQuestion()) {
+				gq->setProperty("progressColor", iconColor);
+				gq->setProperty("msecLeft", q->m_rpgGame->msecLeft()
+								-AbstractGame::TickTimer::tickToMsec(CFG_QUESTION_MAX_DURATION));
+			}
 		}
 
 		return;

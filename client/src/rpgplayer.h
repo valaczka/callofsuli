@@ -276,6 +276,7 @@ public:
 	void setTargetJoystickState(const TiledGame::JoystickState &newTargetJoystickState);
 
 	void questionFinished(const bool &success);
+	void questionLoadedChanged(const bool &loaded);
 
 	void attackCurrentTarget();
 	void useCurrentControl();

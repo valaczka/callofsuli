@@ -197,8 +197,6 @@
         <file>DownloaderItem.qml</file>
         <file>RpgSelectTitle.qml</file>
         <file>RpgSelectView.qml</file>
-        <file>PageMarket.qml</file>
-        <file>RpgMarketCard.qml</file>
         <file>UserInfoNotification.qml</file>
         <file>RpgNpcMarker.qml</file>
         <file>RpgKeyboardInfoDialog.qml</file>

@@ -56,6 +56,19 @@ FocusScope {
 
 		onStageChanged: _infoTime.marked = true
 
+		onMessageDialogRequest: (title, text, icon) => {
+			Qaterial.DialogManager.showDialog(
+						{
+							text: text,
+							title: title,
+							iconSource: icon,
+							iconColor: Qaterial.Style.iconColor(),
+							iconFill: false,
+							iconSize: Qaterial.Style.roundIcon.size,
+							standardButtons: DialogButtonBox.Ok
+						})
+		}
+
 		function resetBaseScale() {
 			if (width < 576 * Qaterial.Style.devicePixelSizeCorrection)
 				baseScale = 0.5
@@ -371,8 +384,8 @@ FocusScope {
 				color: success ? Qaterial.Colors.green400 :
 								 game ? game.colorTeam : Qaterial.Colors.white
 
-				iconLabel.icon.source: "qrc:/rpg/coin/coins.png"
-				iconLabel.icon.color: "transparent"
+				iconLabel.icon.source: success ? Qaterial.Icons.checkCircle : Qaterial.Icons.flashCircle
+				iconLabel.icon.color: color
 
 				value: game ? game.ptsTeam : 0
 
@@ -425,7 +438,7 @@ FocusScope {
 			readonly property bool success: game && game.questStreakRq > 0 && game.questStreak >= game.questStreakRq
 
 			color: success ? Qaterial.Colors.green400 :Qaterial.Colors.yellow600
-			iconLabel.icon.source: success ? Qaterial.Icons.checkCircle : Qaterial.Icons.tableRow
+			iconLabel.icon.source: success ? Qaterial.Icons.checkCircle : Qaterial.Icons.chartTimelineVariantShimmer
 
 			visible: game && game.controlledPlayer && _item.isContentReady
 

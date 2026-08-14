@@ -59,7 +59,7 @@ const QHash<RpgStream::BaseDefenderObject::Type, QVariantMap> RpgChanger::m_data
 
 	{ RpgStream::BaseDefenderObject::Multiplier1,
 	  {
-		  { "icon", "qrc:/internal/medal/Icon.1_01.png" },
+		  { "icon", "qrc:/Qaterial/Icons/fan-speed-2.svg" },
 		  { "description", tr("Multiplier1") },
 	  }
 	},
@@ -75,6 +75,13 @@ const QHash<RpgStream::BaseDefenderObject::Type, QVariantMap> RpgChanger::m_data
 	  {
 		  { "icon", "qrc:/rpg/castIcon/pulse.png" },
 		  { "description", tr("Electric") },
+	  }
+	},
+
+	{ RpgStream::BaseDefenderObject::Questionnaire,
+	  {
+		  { "icon", "qrc:/rpg/castIcon/pulse.png" },
+		  { "description", tr("Questionnaire") },
 	  }
 	},
 };
@@ -265,7 +272,7 @@ QVariantMap RpgChanger::availableWeapon()
 {
 	return QVariantMap{
 		{ "icon", "qrc:/internal/medal/Icon.1_08.png" },
-		{ "description", tr("Weapon") },
+		{ "description", tr("Reload bullets") },
 		{ "cost", CFG_MP_CHANGE_BULLET }
 	};
 }

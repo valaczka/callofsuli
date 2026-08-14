@@ -12,18 +12,20 @@ QItemGradient {
 
 	property RpgGame game: null
 
-	title: game ? game.readableRoom + " - " + game.terrain : ""
+	title: game ? game.readableRoom : ""
 
-	subtitle: game ? game.name + qsTr(" – level %1").arg(game.level): ""
+	//subtitle: game ? game.name + qsTr(" – level %1").arg(game.level): ""
 
 	appBar.rightComponent: Row {
 		Qaterial.Icon {
-			color: Qaterial.Style.iconColor()
-			icon: Qaterial.Icons.powerCycle
+			color: Qaterial.Colors.blue500
+			icon: Qaterial.Icons.shieldCrown
 		}
 
 		Qaterial.LabelHeadline6 {
 			text: num
+
+			color: Qaterial.Colors.blue500
 
 			property int num: game ? game.rpgUserData.token : 0
 
@@ -138,31 +140,44 @@ QItemGradient {
 					Layout.fillWidth: true
 				}
 
-				Column {
+				Grid {
 					Layout.fillWidth: false
 					Layout.fillHeight: false
 					Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 
+					horizontalItemAlignment: Grid.AlignHCenter
+					verticalItemAlignment: Grid.AlignVCenter
+
+					columns: _grid1.flow == GridLayout.TopToBottom ? 2 : 1
+
 					QButton {
-						anchors.horizontalCenter: parent.horizontalCenter
+						//anchors.horizontalCenter: parent.horizontalCenter
 
 						icon.source: Qaterial.Icons.refresh
+						text: qsTr("Csere")
+
+						display: _grid1.flow == GridLayout.TopToBottom ? AbstractButton.TextBesideIcon : AbstractButton.IconOnly
 
 						onClicked: game.characterSelect({replaceTeam: true})
 					}
 
 					QButton {
-						anchors.horizontalCenter: parent.horizontalCenter
+						//anchors.horizontalCenter: parent.horizontalCenter
 
 						bgColor: Qaterial.Colors.green500
 
 						icon.source: Qaterial.Icons.checkBold
+						text: qsTr("Kész")
+
+						display: _grid1.flow == GridLayout.TopToBottom ? AbstractButton.TextBesideIcon : AbstractButton.IconOnly
 
 						enabled: game && game.engine && (!game.engine.isHost || (game.isAllOnboard && _selectTerrain._selected))
 
 						onClicked: {
 							game.characterSelect({ onboard: true })
-							enabled = false
+
+							if (!game.engine.isHost)
+								enabled = false
 						}
 					}
 				}
@@ -330,7 +345,8 @@ QItemGradient {
 
 						text: name
 						image: game ? game.getCharacterImage(character) : ""
-						selected: _viewCharacters.selected == character
+						selected: (_viewCharacters.selected == "" && game.isCharacterSelect && !locked && !disabled) ||
+									  _viewCharacters.selected == character
 
 						disabled: model.disabled
 						locked: level < 1
@@ -402,7 +418,7 @@ QItemGradient {
 						}
 
 						onClicked: {
-							if (locked)
+							if (locked || !game.isCharacterSelect)
 								return;
 
 							_viewCharacters.currentIndex = index
@@ -463,7 +479,6 @@ QItemGradient {
 			}
 		}
 	}
-
 
 
 	function autoSelect() {

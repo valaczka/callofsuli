@@ -83,6 +83,43 @@ RpgStream::Full RpgLogicServer::getRenderedState(const bool &requireFull)
 
 
 
+/**
+ * @brief RpgLogicServer::singlePlayerQuests
+ * @return
+ */
+
+QList<RpgQuestData> RpgLogicServer::singlePlayerQuests()
+{
+	QList<RpgQuestData> list;
+
+	static const std::vector<std::array<int, 5> > data = {
+		{ 4,	3,	600,	1540,	215 },
+		{ 6,	3,	700,	2580,	325 },
+		{ 8,	3,	800,	3540,	415 },
+		{ 10,	3,	900,	3540,	615 },
+	};
+
+	list.reserve(data.size());
+
+	for (const auto &a : data) {
+		RpgQuestData q;
+
+		q.question = a.at(0);
+		q.streak = a.at(1);
+		q.pts = a.at(2);
+
+		q.xp = a.at(3);
+		q.token = a.at(4);
+
+		list.emplace_back(std::move(q));
+	}
+
+	return list;
+}
+
+
+
+
 
 /**
  * @brief RpgLogicServer::eventRealized
@@ -205,9 +242,9 @@ Rpg::QuestList RpgLogicServer::getQuestList() const
 	Rpg::QuestList list;
 
 	static const std::vector<std::array<int, 5> > data = {
-		{ 4,	3,	200,	1540,	215 },
-		{ 6,	4,	650,	2580,	325 },
-		{ 13,	6,	900,	3540,	415 },
+		{ 4,	3,	0,	1540,	215 },
+		{ 6,	4,	0,	2580,	325 },
+		{ 13,	6,	0,	3540,	415 },
 	};
 
 

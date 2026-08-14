@@ -153,7 +153,7 @@ protected:
 	virtual void onMotorStepped() {}
 
 protected:
-	RpgGame *m_rpgGame = nullptr;
+	QPointer<RpgGame> m_rpgGame;
 	std::unique_ptr<AbstractRpgMotor> m_defaultMotor;
 	std::unique_ptr<AbstractRpgMotor> m_secondaryMotor;
 

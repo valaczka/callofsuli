@@ -870,6 +870,7 @@ void RpgGame::connectGameQuestion()
 	connect(m_gameQuestion, &GameQuestion::failed, d, &RpgGamePrivate::onQuestionFailed);
 	connect(m_gameQuestion, &GameQuestion::finished, d, &RpgGamePrivate::onQuestionFinished);
 	connect(m_gameQuestion, &GameQuestion::started, d, &RpgGamePrivate::onQuestionStarted);
+	connect(m_gameQuestion, &GameQuestion::questionLoadFailed, d, &RpgGamePrivate::onQuestionLoadFailed);
 }
 
 
@@ -2012,6 +2013,11 @@ bool RpgGamePrivate::nextQuestion()
 		return false;
 	}
 
+	if (m_questionLoadingStarted) {
+		LOG_CDEBUG("game") << "GameQuestion loading already started";
+		return true;
+	}
+
 	if (m_questionIterator == m_questionList.constEnd()) {
 		LOG_CDEBUG("game") << "Reload questions";
 		reloadQuestions();
@@ -2021,6 +2027,8 @@ bool RpgGamePrivate::nextQuestion()
 		LOG_CERROR("game") << "Reload questions error";
 		return false;
 	}
+
+	m_questionLoadingStarted = true;
 
 	gq->loadQuestion(*m_questionIterator);
 	++m_questionIterator;
@@ -2126,6 +2134,11 @@ void RpgGamePrivate::onQuestionFailed(const QVariantMap &answer)
 void RpgGamePrivate::onQuestionStarted()
 {
 	///q->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/fight.mp3"), Sound::VoiceoverChannel);
+
+	m_questionLoadingStarted = false;
+
+	if (RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(q->controlledPlayer()->currentMotor()))
+		motor->questionLoadedChanged(true);
 }
 
 
@@ -2135,7 +2148,12 @@ void RpgGamePrivate::onQuestionStarted()
 
 void RpgGamePrivate::onQuestionFinished()
 {
+	m_questionLoadingStarted = false;
+
 	q->m_gameItem->forceActiveFocus(Qt::OtherFocusReason);
+
+	if (RpgMotorPlayerControlled *motor = dynamic_cast<RpgMotorPlayerControlled*>(q->controlledPlayer()->currentMotor()))
+		motor->questionLoadedChanged(false);
 
 	GameQuestion *gq = q->gameQuestion();
 
@@ -2143,6 +2161,18 @@ void RpgGamePrivate::onQuestionFinished()
 		LOG_CERROR("game") << "Missing GameQuestion";
 		return;
 	}
+}
+
+
+
+
+/**
+ * @brief RpgGamePrivate::onQuestionLoadFailed
+ */
+
+void RpgGamePrivate::onQuestionLoadFailed()
+{
+	m_questionLoadingStarted = false;
 }
 
 
@@ -2227,7 +2257,8 @@ void RpgGamePrivate::onAfterWorldStep(const RpgStream::FullState &full)
 
 void RpgGamePrivate::finishGame(const bool &abort)
 {
-	q->m_gameQuestion->forceDestroy();
+	if (q->m_gameQuestion)
+		q->m_gameQuestion->forceDestroy();
 
 	if (abort) {
 		LOG_CERROR("game") << "Abort game";

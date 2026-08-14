@@ -15,37 +15,30 @@ Item {
 
 	property bool quickActionsEnabled: true
 
-	property real iconSize: 46
-	property real menuRadius: 78
+	property real iconSize: 40//Qt.platform.os === "android" || Qt.platform.os === "ios" ? 40 : 30
+	property real menuRadius: 68
 	property real minSwipeDistance: 24
 
-	// 0.2 másodperc
-	property int holdDelay: 200
-
-	property color iconColor: "#263445"
-	property color iconSelectedColor: "#4c8fff"
-	property color textColor: "white"
-
-	property string centerText: "⚙"
+	property int holdDelay: Qt.styleHints.mousePressAndHoldInterval
 
 	property var actions: [
 		{
 			id: "weapon",
-			label: "Töltény",
-			icon: "●",
+			color: Qaterial.Colors.red700,
+			icon: "qrc:/internal/game/target1.svg",
 			angle: 180
 		},
 		{
 			id: "defender",
-			label: "Eszköz",
-			icon: "▣",
-			angle: -80
+			color: Qaterial.Colors.green700,
+			icon: Qaterial.Icons.abacus,
+			angle: -90
 		},
 		{
 			id: "utility",
-			label: "Képesség",
-			icon: "✦",
-			angle: 80
+			color: Qaterial.Colors.amber700,
+			icon: Qaterial.Icons.accountAlert,
+			angle: 90
 		}
 	]
 
@@ -124,7 +117,7 @@ Item {
 		id: dimCircle
 
 		anchors.centerIn: parent
-		width: root.menuRadius * 2 + root.iconSize
+		width: root.menuRadius * 2.2 + root.iconSize
 		height: width
 		radius: width / 2
 
@@ -144,7 +137,8 @@ Item {
 
 		model: root.actions.length
 
-		Item {
+
+		GameButton {
 			id: actionItem
 
 			required property int index
@@ -153,14 +147,14 @@ Item {
 			readonly property point targetPos: root.actionCenter(index)
 			readonly property bool selected: root.selectedIndex === index
 
-			width: root.iconSize
-			height: root.iconSize
+			size: root.iconSize
 
 			x: root.width / 2 - width / 2
 			y: root.height / 2 - height / 2
 
 			opacity: root.menuVisible ? 1.0 : 0.0
-			scale: root.menuVisible ? 1.0 : 0.4
+			scale: actionItem.selected ? 1.18 :
+										 root.menuVisible ? 1.0 : 0.4
 			visible: opacity > 0
 
 			states: State {
@@ -175,13 +169,29 @@ Item {
 
 			transitions: Transition {
 				NumberAnimation {
-					properties: "x,y,opacity,scale"
+					properties: "x,y,opacity"
 					duration: 110
 					easing.type: Easing.OutCubic
 				}
 			}
 
-			Rectangle {
+			Behavior on scale {
+				NumberAnimation {
+					duration: 70
+				}
+			}
+
+			color: actionItem.selected ? actionItem.action.color : "transparent"
+			border.color: fontImage.color
+			border.width: actionItem.selected ? 3 : 2
+
+			fontImage.icon: actionItem.action.icon
+			fontImage.color: actionItem.selected ? Qaterial.Colors.white : actionItem.action.color
+			fontImageScale: 0.7
+		}
+
+
+		/*Rectangle {
 				anchors.fill: parent
 				radius: width / 2
 				color: actionItem.selected
@@ -204,27 +214,7 @@ Item {
 						duration: 70
 					}
 				}
-			}
-
-			Text {
-				anchors.centerIn: parent
-				text: actionItem.action.icon
-				color: root.textColor
-				font.pixelSize: 22
-				font.bold: true
-			}
-
-			Text {
-				anchors.horizontalCenter: parent.horizontalCenter
-				anchors.top: parent.bottom
-				anchors.topMargin: 4
-
-				text: actionItem.action.label
-				color: root.textColor
-				font.pixelSize: 11
-				opacity: actionItem.selected ? 1.0 : 0.75
-			}
-		}
+			}*/
 	}
 
 

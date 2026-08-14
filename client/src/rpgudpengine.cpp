@@ -173,6 +173,8 @@ void RpgUdpEngine::updateRoom()
 		return;
 	}
 
+	QStringList offline;
+
 	QVariantList l;
 
 	for (const RpgStream::PlayerData &d : m_room->players()) {
@@ -188,10 +190,21 @@ void RpgUdpEngine::updateRoom()
 
 		if (d.playerId() == peerId())
 			m_gamePrivate->m_characterSelect.data().setTeam(d.team());
+
+		if (!d.flags().testFlag(RpgStream::PlayerData::FlagPlayerOnline))
+			offline.append(d.nickName().isEmpty() ? d.userName() : d.nickName());
 	}
 
-
 	Utils::patchSListModel(m_game->modelPlayer(), l, QStringLiteral("playerId"));
+
+	if (!offline.empty() && m_game->gameState() == RpgGame::GameStateCharacterSelect
+			&& m_game->isRoomCompleted()) {
+		LOG_CERROR("game") << "Users went offline" << offline;
+
+		m_game->setErrorString(tr("User logged out: %1").arg(offline.first()));
+		m_game->setGameState(RpgGame::GameStateError);
+	}
+
 }
 
 

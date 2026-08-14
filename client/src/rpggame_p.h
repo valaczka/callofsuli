@@ -161,6 +161,7 @@ private:
 	void onQuestionFailed(const QVariantMap &answer);
 	void onQuestionStarted();
 	void onQuestionFinished();
+	void onQuestionLoadFailed();
 
 	// Play
 
@@ -234,6 +235,7 @@ private:
 	QVector<Question> m_questionList;
 	QVector<Question>::const_iterator m_questionIterator;
 	bool m_questionInitialized = false;
+	bool m_questionLoadingStarted = false;
 
 
 	RpgStream::MapData m_mapData;

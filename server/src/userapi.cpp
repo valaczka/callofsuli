@@ -1027,23 +1027,25 @@ QHttpServerResponse UserAPI::gameFinish(const QString &username, const int &id, 
 
 			// Duration XP
 
-			const auto &s = QueryBuilder::q(db)
-							.addQuery("SELECT COALESCE(MIN(duration),0) AS duration FROM game "
-									  "WHERE success=true AND username=").addValue(username)
-							.addQuery(" AND mapid=").addValue(game.map)
-							.addQuery(" AND missionid=").addValue(game.mission)
-							.addQuery(" AND level=").addValue(game.level)
-							.addQuery(" AND mode=").addValue(game.mode)
-							.execToValue("duration");
+			if (game.mode != GameMap::Rpg) {
+				const auto &s = QueryBuilder::q(db)
+								.addQuery("SELECT COALESCE(MIN(duration),0) AS duration FROM game "
+										  "WHERE success=true AND username=").addValue(username)
+								.addQuery(" AND mapid=").addValue(game.map)
+								.addQuery(" AND missionid=").addValue(game.mission)
+								.addQuery(" AND level=").addValue(game.level)
+								.addQuery(" AND mode=").addValue(game.mode)
+								.execToValue("duration");
 
-			LAMBDA_SQL_ASSERT(s);
+				LAMBDA_SQL_ASSERT(s);
 
-			const int &shortestDuration = s->toInt();
+				const int &shortestDuration = s->toInt();
 
-			if (shortestDuration > 0 && duration < shortestDuration) {
-				const int &durationXP = (shortestDuration-duration)/1000 * baseXP * XP_FACTOR_DURATION_SEC;
-				sumXP += durationXP;
-				retObj[QStringLiteral("xpDuration")] = durationXP;
+				if (shortestDuration > 0 && duration < shortestDuration) {
+					const int &durationXP = (shortestDuration-duration)/1000 * baseXP * XP_FACTOR_DURATION_SEC;
+					sumXP += durationXP;
+					retObj[QStringLiteral("xpDuration")] = durationXP;
+				}
 			}
 
 
@@ -1352,6 +1354,8 @@ QHttpServerResponse UserAPI::rpg(const Credential &credential)
 
 
 	RpgUserData udata;
+
+	udata.quests = RpgLogicServer::singlePlayerQuests();
 
 
 	// DEPRECATED

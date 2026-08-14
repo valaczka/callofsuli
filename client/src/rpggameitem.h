@@ -151,6 +151,8 @@ protected:
 	virtual void joystickStateEvent(const Joystick &joystick, const JoystickState &state) override;
 
 signals:
+	void messageDialogRequest(const QString &title, const QString &text, const QString &icon);
+
 	void minimapToggleRequest();
 	void changerRequest();
 	void mpMarkerRequest();

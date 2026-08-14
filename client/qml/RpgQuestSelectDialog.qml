@@ -68,6 +68,8 @@ RpgDialog {
 						Layout.fillWidth: false
 						Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 
+						leftPadding: Qaterial.Style.horizontalPadding
+
 						text: model.description
 
 						color: _delegateQuest.isCurrent ? Qaterial.Colors.black : _tumblerQuest.mainColor
@@ -80,8 +82,10 @@ RpgDialog {
 
 						visible: model.pts > 0
 
-						icon.source: "qrc:/rpg/coin/coins.png"
-						icon.color: "transparent"
+						icon.source: Qaterial.Icons.flashCircle
+						icon.color: color
+						//icon.source: "qrc:/rpg/coin/coins.png"
+						//icon.color: "transparent"
 						text: model.pts
 
 						font: Qaterial.Style.textTheme.body1
@@ -111,7 +115,7 @@ RpgDialog {
 						Layout.fillWidth: false
 						Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 
-						icon.source: Qaterial.Icons.abacus
+						icon.source: Qaterial.Icons.chartTimelineVariantShimmer
 						text: model.streak
 
 						font: Qaterial.Style.textTheme.body1
@@ -137,7 +141,7 @@ RpgDialog {
 						Layout.fillWidth: false
 						Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
 
-						icon.source: Qaterial.Icons.abacus
+						icon.source: Qaterial.Icons.shieldCrown
 						text: model.token
 
 						font: Qaterial.Style.textTheme.body1
@@ -151,6 +155,8 @@ RpgDialog {
 						Layout.fillHeight: false
 						Layout.fillWidth: false
 						Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+						rightPadding: Qaterial.Style.horizontalPadding
 
 						text: model.xp+" XP"
 
@@ -191,7 +197,7 @@ RpgDialog {
 
 				visible: true
 
-				mainColor: Qaterial.Colors.red400
+				mainColor: Qaterial.Colors.green500
 
 				onCurrentIndexChanged: game.questSelect({defender: currentIndex})
 			}
@@ -212,7 +218,7 @@ RpgDialog {
 
 				visible: true
 
-				mainColor: Qaterial.Colors.green400
+				mainColor: Qaterial.Colors.amber500
 
 				onCurrentIndexChanged: game.questSelect({utility: currentIndex})
 			}

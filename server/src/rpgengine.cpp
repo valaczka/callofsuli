@@ -885,6 +885,8 @@ void RpgEnginePrivate::sendResult()
 		ELOG_ERROR << "Invalid UserAPI";
 	}
 
+	const int duration = q->m_logic.lastAuthTick()*1000./60.;
+
 	for (RpgPeerData &p : m_players) {
 		if (p.gameId > 0 && api) {
 			ELOG_DEBUG << "Store game result:" << p.username;
@@ -893,7 +895,7 @@ void RpgEnginePrivate::sendResult()
 			c.setUsername(p.username);
 
 			QJsonObject res = getResultForPlayer(*result, p.playerTag);
-			res[QStringLiteral("duration")] = 134;
+			res[QStringLiteral("duration")] = duration;
 
 			api->gameFinish(c, p.gameId, res, &p.result);
 
@@ -1413,17 +1415,26 @@ void RpgEnginePrivate::receiveCharacterSelect(RpgPeerData *player, RpgStream::En
 
 				bool cmpltd = true;
 
+				bool hasTeamA = false;
+				bool hasTeamB = false;
+
 				for (const RpgPeerData &p : m_players) {
+					if (p.team == RpgStream::TeamA)
+						hasTeamA = true;
+					else if (p.team == RpgStream::TeamB)
+						hasTeamB = true;
+
 					if (p.peerId == player->peerId)
 						continue;
 
-					if (!p.data.flags().testFlag(RpgStream::PlayerData::FlagOnboard)) {
+					if (!p.data.flags().testFlag(RpgStream::PlayerData::FlagOnboard) ||
+							!p.data.flags().testFlag(RpgStream::PlayerData::FlagPlayerOnline)) {
 						cmpltd = false;
 						break;
 					}
 				}
 
-				if (cmpltd) {
+				if (cmpltd && hasTeamA && hasTeamB) {
 					m_boardingCompleted = true;
 					toFill = true;
 				}
@@ -1432,9 +1443,10 @@ void RpgEnginePrivate::receiveCharacterSelect(RpgPeerData *player, RpgStream::En
 	}
 
 	if (s.data().flags().testFlag(RpgStream::PlayerData::FlagOnboard) && !player->data.flags().testFlag(RpgStream::PlayerData::FlagOnboard)) {
-		ELOG_DEBUG << "Player onboard" << player->peerId;
-
-		player->data.flags().setFlag(RpgStream::PlayerData::FlagOnboard);
+		if (player->peerId != m_host || m_boardingCompleted) {
+			ELOG_DEBUG << "Player onboard" << player->peerId;
+			player->data.flags().setFlag(RpgStream::PlayerData::FlagOnboard);
+		}
 	}
 
 	if (toFill) {
@@ -1455,7 +1467,7 @@ void RpgEnginePrivate::receiveCharacterSelect(RpgPeerData *player, RpgStream::En
 			ELOG_DEBUG << "Wait for player" << m_selector.value(RpgStream::TeamB).front() << "in team B";
 	}
 
-	if (!m_boardingCompleted && !s.data().flags().testFlag(RpgStream::PlayerData::FlagOnboard)) {
+	if (!m_boardingCompleted && !player->data.flags().testFlag(RpgStream::PlayerData::FlagOnboard)) {
 		if (s.data().team() != RpgStream::TeamNone) {
 			player->team = s.data().team();
 			player->data.setTeam(player->team);
@@ -1635,7 +1647,6 @@ void RpgEngine::udpTimerEvent(const qint64 &dt)
 
 	if (flags.testFlags(RpgStream::GameConfig::FlagFinished)) {
 		if (d->m_closeTimer.isForever()) {
-			LOG_CDEBUG("engine") << "FINISHED....";
 			d->m_closeTimer.setRemainingTime(5000);
 		} else if (d->m_dtAcc < 100) {
 			return;

@@ -211,6 +211,7 @@ RpgDefender *RpgDefender::createDefender(const Rpg::DefenderObject &defender, Rp
 														  defender);
 
 		case RpgStream::BaseDefenderObject::Pulse:
+		case RpgStream::BaseDefenderObject::Questionnaire:
 			//common = QStringLiteral("def_pulse.tmx");
 			/*baseImage = {
 				{ StateNormal, QStringLiteral(":/rpg/time/pickable.png") },

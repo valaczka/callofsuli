@@ -832,6 +832,17 @@ void RpgLogicClientMulti::loadControls(const std::vector<RpgStream::ControlState
 /////////////////////////////////////////////
 
 
+template<typename T, typename T2, typename T3, typename T4>
+bool RpgLogicClientTutorial::compareEvent(const T &, const T &)
+{
+	ELOG_WARNING << "Missing implementation";
+	return false;
+}
+
+
+
+
+
 template<typename T, typename T2>
 bool RpgLogicClientTutorial::compareEvent(const RpgLogicScope &scope, entt::entity entity, const RpgStream::BaseTickState *state) {
 	const T* ev = scope.try_get<T>(entity);
@@ -849,13 +860,32 @@ bool RpgLogicClientTutorial::compareEvent(const RpgLogicScope &scope, entt::enti
 
 
 
-template<typename T, typename T2>
-bool RpgLogicClientTutorial::compareEvent(const T &, const T &) {
-	ELOG_WARNING << "Missing implementation";
-	return false;
+
+
+
+
+/**
+ * @brief RpgLogicClientTutorial::compareEventDiff
+ * @param scope
+ * @param entity
+ * @param state
+ * @return
+ */
+
+template<typename T, typename T2, typename T3, typename T4>
+bool RpgLogicClientTutorial::compareEventDiff(const RpgLogicScope &scope, entt::entity entity, const RpgStream::BaseTickState *state)
+{
+	const T* ev = scope.try_get<T>(entity);
+	if (!ev)
+		return false;
+
+	const T2* s = dynamic_cast<const T2*>(state);
+
+	if (!s)
+		return false;
+
+	return compareEvent(*s, *ev);
 }
-
-
 
 
 
@@ -988,7 +1018,8 @@ RpgPlayer *RpgLogicClientTutorial::player() const
  * @param delay
  */
 
-void RpgLogicClientTutorial::npcAddToPoint(const QString &character, const QStringList &entryPoint, const int &num, const int &delay)
+void RpgLogicClientTutorial::npcAddToPoint(const QString &character, const QStringList &entryPoint,
+										   const RpgStream::Team &team, const int &num, const int &delay)
 {
 	const auto &ptr = RpgGame::readNpcDefinition(character);
 
@@ -1002,6 +1033,9 @@ void RpgLogicClientTutorial::npcAddToPoint(const QString &character, const QStri
 	n.setData(ptr->toNpcData());
 
 	n.data().setCharacterResolved(character);
+
+	if (team != RpgStream::TeamNone)
+		n.data().setTeam(team);
 
 	n.setNum(num);
 	n.setDelay(delay);
@@ -1025,6 +1059,132 @@ void RpgLogicClientTutorial::npcAddToPoint(const QString &character, const QStri
 }
 
 
+
+
+
+/**
+ * @brief RpgLogicClientTutorial::towerSet
+ * @param tmxId
+ * @param team
+ * @param load
+ * @return
+ */
+
+bool RpgLogicClientTutorial::towerSet(const quint32 &tmxId, const RpgStream::Team &team, const quint32 &load)
+{
+	Rpg::RpgLogicScope scope = getScope();
+
+	entt::entity tower = scope.entityFromIdTag(getId(tmxId));
+
+	if (!scope.valid(tower)) {
+		LOG_CERROR("game") << "Invalid tower";
+		return false;
+	}
+
+	Rpg::Tower *t = scope.try_get<Rpg::Tower>(tower);
+
+	if (!t) {
+		LOG_CERROR("game") << "Invalid tower entity";
+		return false;
+	}
+
+	RpgLogic::towerSet(tower, team, load);
+
+	return true;
+}
+
+
+
+/**
+ * @brief RpgLogicClientTutorial::defenderAddToTower
+ * @param tmxId
+ * @param type
+ * @return
+ */
+
+bool RpgLogicClientTutorial::defenderAddToTower(const quint32 &tmxId, const RpgStream::BaseDefenderObject::Type &type, const RpgStream::Team &team)
+{
+	Rpg::RpgLogicScope scope = getScope();
+
+	entt::entity tower = scope.entityFromIdTag(getId(tmxId));
+
+	if (!scope.valid(tower)) {
+		LOG_CERROR("game") << "Invalid tower";
+		return false;
+	}
+
+	Rpg::Tower *t = scope.try_get<Rpg::Tower>(tower);
+
+	if (!t) {
+		LOG_CERROR("game") << "Invalid tower entity";
+		return false;
+	}
+
+	for (auto e : t->defenderList) {
+		if (!scope.valid(e)) {
+			LOG_CERROR("game") << "Invalid defender";
+			return false;
+		}
+
+		Rpg::Defender *d = scope.try_get<Rpg::Defender>(e);
+
+		if (!d) {
+			LOG_CERROR("game") << "Invalid defender entity";
+			return false;
+		}
+
+		if (d->object == entt::null) {
+			return entt::null != defenderAdd(type, team, e, d);
+		}
+	}
+
+	return false;
+}
+
+
+
+/**
+ * @brief RpgLogicClientTutorial::defenderAddToPoint
+ * @param entryPoint
+ * @param type
+ * @param team
+ * @return
+ */
+
+bool RpgLogicClientTutorial::defenderAddToPoint(const QString &entryPoint, const RpgStream::BaseDefenderObject::Type &type,
+												const RpgStream::Team &team)
+{
+	const auto pos = m_game->entryPoint(entryPoint);
+
+	if (!pos) {
+		LOG_CERROR("game") << "Invalid entry point" << entryPoint;
+		return false;
+	}
+
+	Rpg::RpgLogicScope scope = getScope();
+
+	ChunkGrid *grid = scope.getCtx<ChunkGrid>();
+
+	if (!grid) {
+		LOG_CERROR("game") << "Invalid grid";
+		return false;
+	}
+
+	QPair<qint32, qint32> ch = grid->getAccessibleChunk(pos.value());
+
+	if (ch.first < 0 || ch.second < 0) {
+		LOG_CERROR("game") << "Invalid chunk" << pos.value();
+		return false;
+	}
+
+	Chunk chunk{.x = (quint32) ch.first, .y = (quint32) ch.second};
+
+	return entt::null != defenderAdd(type, team, entt::null, nullptr, chunk);
+}
+
+
+
+
 /**
  * @brief RpgLogicClientTutorial::eventRealized
  * @param entity
@@ -1041,6 +1201,8 @@ void RpgLogicClientTutorial::eventRealized(entt::entity entity)
 
 	if (RpgStream::EventStageChanged *ev = scope.try_get<RpgStream::EventStageChanged>(entity)) {
 		if (ev->config().stage() == RpgStream::GameConfig::StageWarmingUp) {
+			if (m_tutorial->fnFirst)
+				m_tutorial->fnFirst(this);
 			stepForward();
 		}
 	}
@@ -1247,6 +1409,15 @@ int RpgLogicClientTutorial::stepForward()
 
 	m_currentStep = &m_tutorial->steps[m_tutorial->currentStep];
 
+
+	if (!m_currentStep->infoText.isEmpty()) {
+		emit m_game->gameItem()->messageDialogRequest(
+					m_currentStep->infoTitle,
+					m_currentStep->infoText,
+					m_currentStep->infoIcon
+					);
+	}
+
 	m_messageTimer.start();
 	onTimerTimeout();
 
@@ -1323,7 +1494,8 @@ void RpgLogicClientTutorial::checkEvent(entt::entity entity)
 
 	for (auto it = m_currentStep->inputEvents.cbegin(); it != m_currentStep->inputEvents.cend(); ) {
 		if (
-				compareEvent<RpgStream::EventStageChanged>(scope, entity, it->get())
+				compareEvent<RpgStream::EventStageChanged>(scope, entity, it->get()) ||
+				compareEventDiff<EventMpEmitterEmpty, EventTmxMpEmitterEmpty>(scope, entity, it->get())
 				) {
 			it = m_currentStep->inputEvents.erase(it);
 			continue;
@@ -1354,6 +1526,33 @@ bool RpgLogicClientTutorial::compareEvent(const RpgStream::EventStageChanged &st
 
 
 /**
+ * @brief RpgLogicClientTutorial::compareEvent
+ * @param step
+ * @param event
+ * @return
+ */
+
+bool RpgLogicClientTutorial::compareEvent(const EventTmxMpEmitterEmpty &step, const EventMpEmitterEmpty &event)
+{
+	RpgLogicScope scope = getScope();
+
+	entt::entity e1 = scope.entityFromIdTag(this->getId(step.tmxId));
+
+	if (!scope.valid(e1))
+		return false;
+
+	if (!scope.valid(event.emitter))
+		return false;
+
+	return event.emitter == e1;
+}
+
+
+
+
+
+
+/**
  * @brief RpgLogicClientTutorial::Tutorial::Step::addTargetEntityEvent
  * @param fn
  */
@@ -1378,6 +1577,25 @@ void RpgLogicClientTutorial::Tutorial::Step::addTargetControlEvent(const std::fu
 	ev->fnCmp = fn;
 	inputEvents.emplace_back(std::move(ev));
 }
+
+
+/**
+ * @brief RpgLogicClientTutorial::Tutorial::Step::addMpEmitterEmptyEvent
+ * @param tmxId
+ */
+
+void RpgLogicClientTutorial::Tutorial::Step::addMpEmitterEmptyEvent(const int &tmxId)
+{
+	auto ev = std::make_unique<EventTmxMpEmitterEmpty>();
+	ev->tmxId = tmxId;
+	inputEvents.emplace_back(std::move(ev));
+}
+
+
+
+
+
+
 
 
 

@@ -175,6 +175,7 @@ public:
 
 
 		std::function<void(RpgLogicClientTutorial *)> fnInit;
+		std::function<void(RpgLogicClientTutorial *)> fnFirst;
 
 		std::optional<std::unordered_set<quint32> > towers;			// nullopt: default
 		std::optional<std::unordered_set<quint32> > emitters;		// nullopt: default
@@ -184,12 +185,18 @@ public:
 
 		struct Step {
 			QString message;
+
+			QString infoTitle;
+			QString infoText;
+			QString infoIcon;
+
 			std::vector<std::unique_ptr<RpgStream::BaseTickState> > inputEvents;
 
 			std::function<void(RpgLogicClientTutorial *, const quint32 &)> fnNext;
 
 			void addTargetEntityEvent(const std::function<bool(RpgEntity*)> &fn);
 			void addTargetControlEvent(const std::function<bool(TiledObjectBody*)> &fn);
+			void addMpEmitterEmptyEvent(const int &tmxId);
 		};
 
 		std::vector<Step> steps;
@@ -232,13 +239,26 @@ public:
 
 	RpgPlayer *player() const;
 
-	void npcAddToPoint(const QString &character, const QStringList &entryPoint,
+	void npcAddToPoint(const QString &character, const QStringList &entryPoint, const RpgStream::Team &team = RpgStream::TeamNone,
 					   const int &num = 1, const int &delay = 0);
 
-	void npcAddToPoint(const QString &character, const QString &entryPoint,
+	void npcAddToPoint(const QString &character, const QString &entryPoint, const RpgStream::Team &team = RpgStream::TeamNone,
 					   const int &num = 1, const int &delay = 0) {
-		npcAddToPoint(character, QStringList{entryPoint}, num, delay);
+		npcAddToPoint(character, QStringList{entryPoint}, team, num, delay);
 	}
+
+	void npcAddToPoint(const QString &character, const QStringList &entryPoint, const int &num, const int &delay = 0) {
+		npcAddToPoint(character, entryPoint, RpgStream::TeamNone, num, delay);
+	}
+
+	void npcAddToPoint(const QString &character, const QString &entryPoint, const int &num, const int &delay = 0) {
+		npcAddToPoint(character, QStringList{entryPoint}, RpgStream::TeamNone, num, delay);
+	}
+
+	bool towerSet(const quint32 &tmxId, const RpgStream::Team &team, const quint32 &load);
+
+	bool defenderAddToTower(const quint32 &tmxId, const RpgStream::BaseDefenderObject::Type &type, const RpgStream::Team &team);
+	bool defenderAddToPoint(const QString &entryPoint, const RpgStream::BaseDefenderObject::Type &type, const RpgStream::Team &team);
 
 protected:
 	virtual void eventRealized(entt::entity entity) override;
@@ -280,21 +300,37 @@ protected:
 	};
 
 
+	class EventTmxMpEmitterEmpty : public RpgStream::BaseTickState
+	{
+	public:
+		EventTmxMpEmitterEmpty() : RpgStream::BaseTickState() { }
+
+		int tmxId = 0;
+	};
+
+
 private:
 	void onControlledPlayerChanged();
 	void checkEvent(entt::entity entity);
 
-	template <typename T,
-			  typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T>::value>::type>
+	template <typename T, typename T2,
+			  typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T>::value>::type,
+			  typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T2>::value>::type>
 	bool compareEvent(const T &, const T &);
 
 
 	bool compareEvent(const RpgStream::EventStageChanged &step, const RpgStream::EventStageChanged &event);
+	bool compareEvent(const EventTmxMpEmitterEmpty &step, const EventMpEmitterEmpty &event);
 
 
 	template <typename T,
 			  typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T>::value>::type>
 	bool compareEvent(const RpgLogicScope &scope, entt::entity entity, const RpgStream::BaseTickState *state);
+
+	template <typename T, typename T2,
+			  typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T>::value>::type,
+			  typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T2>::value>::type>
+	bool compareEventDiff(const RpgLogicScope &scope, entt::entity entity, const RpgStream::BaseTickState *state);
 
 
 protected:
@@ -306,6 +342,7 @@ protected:
 	friend struct Tutorial;
 	friend struct Tutorial::Step;
 };
+
 
 
 

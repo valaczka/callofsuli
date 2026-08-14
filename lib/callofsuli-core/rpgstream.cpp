@@ -48,6 +48,7 @@ BaseDefenderObject::PlacementFlags BaseDefenderObject::placementFlags(const Type
 		case Fog:
 		case Pulse:
 		case Electric:
+		case Questionnaire:
 			return PlacementTower | PlacementChunk;
 
 		case Multiplier1:

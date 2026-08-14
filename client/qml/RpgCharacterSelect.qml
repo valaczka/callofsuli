@@ -15,19 +15,18 @@ QItemGradient {
 
 	readonly property bool _isEmpty: game && game.isEmpty
 
-	title: _isEmpty ? "EMPTY" :
-					  game ? game.readableRoom + " - " + game.terrain : ""
-
-	subtitle: !_isEmpty && game ? game.name + qsTr(" – level %1").arg(game.level): ""
+	title: !_isEmpty && game ? game.name + qsTr(" – level %1").arg(game.level): ""
 
 	appBar.rightComponent: Row {
 		Qaterial.Icon {
-			color: Qaterial.Style.iconColor()
-			icon: Qaterial.Icons.powerCycle
+			color: Qaterial.Colors.blue500
+			icon: Qaterial.Icons.shieldCrown
 		}
 
 		Qaterial.LabelHeadline6 {
 			text: num
+
+			color: Qaterial.Colors.blue500
 
 			property int num: game ? game.rpgUserData.token : 0
 
@@ -62,7 +61,7 @@ QItemGradient {
 		Qaterial.Card {
 			outlined: true
 
-			width: Math.min(parent.width, _viewCharacters.contentWidth)
+			width: Math.min(parent.width, Math.max(_viewCharacters.contentWidth, Qaterial.Style.maxContainerSize))
 			height: Math.min(parent.height, _isEmpty ? 800 : 500)
 
 			anchors.centerIn: parent
@@ -112,7 +111,7 @@ QItemGradient {
 							id: _labelLevel
 
 							text: level
-							icon.source: Qaterial.Icons.power
+							icon.source: Qaterial.Icons.flash
 
 							anchors.left: parent.left
 							anchors.bottom: parent.bottom
@@ -312,8 +311,8 @@ QItemGradient {
 
 						visible: _isEmpty
 
-						icon.source: Qaterial.Icons.check
-						text: qsTr("Select")
+						icon.source: Qaterial.Icons.bullseyeArrow
+						text: qsTr("Target")
 
 						enabled: _preview.character && _preview.character.level <= 0
 

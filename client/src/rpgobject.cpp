@@ -46,7 +46,7 @@ RpgObject::RpgObject(RpgGameItem *gameItem, const cpVect &center, const qreal &r
 
 RpgObject::~RpgObject()
 {
-	if (m_rpgGame)
+	if (m_rpgGame && m_rpgGame->rpgLogicClient())
 		m_rpgGame->rpgLogicClient()->removeFromMapper(this);
 }
 

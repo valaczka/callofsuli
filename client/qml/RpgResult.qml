@@ -69,7 +69,7 @@ Rectangle {
 
                             Qaterial.IconLabel {
                                 text: game.gameResultData.rpg.newLevel
-                                icon.source: Qaterial.Icons.power
+                                icon.source: Qaterial.Icons.flash
 
                                 anchors.left: parent.left
                                 anchors.bottom: parent.bottom
@@ -90,8 +90,8 @@ Rectangle {
 
                                 color: Qaterial.Colors.amber400
                                 text: pt
-                                icon.source: "qrc:/rpg/coin/coins.png"
-                                icon.color: "transparent"
+                                icon.source: Qaterial.Icons.flashCircle
+                                icon.color: color
 
                                 anchors.right: parent.right
                                 anchors.bottom: parent.bottom

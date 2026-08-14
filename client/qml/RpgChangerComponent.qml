@@ -21,7 +21,7 @@ ColumnLayout {
 										   type == "defender" ?
 											   Qaterial.Colors.green400 :
 											   type == "utility" ?
-												   Qaterial.Colors.pink400 :
+												   Qaterial.Colors.amber400 :
 												   Qaterial.Colors.white
 	implicitWidth: 250
 

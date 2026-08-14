@@ -67,6 +67,8 @@ public:
 
 	RpgStream::Full getRenderedState(const bool &isStageSelect);
 
+	static QList<RpgQuestData> singlePlayerQuests();
+
 protected:
 	virtual void eventRealized(entt::entity entity) override;
 	virtual void onNpcCreated(entt::entity entity, const quint32 &idTag, Rpg::Player *player) override;

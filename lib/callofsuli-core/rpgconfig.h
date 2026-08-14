@@ -136,7 +136,7 @@ struct CfgPowerLevel {
 		p.pushDist = cfg.entity().pushDist();
 		p.pushRest = cfg.entity().resist();
 
-		return p.atLevel(cfg.power());
+		return p;
 	}
 
 
@@ -150,14 +150,16 @@ struct CfgPowerLevel {
 	{
 		CfgPowerLevel r;
 
-		if (level < 1 || level > CFG_POWER_LEVEL_COUNT)
-			return r;
+		int realLevel = 1;
+
+		if (level >= 1 && level <= CFG_POWER_LEVEL_COUNT)
+			realLevel = level-1;
 
 
 		// A lépésszámnak megfeleltetendő érték, amivel a tower töltöttsége változik (%)
 
 		static const std::array<int, CFG_POWER_LEVEL_COUNT> towerLevel = {
-			10, 20, 25, 33, 50, 75, 100
+			10, 20, 25, 25, 33, 50, 75, 100
 		};
 
 
@@ -172,17 +174,17 @@ struct CfgPowerLevel {
 		};
 
 
-		r.hp = (float) this->hp * (1.0 + 0.2 * (level-1.));
-		r.mp = (float) this->mp * (1.0 + 0.2 * (level-1.));
-		r.bullet = (float) this->bullet * (1.0 + 0.25 * (level-1.));
-		r.push = (float) this->push * (1.0 + 0.02 * (level-1.));
-		r.pushDist = (float) this->pushDist * (1.0 + 0.1 * (level-1.));
-		r.pushRest = (float) this->pushRest * (1.0 + 0.3 * (level-1.));
+		r.hp = (float) this->hp * (1.0 + 0.2 * realLevel);
+		r.mp = (float) this->mp * (1.0 + 0.2 * realLevel);
+		r.bullet = (float) this->bullet * (1.0 + 0.25 * realLevel);
+		r.push = (float) this->push * (1.0 + 0.02 * realLevel);
+		r.pushDist = (float) this->pushDist * (1.0 + 0.1 * realLevel);
+		r.pushRest = (float) this->pushRest * (1.0 + 0.3 * realLevel);
 
-		const int tPlus = std::min(CFG_POWER_LEVEL_COUNT-1, this->towerPlus + towerStepPlus.at(level-1));
+		const int tPlus = std::min(CFG_POWER_LEVEL_COUNT-1, this->towerPlus + towerStepPlus.at(realLevel));
 		r.towerPlus = towerLevel.at(tPlus);
 
-		const int tMinus = std::max(CFG_POWER_LEVEL_COUNT-1, this->towerMinus + towerStepMinus.at(level-1));
+		const int tMinus = std::min(CFG_POWER_LEVEL_COUNT-1, this->towerMinus + towerStepMinus.at(realLevel));
 		r.towerMinus = towerLevel.at(tMinus);
 
 
@@ -204,10 +206,10 @@ struct CfgPowerLevel {
 			5, 5, 5, 4, 4, 4, 3, 3
 		};
 
-		r.penalty = penaltyValue.at(level-1);
-		r.defenderCount = dCountValue.at(level-1);
-		r.utilityCount = uCountValue.at(level-1);
-		r.skipLock = sCountValue.at(level-1);
+		r.penalty = penaltyValue.at(realLevel);
+		r.defenderCount = dCountValue.at(realLevel);
+		r.utilityCount = uCountValue.at(realLevel);
+		r.skipLock = sCountValue.at(realLevel);
 
 		return r;
 	}
@@ -405,16 +407,32 @@ struct CfgDefenderPulse
 
 
 
+struct CfgDefenderQuestionnaire
+{
+	const CfgDefenderBase base = {
+		.maxHp = 1,
+		.radius = 300,
+		.repeaterDelay = 20,
+		.actionsToHpLoss = 0,
+	};
+
+	const quint32 force = 2;					// Ennyi HP-t sebez
+	const quint32 pause = 120;					// Ennyit pihenhet (tick) a játékos az újabb támadás előtt
+};
+
+
 static inline const CfgDefenderPulse cfgDefenderPulse = {};
 static inline const CfgDefenderBase cfgDefenderFog = { .radius = 250 };
 static inline const CfgDefenderBase cfgDefenderMultiplier = { .maxHp = 2 };
 static inline const CfgDefenderBase cfgDefenderElectric = { .maxHp = 5, .actionsToHpLoss = 1 };
+static inline const CfgDefenderQuestionnaire cfgDefenderQuestionnaire = { };
 
 static inline const QHash<RpgStream::BaseDefenderObject::Type, int> cfgRequiredMpDefender = {
 	{ RpgStream::BaseDefenderObject::Fog,					5 },
 	{ RpgStream::BaseDefenderObject::Multiplier1,			1 },
 	{ RpgStream::BaseDefenderObject::Pulse,					2 },
 	{ RpgStream::BaseDefenderObject::Electric,				2 },
+	{ RpgStream::BaseDefenderObject::Questionnaire,			2 },
 };
 
 

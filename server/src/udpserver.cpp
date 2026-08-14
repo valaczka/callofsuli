@@ -348,8 +348,6 @@ UdpEngine *UdpServer::findEngine(const std::function<bool (const UdpRoom *)> &fn
 
 void UdpServer::removeEngine(UdpEngine *engine)
 {
-	LOG_CDEBUG("engine") << "REMOVE ENGINE" << engine;
-
 	Q_ASSERT(engine);
 
 	UdpRoom *room = engine->room();

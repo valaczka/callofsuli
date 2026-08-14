@@ -912,7 +912,8 @@ public:
 		Multiplier1,
 		Fog,
 		Pulse,
-		Electric
+		Electric,
+		Questionnaire
 	};
 
 	enum PlacementFlag {
@@ -1880,6 +1881,7 @@ public:
 		EventReplaceDefender,									// defender kicserélése
 		EventReplaceUtility,									// super képesség kicserélése
 		EventUseControl,										// pl. chest használata
+		EventUnlock												// válasz a támadásra (pl. questionnaire)
 	};
 
 	EventPlayer() : BaseEventState() {}
@@ -1893,7 +1895,7 @@ public:
 
 
 	STREAM_MEMBER(TAG_ID_TYPE, tagId, TagId, TAG_ID_BITS, 0);
-	STREAM_MEMBER_CAST(Type, type, Type, quint32, 4, EventNone)
+	STREAM_MEMBER_CAST(Type, type, Type, quint32, 5, EventNone)
 	STREAM_MEMBER(quint32, lockId, LockId, 32, 0);
 
 
