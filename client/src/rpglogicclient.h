@@ -149,9 +149,12 @@ protected:
 	virtual void eventRealized(entt::entity entity) override;
 	virtual void rewindStage(const RpgStream::GameConfig::Stage &oldStage) override;
 	virtual Rpg::QuestList getQuestList() const override;
+	virtual bool checkReadyToFinish() override;
 
 protected:
 	RpgGame *const m_game;
+
+	bool m_readyToFinish = false;
 };
 
 
@@ -197,6 +200,8 @@ public:
 			void addTargetEntityEvent(const std::function<bool(RpgEntity*)> &fn);
 			void addTargetControlEvent(const std::function<bool(TiledObjectBody*)> &fn);
 			void addMpEmitterEmptyEvent(const int &tmxId);
+			void addPlayerEvent(const std::function<bool (RpgPlayer *, const RpgStream::EventPlayer &)> &fn);
+			void addTowerEvent(const std::function<bool(RpgLogicClientTutorial *logic, const EventTowerActiveChanged &)> &fn);
 		};
 
 		std::vector<Step> steps;
@@ -260,6 +265,8 @@ public:
 	bool defenderAddToTower(const quint32 &tmxId, const RpgStream::BaseDefenderObject::Type &type, const RpgStream::Team &team);
 	bool defenderAddToPoint(const QString &entryPoint, const RpgStream::BaseDefenderObject::Type &type, const RpgStream::Team &team);
 
+	bool chestAddToPoint(const QString &entryPoint);
+
 protected:
 	virtual void eventRealized(entt::entity entity) override;
 	virtual void onTargetEntityChanged();
@@ -270,6 +277,7 @@ protected:
 	virtual std::vector<Chest> initializeChests() override;
 	virtual void initializeStages() override;
 	virtual Rpg::QuestList getQuestList() const override;
+	virtual bool checkReadyToFinish() override;
 
 	int stepForward();
 
@@ -309,6 +317,24 @@ protected:
 	};
 
 
+	class EventPlayerEvent : public RpgStream::BaseTickState
+	{
+	public:
+		EventPlayerEvent() : RpgStream::BaseTickState() { }
+
+		std::function<bool(RpgPlayer *, const RpgStream::EventPlayer &)> fnCmp;
+	};
+
+
+	class EventTowerEvent : public RpgStream::BaseTickState
+	{
+	public:
+		EventTowerEvent() : RpgStream::BaseTickState() { }
+
+		std::function<bool(RpgLogicClientTutorial *logic, const EventTowerActiveChanged &)> fnCmp;
+	};
+
+
 private:
 	void onControlledPlayerChanged();
 	void checkEvent(entt::entity entity);
@@ -321,6 +347,8 @@ private:
 
 	bool compareEvent(const RpgStream::EventStageChanged &step, const RpgStream::EventStageChanged &event);
 	bool compareEvent(const EventTmxMpEmitterEmpty &step, const EventMpEmitterEmpty &event);
+	bool compareEvent(const EventPlayerEvent &step, const RpgStream::EventPlayer &event);
+	bool compareEvent(const EventTowerEvent &step, const EventTowerActiveChanged &event);
 
 
 	template <typename T,
@@ -328,7 +356,6 @@ private:
 	bool compareEvent(const RpgLogicScope &scope, entt::entity entity, const RpgStream::BaseTickState *state);
 
 	template <typename T, typename T2,
-			  typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T>::value>::type,
 			  typename = std::enable_if<std::is_base_of<RpgStream::BaseTickState, T2>::value>::type>
 	bool compareEventDiff(const RpgLogicScope &scope, entt::entity entity, const RpgStream::BaseTickState *state);
 

@@ -186,6 +186,7 @@ void RpgUdpEngine::updateRoom()
 					 { QStringLiteral("power"),					d.config().power() },
 					 { QStringLiteral("team"),					d.team() },
 					 { QStringLiteral("onboard"),				d.flags().testFlag(RpgStream::PlayerData::FlagOnboard) },
+					 { QStringLiteral("host"),					d.playerId() == m_room->hostId() },
 				 });
 
 		if (d.playerId() == peerId())

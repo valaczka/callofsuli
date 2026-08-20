@@ -103,6 +103,7 @@ RpgGame::RpgGame(GameMapMissionLevel *missionLevel, Client *client, const bool &
 									QStringLiteral("power"),
 									QStringLiteral("team"),
 									QStringLiteral("onboard"),
+									QStringLiteral("host"),
 								});
 
 	m_modelCharacters->setRoleNames(Utils::getRolesFromObject(RpgUserCharacter().metaObject())
@@ -305,7 +306,7 @@ QUrl RpgGame::getCharacterImage(const QString &character) const
 bool RpgGame::loadTutorial(const QString &character)
 {
 	if (character.isEmpty()) {
-		if (m_client->loadDemoMap(QUrl("tutorial://test_tutorial1")))
+		if (m_client->loadDemoMap(QUrl("tutorial://default")))
 			return true;
 	} else {
 		if (m_client->loadDemoMap(QUrl("tutorial://character/"+character)))
@@ -465,6 +466,26 @@ QVariantMap RpgGame::getCharacterMetricAtLevel(const QString &character, const i
 		{ QStringLiteral("utilities"), uList },
 	};
 }
+
+
+/**
+ * @brief RpgGame::hasActiveTargetUtility
+ * @param utility
+ * @param target
+ * @return
+ */
+
+bool RpgGame::hasActiveTargetUtility(const RpgStream::PlayerConfig::Utility &utility, const RpgStream::Team &target) const
+{
+	if (target == RpgStream::TeamA)
+		return d->m_activeUtilitiesA.contains(utility);
+	else if (target == RpgStream::TeamB)
+		return d->m_activeUtilitiesB.contains(utility);
+	else
+		return d->m_activeUtilitiesA.contains(utility) || d->m_activeUtilitiesB.contains(utility);
+}
+
+
 
 
 /**
@@ -2009,12 +2030,12 @@ bool RpgGamePrivate::nextQuestion()
 	}
 
 	if (gq->questionComponent()) {
-		LOG_CERROR("game") << "GameQuestionComponent already loaded";
+		LOG_CTRACE("game") << "GameQuestionComponent already loaded";
 		return false;
 	}
 
 	if (m_questionLoadingStarted) {
-		LOG_CDEBUG("game") << "GameQuestion loading already started";
+		LOG_CTRACE("game") << "GameQuestion loading already started";
 		return true;
 	}
 
@@ -2475,6 +2496,105 @@ void RpgGamePrivate::syncGameState()
 						  state->ptsB() : state->ptsA());
 
 	q->setHeat(state->heat());
+
+
+
+	// Load utilities
+
+	QSet<RpgStream::PlayerConfig::Utility> tmp = m_activeUtilitiesA;
+
+	for (const RpgStream::PlayerConfig::Utility &u : state->utilitiesA()) {
+		tmp.remove(u);
+
+		if (!m_activeUtilitiesA.contains(u)) {
+			notifyUtilityActive(u, RpgStream::TeamA, true);
+			m_activeUtilitiesA.insert(u);
+		}
+	}
+
+	for (const RpgStream::PlayerConfig::Utility &u : tmp) {
+		notifyUtilityActive(u, RpgStream::TeamA, false);
+		m_activeUtilitiesA.remove(u);
+	}
+
+
+	tmp = m_activeUtilitiesB;
+
+	for (const RpgStream::PlayerConfig::Utility &u : state->utilitiesB()) {
+		tmp.remove(u);
+
+		if (!m_activeUtilitiesB.contains(u)) {
+			notifyUtilityActive(u, RpgStream::TeamB, true);
+			m_activeUtilitiesB.insert(u);
+		}
+	}
+
+	for (const RpgStream::PlayerConfig::Utility &u : tmp) {
+		notifyUtilityActive(u, RpgStream::TeamB, false);
+		m_activeUtilitiesB.remove(u);
+	}
+}
+
+
+
+/**
+ * @brief RpgGamePrivate::notifyUtilityActive
+ * @param type
+ * @param targetTeam
+ * @param active
+ */
+
+void RpgGamePrivate::notifyUtilityActive(const RpgStream::PlayerConfig::Utility &type, const RpgStream::Team &targetTeam, const bool active)
+{
+	if (!q->m_controlledPlayer) {
+		LOG_CTRACE("game") << "Missing controlled player";
+		return;
+	}
+
+	if (q->m_controlledPlayer->team() == targetTeam) {
+		QString txt;
+
+		switch (type) {
+			case RpgStream::PlayerConfig::UtilityBlockMpPick:
+				txt = active ? tr("MP pick blocked") : tr("MP pick blocking finished");
+				break;
+
+			case RpgStream::PlayerConfig::UtilityBlockMpConvert:
+				txt = active ? tr("MP convert blocked") : tr("MP convert blocking finished");
+				break;
+
+			case RpgStream::PlayerConfig::UtilityBlockAttack:
+				txt = active ? tr("Attack blocked") : tr("Attack blocking finished");
+				break;
+
+			case RpgStream::PlayerConfig::UtilityBoostPoint:
+				txt = active ? tr("Power boost") : tr("Power boost finished");
+				break;
+		}
+
+		if (!txt.isEmpty())
+			q->gameItem()->messageColor(txt, QColorConstants::Svg::red, active);
+	} else {
+		QString txt;
+
+		switch (type) {
+			case RpgStream::PlayerConfig::UtilityBlockMpPick:
+				txt = active ? tr("Opps MP pick blocked") : tr("Opps MP pick blocking finished");
+				break;
+
+			case RpgStream::PlayerConfig::UtilityBlockMpConvert:
+				txt = active ? tr("Opps MP convert blocked") : tr("Opps MP convert blocking finished");
+				break;
+
+			case RpgStream::PlayerConfig::UtilityBlockAttack:
+				txt = active ? tr("Opps attack blocked") : tr("Opps attack blocking finished");
+				break;
+
+		}
+
+		if (!txt.isEmpty())
+			q->gameItem()->message(txt, active);
+	}
 }
 
 

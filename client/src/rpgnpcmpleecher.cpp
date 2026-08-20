@@ -87,7 +87,7 @@ void RpgMotorNpcMpLeecher::updateTarget()
 	if (!p)
 		return;
 
-	if (!p->isAlive() || p->mp() <= 0 || p->team() == m_npc->team()) {
+	if (!p->isAlive() || p->mp() <= 0 || p->team() == m_npc->team() || p->invisible()) {
 		m_npc->setTargetEntity(nullptr);
 		m_targetReached = 0;
 		return;
@@ -215,7 +215,8 @@ void RpgMotorNpcMpLeecher::onShapeContactBegin(cpShape *self, cpShape *other)
 
 	if (self == m_npc->sensorPolygon()) {
 		if (RpgPlayer *player = dynamic_cast<RpgPlayer*>(otherBody)) {
-			if (!m_npc->targetEntity() && player->isAlive() && player->team() != m_npc->team() && player->mp() > 0) {
+			if (!m_npc->targetEntity() && player->isAlive() && player->team() != m_npc->team()
+					&& player->mp() > 0 && !player->invisible()) {
 				m_npc->setTargetEntity(player);
 				m_targetReached = 0;
 				m_lastAttack = 0;
@@ -280,6 +281,9 @@ void RpgMotorNpcMpLeecher::onShapeContactEnd(cpShape *self, cpShape *other)
 
 void RpgMotorNpcMpLeecher::attackTarget()
 {
+	if (!m_npc->canAttack())
+		return;
+
 	RpgPlayer *p = qobject_cast<RpgPlayer*>(m_npc->targetEntity());
 
 	if (!p)
@@ -308,7 +312,7 @@ void RpgMotorNpcMpLeecher::attackTarget()
 
 	RpgStream::EventNpc e(RpgStream::EventNpc::EventAttack);
 
-	if (p && p->isAlive() && p->mp() > 0)
+	if (p && p->isAlive() && p->mp() > 0 && !p->invisible())
 		e.setTargetId(RpgLogicObjectMapper::getId(p->objectId()));
 	else
 		return;

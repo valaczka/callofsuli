@@ -237,7 +237,7 @@ public:
 
 	static void updateBody(RpgPlayer *player, const RpgStream::PlayerState &state, const bool &isEmplace);
 	static void onAttack(RpgPlayer *player);
-	static void onUseUtility(RpgPlayer *player);
+	static void onUseUtility(RpgPlayer *player, const bool isControlled);
 
 protected:
 	virtual void processEventAt(const qint64 &tick);

@@ -17,15 +17,22 @@ QItemGradient {
 	//subtitle: game ? game.name + qsTr(" – level %1").arg(game.level): ""
 
 	appBar.rightComponent: Row {
+		spacing: 5
+
 		Qaterial.Icon {
 			color: Qaterial.Colors.blue500
 			icon: Qaterial.Icons.shieldCrown
+
+			anchors.verticalCenter: parent.verticalCenter
 		}
 
 		Qaterial.LabelHeadline6 {
 			text: num
 
 			color: Qaterial.Colors.blue500
+
+			anchors.verticalCenter: parent.verticalCenter
+			rightPadding: Qaterial.Style.horizontalPadding
 
 			property int num: game ? game.rpgUserData.token : 0
 
@@ -53,9 +60,10 @@ QItemGradient {
 
 			text: nickname
 
-			secondaryText: username+" "+playerId
+			secondaryText: host ? qsTr("Host") : ""
 
-			icon.color: onboard ? Qaterial.Colors.green500 : Qaterial.Style.iconColor()
+			textColor: onboard ? Qaterial.Colors.green500 : Qaterial.Style.colorTheme.primaryText
+			iconColor: onboard ? Qaterial.Colors.green500 : Qaterial.Style.iconColor()
 			icon.source: onboard ? Qaterial.Icons.checkCircle : Qaterial.Icons.accountOutline
 
 			highlighted: game && game.engine && game.engine.getPeerId() == playerId
@@ -153,7 +161,7 @@ QItemGradient {
 					QButton {
 						//anchors.horizontalCenter: parent.horizontalCenter
 
-						icon.source: Qaterial.Icons.refresh
+						icon.source: Qaterial.Icons.swapHorizontalBold
 						text: qsTr("Csere")
 
 						display: _grid1.flow == GridLayout.TopToBottom ? AbstractButton.TextBesideIcon : AbstractButton.IconOnly
@@ -340,6 +348,9 @@ QItemGradient {
 
 					delegate: RpgSelectCard {
 						id: _selectPlayer
+
+						width: ListView.view.height
+						height: ListView.view.height
 
 						readonly property bool isTarget: character === game.rpgUserData.target
 

@@ -1,30 +1,14 @@
 PRAGMA foreign_keys = OFF;
 
-----------------------------------
---- Old wallet, currency
-----------------------------------
+DROP TABLE IF EXISTS wallet;
 
---- CHANGE currency TO token;
---- DROP TABLE wallet;
---- DROP TABLE currency;
---- DROP TABLE inventory;
---- DROP TABLE inventoryLimit;
+DROP TABLE IF EXISTS inventory;
+
+DROP TABLE IF EXISTS inventoryLimit;
 
 ----------------------------------
 --- Rpg
 ----------------------------------
-
-DROP TABLE rpgDrop;
-
-DROP TABLE rpgGame;
-
-DROP TABLE rpgUserWeekly;
-
-DROP TABLE rpgWeekly;
-
-DROP TABLE rpgTarget;
-
-DROP TABLE rpgCharacter;
 
 CREATE TABLE rpgCharacter(
 	id INTEGER NOT NULL PRIMARY KEY,

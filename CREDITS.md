@@ -107,7 +107,13 @@
 - Medieval Shield - (c) Artem Mykhailov (https://skfb.ly/6SQuN)
 - turbine-01 - (c) Karan.Dhindsa (https://skfb.ly/6Vn7Q)
 - Scrap metal (lowpoly) - (c) Zuckergelee (https://skfb.ly/ovXPw) 
-
+- Fan 3D model - (c) Lyricsz - Onaleye Promise Joseph (https://opengameart.org/content/fan-3d-model-uncomplete)
+- Cash register (https://skfb.ly/pCunF)
+- Electric Gun - (c) Rukh3D (https://skfb.ly/oEoVw)
+- Question mark - (c) Zacxophone (https://skfb.ly/6Prur) 
+- Crystal Heart - (c) Talaei (https://skfb.ly/ooRq7)
+- 9mm Pistol - (c) TORI106 (https://skfb.ly/owxRE)
+- Praying Soldier - (c) Next Stop Willoughby (https://skfb.ly/6sqtA)
 
 **Music & SFX**
 

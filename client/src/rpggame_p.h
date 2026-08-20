@@ -57,7 +57,7 @@ public:
 	CommonGameDefinition() : TiledGameDefinition() {
 		basePath = QStringLiteral("qrc:/map/map_common/");
 
-		static const QStringList list = {
+		/*static const QStringList list = {
 			QStringLiteral("def_pulse.tmx"),
 			QStringLiteral("def_multiplier1.tmx"),
 		};
@@ -66,7 +66,7 @@ public:
 			TiledSceneDefinition sc;
 			sc.file = s;
 			scenes.emplace_back(std::move(sc));
-		}
+		}*/
 	}
 
 };
@@ -177,6 +177,7 @@ private:
 	void syncGameConfig(const RpgStream::GameConfig &config, const quint32 &tick);
 
 	void syncGameState();
+	void notifyUtilityActive(const RpgStream::PlayerConfig::Utility &type, const RpgStream::Team &targetTeam, const bool active);
 
 	void syncTowersAndEmitters();
 	void syncObjects();
@@ -248,6 +249,11 @@ private:
 
 	QVariantMap m_metric;
 
+
+	// Team targeted utilities
+
+	QSet<RpgStream::PlayerConfig::Utility> m_activeUtilitiesA;
+	QSet<RpgStream::PlayerConfig::Utility> m_activeUtilitiesB;
 
 
 	inline static RpgStream::HashFnv1A64 m_terrainHash = {};

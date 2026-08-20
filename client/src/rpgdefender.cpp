@@ -84,46 +84,92 @@ static struct {
 
 
 
-
-
-// Electric
+// Multiplier1
 
 static struct {
-	QSize size = {192, 210};
+	QSize size = {192, 192};
 	int height = 0;
 
 	TiledObjectSprite spriteNormal = {
 		"normal",
-		2,
-		0, 630, size.width(), size.height(),
-		30,
+		12,
+		0, 0, size.width(), size.height(),
+		50,
 		0,
 		true
 	};
 
 	TiledObjectSprite spriteActive = {
 		"active",
-		20,
+		12,
 		0, 0, size.width(), size.height(),
-		15,
+		50,
 		0,
-		true,
-		true			// reverse
+		true
 	};
 
 	TiledObjectSprite spriteDestroyed = {
 		"destroyed",
 		1,
-		384, 630, size.width(), size.height(),
+		384, 384, size.width(), size.height(),
 		30,
 		1,
 		true
 	};
 
-	QString source = ":/rpg/defenderPulse/spritesheet.png";
+	QString source = ":/rpg/defenderMultiplier1/spritesheet.png";
 	RpgControlCommon::SpriteAnimations animations = RpgControlCommon::AnimationNone;
-	QPointF offset = { 100-((float) size.width()/2),
-					   153-((float) size.height()/2) };
+	QPointF offset = { 95-((float) size.width()/2),
+					   145-((float) size.height()/2) };
+
+	TiledObjectSpriteList spriteList() const {
+		TiledObjectSpriteList l;
+		l.sprites << spriteNormal << spriteActive << spriteDestroyed;
+		return l;
+	};
+} defenderMultiplier1;
+
+
+
+
+
+// Electric
+
+static struct {
+	QSize size = {192, 192};
+	int height = 0;
+
+	TiledObjectSprite spriteNormal = {
+		"normal",
+		10,
+		0, 0, size.width(), size.height(),
+		40,
+		0,
+		true
+	};
+
+	TiledObjectSprite spriteActive = {
+		"active",
+		13,
+		768, 192, size.width(), size.height(),
+		15,
+		1,
+		true
+	};
+
+	TiledObjectSprite spriteDestroyed = {
+		"destroyed",
+		1,
+		960, 576, size.width(), size.height(),
+		30,
+		1,
+		true
+	};
+
+	QString source = ":/rpg/defenderElectric/spritesheet.png";
+	RpgControlCommon::SpriteAnimations animations = RpgControlCommon::AnimationNone;
+	QPointF offset = { 96-((float) size.width()/2),
+					   184-((float) size.height()/2) };
 
 	TiledObjectSpriteList spriteList() const {
 		TiledObjectSpriteList l;
@@ -134,6 +180,112 @@ static struct {
 
 
 
+
+
+
+// Questionnaire
+
+static struct {
+	QSize size = {192, 192};
+	int height = 0;
+
+	TiledObjectSprite spriteNormal = {
+		"normal",
+		27,
+		0, 0, size.width(), size.height(),
+		90,
+		0,
+		true
+	};
+
+	TiledObjectSprite spriteActive = {
+		"active",
+		27,
+		0, 0, size.width(), size.height(),
+		60,
+		0,
+		true
+	};
+
+	TiledObjectSprite spriteDestroyed = {
+		"destroyed",
+		1,
+		576, 768, size.width(), size.height(),
+		30,
+		1,
+		true
+	};
+
+	QString source = ":/rpg/defenderQuestionnaire/spritesheet.png";
+	RpgControlCommon::SpriteAnimations animations = RpgControlCommon::AnimationNone;
+	QPointF offset = { 95-((float) size.width()/2),
+					   145-((float) size.height()/2) };
+
+	TiledObjectSpriteList spriteList() const {
+		TiledObjectSpriteList l;
+		l.sprites << spriteNormal << spriteActive << spriteDestroyed;
+		return l;
+	};
+} defenderQuestionnaire;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// HP healer
+
+static struct {
+	QSize size = {192, 192};
+	int height = 0;
+
+	TiledObjectSprite spriteNormal = {
+		"normal",
+		10,
+		0, 0, size.width(), size.height(),
+		75,
+		0,
+		true
+	};
+
+	TiledObjectSprite spriteActive = {
+		"active",
+		10,
+		768, 192, size.width(), size.height(),
+		75,
+		0,
+		true
+	};
+
+	TiledObjectSprite spriteDestroyed = {
+		"destroyed",
+		1,
+		384, 576, size.width(), size.height(),
+		30,
+		1,
+		true
+	};
+
+	QString source = ":/rpg/defenderHpHealer/spritesheet.png";
+	RpgControlCommon::SpriteAnimations animations = RpgControlCommon::AnimationNone;
+	QPointF offset = { 95-((float) size.width()/2),
+					   145-((float) size.height()/2) };
+
+	TiledObjectSpriteList spriteList() const {
+		TiledObjectSpriteList l;
+		l.sprites << spriteNormal << spriteActive << spriteDestroyed;
+		return l;
+	};
+} defenderHpHealer;
 
 
 
@@ -210,8 +362,15 @@ RpgDefender *RpgDefender::createDefender(const Rpg::DefenderObject &defender, Rp
 														  scene, gameItem,
 														  defender);
 
-		case RpgStream::BaseDefenderObject::Pulse:
 		case RpgStream::BaseDefenderObject::Questionnaire:
+			spriteList = defenderQuestionnaire.spriteList();
+			spriteSource = defenderQuestionnaire.source;
+			animations = defenderQuestionnaire.animations;
+			offset = defenderQuestionnaire.offset;
+			height = defenderQuestionnaire.height;
+			break;
+
+		case RpgStream::BaseDefenderObject::Pulse:
 			//common = QStringLiteral("def_pulse.tmx");
 			/*baseImage = {
 				{ StateNormal, QStringLiteral(":/rpg/time/pickable.png") },
@@ -225,7 +384,11 @@ RpgDefender *RpgDefender::createDefender(const Rpg::DefenderObject &defender, Rp
 			break;
 
 		case RpgStream::BaseDefenderObject::Multiplier1:
-			common = QStringLiteral("def_multiplier1.tmx");
+			spriteList = defenderMultiplier1.spriteList();
+			spriteSource = defenderMultiplier1.source;
+			animations = defenderMultiplier1.animations;
+			offset = defenderMultiplier1.offset;
+			height = defenderMultiplier1.height;
 			break;
 
 		case RpgStream::BaseDefenderObject::Electric:
@@ -234,6 +397,14 @@ RpgDefender *RpgDefender::createDefender(const Rpg::DefenderObject &defender, Rp
 			animations = defenderElectric.animations;
 			offset = defenderElectric.offset;
 			height = defenderElectric.height;
+			break;
+
+		case RpgStream::BaseDefenderObject::HpHealer:
+			spriteList = defenderHpHealer.spriteList();
+			spriteSource = defenderHpHealer.source;
+			animations = defenderHpHealer.animations;
+			offset = defenderHpHealer.offset;
+			height = defenderHpHealer.height;
 			break;
 
 
@@ -261,6 +432,18 @@ RpgDefender *RpgDefender::createDefender(const Rpg::DefenderObject &defender, Rp
 			c->m_markerItem->setProperty("entityHeight", height);
 
 		c->setBodyOffset(offset);
+
+
+		if (defender.type == RpgStream::BaseDefenderObject::Electric) {
+			connect(c, &RpgDefenderCommon::hurt, c, [c]() {
+				c->jumpToSprite("active");
+				c->jumpToSpriteLater("normal");
+
+				c->game()->playSfx(QStringLiteral(":/rpg/lightning/lightning2.mp3"),
+								   c->scene(), c->bodyPositionF());
+			});
+		}
+
 		return c;
 	}
 

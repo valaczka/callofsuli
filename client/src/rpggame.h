@@ -427,6 +427,9 @@ public:
 	Q_INVOKABLE QVariantMap getCharactersMetric() const;
 	Q_INVOKABLE QVariantMap getCharacterMetricAtLevel(const QString &character, const int &level) const;
 
+	Q_INVOKABLE bool hasActiveTargetUtility(const RpgStream::PlayerConfig::Utility &utility,
+											const RpgStream::Team &target = RpgStream::TeamNone) const;
+
 
 	static RpgGame *createEmptyGame(Client *client);
 

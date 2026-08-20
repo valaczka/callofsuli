@@ -75,9 +75,10 @@ void RpgDefenderFog::initialize()
 
 	m_visual.setImageItem(item);
 
+	setBodyOffset(0, 45);
 
-	m_visual.addSource(StateActive, QUrl::fromLocalFile(QStringLiteral(":/rpg/time/pickable.png")));
-	m_visual.addSource(StateDestroyed, QUrl::fromLocalFile(QStringLiteral(":/rpg/key/pickable.png")));
+	m_visual.addSource(StateActive, QUrl::fromLocalFile(QStringLiteral(":/rpg/defenderFog/fan.png")));
+	m_visual.addSource(StateDestroyed, QUrl::fromLocalFile(QStringLiteral(":/rpg/defenderFog/destroyed.png")));
 
 
 	QQmlComponent component(Application::instance()->engine(), QStringLiteral("qrc:/RpgDefenderFogVisual.qml"), this);

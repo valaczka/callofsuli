@@ -49,6 +49,7 @@ BaseDefenderObject::PlacementFlags BaseDefenderObject::placementFlags(const Type
 		case Pulse:
 		case Electric:
 		case Questionnaire:
+		case HpHealer:
 			return PlacementTower | PlacementChunk;
 
 		case Multiplier1:
@@ -269,6 +270,8 @@ EngineStream &PlayerState::operator<<(EngineStream &stream)
 	readQuestionDelta(stream);
 	readStreakDelta(stream);
 
+	readActiveUtilities(stream);
+
 	return stream;
 }
 
@@ -300,6 +303,8 @@ EngineStream &PlayerState::operator>>(EngineStream &stream) const
 
 	writeQuestionDelta(stream);
 	writeStreakDelta(stream);
+
+	writeActiveUtilities(stream);
 
 	return stream;
 }
@@ -914,6 +919,9 @@ EngineStream &GameState::operator<<(EngineStream &stream)
 	readPtsB(stream);
 	readHeat(stream);
 
+	readUtilitiesA(stream);
+	readUtilitiesB(stream);
+
 	return stream;
 }
 
@@ -931,6 +939,9 @@ EngineStream &GameState::operator>>(EngineStream &stream) const
 	writePtsA(stream);
 	writePtsB(stream);
 	writeHeat(stream);
+
+	writeUtilitiesA(stream);
+	writeUtilitiesB(stream);
 
 	return stream;
 }
@@ -2132,6 +2143,8 @@ EngineStream &Character::operator>>(EngineStream &stream) const
 
 	return stream;
 }
+
+
 
 
 

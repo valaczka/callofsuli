@@ -375,6 +375,50 @@ void RpgLogicClientSingle::rewindStage(const RpgStream::GameConfig::Stage &oldSt
 
 
 
+/**
+ * @brief RpgLogicClientSingle::checkReadyToFinish
+ * @return
+ */
+
+bool RpgLogicClientSingle::checkReadyToFinish()
+{
+	if (m_readyToFinish)
+		return true;
+
+	RpgLogicScope scope = getScope();
+
+	RpgStream::GameState *state = scope.getCtx<RpgStream::GameState>();
+
+	Q_ASSERT(state);
+
+	for (auto e : m_registry.view<Player>()) {
+		const Player &p = m_registry.get<Player>(e);
+		const RpgStream::PlayerState *last = getLastState<RpgStream::PlayerState>(e);
+
+		if (!last) {
+			ELOG_ERROR << "Invalid PlayerState" << p.playerData.playerId();
+			continue;
+		}
+
+		if (p.playerData.quest().question() == 0 ||
+				p.playerData.quest().streak() == 0)
+			continue;
+
+		bool success = last->question() >= p.playerData.quest().question()  &&
+					   last->streak() >= p.playerData.quest().streak() &&
+					   state->ptsA() >= p.playerData.quest().pts();
+
+		if (success) {
+			m_readyToFinish = true;
+			return false;
+		}
+	}
+
+	return false;
+}
+
+
+
 
 
 /**
@@ -388,9 +432,9 @@ QuestList RpgLogicClientSingle::getQuestList() const
 		return m_game->rpgUserData().getQuests();
 
 	static const std::vector<std::array<int, 5> > data = {
-		{ 4,	3,	200,	540,	15 },
-		{ 6,	4,	650,	580,	25 },
-		{ 13,	6,	900,	1540,	215 },
+		{ 10,	3,	600,	100,	10 },
+		{ 12,	4,	1200,	200,	15 },
+		{ 15,	6,	2000,	300,	20 },
 	};
 
 	QuestList list;
@@ -872,7 +916,7 @@ bool RpgLogicClientTutorial::compareEvent(const RpgLogicScope &scope, entt::enti
  * @return
  */
 
-template<typename T, typename T2, typename T3, typename T4>
+template<typename T, typename T2, typename T3>
 bool RpgLogicClientTutorial::compareEventDiff(const RpgLogicScope &scope, entt::entity entity, const RpgStream::BaseTickState *state)
 {
 	const T* ev = scope.try_get<T>(entity);
@@ -935,6 +979,10 @@ RpgLogicClientTutorial::~RpgLogicClientTutorial()
 
 void RpgLogicClientTutorial::overrideMapData(RpgStream::MapData &data)
 {
+	if (m_tutorial && !m_tutorial->chests)
+		return;
+
+	ELOG_INFO << "Clear chests";
 	data.heat().clear();
 }
 
@@ -1185,6 +1233,36 @@ bool RpgLogicClientTutorial::defenderAddToPoint(const QString &entryPoint, const
 
 
 
+
+/**
+ * @brief RpgLogicClientTutorial::chestAddToPoint
+ * @param entryPoint
+ * @return
+ */
+
+bool RpgLogicClientTutorial::chestAddToPoint(const QString &entryPoint)
+{
+	const auto pos = m_game->entryPoint(entryPoint);
+
+	if (!pos) {
+		LOG_CERROR("game") << "Invalid entry point" << entryPoint;
+		return false;
+	}
+
+	Rpg::RpgLogicScope scope = getScope();
+
+	Chest ch;
+	ch.pos.x = pos->x();
+	ch.pos.y = pos->y();
+
+	this->chestAdd(ch);
+
+	return true;
+}
+
+
+
+
 /**
  * @brief RpgLogicClientTutorial::eventRealized
  * @param entity
@@ -1339,6 +1417,24 @@ void RpgLogicClientTutorial::initializeStages()
 
 
 
+
+
+/**
+ * @brief RpgLogicClientTutorial::checkReadyToFinish
+ * @return
+ */
+
+bool RpgLogicClientTutorial::checkReadyToFinish()
+{
+	if (m_tutorial) {
+		if (!m_tutorial->steps.empty() && m_tutorial->currentStep < (int) m_tutorial->steps.size())
+			return false;
+	}
+	return RpgLogicClientSingle::checkReadyToFinish();
+}
+
+
+
 /**
  * @brief RpgLogicClientTutorial::getQuestList
  * @return
@@ -1435,6 +1531,9 @@ void RpgLogicClientTutorial::onTimerTimeout()
 	if (!m_currentStep || m_currentStep->message.isEmpty())
 		return;
 
+	if (m_game->gameState() != RpgGame::GameStatePlay)
+		return;
+
 	m_game->gameItem()->message(m_currentStep->message, true);
 
 }
@@ -1495,7 +1594,9 @@ void RpgLogicClientTutorial::checkEvent(entt::entity entity)
 	for (auto it = m_currentStep->inputEvents.cbegin(); it != m_currentStep->inputEvents.cend(); ) {
 		if (
 				compareEvent<RpgStream::EventStageChanged>(scope, entity, it->get()) ||
-				compareEventDiff<EventMpEmitterEmpty, EventTmxMpEmitterEmpty>(scope, entity, it->get())
+				compareEventDiff<EventMpEmitterEmpty, EventTmxMpEmitterEmpty>(scope, entity, it->get()) ||
+				compareEventDiff<RpgStream::EventPlayer, EventPlayerEvent>(scope, entity, it->get()) ||
+				compareEventDiff<EventTowerActiveChanged, EventTowerEvent>(scope, entity, it->get())
 				) {
 			it = m_currentStep->inputEvents.erase(it);
 			continue;
@@ -1551,6 +1652,36 @@ bool RpgLogicClientTutorial::compareEvent(const EventTmxMpEmitterEmpty &step, co
 
 
 
+/**
+ * @brief RpgLogicClientTutorial::compareEvent
+ * @param step
+ * @param event
+ * @return
+ */
+
+bool RpgLogicClientTutorial::compareEvent(const EventPlayerEvent &step, const RpgStream::EventPlayer &event)
+{
+	return step.fnCmp && step.fnCmp(this->player(), event);
+}
+
+
+
+/**
+ * @brief RpgLogicClientTutorial::compareEvent
+ * @param step
+ * @param event
+ * @return
+ */
+
+bool RpgLogicClientTutorial::compareEvent(const EventTowerEvent &step, const EventTowerActiveChanged &event)
+{
+	return step.fnCmp && step.fnCmp(this, event);
+}
+
+
+
+
+
 
 /**
  * @brief RpgLogicClientTutorial::Tutorial::Step::addTargetEntityEvent
@@ -1588,6 +1719,36 @@ void RpgLogicClientTutorial::Tutorial::Step::addMpEmitterEmptyEvent(const int &t
 {
 	auto ev = std::make_unique<EventTmxMpEmitterEmpty>();
 	ev->tmxId = tmxId;
+	inputEvents.emplace_back(std::move(ev));
+}
+
+
+
+
+/**
+ * @brief RpgLogicClientTutorial::Tutorial::Step::addPlayerEvent
+ * @param fn
+ */
+
+void RpgLogicClientTutorial::Tutorial::Step::addPlayerEvent(const std::function<bool (RpgPlayer *, const RpgStream::EventPlayer &)> &fn)
+{
+	auto ev = std::make_unique<EventPlayerEvent>();
+	ev->fnCmp = fn;
+	inputEvents.emplace_back(std::move(ev));
+}
+
+
+
+
+/**
+ * @brief RpgLogicClientTutorial::Tutorial::Step::addTowerEvent
+ * @param fn
+ */
+
+void RpgLogicClientTutorial::Tutorial::Step::addTowerEvent(const std::function<bool (RpgLogicClientTutorial *, const EventTowerActiveChanged &)> &fn)
+{
+	auto ev = std::make_unique<EventTowerEvent>();
+	ev->fnCmp = fn;
 	inputEvents.emplace_back(std::move(ev));
 }
 

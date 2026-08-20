@@ -295,7 +295,7 @@ RpgEntity *RpgMotorEntity::findNearestTarget(const cpBitmask &category)
 	for (TiledObjectBody *b : std::as_const(bds)) {
 		RpgEntity *e = dynamic_cast<RpgEntity*>(b);
 
-		if (!e || !e->isAlive())
+		if (!e || !e->isAlive() || e->invisible())
 			continue;
 
 		if (e->team() == m_entity->team())
@@ -327,7 +327,7 @@ RpgEntity *RpgMotorEntity::findNearestTarget(const cpVect &rayDest, const cpBitm
 
 		RpgEntity *e = dynamic_cast<RpgEntity*>(TiledObjectBody::fromShapeRef(i.shape));
 
-		if (!e || !e->isAlive())
+		if (!e || !e->isAlive() || e->invisible())
 			continue;
 
 		if (e->team() == m_entity->team())
@@ -449,4 +449,17 @@ void RpgEntity::setLocked(bool newLocked)
 		return;
 	m_locked = newLocked;
 	emit lockedChanged();
+}
+
+bool RpgEntity::invisible() const
+{
+	return m_invisible;
+}
+
+void RpgEntity::setInvisible(bool newInvisible)
+{
+	if (m_invisible == newInvisible)
+		return;
+	m_invisible = newInvisible;
+	emit invisibleChanged();
 }

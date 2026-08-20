@@ -56,7 +56,7 @@
 #define CFG_PENALTY_AUTO_UNLOCK			300						// player penalty after auto unlock (no answer)
 
 #define CFG_TOWER_COUNT					3						// used towers
-#define CFG_TOWER_LOCK					60*30					// tower lock after activation in tick
+#define CFG_TOWER_LOCK					20*60					// tower lock after activation in tick
 #define CFG_TOWER_LOCK_STAGE_L			0						// tower lock after activation in tick in stage Last
 #define CFG_TOWER_INACTIVE				80						// tower inactivate below percent
 
@@ -70,7 +70,7 @@
 
 #define CFG_MAX_POINT_FACTOR			1.0						// max. point calculation factor for multiplayer heats
 
-#define CFG_MP_CHANGE_BULLET			1//8					// mp cost of bullet change
+#define CFG_MP_CHANGE_BULLET			10						// mp cost of bullet change
 
 #define CFG_QUESTION_MAX_DURATION		30*60					// question's max. duration in tick
 
@@ -338,7 +338,7 @@ struct CfgDropGenerator
  */
 
 static inline const std::vector<int> cfgDropDay = { 1, 3, 5 };				// Napi győzelem
-static inline const std::vector<int> cfgDropTerrain = { 5, 10, 15, 20, 25, 30 };				// Terep győzelem
+static inline const std::vector<int> cfgDropTerrain = { 2, 5, 10, 15 };		// Terep győzelem
 
 
 
@@ -353,12 +353,12 @@ struct CfgRewardStreak {
 };
 
 static const QHash<quint32, CfgRewardStreak> cfgRewardStreak = {
-	{ 3, {.point=15, .hp=1} },
-	{ 5, {.point=20, .hp=2} },
-	{ 7, {.point=30, .hp=3} },
-	{ 10, {.point=50, .hp=4} },
-	{ 12, {.point=75, .hp=5} },
-	{ 15, {.point=100, .hp=6} },
+	{ 3, {.point=15, .hp=0} },
+	{ 5, {.point=20, .hp=1} },
+	{ 7, {.point=30, .hp=1} },
+	{ 10, {.point=50, .hp=2} },
+	{ 12, {.point=75, .hp=2} },
+	{ 15, {.point=100, .hp=2} },
 };
 
 
@@ -407,32 +407,49 @@ struct CfgDefenderPulse
 
 
 
-struct CfgDefenderQuestionnaire
+struct CfgDefenderAttack
 {
 	const CfgDefenderBase base = {
 		.maxHp = 1,
 		.radius = 300,
-		.repeaterDelay = 20,
+		.repeaterDelay = 120,
 		.actionsToHpLoss = 0,
 	};
 
 	const quint32 force = 2;					// Ennyi HP-t sebez
-	const quint32 pause = 120;					// Ennyit pihenhet (tick) a játékos az újabb támadás előtt
 };
 
 
 static inline const CfgDefenderPulse cfgDefenderPulse = {};
 static inline const CfgDefenderBase cfgDefenderFog = { .radius = 250 };
 static inline const CfgDefenderBase cfgDefenderMultiplier = { .maxHp = 2 };
-static inline const CfgDefenderBase cfgDefenderElectric = { .maxHp = 5, .actionsToHpLoss = 1 };
-static inline const CfgDefenderQuestionnaire cfgDefenderQuestionnaire = { };
+static inline const CfgDefenderAttack cfgDefenderElectric = {
+	.base = { .maxHp = 5, .actionsToHpLoss = 1 },
+	.force = 2
+};
+static inline const CfgDefenderAttack cfgDefenderQuestionnaire = {
+	.base =  { .maxHp = 1,
+			   .repeaterDelay = 200,
+			   .actionsToHpLoss = 0
+	},
+	.force = 1
+};
+static inline const CfgDefenderAttack cfgDefenderHpHealer = {
+	.base =  { .maxHp = 2,
+			   .radius = 250,
+			   .repeaterDelay = 60,
+			   .actionsToHpLoss = 8
+	},
+	.force = 1
+};
 
 static inline const QHash<RpgStream::BaseDefenderObject::Type, int> cfgRequiredMpDefender = {
 	{ RpgStream::BaseDefenderObject::Fog,					5 },
-	{ RpgStream::BaseDefenderObject::Multiplier1,			1 },
+	{ RpgStream::BaseDefenderObject::Multiplier1,			8 },
 	{ RpgStream::BaseDefenderObject::Pulse,					2 },
 	{ RpgStream::BaseDefenderObject::Electric,				2 },
 	{ RpgStream::BaseDefenderObject::Questionnaire,			2 },
+	{ RpgStream::BaseDefenderObject::HpHealer,				2 },
 };
 
 
@@ -443,24 +460,34 @@ static inline const QHash<RpgStream::BaseDefenderObject::Type, int> cfgRequiredM
 /// UTILITY
 
 
-struct CfgUtilityMissionary
+struct CfgUtilityDistance
 {
 	const quint32 dist = 200;
 };
 
-
-struct CfgUtilitySniper
+struct CfgUtilityDuration
 {
-	const quint32 dist = 800;
+	const quint32 duration = 10*60;									// tick
 };
 
 
-static inline const CfgUtilityMissionary cfgUtilityMissionary = {};
-static inline const CfgUtilitySniper cfgUtilitySniper = {};
+static inline const CfgUtilityDistance cfgUtilityMissionary = {};
+static inline const CfgUtilityDistance cfgUtilitySniper = { .dist = 800 };
+static inline const CfgUtilityDuration cfgUtilityInvisible = { .duration = 20*60 };
+static inline const CfgUtilityDuration cfgUtilityBlockMpPick = { .duration = 15*60 };
+static inline const CfgUtilityDuration cfgUtilityBlockMpConvert = { .duration = 15*60 };
+static inline const CfgUtilityDuration cfgUtilityBlockAttack = { .duration = 10*60 };
+static inline const CfgUtilityDuration cfgUtilityBoostPoint = { .duration = 20*60 };
 
 static inline const QHash<RpgStream::PlayerConfig::Utility, int> cfgRequiredMpUtility = {
 	{ RpgStream::PlayerConfig::UtilityMissionary,					2 },
 	{ RpgStream::PlayerConfig::UtilitySniper,						6 },
+	{ RpgStream::PlayerConfig::UtilityInvisible,					3 },
+	{ RpgStream::PlayerConfig::UtilityBlockMpPick,					3 },
+	{ RpgStream::PlayerConfig::UtilityBlockMpConvert,				3 },
+	{ RpgStream::PlayerConfig::UtilityBlockAttack,					3 },
+	{ RpgStream::PlayerConfig::UtilityBoostAttackTower,				3 },
+	{ RpgStream::PlayerConfig::UtilityBoostPoint,					3 },
 };
 
 

@@ -13,6 +13,8 @@ RpgDialog {
 	required property RpgGame game
 	required property var questData
 
+	dialogImplicitHeight: 500
+
 	anchors.fill: parent
 
 	ListModel {
@@ -63,7 +65,7 @@ RpgDialog {
 					anchors.fill: parent
 					spacing: 20
 
-					Qaterial.LabelBody1 {
+					Qaterial.LabelHeadline5 {
 						Layout.fillHeight: false
 						Layout.fillWidth: false
 						Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
@@ -278,7 +280,7 @@ RpgDialog {
 			_modelUtility.append(questData.utilities[i])
 
 			if (i==0 || questData.utilities[i].key == keyU)
-				idxD = i
+				idxU = i
 		}
 
 		for (let i=0; i<questData.quests.length; ++i) {
@@ -292,17 +294,20 @@ RpgDialog {
 
 		if (idxD != -1) {
 			game.questSelect({defender: idxD})
+			_tumblerDefender.currentIndex = idxD
 			_tumblerDefender.positionViewAtIndex(idxD, Tumbler.Center)
 		}
 
 
 		if (idxU != -1) {
 			game.questSelect({utility: idxU})
+			_tumblerUtility.currentIndex = idxU
 			_tumblerUtility.positionViewAtIndex(idxU, Tumbler.Center)
 		}
 
 		if (idxQ != -1) {
 			game.questSelect({quest: idxQ})
+			_tumblerQuest.currentIndex = idxQ
 			_tumblerQuest.positionViewAtIndex(idxQ, Tumbler.Center)
 		}
 

@@ -2393,7 +2393,7 @@ bool AdminAPI::pwhash_str_verify(const QString &password, const QString &hash)
 	const QByteArray h = hash.toLocal8Bit();
 	const QByteArray p = password.toUtf8();
 
-	if (h.size() >= crypto_pwhash_STRBYTES) {
+	if (h.size() > crypto_pwhash_STRBYTES) {
 		LOG_CERROR("app") << "Password hash size error" << hash.size();
 		return false;
 	}
@@ -2401,7 +2401,9 @@ bool AdminAPI::pwhash_str_verify(const QString &password, const QString &hash)
 	char str[crypto_pwhash_STRBYTES];
 
 	memcpy(str, h.constData(), h.size());
-	str[h.size()] = '\0';
+
+	if (h.size() < crypto_pwhash_STRBYTES)
+		str[h.size()] = '\0';
 
 	return (crypto_pwhash_str_verify(str, p.constData(), p.size()) == 0);
 }

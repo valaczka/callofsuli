@@ -801,6 +801,25 @@ struct KnockbackTag {								// Folyamatban van még a hátracsúszás
 
 
 
+
+/**
+ * @brief The Utility class
+ */
+
+struct Utility
+{
+	RpgStream::PlayerConfig::Utility type = RpgStream::PlayerConfig::UtilityNone;
+	RpgStream::Team team = RpgStream::TeamNone;
+
+	entt::entity target = entt::null;
+	RpgStream::Team targetTeam = RpgStream::TeamNone;
+
+	quint32 destroyAt = 0;
+};
+
+
+
+
 // Játékos
 
 struct Player
@@ -809,7 +828,11 @@ struct Player
 
 	RpgStream::Team team = RpgStream::TeamNone;
 
+	std::vector<Utility> activeUtility;
+
 	quint32 idTag() const;
+	bool hasUtilityTarget(const RpgStream::PlayerConfig::Utility &utility, const RpgStream::Team &targetTeam) const;
+	bool hasUtilityTarget(const RpgStream::PlayerConfig::Utility &utility) const;
 };
 
 
@@ -830,6 +853,13 @@ struct LockTag {
 	quint32 id = 0;
 	quint32 expire = 0;								// Amikor lejár, töröljük automatikusan (pl. ha kilépett közben)
 	quint32 penalty = 1;							// Hp csökkentés hibás válasz esetén
+};
+
+
+// Lefoglaljuk, hogy pl. a questionnaire ne indítson egyszerre lockolást
+
+struct PreLockTag {
+	quint32 placeholder = 0;
 };
 
 
@@ -980,21 +1010,6 @@ struct DefenderQuestionnaireObject
 
 
 
-
-
-/**
- * @brief The Utility class
- */
-
-struct Utility
-{
-	RpgStream::PlayerConfig::Utility type = RpgStream::PlayerConfig::UtilityNone;
-	RpgStream::Team team = RpgStream::TeamNone;
-
-	entt::entity target = entt::null;
-
-	quint32 destroyAt = 0;
-};
 
 
 
@@ -1246,6 +1261,7 @@ struct EventTower {
 	entt::entity player;
 	bool lock = true;
 	bool skipLock = false;
+	bool boost = false;
 };
 
 
@@ -1513,11 +1529,13 @@ protected:
 	virtual std::vector<Chest> initializeChests();
 	virtual void initializeStages();
 	virtual void checkState(const RpgStream::GameState &state);
+	virtual bool checkReadyToFinish();
 
 	entt::entity npcAdd(const RpgStream::NpcData &data, entt::entity owner, const cpVect &pos = cpvzero, quint32 *tagIdPtr = nullptr);
 	entt::entity defenderAdd(const RpgStream::BaseDefenderObject::Type &type, const RpgStream::Team &team,
 							 entt::entity defEnt, Defender *defender, const Chunk &chunk = {});
 	void towerSet(entt::entity tower, const RpgStream::Team &team, const quint32 &load);
+	entt::entity chestAdd(const Chest &chest);
 
 	virtual void onNpcCreated(entt::entity entity, const quint32 &idTag, Player *player);
 	virtual bool onControlStateChange(entt::entity entity, Control *control, const bool &isAlive, const quint32 &state);

@@ -824,31 +824,6 @@ public:
 
 
 
-/**
- * @brief The GameState class
- */
-
-
-class GameState : public BaseTickState
-{
-public:
-	GameState() : BaseTickState() {}
-
-	EngineStream& operator<<(EngineStream &stream);
-	EngineStream& operator>>(EngineStream &stream) const;
-
-	STREAM_MEMBER(quint32, ptsA, PtsA, 32, 0)
-	STREAM_MEMBER(quint32, ptsB, PtsB, 32, 0)
-	STREAM_MEMBER(quint8, heat, Heat, 8, 0)
-
-	bool operator==(const GameState &other) const {
-		return other.m_ptsA == m_ptsA &&
-				other.m_ptsB == m_ptsB &&
-				other.m_heat == m_heat
-				;
-	}
-};
-
 
 
 
@@ -913,7 +888,8 @@ public:
 		Fog,
 		Pulse,
 		Electric,
-		Questionnaire
+		Questionnaire,
+		HpHealer
 	};
 
 	enum PlacementFlag {
@@ -1168,7 +1144,13 @@ public:
 	enum Utility {
 		UtilityNone = 0,
 		UtilityMissionary,												// Saját csapatba állítja az NPC-ket
-		UtilitySniper													// Messziről lelövi az NPC-ket és a defendereket
+		UtilitySniper,													// Messziről lelövi az NPC-ket és a defendereket
+		UtilityInvisible,												// x mp-ig láthatatlan az ellenfelek számára
+		UtilityBlockMpPick,												// x mp-ig az ellenfelek nem tudnak mp-t felvenni
+		UtilityBlockMpConvert,											// x mp-ig az ellenfelek nem tudnak mp-t konvertálni
+		UtilityBlockAttack,												// x mp-ig az ellenfelek nem tudnak támadni
+		UtilityBoostPoint,												// x mp-ig megduplázza a termelést
+		UtilityBoostAttackTower,										// kérdés nélkül max. termelésre állít egy tornyot
 	};
 
 	STREAM_FIELD(EntityConfig, entity, Entity, {})
@@ -1184,6 +1166,45 @@ public:
 	STREAM_MEMBER_VECTOR_CAST(Utility, OBJECT_TYPE, OBJECT_BITS, utilities, Utilities, quint8, 8, UtilityNone)
 
 };
+
+
+
+
+
+
+
+
+/**
+ * @brief The GameState class
+ */
+
+
+class GameState : public BaseTickState
+{
+public:
+	GameState() : BaseTickState() {}
+
+	EngineStream& operator<<(EngineStream &stream);
+	EngineStream& operator>>(EngineStream &stream) const;
+
+	STREAM_MEMBER(quint32, ptsA, PtsA, 32, 0)
+	STREAM_MEMBER(quint32, ptsB, PtsB, 32, 0)
+	STREAM_MEMBER(quint8, heat, Heat, 8, 0)
+
+	STREAM_MEMBER_VECTOR_CAST(PlayerConfig::Utility, OBJECT_TYPE, OBJECT_BITS, utilitiesA, UtilitiesA, quint8, 8, PlayerConfig::UtilityNone)
+	STREAM_MEMBER_VECTOR_CAST(PlayerConfig::Utility, OBJECT_TYPE, OBJECT_BITS, utilitiesB, UtilitiesB, quint8, 8, PlayerConfig::UtilityNone)
+
+	bool operator==(const GameState &other) const {
+		return other.m_ptsA == m_ptsA &&
+				other.m_ptsB == m_ptsB &&
+				other.m_heat == m_heat &&
+				other.m_utilitiesA == m_utilitiesA &&
+				other.m_utilitiesB == m_utilitiesB
+				;
+	}
+};
+
+
 
 
 
@@ -1543,6 +1564,10 @@ public:
 
 
 
+
+
+
+
 /**
  * @brief The PlayerState class
  */
@@ -1590,6 +1615,8 @@ public:
 	STREAM_DELTA_MEMBER(quint8, question, Question, 8, 0, Question)			// sikeresen megválaszolt kérdések száma (max. 256)
 	STREAM_DELTA_MEMBER(quint8, streak, Streak, 8, 0, Streak)				// sikeresen megválaszolt streak (max. 256)
 
+	STREAM_MEMBER_VECTOR_CAST(PlayerConfig::Utility, OBJECT_TYPE, OBJECT_BITS, activeUtilities, ActiveUtilities, quint8, 8, PlayerConfig::UtilityNone)
+
 	bool operator==(const PlayerState &other) const {
 		return other.m_entityState == m_entityState &&
 				other.m_hp == m_hp &&
@@ -1602,7 +1629,8 @@ public:
 				other.m_utility == m_utility &&
 				other.m_hasUtility == m_hasUtility &&
 				other.m_question == m_question &&
-				other.m_streak == m_streak
+				other.m_streak == m_streak &&
+				other.m_activeUtilities == m_activeUtilities
 				;
 	}
 
@@ -1610,6 +1638,7 @@ public:
 	LOAD_FROM_DELTA_START(PlayerState)
 
 	LOAD_WITHOUT_DELTA(tick, Tick)
+	LOAD_WITHOUT_DELTA(activeUtilities, ActiveUtilities)
 	LOAD_FROM_DELTA(hp, Hp)
 	LOAD_FROM_DELTA(mp, Mp)
 	LOAD_FROM_DELTA(bullet, Bullet)

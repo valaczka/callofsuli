@@ -1095,7 +1095,7 @@ bool ServerService::start()
 
 	m_mainTimer.start(m_mainTimerInterval, this);
 
-	AdminAPI::zapWallet(m_databaseMain.get());
+	///AdminAPI::zapWallet(m_databaseMain.get());
 
 	if (!m_createToken.isEmpty()) {
 		if (const auto &cred = AuthAPI::getCredential(m_databaseMain.get(), m_createToken)) {

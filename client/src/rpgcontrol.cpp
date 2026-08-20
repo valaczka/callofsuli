@@ -102,7 +102,7 @@ RpgControl *RpgControl::createControl(const Rpg::Control &config, RpgGameItem *g
 	switch (config.type) {
 		case RpgStream::ControlData::Chest:
 			spriteSource = QStringLiteral(":/rpg/chest");
-			title = tr("Upgrade heat");
+			title = tr("Upgrade danger");
 			animations = RpgControlCommon::AnimationNormalToActive;
 			height = 80;
 			proxy = {
@@ -378,8 +378,6 @@ void RpgControlCommon::initialize()
 
 void RpgControlCommon::initControl()
 {
-	LOG_CINFO("game") << "INIT CONTROL" << this << m_config.type << m_config.data;
-
 	if (m_config.type == RpgStream::ControlData::Chest) {
 		rotateBody(TiledObject::directionToIsometricRadian(m_config.data == 1 ? SouthWest : SouthEast), true);
 		jumpToSprite("normal");

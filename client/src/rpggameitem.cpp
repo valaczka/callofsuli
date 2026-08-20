@@ -331,6 +331,10 @@ void RpgGameItem::sceneDebugDrawEvent(TiledDebugDraw *debugDraw, TiledScene *sce
 		}
 	}
 
+	for (const QPointF &p : m_game->d->m_entryPoint) {
+		debugDraw->drawSolidCircle(p, 6., QColorConstants::Svg::yellow);
+	}
+
 	/*
 	for (const auto &e : m_enemyDataList) {
 		if (e.scene != scene || e.motor.path.isEmpty())
@@ -619,7 +623,7 @@ RpgDefenderPoint *RpgGameItem::loadDefender(TiledScene *scene, Tiled::GroupLayer
 
 void RpgGameItem::onStageChanged(const RpgStream::GameConfig::Stage &stage)
 {
-	message(QObject::tr("Next stage: %1").arg(stage));
+	///message(QObject::tr("Next stage: %1").arg(stage));
 
 	if (stage == RpgStream::GameConfig::StageSelect) {
 		m_game->m_client->sound()->playSound(QStringLiteral("qrc:/sound/voiceover/prepare_yourself.mp3"), Sound::VoiceoverChannel);

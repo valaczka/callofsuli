@@ -117,7 +117,7 @@ void RpgTower::worldStep()
 		setDisplayName(tr("LOCKED %1s").arg(m_lockTime));
 	} else {
 		setLockTime(0);
-		setDisplayName(QStringLiteral(""));
+		setDisplayName(QStringLiteral("POWER GENERATOR"));
 	}
 
 	setCanAttack(!state->hasDefender() && state->lockedUntil() < tick);

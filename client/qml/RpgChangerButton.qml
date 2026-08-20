@@ -25,19 +25,19 @@ Item {
 		{
 			id: "weapon",
 			color: Qaterial.Colors.red700,
-			icon: "qrc:/internal/game/target1.svg",
+			icon: Qaterial.Icons.bullet,
 			angle: 180
 		},
 		{
 			id: "defender",
 			color: Qaterial.Colors.green700,
-			icon: Qaterial.Icons.abacus,
+			icon: Qaterial.Icons.chessRook,
 			angle: -90
 		},
 		{
 			id: "utility",
 			color: Qaterial.Colors.amber700,
-			icon: Qaterial.Icons.accountAlert,
+			icon: Qaterial.Icons.compassRose,
 			angle: 90
 		}
 	]
@@ -239,7 +239,7 @@ Item {
 				else
 					return changer.game.controlledPlayer.currentJoystickIcon
 			} else {
-				return Qaterial.Icons.reload
+				return Qaterial.Icons.creation
 			}
 		}
 

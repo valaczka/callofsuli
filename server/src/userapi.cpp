@@ -30,7 +30,6 @@
 #include "qjsonarray.h"
 #include "serverservice.h"
 #include "teacherapi.h"
-#include "rpgengine.h"
 
 #include <QJsonObject>
 #include "querybuilder.hpp"
@@ -1367,7 +1366,9 @@ QHttpServerResponse UserAPI::rpg(const Credential &credential)
 
 	LAMBDA_SQL_ASSERT(curr);
 
-	udata.oldCurrency = curr->toInt();
+
+	if (curr->toInt() > 500)
+		udata.oldCurrency = curr->toInt();
 
 
 

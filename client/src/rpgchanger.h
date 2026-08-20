@@ -47,6 +47,7 @@ class RpgChanger : public QQuickItem
 	Q_PROPERTY(QVariantList availableDefenders READ availableDefenders WRITE setAvailableDefenders NOTIFY availableDefendersChanged FINAL)
 	Q_PROPERTY(QVariantList availableUtilites READ availableUtilites WRITE setAvailableUtilites NOTIFY availableUtilitesChanged FINAL)
 	Q_PROPERTY(bool replaceEnabled READ replaceEnabled WRITE setReplaceEnabled NOTIFY replaceEnabledChanged FINAL)
+	Q_PROPERTY(bool isBlocked READ isBlocked WRITE setIsBlocked NOTIFY isBlockedChanged FINAL)
 
 public:
 	RpgChanger(QQuickItem *parent = nullptr);
@@ -69,6 +70,7 @@ public:
 	Q_INVOKABLE void set(const QString &mode, const int &key);
 
 	Q_INVOKABLE static QVariantMap availableWeapon();
+	Q_INVOKABLE void checkBlocked();
 
 	bool active() const;
 	void setActive(bool newActive);
@@ -91,6 +93,9 @@ public:
 	static const QHash<RpgStream::BaseDefenderObject::Type, QVariantMap> &dataDefenders();
 	static const QHash<RpgStream::PlayerConfig::Utility, QVariantMap> &dataUtilities();
 
+	bool isBlocked() const;
+	void setIsBlocked(bool newIsBlocked);
+
 signals:
 	void playerReloaded();
 
@@ -100,6 +105,7 @@ signals:
 	void availableDefendersChanged();
 	void availableUtilitesChanged();
 	void replaceEnabledChanged();
+	void isBlockedChanged();
 
 private:
 	void connectPlayer();
@@ -115,6 +121,7 @@ private:
 	QVariantList m_availableUtilites;
 
 	bool m_replaceEnabled = true;
+	bool m_isBlocked = false;
 
 	static const QHash<RpgStream::BaseDefenderObject::Type, QVariantMap> m_dataDefenders;
 	static const QHash<RpgStream::PlayerConfig::Utility, QVariantMap> m_dataUtilities;

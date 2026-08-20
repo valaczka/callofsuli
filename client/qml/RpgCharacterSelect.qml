@@ -18,13 +18,19 @@ QItemGradient {
 	title: !_isEmpty && game ? game.name + qsTr(" – level %1").arg(game.level): ""
 
 	appBar.rightComponent: Row {
+		spacing: 5
+
 		Qaterial.Icon {
 			color: Qaterial.Colors.blue500
 			icon: Qaterial.Icons.shieldCrown
+			anchors.verticalCenter: parent.verticalCenter
 		}
 
 		Qaterial.LabelHeadline6 {
 			text: num
+
+			anchors.verticalCenter: parent.verticalCenter
+			rightPadding: Qaterial.Style.horizontalPadding
 
 			color: Qaterial.Colors.blue500
 
@@ -89,12 +95,16 @@ QItemGradient {
 					id: _viewCharacters
 
 					Layout.fillHeight: true
+					Layout.maximumHeight: 200
 					Layout.fillWidth: true
 					Layout.columnSpan: 2
 
 
 					delegate: RpgSelectCard {
 						id: _selectPlayer
+
+						width: ListView.view.height
+						height: ListView.view.height
 
 						readonly property bool isTarget: character === game.rpgUserData.target
 
@@ -112,6 +122,8 @@ QItemGradient {
 
 							text: level
 							icon.source: Qaterial.Icons.flash
+
+							color: Qaterial.Colors.amber500
 
 							anchors.left: parent.left
 							anchors.bottom: parent.bottom
@@ -217,36 +229,531 @@ QItemGradient {
 					implicitHeight: 50
 					implicitWidth: 50
 
-					QButton {
-						anchors.top: parent.top
-						anchors.left: parent.left
-						text: "< " + _preview.levelCurrent
-
-						enabled: _preview.levelCurrent > _preview.levelMin
-
-						onClicked: --_preview.levelCurrent
-					}
-
-					QButton {
-						anchors.top: parent.top
-						anchors.right: parent.right
-						text: ">"
-
-						enabled: _preview.levelCurrent < _preview.levelMax
-
-						onClicked: ++_preview.levelCurrent
-					}
-
-					Qaterial.LabelBody2 {
-						anchors.centerIn: parent
-						width: Math.min(implicitWidth, parent.width)
+					Qaterial.LabelHeadline5 {
+						id: _labelCharacter
+						width: parent.width
 						wrapMode: Text.Wrap
+						anchors.top: parent.top
+						bottomPadding: 5
+						horizontalAlignment: Text.AlignHCenter
+						text: _preview.character.name
+					}
 
-						text: JSON.stringify(game.getCharactersMetric()) + "\n"
-							  + (_preview.character ? _preview.character.character : "---") + "\n"
-							  + (_preview.character ? _preview.character.level : "---") + "\n"
-							  + JSON.stringify(_preview.character) + "\n"
-							  + JSON.stringify(game.getCharacterMetricAtLevel(_preview.character.character, _preview.levelCurrent))
+					Row {
+						id: _rowLevel
+						anchors.horizontalCenter: parent.horizontalCenter
+						anchors.top: _labelCharacter.bottom
+						spacing: 8
+
+						Qaterial.ToolButton {
+							checkable: false
+							useSecondaryColor: false
+
+							anchors.verticalCenter: parent.verticalCenter
+
+							icon.source: Qaterial.Icons.minus
+
+							enabled: _preview.levelCurrent > _preview.levelMin
+
+							onClicked: --_preview.levelCurrent
+						}
+
+						Qaterial.IconLabel {
+							anchors.verticalCenter: parent.verticalCenter
+							color: Qaterial.Colors.amber500
+							spacing: 0
+
+							icon.source: Qaterial.Icons.flash
+							text: _preview.levelCurrent
+						}
+
+
+						Qaterial.ToolButton {
+							checkable: false
+							useSecondaryColor: false
+
+							anchors.verticalCenter: parent.verticalCenter
+
+							icon.source: Qaterial.Icons.plus
+
+							enabled: _preview.levelCurrent < _preview.levelMax
+
+							onClicked: ++_preview.levelCurrent
+						}
+					}
+
+					QScrollable {
+						anchors.left: parent.left
+						anchors.bottom: parent.bottom
+						anchors.right: parent.right
+						anchors.top: _rowLevel.bottom
+						anchors.topMargin: 5
+
+						contentCentered: true
+
+
+						Row {
+							visible: _preview.character && _preview.character.level == 0
+							anchors.horizontalCenter: parent.horizontalCenter
+
+							bottomPadding: 20
+							spacing: 10
+
+							Qaterial.LabelBody1 {
+								anchors.verticalCenter: parent.verticalCenter
+								text: qsTr("Unlock:")
+								color: Qaterial.Colors.blue500
+							}
+
+							Qaterial.IconLabel {
+								color: Qaterial.Colors.blue500
+								icon.source: Qaterial.Icons.shieldCrown
+								icon.width: 20 * Qaterial.Style.pixelSizeRatio
+								icon.height: 20 * Qaterial.Style.pixelSizeRatio
+								anchors.verticalCenter: parent.verticalCenter
+								spacing: 3
+								text: _preview.character ? _preview.character.unlock : 0
+							}
+						}
+
+						GridLayout {
+							id: _metricGrid
+							width: Math.min(parent.width, 300)
+							anchors.horizontalCenter: parent.horizontalCenter
+
+							columns: 3
+							columnSpacing: 10
+							rowSpacing: 0
+
+							readonly property bool _wide: width > 250
+							readonly property var _metric: game.getCharactersMetric()
+							readonly property var _characterMetric: game.getCharacterMetricAtLevel(_preview.character.character, _preview.levelCurrent)
+
+
+							// Hp
+
+							Qaterial.IconLabel {
+								Layout.fillWidth: false
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+								display: _metricGrid._wide ? IconLabel.Display.TextBesideIcon : IconLabel.Display.IconOnly
+								spacing: 5
+								icon.source: Qaterial.Icons.heartPulse
+								horizontalAlignment: Qt.AlignLeft
+								text: qsTr("HP")
+							}
+
+							ProgressBar {
+								Layout.fillWidth: true
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+								from: 0//_metricGrid._metric.min.hp
+								to: _metricGrid._metric.max.hp
+								value: _metricGrid._characterMetric.hp
+
+								Material.accent: color
+
+								property color color: Qaterial.Style.iconColor()
+
+								Behavior on value {
+									NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }
+								}
+							}
+
+							Qaterial.LabelHint1 {
+								Layout.fillWidth: false
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+								horizontalAlignment: Text.AlignRight
+
+								text: value
+
+								property int value: _metricGrid._characterMetric.hp
+
+								Behavior on value {
+									NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }
+								}
+							}
+
+
+							// Mp
+
+							Qaterial.IconLabel {
+								Layout.fillWidth: false
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+								display: _metricGrid._wide ? IconLabel.Display.TextBesideIcon : IconLabel.Display.IconOnly
+								spacing: 5
+								icon.source: Qaterial.Icons.shimmer
+								horizontalAlignment: Qt.AlignLeft
+								text: qsTr("MP")
+							}
+
+							ProgressBar {
+								Layout.fillWidth: true
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+								from: 0//_metricGrid._metric.min.mp
+								to: _metricGrid._metric.max.mp
+								value: _metricGrid._characterMetric.mp
+
+								Material.accent: color
+
+								property color color: Qaterial.Style.iconColor()
+
+								Behavior on value {
+									NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }
+								}
+							}
+
+							Qaterial.LabelHint1 {
+								Layout.fillWidth: false
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+								horizontalAlignment: Text.AlignRight
+
+								text: value
+
+								property int value: _metricGrid._characterMetric.mp
+
+								Behavior on value {
+									NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }
+								}
+							}
+
+
+
+
+
+							// Bullet
+
+							Qaterial.IconLabel {
+								Layout.fillWidth: false
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+								display: _metricGrid._wide ? IconLabel.Display.TextBesideIcon : IconLabel.Display.IconOnly
+								spacing: 5
+								icon.source: Qaterial.Icons.bullet
+								horizontalAlignment: Qt.AlignLeft
+								text: qsTr("Bullet")
+							}
+
+							ProgressBar {
+								Layout.fillWidth: true
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+								from: 0//_metricGrid._metric.min.bullet
+								to: _metricGrid._metric.max.bullet
+								value: _metricGrid._characterMetric.bullet
+
+								Material.accent: color
+
+								property color color: Qaterial.Style.iconColor()
+
+								Behavior on value {
+									NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }
+								}
+							}
+
+							Qaterial.LabelHint1 {
+								Layout.fillWidth: false
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+								horizontalAlignment: Text.AlignRight
+
+								text: value
+
+								property int value: _metricGrid._characterMetric.bullet
+
+								Behavior on value {
+									NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }
+								}
+							}
+
+
+
+
+							// Tower plus
+
+							Qaterial.IconLabel {
+								Layout.fillWidth: false
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+								display: _metricGrid._wide ? IconLabel.Display.TextBesideIcon : IconLabel.Display.IconOnly
+								spacing: 5
+								icon.source: Qaterial.Icons.plus
+								horizontalAlignment: Qt.AlignLeft
+								text: qsTr("PWR+")
+							}
+
+							ProgressBar {
+								Layout.fillWidth: true
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+								from: 0//_metricGrid._metric.min.mp
+								to: _metricGrid._metric.max.towerPlus
+								value: _metricGrid._characterMetric.towerPlus
+
+								Material.accent: color
+
+								property color color: Qaterial.Style.iconColor()
+
+								Behavior on value {
+									NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }
+								}
+							}
+
+							Qaterial.LabelHint1 {
+								Layout.fillWidth: false
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+								horizontalAlignment: Text.AlignRight
+
+								text: value
+
+								property int value: _metricGrid._characterMetric.towerPlus
+
+								Behavior on value {
+									NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }
+								}
+							}
+
+
+
+							// Tower minus
+
+							Qaterial.IconLabel {
+								Layout.fillWidth: false
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+								display: _metricGrid._wide ? IconLabel.Display.TextBesideIcon : IconLabel.Display.IconOnly
+								spacing: 5
+								icon.source: Qaterial.Icons.minus
+								horizontalAlignment: Qt.AlignLeft
+								text: qsTr("PWR-")
+							}
+
+							ProgressBar {
+								Layout.fillWidth: true
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+								from: 0//_metricGrid._metric.min.mp
+								to: _metricGrid._metric.max.towerMinus
+								value: _metricGrid._characterMetric.towerMinus
+
+								Material.accent: color
+
+								property color color: Qaterial.Style.iconColor()
+
+								Behavior on value {
+									NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }
+								}
+							}
+
+							Qaterial.LabelHint1 {
+								Layout.fillWidth: false
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+								horizontalAlignment: Text.AlignRight
+
+								text: value
+
+								property int value: _metricGrid._characterMetric.towerMinus
+
+								Behavior on value {
+									NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }
+								}
+							}
+
+
+
+							// Penalty
+
+							Qaterial.IconLabel {
+								Layout.fillWidth: false
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+								display: _metricGrid._wide ? IconLabel.Display.TextBesideIcon : IconLabel.Display.IconOnly
+								spacing: 5
+								icon.source: Qaterial.Icons.timerAlert
+								horizontalAlignment: Qt.AlignLeft
+								text: qsTr("Penalty")
+							}
+
+							ProgressBar {
+								Layout.fillWidth: true
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+								from: 0//_metricGrid._metric.min.mp
+								to: _metricGrid._metric.max.penalty
+								value: _metricGrid._characterMetric.penalty
+
+								Material.accent: color
+
+								property color color: Qaterial.Style.iconColor()
+
+								Behavior on value {
+									NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }
+								}
+							}
+
+							Qaterial.LabelHint1 {
+								Layout.fillWidth: false
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+								horizontalAlignment: Text.AlignRight
+
+								text: value
+
+								property int value: _metricGrid._characterMetric.penalty
+
+								Behavior on value {
+									NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }
+								}
+							}
+
+
+
+							// Skip
+
+							Qaterial.IconLabel {
+								Layout.fillWidth: false
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignLeft | Qt.AlignVCenter
+								display: _metricGrid._wide ? IconLabel.Display.TextBesideIcon : IconLabel.Display.IconOnly
+								spacing: 5
+								icon.source: Qaterial.Icons.skipForward
+								horizontalAlignment: Qt.AlignLeft
+								text: qsTr("Skip")
+							}
+
+							ProgressBar {
+								Layout.fillWidth: true
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+
+								from: 0//_metricGrid._metric.min.mp
+								to: _metricGrid._metric.max.skipLock
+								value: _metricGrid._characterMetric.skipLock
+
+								Material.accent: color
+
+								property color color: Qaterial.Style.iconColor()
+
+								Behavior on value {
+									NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }
+								}
+							}
+
+							Qaterial.LabelHint1 {
+								Layout.fillWidth: false
+								Layout.fillHeight: false
+								Layout.alignment: Qt.AlignRight | Qt.AlignVCenter
+								horizontalAlignment: Text.AlignRight
+
+								text: value
+
+								property int value: _metricGrid._characterMetric.skipLock
+
+								Behavior on value {
+									NumberAnimation { duration: 175; easing.type: Easing.InOutQuad }
+								}
+							}
+						}
+
+						Column {
+							topPadding: 10
+							anchors.horizontalCenter: parent.horizontalCenter
+
+							Repeater {
+								model: _metricGrid._characterMetric.defenders
+								delegate: Row {
+									spacing: 10
+									Qaterial.IconLabel {
+										spacing: 5
+
+										color: Qaterial.Colors.green500
+										anchors.verticalCenter: parent.verticalCenter
+										icon.source: modelData.icon
+										text: modelData.description
+									}
+
+									Qaterial.ToolButton {
+										checkable: false
+										anchors.verticalCenter: parent.verticalCenter
+										icon.source: Qaterial.Icons.helpCircleOutline
+										onClicked: {
+											Qaterial.DialogManager.showDialog(
+														{
+															text: modelData.helper,
+															title: modelData.description,
+															iconSource: modelData.icon,
+															iconColor: Qaterial.Style.iconColor(),
+															iconFill: false,
+															iconSize: Qaterial.Style.roundIcon.size,
+															standardButtons: DialogButtonBox.Ok
+														})
+										}
+									}
+								}
+							}
+
+							Item {
+								width: parent.width
+								height: 10
+							}
+
+
+							Repeater {
+								model: _metricGrid._characterMetric.utilities
+								delegate: Row {
+									spacing: 10
+									Qaterial.IconLabel {
+										spacing: 5
+
+										color: Qaterial.Colors.amber500
+										anchors.verticalCenter: parent.verticalCenter
+										icon.source: modelData.icon
+										text: modelData.description
+									}
+
+									Qaterial.ToolButton {
+										checkable: false
+										anchors.verticalCenter: parent.verticalCenter
+										icon.source: Qaterial.Icons.helpCircleOutline
+										onClicked: {
+											Qaterial.DialogManager.showDialog(
+														{
+															text: modelData.helper,
+															title: modelData.description,
+															iconSource: modelData.icon,
+															iconColor: Qaterial.Style.iconColor(),
+															iconFill: false,
+															iconSize: Qaterial.Style.roundIcon.size,
+															standardButtons: DialogButtonBox.Ok
+														})
+										}
+									}
+								}
+							}
+						}
+
+						/*Qaterial.LabelBody2 {
+							width: Math.min(implicitWidth, parent.width)
+							wrapMode: Text.Wrap
+
+							text: JSON.stringify(game.getCharactersMetric()) + "\n"
+								  + (_preview.character ? _preview.character.character : "---") + "\n"
+								  + (_preview.character ? _preview.character.level : "---") + "\n"
+								  + JSON.stringify(_preview.character) + "\n"
+								  + JSON.stringify(game.getCharacterMetricAtLevel(_preview.character.character, _preview.levelCurrent))
+						}*/
 					}
 				}
 
@@ -260,6 +767,7 @@ QItemGradient {
 					Layout.preferredWidth: _selectTerrain.implicitWidth
 					Layout.preferredHeight: _selectTerrain.implicitHeight
 					Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+					Layout.leftMargin: Qaterial.Style.card.horizontalPadding
 
 					RpgSelectTitle {
 						id: _worldTitle
@@ -332,14 +840,14 @@ QItemGradient {
 						anchors.horizontalCenter: parent.horizontalCenter
 
 						text: qsTr("Vásárlás")
-						icon.source: Qaterial.Icons.cart
+						icon.source: Qaterial.Icons.crownCircle
 						enabled: _preview.character && _preview.character.level == 0 && game.rpgUserData.token >= _preview.character.unlock
 
 						visible: _isEmpty
 
 						onClicked: {
 							if (_isEmpty) {
-								Client.send(HttpConnection.ApiUser, "rpg/buy/%1".arg(character))
+								Client.send(HttpConnection.ApiUser, "rpg/buy/%1".arg(_preview.character.character))
 								.done(root, function(r){
 									game.reloadRpgData()
 								})
@@ -391,27 +899,6 @@ QItemGradient {
 															game: root.game
 														})
 					}
-
-					/*Repeater {
-						model: game ? game.rpgUserData.drops : null
-
-						delegate: QButton {
-								id: _dropBtn
-
-								text: "DROP "+modelData.id
-
-								onClicked: {
-									console.debug("OPEN", modelData.id)
-
-									Client.send(HttpConnection.ApiUser, "rpg/drop/%1".arg(modelData.id))
-									.done(root, function(r){
-										game.reloadRpgData()
-									})
-									.fail(root, JS.failMessage(qsTr("Drop open error")))
-								}
-							}
-					}*/
-
 				}
 
 			}
@@ -420,55 +907,6 @@ QItemGradient {
 		}
 	}
 
-	/*
-
-
-
-
-		QListView {
-			id: _view
-
-			width: parent.width
-			height: contentHeight
-
-			model: game ? game.modelPlayer : null
-
-			delegate: Qaterial.ItemDelegate {
-				width: ListView.view.width
-
-				text: nickname
-				secondaryText: username + " id: " + playerId + " - " + character + " team: " + team
-
-				//secondaryText: owner.nickName + (players.length > 1 ? " +" + (players.length-1) : "")
-
-				icon.source: Qaterial.Icons.accountMultiple
-
-				onClicked: {
-					//game.connectLobby(model)
-				}
-			}
-
-
-			footer: Qaterial.ItemDelegate {
-				width: ListView.view.width
-				height: visible ? implicitHeight : 0
-				//visible: game && game.canAddEngine
-				textColor: Qaterial.Colors.green500
-				iconColor: textColor
-				icon.source: Qaterial.Icons.play
-				text: qsTr("PLAY")
-
-				onClicked: game.characterSelect({
-													character: "character01a",
-													terrain: "test",
-													ready: true
-												})
-			}
-
-
-		}
-
-*/
 
 	Timer {
 		id: _timerOldCurrency
@@ -480,7 +918,7 @@ QItemGradient {
 			if (root.parentPage && root.parentPage.StackView.status == StackView.Active)
 				Qaterial.DialogManager.showDialog(
 							{
-								text: qsTr("A megújult akciójátékba áthozzuk az eddigi pénzedet: %1\nVálaszd ki, melyik karakterek között akarod egyenlő mértékben szétosztani").arg(game.rpgUserData.oldCurrency),
+								text: qsTr("A megújult akciójátékba áthozzuk az eddigi pénzedet: %1\nVálaszd ki, melyik karakterek között akarod egyenlő mértékben szétosztani.\nEzt a lépést későbbre is halaszthatod.").arg(game.rpgUserData.oldCurrency),
 								title: qsTr("Konvertálás az új játékra"),
 								iconSource: Qaterial.Icons.cash100,
 								iconColor: Qaterial.Style.accentColor,
@@ -496,6 +934,8 @@ QItemGradient {
 	SortFilterProxyModel {
 		id: _modelCharacters
 		sourceModel: game ? game.modelCharacters : null
+
+		onSourceModelChanged: autoSelect()
 
 		sorters: [
 			FilterSorter {
@@ -563,8 +1003,8 @@ QItemGradient {
 							}
 
 							Client.send(HttpConnection.ApiUser, "rpg/upgrade", {
-								list: l
-							})
+											list: l
+										})
 							.done(root, function(r){
 								game.reloadRpgData()
 								Client.snack(qsTr("Sikeres konvertálás"))
@@ -581,6 +1021,11 @@ QItemGradient {
 		if (_viewCharacters.selected == "" && game && game.rpgUserData.lastCharacter != "") {
 			_viewCharacters.selected = game.rpgUserData.lastCharacter
 			game.characterSelect({character: game.rpgUserData.lastCharacter})
+		}
+
+		for (let i=0; i<_modelCharacters.count; ++i) {
+			if (_modelCharacters.get(i).character === _viewCharacters.selected)
+				_viewCharacters.currentIndex = i
 		}
 
 		if (!_selectTerrain._selected && game && game.rpgUserData.lastTerrain != "") {

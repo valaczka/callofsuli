@@ -35,6 +35,7 @@ const QHash<RpgStream::PlayerConfig::Utility, QVariantMap> RpgChanger::m_dataUti
 	  {
 		  { "icon", "qrc:/rpg/castIcon/missionary.png" },
 		  { "description", tr("Missionary") },
+		  { "helper", tr("A semleges NPC-ket átállítja a saját csapathoz") },
 	  }
 	},
 
@@ -42,6 +43,60 @@ const QHash<RpgStream::PlayerConfig::Utility, QVariantMap> RpgChanger::m_dataUti
 	  {
 		  { "icon", "qrc:/rpg/castIcon/sniper.png" },
 		  { "description", tr("Sniper") },
+		  { "helper", tr("Távolról egyetlen lövéssel megsemmisíti az akadályokat vagy az ellenfelet") },
+	  }
+	},
+
+	{ RpgStream::PlayerConfig::UtilityInvisible,
+	  {
+		  { "icon", "qrc:/rpg/castIcon/invisible.png" },
+		  { "description", tr("Invisible") },
+		  { "helper", tr("%1 másodpercig láthatatlanná válik az ellenfelek számára")
+			.arg(AbstractGame::TickTimer::tickToMsec(cfgUtilityInvisible.duration)/1000) },
+	  }
+	},
+
+	{ RpgStream::PlayerConfig::UtilityBlockMpPick,
+	  {
+		  { "icon", "qrc:/rpg/castIcon/blockPick.png" },
+		  { "description", tr("MP pick blocker") },
+		  { "helper", tr("Az ellenfél %1 másodpercig nem tud MP-t gyűjteni")
+			.arg(AbstractGame::TickTimer::tickToMsec(cfgUtilityBlockMpPick.duration)/1000) },
+	  }
+	},
+
+	{ RpgStream::PlayerConfig::UtilityBlockMpConvert,
+	  {
+		  { "icon", "qrc:/rpg/castIcon/blockConvert.png" },
+		  { "description", tr("MP convert blocker") },
+		  { "helper", tr("Az ellenfél %1 másodpercig nem tud MP-t átváltani lőszerre, eszközre vagy képességre")
+			.arg(AbstractGame::TickTimer::tickToMsec(cfgUtilityBlockMpConvert.duration)/1000) },
+	  }
+	},
+
+	{ RpgStream::PlayerConfig::UtilityBlockAttack,
+	  {
+		  { "icon", "qrc:/rpg/castIcon/blockAttack.png" },
+		  { "description", tr("Attack blocker") },
+		  { "helper", tr("Az ellenfél %1 másodpercig nem tud támadni")
+			.arg(AbstractGame::TickTimer::tickToMsec(cfgUtilityBlockAttack.duration)/1000) },
+	  }
+	},
+
+	{ RpgStream::PlayerConfig::UtilityBoostAttackTower,
+	  {
+		  { "icon", "qrc:/rpg/castIcon/boostTower.png" },
+		  { "description", tr("Boost power") },
+		  { "helper", tr("Kérdés nélkül maximális termelésre állít egy Power Generatort") },
+	  }
+	},
+
+	{ RpgStream::PlayerConfig::UtilityBoostPoint,
+	  {
+		  { "icon", "qrc:/rpg/castIcon/boostPower.png" },
+		  { "description", tr("Turbo boost") },
+		  { "helper", tr("%1 másodpercig +100%-kal megnöveli a Power Point termelést")
+			.arg(AbstractGame::TickTimer::tickToMsec(cfgUtilityBoostPoint.duration)/1000) },
 	  }
 	},
 };
@@ -54,13 +109,15 @@ const QHash<RpgStream::BaseDefenderObject::Type, QVariantMap> RpgChanger::m_data
 	  {
 		  { "icon", "qrc:/rpg/castIcon/pulse.png" },
 		  { "description", tr("Pulse") },
+		  { "helper", tr("Ha megközelíti az ellenfél, hátralöki és megsebzi") },
 	  }
 	},
 
 	{ RpgStream::BaseDefenderObject::Multiplier1,
 	  {
 		  { "icon", "qrc:/Qaterial/Icons/fan-speed-2.svg" },
-		  { "description", tr("Multiplier1") },
+		  { "description", tr("Multiplicator") },
+		  { "helper", tr("A Power Generator mellé helyezhető, a Power Point termelést +100%-kal megnöveli") },
 	  }
 	},
 
@@ -68,20 +125,32 @@ const QHash<RpgStream::BaseDefenderObject::Type, QVariantMap> RpgChanger::m_data
 	  {
 		  { "icon", "qrc:/rpg/castIcon/fog.png" },
 		  { "description", tr("Fog") },
+		  { "helper", tr("A környezetében elnyeli az ellenfél lövedékeit") },
 	  }
 	},
 
 	{ RpgStream::BaseDefenderObject::Electric,
 	  {
-		  { "icon", "qrc:/rpg/castIcon/pulse.png" },
-		  { "description", tr("Electric") },
+		  { "icon", "qrc:/rpg/castIcon/electricity.png" },
+		  { "description", tr("Electricity") },
+		  { "helper", tr("Minden ellene irányuló támadás esetén %1 HP-val megsebzi a támadóját")
+		  .arg(cfgDefenderElectric.force) },
 	  }
 	},
 
 	{ RpgStream::BaseDefenderObject::Questionnaire,
 	  {
-		  { "icon", "qrc:/rpg/castIcon/pulse.png" },
+		  { "icon", "qrc:/rpg/castIcon/questionnaire.png" },
 		  { "description", tr("Questionnaire") },
+		  { "helper", tr("A közelében folyamatosan tesztkérdéseket ad az ellenfélnek") },
+	  }
+	},
+
+	{ RpgStream::BaseDefenderObject::HpHealer,
+	  {
+		  { "icon", "qrc:/rpg/castIcon/hpHealer.png" },
+		  { "description", tr("HP Healer") },
+		  { "helper", tr("A közelében a saját csapat tagjainak folyamatosan visszaadja az elvesztett HP-kat") },
 	  }
 	},
 };
@@ -271,7 +340,7 @@ void RpgChanger::set(const QString &mode, const int &key)
 QVariantMap RpgChanger::availableWeapon()
 {
 	return QVariantMap{
-		{ "icon", "qrc:/internal/medal/Icon.1_08.png" },
+		{ "icon", "qrc:/rpg/bullet/pickable.png" },
 		{ "description", tr("Reload bullets") },
 		{ "cost", CFG_MP_CHANGE_BULLET }
 	};
@@ -291,6 +360,8 @@ bool RpgChanger::active() const
 
 void RpgChanger::setActive(bool newActive)
 {
+	checkBlocked();
+
 	if (m_active == newActive)
 		return;
 	m_active = newActive;
@@ -352,6 +423,7 @@ void RpgChanger::connectPlayer()
 
 	reloadDefenders();
 	reloadUtilities();
+	checkBlocked();
 
 	emit playerReloaded();
 }
@@ -410,6 +482,26 @@ void RpgChanger::reloadUtilities()
 
 	setAvailableUtilites(d);
 }
+
+
+
+/**
+ * @brief RpgChanger::checkBlocked
+ */
+
+void RpgChanger::checkBlocked()
+{
+	if (!m_player)
+		return;
+
+	setIsBlocked(m_game->hasActiveTargetUtility(RpgStream::PlayerConfig::UtilityBlockMpConvert, m_player->team()));
+}
+
+
+/**
+ * @brief RpgChanger::dataUtilities
+ * @return
+ */
 
 const QHash<RpgStream::PlayerConfig::Utility, QVariantMap> &RpgChanger::dataUtilities()
 {
@@ -472,4 +564,17 @@ void RpgChanger::setReplaceEnabled(bool newReplaceEnabled)
 		return;
 	m_replaceEnabled = newReplaceEnabled;
 	emit replaceEnabledChanged();
+}
+
+bool RpgChanger::isBlocked() const
+{
+	return m_isBlocked;
+}
+
+void RpgChanger::setIsBlocked(bool newIsBlocked)
+{
+	if (m_isBlocked == newIsBlocked)
+		return;
+	m_isBlocked = newIsBlocked;
+	emit isBlockedChanged();
 }

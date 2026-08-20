@@ -43,6 +43,9 @@ Page {
 				return true
 
 			if (game.gameState == RpgGame.GameStateFinished) {
+				if (game.isTutorial)
+					return true
+
 				if (game.gameResultData.rpg !== undefined || _forceExit) {
 					game.gameState = RpgGame.GameStateResult
 					game.reloadRpgData()

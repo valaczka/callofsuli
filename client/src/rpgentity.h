@@ -45,6 +45,7 @@ class RpgEntity : public RpgObject
 	Q_PROPERTY(int hp READ hp WRITE setHp NOTIFY hpChanged FINAL)
 	Q_PROPERTY(int maxHp READ maxHp WRITE setMaxHp NOTIFY maxHpChanged FINAL)
 	Q_PROPERTY(bool locked READ locked WRITE setLocked NOTIFY lockedChanged FINAL)
+	Q_PROPERTY(bool invisible READ invisible WRITE setInvisible NOTIFY invisibleChanged FINAL)
 
 public:
 	explicit RpgEntity(RpgGameItem *gameItem, const cpVect &center = cpvzero, const qreal &radius = 10.,
@@ -64,6 +65,9 @@ public:
 	bool locked() const;
 	void setLocked(bool newLocked);
 
+	bool invisible() const;
+	void setInvisible(bool newInvisible);
+
 signals:
 	void hurt();
 	void healed();
@@ -73,6 +77,8 @@ signals:
 	void hpChanged();
 	void maxHpChanged();
 	void lockedChanged();
+
+	void invisibleChanged();
 
 protected:
 	virtual void onAlive() {};
@@ -84,7 +90,8 @@ protected:
 	int m_maxHp = 1;
 
 	RpgStream::Team m_team = RpgStream::TeamNone;
-	bool m_locked = false;;
+	bool m_locked = false;
+	bool m_invisible = false;
 };
 
 

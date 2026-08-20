@@ -40,15 +40,18 @@ QItemGradient {
                 id: _grid1
 
                 spacing: 10
-                width: parent.width - 2 * Qaterial.Style.card.horizontalPadding
-                height: parent.height - 2 * Qaterial.Style.card.verticalPadding
+                //width: parent.width - 2 * Qaterial.Style.card.horizontalPadding
+                //height: parent.height - 2 * Qaterial.Style.card.verticalPadding
 
 
                 RpgSelectTitle {
                     Layout.fillHeight: false
                     Layout.fillWidth: true
 
-                    icon.source: Qaterial.Icons.roomService
+                    rightPadding: Qaterial.Style.card.horizontalPadding
+                    leftPadding: Qaterial.Style.card.horizontalPadding
+
+                    icon.source: Qaterial.Icons.accountGroup
                     text: qsTr("Rooms")
                 }
 
@@ -57,6 +60,9 @@ QItemGradient {
 
                     Layout.fillHeight: true
                     Layout.fillWidth: true
+
+                    Layout.leftMargin: Qaterial.Style.card.horizontalPadding
+                    Layout.rightMargin: Qaterial.Style.card.horizontalPadding
 
                     //implicitHeight: Math.max(contentHeight, 50)
                     //implicitWidth: 50
@@ -71,9 +77,7 @@ QItemGradient {
 
                         text: readableId
 
-                        secondaryText: model
-
-                        //secondaryText: owner.nickName + (players.length > 1 ? " +" + (players.length-1) : "")
+                        //secondaryText: model
 
                         icon.source: Qaterial.Icons.accountMultiple
 
@@ -87,8 +91,12 @@ QItemGradient {
                     Layout.fillHeight: false
                     Layout.fillWidth: true
                     Layout.alignment: Qt.AlignHCenter | Qt.AlignVCenter
+                    Layout.leftMargin: Qaterial.Style.card.horizontalPadding
+                    Layout.rightMargin: Qaterial.Style.card.horizontalPadding
+                    Layout.bottomMargin: Qaterial.Style.card.verticalPadding
+                    Layout.topMargin: Qaterial.Style.card.verticalPadding
 
-                    icon.source: Qaterial.Icons.plus
+                    icon.source: Qaterial.Icons.accountMultiplePlus
                     text: qsTr("Új szoba létrehozása")
 
                     onClicked: game.connectLobby({})

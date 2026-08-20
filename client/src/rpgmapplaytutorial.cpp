@@ -34,7 +34,6 @@
 
 
 struct TutorialData {
-	static std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> testTutorial1(const QUrl &url);
 	static std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> testCharacter(const QUrl &url);
 
 	static std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> defaultTutorial(const QUrl &url);
@@ -42,7 +41,6 @@ struct TutorialData {
 
 	static inline const QHash<QString, std::function<std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial>(const QUrl &)> >
 	tutorials = {
-	{ QStringLiteral("test_tutorial1"), &TutorialData::testTutorial1 },
 	{ QStringLiteral("default"), &TutorialData::defaultTutorial },
 	{ QStringLiteral("character"), &TutorialData::testCharacter },
 				};
@@ -144,116 +142,6 @@ void RpgMapPlayTutorial::onFinished(AbstractGame::FinishState)
 
 
 /**
- * @brief TutorialData::testTutorial1
- * @return
- */
-
-
-std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> TutorialData::testTutorial1(const QUrl &url)
-{
-
-	std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> tutorial = std::make_unique<Rpg::RpgLogicClientTutorial::Tutorial>();
-	tutorial->character = "character01a";
-	tutorial->terrain = "test";
-	tutorial->power = 1;
-	tutorial->duration = CFG_GAME_DURATION;
-
-	tutorial->addTower(120);
-	tutorial->addEmitter(127);
-	tutorial->addChest("entry3");
-	tutorial->addChest("entry2");
-
-
-	tutorial->fnFirst = [](Rpg::RpgLogicClientTutorial *logic) {
-		Q_ASSERT(logic);
-
-		logic->npcAddToPoint(QStringLiteral("soldier02"), "entry2");
-
-		logic->towerSet(120, RpgStream::TeamB, 100);
-		logic->defenderAddToTower(120, RpgStream::BaseDefenderObject::Pulse, RpgStream::TeamB);
-		logic->defenderAddToTower(120, RpgStream::BaseDefenderObject::Electric, RpgStream::TeamB);
-	};
-
-	{
-		Rpg::RpgLogicClientTutorial::Tutorial::Step step;
-
-		step.message = "Jöhet mindjárt";
-
-		step.infoIcon = 		"qrc:/Qaterial/Icons/abacus.svg";
-		step.infoTitle = "Menj oda";
-		step.infoText = "Menjél gyorsan oda, mielőtt meggondolom magam.";
-
-		step.addTargetControlEvent([](TiledObjectBody *obj) {
-			if (dynamic_cast<RpgTower*>(obj))
-				return true;
-			else
-				return false;
-		});
-
-		step.fnNext = [](Rpg::RpgLogicClientTutorial *logic, const quint32 &tick) {
-			Q_ASSERT(logic);
-
-			logic->npcAddToPoint(QStringLiteral("soldier04"), "entry1", 6, 120);
-
-			cpVect pos = logic->player()->bodyPosition();
-
-
-			Rpg::RpgLogicScope scope = logic->getScope();
-
-			quint32 id = logic->getId(127);
-
-			Rpg::EventMpCreate ev;
-			ev.emitter = scope.entityFromIdTag(logic->getId(127));
-			ev.mpCount = 8;
-			ev.setTick(tick+120);
-
-			logic->eventStore(std::move(ev));
-		};
-
-		tutorial->steps.emplace_back(std::move(step));
-
-	}
-
-	{
-		Rpg::RpgLogicClientTutorial::Tutorial::Step step;
-
-		step.message = "Wait for start...";
-
-		step.infoIcon = 		"qrc:/Qaterial/Icons/abacus.svg";
-		step.infoTitle = "Kövi utasítás";
-		step.infoText = "Menjél gyorsan oda, mielőtt meggondolom magam. Ez már a másik";
-
-		/*auto ev = std::make_unique<RpgStream::EventStageChanged>();
-		ev->config().setStage(RpgStream::GameConfig::StageMain);
-
-		step.inputEvents.emplace_back(std::move(ev));*/
-
-		step.addTargetControlEvent([](TiledObjectBody *obj) {
-			if (dynamic_cast<RpgTower*>(obj))
-				return true;
-			else
-				return false;
-		});
-
-		step.fnNext = [](Rpg::RpgLogicClientTutorial *logic, const quint32 &tick) {
-			Q_ASSERT(logic);
-
-			logic->npcAddToPoint(QStringLiteral("skeleton01"), {"entry1", "entry2", "entry3"}, 6, 120);
-		};
-
-
-
-		tutorial->steps.emplace_back(std::move(step));
-
-
-	}
-
-	return tutorial;
-}
-
-
-
-/**
  * @brief TutorialData::testCharacter
  * @param url
  * @return
@@ -263,12 +151,13 @@ std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> TutorialData::testCharact
 {
 	std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> tutorial = std::make_unique<Rpg::RpgLogicClientTutorial::Tutorial>();
 	tutorial->character = url.path().mid(1);
-	tutorial->terrain = "test";
+	tutorial->terrain = QStringLiteral("map_tutorial");
 	tutorial->power = 8;
 	tutorial->duration = 2*60*60;
 
-	tutorial->addTower(120);
-	tutorial->addEmitter(127);
+	tutorial->addTower(17);
+	tutorial->addTower(33);
+	tutorial->addEmitter(19);
 
 
 	tutorial->fnFirst = [character = tutorial->character](Rpg::RpgLogicClientTutorial *logic) {
@@ -279,14 +168,14 @@ std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> TutorialData::testCharact
 		Rpg::RpgLogicScope scope = logic->getScope();
 
 		Rpg::EventMpCreate ev2;
-		ev2.emitter = scope.entityFromIdTag(logic->getId(127));
+		ev2.emitter = scope.entityFromIdTag(logic->getId(19));
 		ev2.mpCount = 8;
 		ev2.setTick(120);
 
 		logic->eventStore(std::move(ev2));
 
 
-		logic->towerSet(120, RpgStream::TeamB, 100);
+		logic->towerSet(17, RpgStream::TeamB, 100);
 
 		RpgPlayerDefinition def = RpgGame::characters().value(character);
 
@@ -295,10 +184,10 @@ std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> TutorialData::testCharact
 			return;
 		}
 
-		logic->defenderAddToPoint("entry3", RpgStream::BaseDefenderObject::Questionnaire, RpgStream::TeamB);
+		///logic->defenderAddToPoint("entry3", RpgStream::BaseDefenderObject::Questionnaire, RpgStream::TeamB);
 
 		for (const RpgStream::BaseDefenderObject::Type &d : def.defender) {
-			logic->defenderAddToTower(120, d, RpgStream::TeamB);
+			logic->defenderAddToTower(17, d, RpgStream::TeamB);
 		}
 
 		CfgPowerLevel pwr = CfgPowerLevel::fromPlayerConfig(def.toPlayerConfig()).atLevel(8);
@@ -328,34 +217,40 @@ std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> TutorialData::defaultTuto
 {
 	std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> tutorial = std::make_unique<Rpg::RpgLogicClientTutorial::Tutorial>();
 	tutorial->character = "character01a";
-	tutorial->terrain = "test";
+	tutorial->terrain = QStringLiteral("map_tutorial");
 	tutorial->power = 1;
 	tutorial->duration = CFG_GAME_DURATION;
 
-	tutorial->addTower(120);
-	tutorial->addEmitter(127);
-	tutorial->addChest("entry3");
-	tutorial->addChest("entry2");
+	tutorial->addTower(17);
+	tutorial->addEmitter(19);
+
+	tutorial->noChests();
+
+	//tutorial->addChest("entry3");
+	//tutorial->addChest("entry8");
+
+	RpgStream::Quest q;
+	q.setQuestion(4);
+	q.setStreak(2);
+	q.setPts(400);
+
+	tutorial->questList.emplace_back(std::move(q));
 
 
 	tutorial->fnFirst = [](Rpg::RpgLogicClientTutorial *logic) {
 		Q_ASSERT(logic);
 
-		logic->npcAddToPoint(QStringLiteral("soldier02"), "entry2");
-
-		logic->towerSet(120, RpgStream::TeamB, 100);
-		logic->defenderAddToTower(120, RpgStream::BaseDefenderObject::Pulse, RpgStream::TeamB);
-		logic->defenderAddToTower(120, RpgStream::BaseDefenderObject::Electric, RpgStream::TeamB);
+		logic->towerSet(17, RpgStream::TeamA, 70);
 	};
 
 	{
 		Rpg::RpgLogicClientTutorial::Tutorial::Step step;
 
-		step.message = "Jöhet mindjárt";
+		step.message = QObject::tr("Menj a Power Generator mellé");
 
-		step.infoIcon = 		"qrc:/Qaterial/Icons/abacus.svg";
-		step.infoTitle = "Menj oda";
-		step.infoText = "Menjél gyorsan oda, mielőtt meggondolom magam.";
+		step.infoIcon = "qrc:/Qaterial/Icons/flash-circle.svg";
+		step.infoTitle = QObject::tr("Power Generator");
+		step.infoText = QObject::tr("Power Pointokat a Power Generator segítségével tudsz termelni. Menj oda, és aktiváld.");
 
 		step.addTargetControlEvent([](TiledObjectBody *obj) {
 			if (dynamic_cast<RpgTower*>(obj))
@@ -364,24 +259,45 @@ std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> TutorialData::defaultTuto
 				return false;
 		});
 
+		tutorial->steps.emplace_back(std::move(step));
+	}
+
+
+
+	{
+		Rpg::RpgLogicClientTutorial::Tutorial::Step step;
+
+		step.message = QObject::tr("Aktiváld a Power Generatort");
+
+		step.infoIcon = "qrc:/Qaterial/Icons/flash-circle.svg";
+		step.infoTitle = QObject::tr("Aktiválás");
+		step.infoText = QObject::tr("A Power Generatort az ENTER lenyomásával, vagy a joystickra kattintással tudod aktiválni. "
+									"Az aktiváláshoz helyes válasz szükséges.");
+
+		step.addTowerEvent([](Rpg::RpgLogicClientTutorial *logic, const Rpg::EventTowerActiveChanged &event) {
+			Rpg::RpgLogicScope scope = logic->getScope();
+
+			auto ent = scope.entityFromIdTag(logic->getId(17));
+
+			return (event.tower == ent) && event.active && event.team == RpgStream::TeamA;
+		});
+
 		step.fnNext = [](Rpg::RpgLogicClientTutorial *logic, const quint32 &tick) {
 			Q_ASSERT(logic);
 
-			logic->npcAddToPoint(QStringLiteral("soldier04"), "entry1", 6, 120);
-
-			cpVect pos = logic->player()->bodyPosition();
-
-
 			Rpg::RpgLogicScope scope = logic->getScope();
 
-			quint32 id = logic->getId(127);
-
 			Rpg::EventMpCreate ev;
-			ev.emitter = scope.entityFromIdTag(logic->getId(127));
+			ev.emitter = scope.entityFromIdTag(logic->getId(19));
 			ev.mpCount = 8;
-			ev.setTick(tick+120);
+			ev.setTick(tick+1);
 
 			logic->eventStore(std::move(ev));
+
+			logic->npcAddToPoint(QStringLiteral("soldier01"), "entry2");
+
+			//logic->chestAddToPoint(QStringLiteral("entry8"));
+
 		};
 
 		tutorial->steps.emplace_back(std::move(step));
@@ -391,36 +307,274 @@ std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> TutorialData::defaultTuto
 	{
 		Rpg::RpgLogicClientTutorial::Tutorial::Step step;
 
-		step.message = "Wait for start...";
+		step.message = QObject::tr("Gyűjts össze %1 MP-t")
+					   .arg(cfgRequiredMpDefender.value(RpgStream::BaseDefenderObject::Multiplier1));
 
-		step.infoIcon = 		"qrc:/Qaterial/Icons/abacus.svg";
-		step.infoTitle = "Kövi utasítás";
-		step.infoText = "Menjél gyorsan oda, mielőtt meggondolom magam. Ez már a másik";
+		step.infoIcon = "qrc:/Qaterial/Icons/shimmer.svg";
+		step.infoTitle = QObject::tr("MP");
+		step.infoText = QObject::tr("A Power Generator megvédéséhez szükséged van töltényre, védőeszközre, vagy speciális képességre. "
+									"Ezeket elegendő MP esetén tudod megszerezni. Menj és gyűjtsd össze az MP-ket");
 
 		/*auto ev = std::make_unique<RpgStream::EventStageChanged>();
 		ev->config().setStage(RpgStream::GameConfig::StageMain);
 
 		step.inputEvents.emplace_back(std::move(ev));*/
 
-		step.addTargetControlEvent([](TiledObjectBody *obj) {
+		step.addPlayerEvent([](RpgPlayer *player, const RpgStream::EventPlayer &event) {
+			return event.type() == RpgStream::EventPlayer::EventMpPick && player &&
+					player->mp() >= cfgRequiredMpDefender.value(RpgStream::BaseDefenderObject::Multiplier1)-1;
+		});
+
+		/*step.addTargetControlEvent([](TiledObjectBody *obj) {
 			if (dynamic_cast<RpgTower*>(obj))
 				return true;
 			else
 				return false;
-		});
+		});*/
 
-		step.fnNext = [](Rpg::RpgLogicClientTutorial *logic, const quint32 &tick) {
+
+
+		/*step.fnNext = [](Rpg::RpgLogicClientTutorial *logic, const quint32 &) {
 			Q_ASSERT(logic);
-
-			logic->npcAddToPoint(QStringLiteral("skeleton01"), {"entry1", "entry2", "entry3"}, 6, 120);
-		};
+			logic->npcAddToPoint(QStringLiteral("soldier01"), "entry2");
+		};*/
 
 
 
 		tutorial->steps.emplace_back(std::move(step));
-
-
 	}
+
+
+
+	{
+		Rpg::RpgLogicClientTutorial::Tutorial::Step step;
+
+		step.message = QObject::tr("Tölts be egy Multiplicatort");
+
+		step.infoIcon = "qrc:/Qaterial/Icons/creation.svg";
+		step.infoTitle = QObject::tr("MP konvertálás");
+		step.infoText = QObject::tr("Váltsd át az összegyűjtött MP-ket Multiplicator védőeszközre. "
+									"Kattints hozzá az MP konvertáló gombra.");
+
+		step.addPlayerEvent([](RpgPlayer *, const RpgStream::EventPlayer &event) {
+			return event.type() == RpgStream::EventPlayer::EventChangeDefender;
+		});
+
+
+		tutorial->steps.emplace_back(std::move(step));
+	}
+
+
+	{
+		Rpg::RpgLogicClientTutorial::Tutorial::Step step;
+
+		step.message = QObject::tr("Helyezd el a Multiplicatort");
+
+		step.infoIcon = "qrc:/Qaterial/Icons/fan-speed-2.svg";
+		step.infoTitle = QObject::tr("Védőeszköz elhelyezése");
+		step.infoText = QObject::tr("Helyezd el a Multiplicatort a Power Generator mellett. "
+									"Menj a Generatorhoz, és kattints a zöld joystickra. "
+									"Ha szükséges, előtte aktviáld újra a Generatort.");
+
+		step.addPlayerEvent([](RpgPlayer *, const RpgStream::EventPlayer &event) {
+			return event.type() == RpgStream::EventPlayer::EventDefender;
+		});
+
+
+		step.fnNext = [](Rpg::RpgLogicClientTutorial *logic, const quint32 &tick) {
+			Q_ASSERT(logic);
+
+			Rpg::RpgLogicScope scope = logic->getScope();
+
+			Rpg::EventMpCreate ev;
+			ev.emitter = scope.entityFromIdTag(logic->getId(19));
+			ev.mpCount = CFG_MP_CHANGE_BULLET;
+			ev.setTick(tick+1);
+
+			logic->eventStore(std::move(ev));
+		};
+
+
+		tutorial->steps.emplace_back(std::move(step));
+	}
+
+
+	{
+		Rpg::RpgLogicClientTutorial::Tutorial::Step step;
+
+		step.message = QObject::tr("Gyűjts össze %1 MP-t").arg(CFG_MP_CHANGE_BULLET);
+
+		step.infoIcon = "qrc:/Qaterial/Icons/shimmer.svg";
+		step.infoTitle = QObject::tr("MP");
+		step.infoText = QObject::tr("Töltény megszerzéséhez menj és gyűjtsd össze az MP-ket");
+
+
+		step.addPlayerEvent([](RpgPlayer *player, const RpgStream::EventPlayer &event) {
+			return event.type() == RpgStream::EventPlayer::EventMpPick && player && player->mp() >= CFG_MP_CHANGE_BULLET-1;
+		});
+
+
+		tutorial->steps.emplace_back(std::move(step));
+	}
+
+
+	{
+		Rpg::RpgLogicClientTutorial::Tutorial::Step step;
+
+		step.message = QObject::tr("Töltsd fel a töltényeket");
+
+		step.infoIcon = "qrc:/Qaterial/Icons/bullet.svg";
+		step.infoTitle = QObject::tr("MP konvertálás");
+		step.infoText = QObject::tr("Váltsd át az összegyűjtött MP-ket töltényekre. "
+									"Kattints hozzá az MP konvertáló gombra.");
+
+		step.addPlayerEvent([](RpgPlayer *, const RpgStream::EventPlayer &event) {
+			return event.type() == RpgStream::EventPlayer::EventChangeBullet;
+		});
+
+
+		tutorial->steps.emplace_back(std::move(step));
+	}
+
+
+	{
+		Rpg::RpgLogicClientTutorial::Tutorial::Step step;
+
+		step.message = QObject::tr("Támadd meg az ellenfelet");
+
+		step.infoIcon = "qrc:/internal/game/target1.svg";
+		step.infoTitle = QObject::tr("Támadás");
+		step.infoText = QObject::tr("Célozni és lőni a piros joystick segítségével tudsz. "
+									"Ha hosszan lenyomod az MP konvertáló gombot, és van elég MP-d, tudsz váltani a joystick funkciói között.");
+
+		step.addPlayerEvent([](RpgPlayer *player, const RpgStream::EventPlayer &event) {
+			return event.type() == RpgStream::EventPlayer::EventAttackPlayer && player->bullet() <= 3;
+		});
+
+
+		step.fnNext = [](Rpg::RpgLogicClientTutorial *logic, const quint32 &tick) {
+			Q_ASSERT(logic);
+
+			Rpg::RpgLogicScope scope = logic->getScope();
+
+			Rpg::EventMpCreate ev;
+			ev.emitter = scope.entityFromIdTag(logic->getId(19));
+			ev.mpCount = CFG_MP_CHANGE_BULLET;
+			ev.setTick(tick+5*60);
+
+			logic->eventStore(std::move(ev));
+
+			logic->chestAddToPoint(QStringLiteral("entry8"));
+		};
+
+
+		tutorial->steps.emplace_back(std::move(step));
+	}
+
+
+
+	{
+		Rpg::RpgLogicClientTutorial::Tutorial::Step step;
+
+		step.message = QObject::tr("Nyisd ki a ládát");
+
+		step.infoIcon = "qrc:/internal/game/target1.svg";
+		step.infoTitle = QObject::tr("Upgrade danger");
+		step.infoText = QObject::tr("A pályán nehezíteni egy-egy láda kinyitásával tudsz. "
+									"Minden kinyitott láda +50%-kal fogja növelni a jutalmat sikeres teljesítés esetén.");
+
+		step.addPlayerEvent([](RpgPlayer *, const RpgStream::EventPlayer &event) {
+			return event.type() == RpgStream::EventPlayer::EventUseControl;
+		});
+
+
+		step.fnNext = [t = tutorial.get()](Rpg::RpgLogicClientTutorial *logic, const quint32 &tick) {
+			Q_ASSERT(logic);
+			Q_ASSERT(t);
+
+			Rpg::RpgLogicScope scope = logic->getScope();
+
+			RpgStream::GameState *state = scope.getCtx<RpgStream::GameState>();
+
+			Q_ASSERT(state);
+
+			int pts = (std::ceil(state->ptsA() / 100.) * 100) + 150;
+
+			for (auto e : scope.view<Rpg::Player>()) {
+				Rpg::Player *p = scope.try_get<Rpg::Player>(e);
+				p->playerData.quest().setPts(pts);
+
+				{
+					Rpg::RpgLogicClientTutorial::Tutorial::Step step;
+
+					step.infoIcon = "qrc:/internal/game/target1.svg";
+					step.infoTitle = QObject::tr("Power Point termelés");
+					step.infoText = QObject::tr("Védd meg a Generatort és termelj %1 Power Pointot").arg(pts);
+
+					t->steps.emplace_back(std::move(step));
+				}
+				break;
+			}
+
+			Rpg::EventMpCreate ev;
+			ev.emitter = scope.entityFromIdTag(logic->getId(19));
+			ev.mpCount = CFG_MP_CHANGE_BULLET;
+			ev.setTick(tick+5*60);
+
+			logic->eventStore(std::move(ev));
+
+			logic->npcAddToPoint("soldier04", QStringList{}, 2, 60);
+
+			{
+				Rpg::EventMpCreate ev2;
+				ev2.emitter = scope.entityFromIdTag(logic->getId(19));
+				ev2.mpCount = CFG_MP_CHANGE_BULLET;
+				ev2.setTick(tick+30*60);
+
+				logic->eventStore(std::move(ev2));
+			}
+
+			{
+				Rpg::EventMpCreate ev2;
+				ev2.emitter = scope.entityFromIdTag(logic->getId(19));
+				ev2.mpCount = CFG_MP_CHANGE_BULLET;
+				ev2.setTick(tick+45*60);
+
+				logic->eventStore(std::move(ev2));
+			}
+
+			{
+				Rpg::EventMpCreate ev2;
+				ev2.emitter = scope.entityFromIdTag(logic->getId(19));
+				ev2.mpCount = CFG_MP_CHANGE_BULLET;
+				ev2.setTick(tick+60*60);
+
+				logic->eventStore(std::move(ev2));
+			}
+
+			{
+				Rpg::EventMpCreate ev2;
+				ev2.emitter = scope.entityFromIdTag(logic->getId(19));
+				ev2.mpCount = CFG_MP_CHANGE_BULLET;
+				ev2.setTick(tick+90*60);
+
+				logic->eventStore(std::move(ev2));
+			}
+
+			{
+				Rpg::EventMpCreate ev2;
+				ev2.emitter = scope.entityFromIdTag(logic->getId(19));
+				ev2.mpCount = CFG_MP_CHANGE_BULLET;
+				ev2.setTick(tick+120*60);
+
+				logic->eventStore(std::move(ev2));
+			}
+		};
+
+
+		tutorial->steps.emplace_back(std::move(step));
+	}
+
 
 	return tutorial;
 }

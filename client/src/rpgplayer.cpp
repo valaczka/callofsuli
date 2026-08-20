@@ -83,6 +83,8 @@ private:
 	bool m_joystickC_hasTouch = false;
 	bool m_isTargetAuto = false;
 
+	QSet<RpgStream::PlayerConfig::Utility> m_activeUtilities;
+
 
 	friend class RpgPlayer;
 	friend class RpgMotorPlayerControlled;
@@ -380,6 +382,17 @@ bool RpgMotorPlayer::beforeWorldStep(const qint64 &tick, entt::entity &entity)
 
 	m_player->setLocked(state->lock() > 0);
 
+	bool invisible = false;
+
+	for (const auto &u : state->activeUtilities()) {
+		if (u == RpgStream::PlayerConfig::UtilityInvisible) {
+			invisible = true;
+			break;
+		}
+	}
+
+	m_player->setInvisible(invisible);
+
 
 	return true;
 }
@@ -461,7 +474,7 @@ void RpgMotorPlayer::onAttack(RpgPlayer *player)
 
 	player->jumpToSprite("attack", player->facingDirection());
 
-	player->game()->playSfx(QStringLiteral(":/rpg/hammer/hammer2.mp3"),
+	player->game()->playSfx(QStringLiteral(":/rpg/common/hit.mp3"),
 							player->scene(), player->bodyPositionF());
 
 }
@@ -473,14 +486,26 @@ void RpgMotorPlayer::onAttack(RpgPlayer *player)
  * @param player
  */
 
-void RpgMotorPlayer::onUseUtility(RpgPlayer *player)
+void RpgMotorPlayer::onUseUtility(RpgPlayer *player, const bool isControlled)
 {
 	Q_ASSERT(player);
 
-	player->jumpToSprite("cast", player->facingDirection());
+	if (player->currentUtility() == RpgStream::PlayerConfig::UtilitySniper) {
+		player->jumpToSprite("attack", player->facingDirection());
 
-	player->game()->playSfx(QStringLiteral(":/rpg/hammer/hammer2.mp3"),
-							player->scene(), player->bodyPositionF());
+		if (isControlled)
+			player->game()->playSfx(QStringLiteral(":/rpg/broadsword/broadsword2.mp3"),
+									player->scene(), player->bodyPositionF());
+		return;
+	} else if (player->currentUtility() == RpgStream::PlayerConfig::UtilityMissionary) {
+		player->jumpToSprite("cast", player->facingDirection());
+	} else if (player->currentUtility() == RpgStream::PlayerConfig::UtilityBoostAttackTower) {
+		if (isControlled)
+			player->game()->message(QObject::tr("Tower attack boost activated"), true);
+	}
+
+	if (isControlled)
+		player->game()->playSfx(QStringLiteral(":/rpg/common/click.mp3"), player->scene());
 }
 
 
@@ -494,11 +519,9 @@ void RpgMotorPlayer::processEventAt(const qint64 &/*tick*/)
 {
 	for (const RpgStream::EventPlayer &e : m_incomingEventList) {
 		if (e.type() == RpgStream::EventPlayer::EventAttackPlayer) {
-			LOG_CWARNING("game") << "ATTACK >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
 			onAttack(m_player);
 		} else if (e.type() == RpgStream::EventPlayer::EventUseUtility) {
-			LOG_CWARNING("game") << "USE UTILITY >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>";
-			onUseUtility(m_player);
+			onUseUtility(m_player, false);
 		}
 	}
 }
@@ -1050,7 +1073,7 @@ bool RpgMotorPlayerControlled::beforeWorldStep(const qint64 &tick, entt::entity 
 			// Később (pl. hp == 0) lekezeljük újra
 
 			if (sim.cbegin()->first > latest->tick()) {
-				LOG_CWARNING("game") << "State gap" << latest->tick() << sim.cbegin()->first;
+				LOG_CTRACE("game") << "State gap" << latest->tick() << sim.cbegin()->first;
 				reqEmplace = false;
 			} else if (sim.cbegin()->second.entityState().isEqualWithoutSlide(latest->entityState()))
 				reqEmplace = false;
@@ -1124,6 +1147,37 @@ bool RpgMotorPlayerControlled::beforeWorldStep(const qint64 &tick, entt::entity 
 
 		d->m_controlActionDisableLastNotification = state->penalty();
 	}
+
+
+
+	// Load utilities
+
+	QSet<RpgStream::PlayerConfig::Utility> tmp = d->m_activeUtilities;
+
+	for (const RpgStream::PlayerConfig::Utility &u : state->activeUtilities()) {
+		tmp.remove(u);
+
+		if (!d->m_activeUtilities.contains(u)) {
+			d->m_activeUtilities.insert(u);
+
+			if (u == RpgStream::PlayerConfig::UtilityInvisible) {
+				m_game->gameItem()->message(QObject::tr("You are invisible now"), true);
+			}
+		}
+	}
+
+	for (const RpgStream::PlayerConfig::Utility &u : tmp) {
+		// TODO: message...
+		d->m_activeUtilities.remove(u);
+
+		if (u == RpgStream::PlayerConfig::UtilityInvisible) {
+			m_game->gameItem()->message(QObject::tr("You are visible now"));
+		}
+	}
+
+
+	m_player->setInvisible(d->m_activeUtilities.contains(RpgStream::PlayerConfig::UtilityInvisible));
+
 
 
 	if (!m_incomingEventList.empty()) {
@@ -1279,15 +1333,23 @@ void RpgMotorPlayerControlled::attackCurrentTarget()
 {
 	if (!m_player->targetEntity() || !m_player->targetEntity()->isAlive()) {
 		LOG_CWARNING("game") << "Invalid target";
+		m_player->m_sfxDecline.playOne();
 		return;
 	}
 
 	if (m_player->bullet() <= 0) {
 		LOG_CWARNING("game") << "Missing bullet";
+		m_player->m_sfxDecline.playOne();
 		return;
 	}
 
 	m_player->rotateToPoint(m_player->targetEntity()->bodyPosition());
+
+	if (m_game->hasActiveTargetUtility(RpgStream::PlayerConfig::UtilityBlockAttack, m_player->team())) {
+		//m_game->gameItem()->message(QObject::tr("Attack blocked"));
+		m_player->m_sfxDecline.playOne();
+		return;
+	}
 
 	RpgStream::EventPlayer e(RpgStream::EventPlayer::EventAttackPlayer);
 	e.setSeq(m_player->nextEventId());
@@ -1312,6 +1374,12 @@ void RpgMotorPlayerControlled::useCurrentControl()
 	const qint64 tick = m_gameItem->tickTimer()->currentTick();
 
 	if (RpgTower *tower = dynamic_cast<RpgTower*>(m_player->targetControl())) {
+		if (m_game->hasActiveTargetUtility(RpgStream::PlayerConfig::UtilityBlockAttack, m_player->team())) {
+			//m_game->gameItem()->message(QObject::tr("Attack blocked"));
+			m_player->m_sfxDecline.playOne();
+			return;
+		}
+
 		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventTower);
 		e.setSeq(m_player->nextEventId());
 		e.setTarget(RpgLogicObjectMapper::getId(tower->objectId()));
@@ -1328,6 +1396,12 @@ void RpgMotorPlayerControlled::useCurrentControl()
 
 
 	if (RpgDefender *p = dynamic_cast<RpgDefender*>(m_player->targetControl())) {
+		if (m_game->hasActiveTargetUtility(RpgStream::PlayerConfig::UtilityBlockAttack, m_player->team())) {
+			//m_game->gameItem()->message(QObject::tr("Attack blocked"));
+			m_player->m_sfxDecline.playOne();
+			return;
+		}
+
 		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventAttackDefender);
 		e.setSeq(m_player->nextEventId());
 		e.setTarget(RpgLogicObjectMapper::getId(p->objectId()));
@@ -1377,6 +1451,7 @@ void RpgMotorPlayerControlled::useCurrentUtility()
 {
 	if (!m_player->m_hasUtility || !m_player->m_canUseUtility) {
 		LOG_CWARNING("game") << "Invalid utility";
+		m_player->m_sfxDecline.playOne();
 		return;
 	}
 
@@ -1386,7 +1461,7 @@ void RpgMotorPlayerControlled::useCurrentUtility()
 	if (m_player->utilityEntity())
 		e.setTarget(RpgLogicObjectMapper::getId(m_player->utilityEntity()->objectId()));
 
-	RpgMotorPlayer::onUseUtility(m_player);
+	RpgMotorPlayer::onUseUtility(m_player, true);
 
 	d->m_eventList.emplace_back(std::move(e));
 }
@@ -1422,6 +1497,11 @@ void RpgMotorPlayerControlled::updateUseUtility()
 
 		if (defender)
 			return m_player->setCanUseUtility(defender->team() != m_player->team());
+	} else if (m_player->m_utility == RpgStream::PlayerConfig::UtilityBoostAttackTower) {
+		// Csak a normál módon használhatjuk (tower attack)
+		m_player->setCanUseUtility(false);
+
+		return;
 	}
 
 	m_player->setCanUseUtility(true);
@@ -1470,6 +1550,12 @@ float RpgMotorPlayerControlled::utilityRequireTarget(cpBitmask *categoryPtr) con
 void RpgMotorPlayerControlled::putDefender(const bool &click)
 {
 	if (RpgDefenderPoint *p = dynamic_cast<RpgDefenderPoint*>(m_player->targetControl())) {
+		if (!RpgStream::BaseDefenderObject::placementFlags(m_player->currentDefender())
+				.testFlags(RpgStream::BaseDefenderObject::PlacementTower)) {
+			m_player->m_sfxDecline.playOne();
+			return;
+		}
+
 		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventDefender);
 		e.setSeq(m_player->nextEventId());
 		e.setTarget(RpgLogicObjectMapper::getId(p->objectId()));
@@ -1486,6 +1572,11 @@ void RpgMotorPlayerControlled::putDefender(const bool &click)
 	}
 
 	if (const QPoint &ch = m_player->currentChunk(); ch.x() >= 0 && ch.y() >= 0) {
+		if (!RpgStream::BaseDefenderObject::placementFlags(m_player->currentDefender())
+				.testFlags(RpgStream::BaseDefenderObject::PlacementChunk)) {
+			m_player->m_sfxDecline.playOne();
+		}
+
 		RpgStream::EventPlayer e(RpgStream::EventPlayer::EventDefender);
 		e.setSeq(m_player->nextEventId());
 		e.chunk().setX(ch.x());
@@ -1514,6 +1605,13 @@ void RpgMotorPlayerControlled::changeMpToBullet(const bool &force)
 	if (m_player->mp() < CFG_MP_CHANGE_BULLET) {
 		m_player->game()->message(QObject::tr("Not enough MP"));
 		emit m_player->m_rpgGame->gameItem()->mpMarkerRequest();
+		d->vibrate();
+		return;
+	}
+
+	if (m_game->hasActiveTargetUtility(RpgStream::PlayerConfig::UtilityBlockMpConvert, m_player->team())) {
+		m_game->gameItem()->message(QObject::tr("MP conversion blocked"));
+		m_player->m_sfxDecline.playOne();
 		d->vibrate();
 		return;
 	}
@@ -1560,6 +1658,13 @@ void RpgMotorPlayerControlled::changeMpToDefender()
 		return;
 	}
 
+	if (m_game->hasActiveTargetUtility(RpgStream::PlayerConfig::UtilityBlockMpConvert, m_player->team())) {
+		m_game->gameItem()->message(QObject::tr("MP conversion blocked"));
+		m_player->m_sfxDecline.playOne();
+		d->vibrate();
+		return;
+	}
+
 	const qint64 tick = m_gameItem->tickTimer()->currentTick();
 
 	RpgStream::EventPlayer e(RpgStream::EventPlayer::EventChangeDefender);
@@ -1598,6 +1703,13 @@ void RpgMotorPlayerControlled::changeMpToUtility()
 	if (m_player->mp() < cfgRequiredMpUtility.value(m_player->m_utility)) {
 		m_player->game()->message(QObject::tr("Not enough MP"));
 		emit m_player->m_rpgGame->gameItem()->mpMarkerRequest();
+		d->vibrate();
+		return;
+	}
+
+	if (m_game->hasActiveTargetUtility(RpgStream::PlayerConfig::UtilityBlockMpConvert, m_player->team())) {
+		m_game->gameItem()->message(QObject::tr("MP conversion blocked"));
+		m_player->m_sfxDecline.playOne();
 		d->vibrate();
 		return;
 	}
@@ -1782,6 +1894,12 @@ void RpgMotorPlayerControlled::eventMpPick(RpgMp *mp)
 {
 	if (!mp)
 		return;
+
+	if (m_game->hasActiveTargetUtility(RpgStream::PlayerConfig::UtilityBlockMpPick, m_player->team())) {
+		//m_game->gameItem()->message(QObject::tr("MP pick blocked"));
+		m_player->m_sfxDecline.playOne();
+		return;
+	}
 
 	RpgStream::EventPlayer e(RpgStream::EventPlayer::EventMpPick);
 	e.setSeq(m_player->nextEventId());
@@ -2273,9 +2391,14 @@ void RpgPlayer::synchronize()
 
 		if (m_scatterPoint.isValid())
 			m_scatterPoint.scatter->setPointConfiguration(m_scatterPoint.index, QXYSeries::PointConfiguration::Size, 14);
+
+		m_visualItem->setOpacity(m_invisible ? 0.4 : 1.0);
 	} else {
 		if (m_scatterPoint.isValid())
 			m_scatterPoint.scatter->setPointConfiguration(m_scatterPoint.index, QXYSeries::PointConfiguration::Size, 10);
+
+		m_visualItem->setVisible(!m_invisible);
+		m_markerItem->setVisible(!m_invisible);
 	}
 
 
@@ -2284,7 +2407,10 @@ void RpgPlayer::synchronize()
 		QPointF p = bodyPositionF();
 		p.setY(scene()->height() - p.y());
 		m_scatterPoint.scatter->replace(m_scatterPoint.index, p);
+		m_scatterPoint.scatter->setPointConfiguration(m_scatterPoint.index, QXYSeries::PointConfiguration::Visibility,
+													  !m_invisible);
 	}
+
 
 
 	if (!isAlive())

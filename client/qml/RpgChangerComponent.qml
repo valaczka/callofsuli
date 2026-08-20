@@ -68,6 +68,8 @@ ColumnLayout {
 
 		color: _hasNoUtility ? Qaterial.Colors.gray500 : mainColor
 
+		icon.color: type == "weapon" ? "transparent" : _content.color
+
 		wrapMode: Text.Wrap
 	}
 
@@ -91,7 +93,7 @@ ColumnLayout {
 
 		enabled: changer.player && modelIdx >= 0 &&
 				 changer.player.mp >= _model.get(modelIdx).cost &&
-				 !hasItem
+				 !hasItem && !changer.isBlocked
 
 		icon.source: enabled ? Qaterial.Icons.shimmer : Qaterial.Icons.lock
 		text: modelIdx >= 0 ? qsTr("%1 MP").arg(_model.get(modelIdx).cost) : "---"
@@ -116,7 +118,7 @@ ColumnLayout {
 	QButton {
 		id: _btnReplace
 
-		enabled: changer.replaceEnabled  && type != "weapon" && _model.count > 1
+		enabled: changer.replaceEnabled  && type != "weapon" && _model.count > 1 && !_btnChange.hasItem
 
 		visible: !replaceMode
 
@@ -186,7 +188,13 @@ ColumnLayout {
 			}
 		}
 
-		modelIdx = -1
+		if (_model.count > 0)
+			modelIdx = 0
+		else
+			modelIdx = -1
+
+		if (modelIdx != -1)
+			_tumbler.positionViewAtIndex(modelIdx, Tumbler.Center)
 	}
 
 

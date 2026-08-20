@@ -44,12 +44,14 @@ class RpgNpcPlayerAttackerDefinition : public QSerializer
 public:
 	RpgNpcPlayerAttackerDefinition() : QSerializer()
 	  , attackDelay(2000)					// Delay between attacks (msec)
+	  , bow(true)
 	{}
 
 
 	QS_SERIALIZABLE
 
 	QS_FIELD(int, attackDelay)
+	QS_FIELD(bool, bow)
 };
 
 
@@ -71,10 +73,15 @@ public:
 	class Motor : public RpgMotorNpc
 	{
 	public:
-		Motor(RpgNpc *npc) : RpgMotorNpc(npc) {}
+		Motor(RpgNpc *npc) : RpgMotorNpc(npc) {
+			m_config.fromJson(npc->config().data);
+		}
 
 	protected:
 		virtual void processEventAt(const qint64 &tick) override;
+
+	private:
+		RpgNpcPlayerAttackerDefinition m_config;
 	};
 
 	virtual std::unique_ptr<RpgMotorNpcControlled> getControlledMotor() override;

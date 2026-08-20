@@ -170,6 +170,7 @@ void RpgMotorNpcTowerAttacker::updateMotor()
 
 	++m_currentIdx;
 
+
 	if (m_currentIdx >= (int) m_towers.size())
 		m_currentIdx = 0;
 
@@ -197,7 +198,8 @@ void RpgMotorNpcTowerAttacker::updateMotor()
 
 		std::uniform_int_distribution<int> dist(0, t.adjacentChunks.size()-1);
 
-		dest = grid->chunkCenter(t.adjacentChunks.at(dist(m_game->rpgLogicClient()->rnd())));
+		auto ch = t.adjacentChunks.at(dist(m_game->rpgLogicClient()->rnd()));
+		dest = grid->chunkCenter(ch);
 	}
 
 	const auto path = m_gameItem->findShortestPath(m_npc, dest);
@@ -393,6 +395,9 @@ void RpgMotorNpcTowerAttacker::loadTowers()
 
 void RpgMotorNpcTowerAttacker::attackTarget()
 {
+	if (!m_npc->canAttack())
+		return;
+
 	if (!m_targetDefender && !m_targetTower)
 		return;
 

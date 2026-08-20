@@ -719,8 +719,6 @@ bool RpgMotorNpcControlled::afterWorldStep(const qint64 &tick, RpgStream::FullSt
 		events.flags().setFlag(RpgStream::Events::Npc);
 		events.setNpc(m_eventList);
 
-		LOG_CINFO("game") << "EVENT" << tick << events.npc().size();
-
 		state->flags().setFlag(RpgStream::FullState::Event);
 		state->events().emplace_back(std::move(events));
 
@@ -1032,4 +1030,18 @@ QColor RpgNpc::getColor() const
 	return m_rpgGame->getColor(m_team,
 							   m_isFriend ? RpgGame::colorNeutral() :
 											RpgGame::colorOpponent());
+}
+
+
+
+
+
+/**
+ * @brief RpgNpc::canAttack
+ * @return
+ */
+
+bool RpgNpc::canAttack() const
+{
+	return !m_rpgGame->hasActiveTargetUtility(RpgStream::PlayerConfig::UtilityBlockAttack, m_team);
 }

@@ -73,6 +73,8 @@ public:
 
 	QColor getColor() const;
 
+	bool canAttack() const;
+
 signals:
 	void targetEntityChanged();
 	void isFriendChanged();

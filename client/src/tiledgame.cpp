@@ -614,12 +614,12 @@ bool TiledGame::loadObjectLayer(TiledScene *scene, Tiled::ObjectGroup *group, Ti
 			loadDynamicZ(scene, object, renderer);
 		} else if (className == QStringLiteral("light")) {
 			scene->addLightObject(object);
-		} /*else if (className == QStringLiteral("viewport")) {
+		} else if (className == QStringLiteral("viewport")) {
 			if (object->name() == QStringLiteral("topLeft"))
 				tmpViewport.setTopLeft(renderer->pixelToScreenCoords(object->position()));
 			else if (object->name() == QStringLiteral("bottomRight"))
 				tmpViewport.setBottomRight(renderer->pixelToScreenCoords(object->position()));
-		}*/ else if (group->className().isEmpty()) {
+		} else if (group->className().isEmpty()) {
 			if (object->className() == QStringLiteral("ground")) {
 				loadGround(scene, object, renderer);
 			} else if (object->className() == QStringLiteral("light")) {
@@ -2764,8 +2764,6 @@ TiledGame::TcodMapData* TiledGamePrivate::Scene::reloadTcodMap(const cpBitmask &
 
 void TiledGamePrivate::Scene::destroyScene()
 {
-	LOG_CTRACE("scene") << "DESTROY SCENE" << this << space.get();
-
 	space.reset();
 }
 
