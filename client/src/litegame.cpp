@@ -212,6 +212,18 @@ bool LiteGame::nextQuestion() {
 		return false;
 	}
 
+	if (!m_timeAdded && m_indices.size() == 2 && msecLeft() < 25000) {
+		LOG_CINFO("game") << "Add extra time";
+		addToDeadline(20000);
+		m_timeAdded = true;
+		emit timeNotify();
+	} else if (!m_timeAdded && m_indices.size() == 1 && msecLeft() < 20000) {
+		LOG_CINFO("game") << "Add extra time";
+		addToDeadline(20000);
+		m_timeAdded = true;
+		emit timeNotify();
+	}
+
 	if (m_hp <= 0)
 		setHp(startHP());
 

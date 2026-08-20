@@ -93,6 +93,8 @@ private:
 	QVector<LiteQuestion> m_questions;
 	QVector<int> m_indices;
 	int m_hp = 0;
+
+	bool m_timeAdded = false;
 };
 
 
