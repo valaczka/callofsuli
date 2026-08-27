@@ -2678,6 +2678,12 @@ bool UserAPI::_addRpgToken(DatabaseMain *database, const QString &username, cons
 
 bool UserAPI::_createRpgDrops(const QString &username, const QString &terrain, const int &gameid, QJsonObject *dst)
 {
+#ifndef QT_NO_DEBUG
+	LOG_CERROR("client") << "Drop creation disabled";
+#endif
+
+	return false;
+
 	QSqlDatabase db = QSqlDatabase::database(databaseMain()->dbName());
 
 	QMutexLocker _locker(databaseMain()->mutex());

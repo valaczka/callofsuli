@@ -93,10 +93,11 @@ QList<RpgQuestData> RpgLogicServer::singlePlayerQuests()
 	QList<RpgQuestData> list;
 
 	static const std::vector<std::array<int, 5> > data = {
-		{ 4,	3,	600,	1540,	215 },
-		{ 6,	3,	700,	2580,	325 },
-		{ 8,	3,	800,	3540,	415 },
-		{ 10,	3,	900,	3540,	615 },
+		{ 10,	4,	800,	400,	50 },
+		{ 12,	6,	1000,	650,	75 },
+		{ 15,	9,	2000,	800,	100 },
+		{ 18,	12,	4000,	1200,	150 },
+		{ 20,	15,	5000,	1400,	250 },
 	};
 
 	list.reserve(data.size());
@@ -242,9 +243,11 @@ Rpg::QuestList RpgLogicServer::getQuestList() const
 	Rpg::QuestList list;
 
 	static const std::vector<std::array<int, 5> > data = {
-		{ 4,	3,	0,	1540,	215 },
-		{ 6,	4,	0,	2580,	325 },
-		{ 13,	6,	0,	3540,	415 },
+		{ 10,	4,	0,	500,	250 },
+		{ 12,	6,	0,	750,	275 },
+		{ 15,	9,	0,	900,	420 },
+		{ 18,	12,	0,	1300,	560 },
+		{ 20,	15,	0,	1500,	710 },
 	};
 
 

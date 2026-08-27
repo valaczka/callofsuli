@@ -1031,7 +1031,7 @@ void RpgGameItem::joystickStateEvent(const Joystick &joystick, const JoystickSta
  * @return
  */
 
-QRect RpgGameItem::loadTextureSprites(TiledSpriteHandler *handler, const QString &path, const ProxyDirections &proxy)
+QRect RpgGameItem::loadTextureSprites(TiledSpriteHandler *handler, const QString &path, QSet<QString> *spriteNames, const ProxyDirections &proxy)
 {
 	QByteArray input = Utils::fileContentRead(path+QStringLiteral("input.txt"));
 
@@ -1122,7 +1122,9 @@ QRect RpgGameItem::loadTextureSprites(TiledSpriteHandler *handler, const QString
 
 	QVector<TextureSpriteDirection> sprites;
 
-	for (const QString &s : spriteNamesFromMapper(mapper)) {
+	const QSet<QString> names = spriteNamesFromMapper(mapper);
+
+	for (const QString &s : names) {
 		for (const auto &p : proxy) {
 			const TextureSprite sp = spriteFromMapper(mapper, def, s, p.first);
 
@@ -1137,6 +1139,9 @@ QRect RpgGameItem::loadTextureSprites(TiledSpriteHandler *handler, const QString
 
 	if (!appendToSpriteHandler(handler, sprites, basePath+QStringLiteral(".png"), layer))
 		return QRect();
+
+	if (spriteNames)
+		*spriteNames = names;
 
 	return measure;
 }

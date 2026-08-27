@@ -74,6 +74,7 @@ public:
 	QColor getColor() const;
 
 	bool canAttack() const;
+	void playSfxAttack();
 
 signals:
 	void targetEntityChanged();
@@ -92,6 +93,7 @@ private:
 	TiledGameSfx m_sfxPain;
 	TiledGameSfx m_sfxDead;
 	TiledGameSfx m_sfxFootStep;
+	TiledGameSfx m_sfxAttack;
 
 	TiledEffectHealed m_effectHealed;
 

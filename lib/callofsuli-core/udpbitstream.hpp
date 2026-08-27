@@ -227,13 +227,14 @@ public:
 		}
 
 		debug.nospace().noquote() << QStringLiteral("\nUdpBitStream(") << c.m_stream.getBuffer()->size
-								  << ',' << c.m_stream.position
-								  << QStringLiteral(" | r[%1/%2] | w[%3/%4]")
-									 .arg(c.m_stream.curr_read_octet, 8, 2, '0')
-									 .arg(c.m_stream.curr_bit_read_pos)
-									 .arg(c.m_stream.curr_write_octet, 8, 2, '0')
-									 .arg(c.m_stream.curr_bit_write_pos)
-								  << QStringLiteral("])\n");
+									 /*<< ',' << c.m_stream.position
+															   << QStringLiteral(" | r[%1/%2] | w[%3/%4]")
+																  .arg(c.m_stream.curr_read_octet, 8, 2, '0')
+																  .arg(c.m_stream.curr_bit_read_pos)
+																  .arg(c.m_stream.curr_write_octet, 8, 2, '0')
+																  .arg(c.m_stream.curr_bit_write_pos)
+															   << QStringLiteral("])\n");*/
+								  << QStringLiteral(")\n");
 
 		std::uint8_t *ptr = c.m_stream.getBuffer()->binary;
 

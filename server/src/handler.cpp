@@ -97,9 +97,17 @@ bool Handler::loadRoutes()
 		return getFavicon(request);
 	});
 
-	server->route("/content/", QHttpServerRequest::Method::Get,
-				  [this](const QString &fname, const QHttpServerRequest &request){
-		return getDynamicContent(fname, request);
+	server->route("/content/", QHttpServerRequest::Method::Get|QHttpServerRequest::Method::Post, [this](const QString &fname,
+				  const QHttpServerRequest &request, QHttpServerResponder &&responder) -> void {
+		const auto &credential = authorizeRequestLog(request);
+
+		if (!verifyPeer(request, credential.value_or(Credential()))) {
+			QHttpServerResponse r("unverified client", QHttpServerResponse::StatusCode::Unauthorized);
+			responder.sendResponse(std::move(r));
+			return;
+		}
+
+		getDynamicContent(fname, std::move(responder));
 	});
 
 
@@ -384,22 +392,43 @@ QHttpServerResponse Handler::getCallback(const QHttpServerRequest &request)
 }
 
 
+
+
+
+
+
+
+
 /**
  * @brief Handler::getDynamicContent
- * @param request
+ * @param responder
  * @return
  */
 
-QHttpServerResponse Handler::getDynamicContent(const QString &fname, const QHttpServerRequest &request)
+void Handler::getDynamicContent(const QString &fname, QHttpServerResponder &&responder)
 {
-	authorizeRequestLog(request);
-
-	const QString &file = m_service->settings()->dataDir().absoluteFilePath(QStringLiteral("content/")+fname);
+	/*const QString &file = m_service->settings()->dataDir().absoluteFilePath(QStringLiteral("content/")+fname);
 
 	if (QFile::exists(file))
 		return QHttpServerResponse::fromFile(file);
 	else
-		return getErrorPage(tr("Hiányzó fájl"));
+		return getErrorPage(tr("Hiányzó fájl"));*/
+
+	LOG_CDEBUG("service") << "Get dynamic content" << fname;
+
+	if (fname.isEmpty()) {
+		QHttpServerResponse r(QHttpServerResponder::StatusCode::BadGateway);
+		responder.sendResponse(std::move(r));
+		return;
+	}
+
+	QFileInfo fi(fname);
+
+	QUrl url(QStringLiteral("https://valaczka.github.io/callofsuli/demo/content/")+fi.fileName());
+
+	LOG_CDEBUG("service") << "GET" << url;
+
+	AbstractAPI::responseProxy(m_service, url, std::move(responder));
 }
 
 

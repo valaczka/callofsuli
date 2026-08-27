@@ -42,6 +42,7 @@ RpgNpc::RpgNpc(RpgGameItem *gameItem, const cpVect &center)
 	: RpgEntity(gameItem, center, 25., CP_BODY_TYPE_DYNAMIC)
 	, m_sfxPain(this)
 	, m_sfxFootStep(this)
+	, m_sfxAttack(this)
 	, m_effectHealed(this)
 {
 	m_defaultMotor = std::make_unique<RpgMotorNpc>(this);
@@ -344,9 +345,22 @@ void RpgNpc::loadSfx()
 
 	m_sfxFootStep.setInterval(350);
 
-	if (!m_config.sfxDead.isEmpty()) {
+	if (!m_config.sfxDead.isEmpty())
 		m_sfxDead.setSoundList({m_config.sfxDead});
-	}
+
+	if (!m_config.sfxAttack.isEmpty())
+		m_sfxAttack.setSoundList({m_config.sfxAttack});
+}
+
+
+
+/**
+ * @brief RpgNpc::playSfxAttack
+ */
+
+void RpgNpc::playSfxAttack()
+{
+	m_sfxAttack.playOne();
 }
 
 

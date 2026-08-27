@@ -55,7 +55,7 @@
 
 #define CFG_PENALTY_AUTO_UNLOCK			300						// player penalty after auto unlock (no answer)
 
-#define CFG_TOWER_COUNT					3						// used towers
+#define CFG_TOWER_COUNT					4						// used towers
 #define CFG_TOWER_LOCK					20*60					// tower lock after activation in tick
 #define CFG_TOWER_LOCK_STAGE_L			0						// tower lock after activation in tick in stage Last
 #define CFG_TOWER_INACTIVE				80						// tower inactivate below percent
@@ -444,12 +444,12 @@ static inline const CfgDefenderAttack cfgDefenderHpHealer = {
 };
 
 static inline const QHash<RpgStream::BaseDefenderObject::Type, int> cfgRequiredMpDefender = {
-	{ RpgStream::BaseDefenderObject::Fog,					5 },
+	{ RpgStream::BaseDefenderObject::Fog,					10 },
 	{ RpgStream::BaseDefenderObject::Multiplier1,			8 },
-	{ RpgStream::BaseDefenderObject::Pulse,					2 },
-	{ RpgStream::BaseDefenderObject::Electric,				2 },
-	{ RpgStream::BaseDefenderObject::Questionnaire,			2 },
-	{ RpgStream::BaseDefenderObject::HpHealer,				2 },
+	{ RpgStream::BaseDefenderObject::Pulse,					12 },
+	{ RpgStream::BaseDefenderObject::Electric,				15 },
+	{ RpgStream::BaseDefenderObject::Questionnaire,			18 },
+	{ RpgStream::BaseDefenderObject::HpHealer,				12 },
 };
 
 
@@ -476,18 +476,18 @@ static inline const CfgUtilityDistance cfgUtilitySniper = { .dist = 800 };
 static inline const CfgUtilityDuration cfgUtilityInvisible = { .duration = 20*60 };
 static inline const CfgUtilityDuration cfgUtilityBlockMpPick = { .duration = 15*60 };
 static inline const CfgUtilityDuration cfgUtilityBlockMpConvert = { .duration = 15*60 };
-static inline const CfgUtilityDuration cfgUtilityBlockAttack = { .duration = 10*60 };
+static inline const CfgUtilityDuration cfgUtilityBlockAttack = { .duration = 15*60 };
 static inline const CfgUtilityDuration cfgUtilityBoostPoint = { .duration = 20*60 };
 
 static inline const QHash<RpgStream::PlayerConfig::Utility, int> cfgRequiredMpUtility = {
-	{ RpgStream::PlayerConfig::UtilityMissionary,					2 },
-	{ RpgStream::PlayerConfig::UtilitySniper,						6 },
-	{ RpgStream::PlayerConfig::UtilityInvisible,					3 },
-	{ RpgStream::PlayerConfig::UtilityBlockMpPick,					3 },
-	{ RpgStream::PlayerConfig::UtilityBlockMpConvert,				3 },
-	{ RpgStream::PlayerConfig::UtilityBlockAttack,					3 },
-	{ RpgStream::PlayerConfig::UtilityBoostAttackTower,				3 },
-	{ RpgStream::PlayerConfig::UtilityBoostPoint,					3 },
+	{ RpgStream::PlayerConfig::UtilityMissionary,					15 },
+	{ RpgStream::PlayerConfig::UtilitySniper,						15 },
+	{ RpgStream::PlayerConfig::UtilityInvisible,					15 },
+	{ RpgStream::PlayerConfig::UtilityBlockMpPick,					20 },
+	{ RpgStream::PlayerConfig::UtilityBlockMpConvert,				20 },
+	{ RpgStream::PlayerConfig::UtilityBlockAttack,					20 },
+	{ RpgStream::PlayerConfig::UtilityBoostAttackTower,				22 },
+	{ RpgStream::PlayerConfig::UtilityBoostPoint,					22 },
 };
 
 

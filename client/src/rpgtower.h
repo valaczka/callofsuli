@@ -147,7 +147,13 @@ private:
 
 	RpgStream::TowerState m_state;
 
-	RpgVisualState<RpgStream::Team> m_visual;
+	enum TowerTeam {
+		TowerTeamNone = 0,
+		TowerTeamPlayer,
+		TowerTeamOpponent
+	};
+
+	RpgVisualState<TowerTeam> m_visual;
 	QQuickItem *m_markerItem = nullptr;
 
 	QList<RpgDefenderPoint *> m_defenderPoints;

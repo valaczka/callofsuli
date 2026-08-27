@@ -344,7 +344,7 @@ void RpgControlCommon::initialize()
 		createVisual();
 		setAvailableDirections(Direction_8);
 
-		QRect measure = RpgGameItem::loadTextureSprites(m_spriteHandler, m_spriteSource+QStringLiteral("/"), m_proxy.value());
+		QRect measure = RpgGameItem::loadTextureSprites(m_spriteHandler, m_spriteSource+QStringLiteral("/"), nullptr, m_proxy.value());
 
 		m_visualItem->setWidth(measure.width());
 		m_visualItem->setHeight(measure.height());

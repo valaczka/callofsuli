@@ -27,6 +27,7 @@
 #include "rpgtower.h"
 #include <rpgconfig.h>
 #include "rpgdefender.h"
+#include "rpgplayer.h"
 #include <QPointer>
 
 
@@ -52,7 +53,7 @@ const TiledObjectBody::DrawBodyStyle RpgDefenderPoint::m_style = {
 RpgTower::RpgTower(RpgGameItem *gameItem, Tiled::MapObject *object, Tiled::MapRenderer *renderer)
 	: TiledObject(object, gameItem, renderer, CP_BODY_TYPE_STATIC)
 	, m_gameItem(gameItem)
-	, m_visual(RpgStream::TeamNone)
+	, m_visual(TowerTeamNone)
 {
 	filterSet(RpgGameItem::FixtureControl, RpgGameItem::FixtureAll);
 	setSensor(true);
@@ -158,8 +159,13 @@ void RpgTower::worldStep()
 
 void RpgTower::addLayers(const QMultiMap<RpgStream::Team, TiledQuick::TileLayerItem *> &layers)
 {
+	static const QHash<RpgStream::Team, TowerTeam> converter = {
+		{ RpgStream::TeamA, TowerTeamPlayer },
+		{ RpgStream::TeamB, TowerTeamOpponent },
+	};
+
 	for (const auto &[layer, item] : layers.asKeyValueRange())
-		m_visual.addLayer(layer, item);
+		m_visual.addLayer(converter.value(layer, TowerTeamNone), item);
 
 	m_visual.refresh();
 }
@@ -237,7 +243,7 @@ void RpgTower::setVisible(const bool &visible)
 		m_visualItem->setVisible(m_visible);
 
 	if (!m_visible) {
-		m_visual.setState(RpgStream::TeamNone);
+		m_visual.setState(TowerTeamNone);
 		reloadDefenderLayersVisibility();
 
 		filterSet(RpgGameItem::FixtureInvalid, RpgGameItem::FixtureInvalid);
@@ -264,10 +270,13 @@ void RpgTower::setVisible(const bool &visible)
 
 void RpgTower::synchronize()
 {
-	if (!m_visible)
+	if (!m_visible || !m_gameItem || !m_gameItem->game() || ! m_gameItem->game()->controlledPlayer())
 		return;
 
-	const RpgStream::Team team = m_state.active() ? m_state.team() : RpgStream::TeamNone;
+	const TowerTeam team = m_state.active() ?
+							   (m_gameItem->game()->controlledPlayer()->team() == m_state.team() ?
+									TowerTeamPlayer : TowerTeamOpponent) :
+							   TowerTeamNone;
 
 	if (m_visual.state() != team)
 		m_visual.setState(team);

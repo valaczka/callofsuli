@@ -59,12 +59,15 @@ private:
 
 	void applyKnockback();
 	void vibrate();
+	void onHurt();
 
 	void updateJoystickMode();
 	void updateJoystickIcon();
 
 private:
 	RpgPlayer *const q;
+
+	QSet<QString> m_spriteNames;
 
 	std::vector<RpgStream::EventPlayer> m_eventList;
 	quint32 m_lockId = 0;
@@ -88,6 +91,7 @@ private:
 
 	friend class RpgPlayer;
 	friend class RpgMotorPlayerControlled;
+	friend class RpgMotorPlayer;
 };
 
 
@@ -107,6 +111,7 @@ RpgPlayer::RpgPlayer(RpgGameItem *gameItem, const cpVect &center)
 	, m_sfxFootStep(this)
 	, m_sfxAccept(this)
 	, m_sfxDecline(this)
+	, m_sfxAttack(this)
 	, m_effectHealed(this)
 	, m_effectShield(this)
 	, m_effectRing(this)
@@ -130,7 +135,7 @@ RpgPlayer::RpgPlayer(RpgGameItem *gameItem, const cpVect &center)
 
 
 	connect(this, &RpgPlayer::healed, this, [this](){ m_effectHealed.play(); });
-	connect(this, &RpgPlayer::hurt, this, [this]() { if (m_rpgGame->controlledPlayer() == this) m_sfxPain.playOne(); });
+	connect(this, &RpgPlayer::hurt, this, [this]() { d->onHurt(); });
 	connect(this, &RpgPlayer::becameDead, this, [this]() { if (m_rpgGame->controlledPlayer() == this) m_sfxDead.playOne(); });
 
 	connect(this, &RpgPlayer::hasDefenderChanged, this, [this]() { d->updateJoystickMode(); });
@@ -173,6 +178,8 @@ void RpgPlayer::load(const RpgPlayerDefinition &config)
 {
 	setAvailableDirections(Direction_8);
 
+	d->m_spriteNames.clear();
+
 	setConfig(config);
 	setHp(config.hp);
 
@@ -180,7 +187,7 @@ void RpgPlayer::load(const RpgPlayerDefinition &config)
 
 	if (QFile::exists(m_config.prefixPath+QStringLiteral("/input.txt"))) {
 		//QHash<QString, RpgArmory::LayerData> layerData;
-		QRect measure = RpgGameItem::loadTextureSprites(m_spriteHandler, m_config.prefixPath+QStringLiteral("/")/*, &layerData*/);
+		QRect measure = RpgGameItem::loadTextureSprites(m_spriteHandler, m_config.prefixPath+QStringLiteral("/"), &d->m_spriteNames);
 
 		Q_ASSERT(m_visualItem);
 
@@ -472,11 +479,10 @@ void RpgMotorPlayer::onAttack(RpgPlayer *player)
 {
 	Q_ASSERT(player);
 
-	player->jumpToSprite("attack", player->facingDirection());
+	if (player->d->m_spriteNames.contains(QStringLiteral("attack")))
+		player->jumpToSprite("attack", player->facingDirection());
 
-	player->game()->playSfx(QStringLiteral(":/rpg/common/hit.mp3"),
-							player->scene(), player->bodyPositionF());
-
+	player->m_sfxAttack.playOne();
 }
 
 
@@ -491,14 +497,16 @@ void RpgMotorPlayer::onUseUtility(RpgPlayer *player, const bool isControlled)
 	Q_ASSERT(player);
 
 	if (player->currentUtility() == RpgStream::PlayerConfig::UtilitySniper) {
-		player->jumpToSprite("attack", player->facingDirection());
+		if (player->d->m_spriteNames.contains(QStringLiteral("attack")))
+			player->jumpToSprite("attack", player->facingDirection());
 
 		if (isControlled)
 			player->game()->playSfx(QStringLiteral(":/rpg/broadsword/broadsword2.mp3"),
 									player->scene(), player->bodyPositionF());
 		return;
 	} else if (player->currentUtility() == RpgStream::PlayerConfig::UtilityMissionary) {
-		player->jumpToSprite("cast", player->facingDirection());
+		if (player->d->m_spriteNames.contains(QStringLiteral("cast")))
+			player->jumpToSprite("cast", player->facingDirection());
 	} else if (player->currentUtility() == RpgStream::PlayerConfig::UtilityBoostAttackTower) {
 		if (isControlled)
 			player->game()->message(QObject::tr("Tower attack boost activated"), true);
@@ -2286,6 +2294,9 @@ void RpgPlayer::loadSfx()
 	m_sfxDecline.setPlayOneDeadline(1500);
 
 	m_sfxFootStep.setInterval(350);
+
+	if (!m_config.sfxAttack.isEmpty())
+		m_sfxAttack.setSoundList({m_config.sfxAttack});
 }
 
 
@@ -2531,6 +2542,20 @@ void RpgPlayerPrivate::vibrate()
 		client->performVibrate();
 #endif
 
+}
+
+
+
+/**
+ * @brief RpgPlayerPrivate::onHurt
+ */
+
+void RpgPlayerPrivate::onHurt()
+{
+	if (m_spriteNames.contains(QStringLiteral("hurt")))
+		q->jumpToSprite("hurt", q->facingDirection());
+
+	if (q->m_rpgGame->controlledPlayer() == q) q->m_sfxPain.playOne();
 }
 
 

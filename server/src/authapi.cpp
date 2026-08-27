@@ -508,6 +508,8 @@ std::optional<Credential> AuthAPI::getCredential(DatabaseMain *dbMain, const QSt
 					const QString &role = q.value("role").toString();
 					if (role == QStringLiteral("sni"))
 						returnCredential.setRole(Credential::SNI);
+					else if (role == QStringLiteral("tester"))
+						returnCredential.setRole(Credential::Tester);
 				}
 			}
 		}

@@ -1088,19 +1088,33 @@ void RpgLogicClientTutorial::npcAddToPoint(const QString &character, const QStri
 	n.setNum(num);
 	n.setDelay(delay);
 
-	for (const QString &entry : entryPoint) {
-		const auto pos = m_game->entryPoint(entry);
+	if (entryPoint.isEmpty()) {
+		const auto pos = m_game->entryPoint(QString());
 
 		if (!pos) {
-			LOG_CERROR("game") << "Invalid entry point" << entry;
-			continue;
+			LOG_CERROR("game") << "Np entry points";
+		} else {
+			RpgStream::PlayerPosition p;
+			p.setPosXAsFloat(pos->x());
+			p.setPosYAsFloat(pos->y());
+
+			n.positionList().emplace_back(std::move(p));
 		}
+	} else {
+		for (const QString &entry : entryPoint) {
+			const auto pos = m_game->entryPoint(entry);
 
-		RpgStream::PlayerPosition p;
-		p.setPosXAsFloat(pos->x());
-		p.setPosYAsFloat(pos->y());
+			if (!pos) {
+				LOG_CERROR("game") << "Invalid entry point" << entry;
+				continue;
+			}
 
-		n.positionList().emplace_back(std::move(p));
+			RpgStream::PlayerPosition p;
+			p.setPosXAsFloat(pos->x());
+			p.setPosYAsFloat(pos->y());
+
+			n.positionList().emplace_back(std::move(p));
+		}
 	}
 
 	this->npcAdd(n);

@@ -131,7 +131,7 @@ Rectangle {
                             }
                         }
 
-                        RpgSelectCard {
+                        /*RpgSelectCard {
                             visible: game && game.gameResultData.rpg.dropList.length > 0
                             enabled: game && game.rpgUserData.drops.length > 0
 
@@ -157,7 +157,7 @@ Rectangle {
                             height: _grid1._cardHeight
 
                             anchors.verticalCenter: parent.verticalCenter
-                        }
+                        }*/
 
 
                         /* Qaterial.LabelBody1 {

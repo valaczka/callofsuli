@@ -75,7 +75,7 @@ public:
 	DatabaseMain *databaseMain() const;
 	QLambdaThreadWorker *databaseMainWorker() const;
 
-	void responseProxy(const QUrl &url, QHttpServerResponder &&responder) const;
+	static void responseProxy(ServerService *service, const QUrl &url, QHttpServerResponder &&responder);
 
 protected:
 

@@ -116,6 +116,7 @@ public:
 		Teacher = 1 << 1,
 		Panel = 1 << 2,
 		SNI = 1 << 3,
+		Tester = 1 << 4,
 		Admin = 1 << 8
 	};
 

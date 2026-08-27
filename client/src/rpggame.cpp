@@ -227,7 +227,7 @@ void RpgGame::menuBgMusicPlay()
 
 void RpgGame::menuBgMusicStop()
 {
-	m_client->sound()->stopMusic();
+	m_client->sound()->stopSound(QStringLiteral("qrc:/sound/menu/bg.mp3"), Sound::MusicChannel);
 }
 
 
@@ -614,6 +614,18 @@ QColor RpgGame::colorGlow()
 
 std::optional<QPointF> RpgGame::entryPoint(const QString &entry) const
 {
+	if (d->m_entryPoint.empty())
+		return std::nullopt;
+
+	if (entry.isEmpty() && d->m_logic) {
+		std::uniform_int_distribution<int> dist(0, d->m_entryPoint.size()-1);
+
+		auto it = d->m_entryPoint.cbegin();
+		std::advance(it, dist(d->m_logic->rnd()));
+
+		return *it;
+	}
+
 	const auto it = d->m_entryPoint.find(entry);
 
 	if (it == d->m_entryPoint.cend())
@@ -4270,6 +4282,9 @@ void RpgPlayerDefinition::updateSfxPath(const QString &prefix)
 
 	if (!sfxDead.isEmpty() && !sfxDead.startsWith(QStringLiteral(":/")))
 		sfxDead.prepend(prefix);
+
+	if (!sfxAttack.isEmpty() && !sfxAttack.startsWith(QStringLiteral(":/")))
+		sfxAttack.prepend(prefix);
 }
 
 

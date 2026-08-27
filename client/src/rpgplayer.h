@@ -181,6 +181,7 @@ private:
 	TiledGameSfx m_sfxFootStep;
 	TiledGameSfx m_sfxAccept;
 	TiledGameSfx m_sfxDecline;
+	TiledGameSfx m_sfxAttack;
 
 	TiledEffectHealed m_effectHealed;
 	TiledEffectShield m_effectShield;

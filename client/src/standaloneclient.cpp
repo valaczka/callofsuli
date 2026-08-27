@@ -42,7 +42,7 @@
 
 //#define _URL_SERVERS QStringLiteral("https://valaczka.github.io/callofsuli/servers.json")
 
-#define _SENTINEL_NAME		QStringLiteral(".migrated_5.3")
+#define _SENTINEL_NAME		QStringLiteral(".version")
 
 
 /**
@@ -301,8 +301,12 @@ void StandaloneClient::serverListLoad(const QDir &dir)
 {
 	/// Migrate
 
-	if (!QFile::exists(dir.absoluteFilePath(_SENTINEL_NAME))) {
-		LOG_CWARNING("client") << "Migrate to new version, clear servers and cache";
+	const QByteArray &version = Utils::fileContentRead(dir.absoluteFilePath(_SENTINEL_NAME));
+
+	QVersionNumber tmp = QVersionNumber::fromString(version);
+
+	if (Utils::versionCode(tmp.majorVersion(), tmp.minorVersion()) < Utils::versionCode(5, 3)) {
+		LOG_CWARNING("client") << "Migrate to version 5.3, clear servers and cache";
 
 		QDirIterator it(dir.absolutePath(), {QStringLiteral("config.json")}, QDir::Files, QDirIterator::Subdirectories);
 
@@ -319,10 +323,9 @@ void StandaloneClient::serverListLoad(const QDir &dir)
 
 		Utils::clearDiskCache();
 
-
 		QFile f(dir.absoluteFilePath(_SENTINEL_NAME));
 		if (f.open(QIODevice::WriteOnly)) {
-			f.write(0);
+			f.write(QByteArrayLiteral("5.3"));
 			f.close();
 		} else {
 			LOG_CERROR("client") << "Unable to create file" << dir.absoluteFilePath(_SENTINEL_NAME);
@@ -520,7 +523,7 @@ ServerList *StandaloneClient::serverList() const
 QUrl StandaloneClient::rpgServerUrl(const QString &path) const
 {
 	return QUrl(QStringLiteral("http://localhost:8080/content/").append(path));
-	//return QUrl(QStringLiteral("https://valaczka.github.io/callofsuli/demo/").append(path));
+	//return QUrl(QStringLiteral("https://valaczka.github.io/callofsuli/content/demo/").append(path));
 }
 
 

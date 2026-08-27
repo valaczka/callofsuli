@@ -523,7 +523,7 @@ void GeneralAPI::userImage(const QString &username, QHttpServerResponder &&respo
 	if (url.isEmpty())
 		return responderResponseError(std::move(responder), QHttpServerResponder::StatusCode::NotFound);
 
-	responseProxy(url, std::move(responder));
+	responseProxy(m_service, url, std::move(responder));
 }
 
 

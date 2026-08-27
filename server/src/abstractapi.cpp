@@ -94,12 +94,14 @@ QLambdaThreadWorker *AbstractAPI::databaseMainWorker() const
  * @param responder
  */
 
-void AbstractAPI::responseProxy(const QUrl &url, QHttpServerResponder &&responder) const
+void AbstractAPI::responseProxy(ServerService *service, const QUrl &url, QHttpServerResponder &&responder)
 {
+	Q_ASSERT(service);
+
 	std::shared_ptr<QHttpServerResponder> responderPtr = std::make_shared<QHttpServerResponder>(std::move(responder));
 
 	QNetworkRequest req(url);
-	QNetworkReply *reply = m_service->networkManager()->get(req);
+	QNetworkReply *reply = service->networkManager()->get(req);
 
 	QObject::connect(reply, &QNetworkReply::finished, reply, [reply, responderPtr]() {
 		if (reply->error() != QNetworkReply::NoError) {

@@ -296,11 +296,13 @@ QItemGradient {
 
 			QDashboardButton {
 				text: qsTr("Akciójáték")
-				visible: !_grid.showPlaceholders
 				icon.source: Qaterial.Icons.fencing
 				highlighted: false
 				outlined: true
 				flat: true
+
+				visible: !_grid.showPlaceholders &&
+						 !(Client.server && Client.server.user && (Client.server.user.roles & Credential.Tester))
 
 				textColor: Qaterial.Colors.yellow400
 

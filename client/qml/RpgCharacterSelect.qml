@@ -18,6 +18,8 @@ QItemGradient {
 	title: !_isEmpty && game ? game.name + qsTr(" – level %1").arg(game.level): ""
 
 	appBar.rightComponent: Row {
+		id: _rowToken
+
 		spacing: 5
 
 		Qaterial.Icon {
@@ -42,6 +44,11 @@ QItemGradient {
 					easing.type: Easing.InOutQuad
 				}
 			}
+		}
+
+		Component.onCompleted: {
+			if (!_tour.list[1].target)
+				_tour.list[1].target = _rowToken
 		}
 	}
 
@@ -176,6 +183,8 @@ QItemGradient {
 						}
 
 						Qaterial.AppBarButton {
+							id: _btnPreview
+
 							anchors.right: parent.right
 							anchors.top: parent.top
 							anchors.rightMargin: 5 * Qaterial.Style.pixelSizeRatio
@@ -188,6 +197,11 @@ QItemGradient {
 
 							onClicked: {
 								game.loadTutorial(character)
+							}
+
+							Component.onCompleted: {
+								if (!_tour.list[3].target)
+									_tour.list[3].target = _btnPreview
 							}
 
 						}
@@ -815,6 +829,8 @@ QItemGradient {
 					spacing: 5
 
 					QButton {
+						id: _btnTarget
+
 						anchors.horizontalCenter: parent.horizontalCenter
 
 						visible: _isEmpty
@@ -861,6 +877,8 @@ QItemGradient {
 
 
 					QButton {
+						id: _btnTutorial
+
 						anchors.horizontalCenter: parent.horizontalCenter
 
 						icon.source: _isEmpty ? Qaterial.Icons.eye : Qaterial.Icons.play
@@ -881,10 +899,15 @@ QItemGradient {
 																	   terrain: "test",
 																	   ready: true
 																   })
+
+						Component.onCompleted: {
+							if (!_tour.list[0].target && _isEmpty)
+								_tour.list[0].target = _btnTutorial
+						}
 					}
 				}
 
-				Row {
+				/*Row {
 					spacing: 5
 					Layout.fillHeight: false
 					Layout.fillWidth: false
@@ -899,7 +922,7 @@ QItemGradient {
 															game: root.game
 														})
 					}
-				}
+				}*/
 
 			}
 
@@ -971,6 +994,26 @@ QItemGradient {
 			autoSelect()
 		}
 	}
+
+
+
+
+	SpotlightCoachTour {
+		id: _tour
+
+		page: "rpgCharacters"
+
+		basePage: root
+
+		list: [
+			{ target: null, title: qsTr("Tutorial"), text: qsTr("Itt tudod megnézni a tutorialt")},
+			{ target: null, title: qsTr("Tokenek"), text: qsTr("Itt láthatod, mennyi tokened van. Ezzel tudsz karaktereket feloldani")},
+			{ target: _btnTarget, title: qsTr("Target"), text: qsTr("Ezzel tudod kiválasztani, hogy melyik karakter feloldására gyűjtesz")},
+			{ id: 1, target: null, title: qsTr("Preview"), text: qsTr("Ezzel tudod kipróbálni a karaktert") },
+		]
+	}
+
+
 
 
 	ListModel {
@@ -1054,6 +1097,8 @@ QItemGradient {
 
 		if (_isEmpty && game.rpgUserData.oldCurrency > 0)
 			_timerOldCurrency.start()
+
+		_tour.start()
 	}
 
 	StackView.onDeactivating: {

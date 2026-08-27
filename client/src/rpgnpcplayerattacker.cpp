@@ -81,12 +81,8 @@ void RpgNpcPlayerAttacker::Motor::processEventAt(const qint64 &tick)
 		if (e.type() == RpgStream::EventNpc::EventAttack) {
 			m_npc->jumpToSprite(m_config.bow ? "bow" : "attack", m_npc->facingDirection());
 
-			if (cp && RpgLogicObjectMapper::getId(cp) == e.targetId()) {
-				m_game->gameItem()->playSfx(m_config.bow ?
-												QStringLiteral(":/rpg/broadsword/broadsword1.mp3") :
-												QStringLiteral(":/rpg/shortbow/swish_2.mp3"),
-											m_npc->scene(), m_npc->bodyPositionF());
-			}
+			if (cp && RpgLogicObjectMapper::getId(cp) == e.targetId())
+				m_npc->playSfxAttack();
 		}
 	}
 }
@@ -326,12 +322,8 @@ void RpgMotorNpcPlayerAttacker::attackTarget()
 
 	m_npc->jumpToSprite(m_config.bow ? "bow" : "attack", m_npc->facingDirection());
 
-	if (tg && tg == m_game->controlledPlayer()) {
-		m_game->gameItem()->playSfx(m_config.bow ?
-										QStringLiteral(":/rpg/broadsword/broadsword1.mp3") :
-										QStringLiteral(":/rpg/shortbow/swish_2.mp3"),
-									tg->scene(), tg->bodyPositionF());
-	}
+	if (tg && tg == m_game->controlledPlayer())
+		m_npc->playSfxAttack();
 
 	m_eventList.emplace_back(std::move(e));
 }

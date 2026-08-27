@@ -153,8 +153,8 @@ class RpgPlayerDefinition : public QSerializer
 public:
 	RpgPlayerDefinition() : QSerializer()
 	  , power(1)
-	  , hp(5)
-	  , mp(12)
+	  , hp(3)
+	  , mp(10)
 	  , walk(90)
 	  , run(200)
 
@@ -162,8 +162,8 @@ public:
 	  , pushDistance(1000)
 	  , resist(100)
 
-	  , towerPlus(2)
-	  , towerMinus(1)
+	  , towerPlus(0)
+	  , towerMinus(0)
 
 	  , bullet(5)
 	{}
@@ -189,6 +189,7 @@ public:
 	QS_COLLECTION(QList, QString, sfxFootStep)
 	QS_COLLECTION(QList, QString, sfxAccept)
 	QS_COLLECTION(QList, QString, sfxDecline)
+	QS_FIELD(QString, sfxAttack)
 
 
 	// Sprites
@@ -267,6 +268,7 @@ public:
 	QS_FIELD(QString, sfxDead)
 	QS_COLLECTION(QList, QString, sfxPain)
 	QS_COLLECTION(QList, QString, sfxFootStep)
+	QS_FIELD(QString, sfxAttack)
 
 	// Config
 

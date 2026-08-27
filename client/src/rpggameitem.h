@@ -113,7 +113,8 @@ public:
 	bool load(const RpgGameDefinition &def);
 
 	static const ProxyDirections &defaultProxyDirections();
-	static QRect loadTextureSprites(TiledSpriteHandler *handler, const QString &path, const ProxyDirections &proxy = defaultProxyDirections());
+	static QRect loadTextureSprites(TiledSpriteHandler *handler, const QString &path,
+									QSet<QString> *spriteNames = nullptr, const ProxyDirections &proxy = defaultProxyDirections());
 	static bool loadTextureSprites(TiledSpriteHandler *handler, const QVector<TextureSpriteMapper> &mapper,
 									const QString &path);
 	static const QVector<TiledGame::TextureSpriteMapper> &baseSpriteMapper();

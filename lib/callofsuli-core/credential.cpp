@@ -79,6 +79,8 @@ QByteArray Credential::createJWT(const QByteArray &secret, const QByteArray &ses
 		list.append(QStringLiteral("admin"));
 	if (m_roles.testFlag(SNI))
 		list.append(QStringLiteral("sni"));
+	if (m_roles.testFlag(Tester))
+		list.append(QStringLiteral("tester"));
 
 	QDateTime exp = QDateTime::currentDateTimeUtc();
 
@@ -161,6 +163,8 @@ Credential Credential::fromJWT(const QByteArray &jwt)
 			roles.setFlag(Admin);
 		else if (s == QStringLiteral("sni"))
 			roles.setFlag(SNI);
+		else if (s == QStringLiteral("tester"))
+			roles.setFlag(Tester);
 	}
 
 	c.setRoles(roles);

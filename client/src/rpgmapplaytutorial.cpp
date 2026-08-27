@@ -163,7 +163,7 @@ std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> TutorialData::testCharact
 	tutorial->fnFirst = [character = tutorial->character](Rpg::RpgLogicClientTutorial *logic) {
 		Q_ASSERT(logic);
 
-		logic->npcAddToPoint(QStringLiteral("soldier02"), "entry2", RpgStream::TeamB);
+		logic->npcAddToPoint(QStringLiteral("npc0201"), QStringLiteral("entry2"), RpgStream::TeamB);
 
 		Rpg::RpgLogicScope scope = logic->getScope();
 
@@ -216,7 +216,7 @@ std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> TutorialData::testCharact
 std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> TutorialData::defaultTutorial(const QUrl &)
 {
 	std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> tutorial = std::make_unique<Rpg::RpgLogicClientTutorial::Tutorial>();
-	tutorial->character = "character01a";
+	tutorial->character = QStringLiteral("character01");
 	tutorial->terrain = QStringLiteral("map_tutorial");
 	tutorial->power = 1;
 	tutorial->duration = CFG_GAME_DURATION;
@@ -294,7 +294,7 @@ std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> TutorialData::defaultTuto
 
 			logic->eventStore(std::move(ev));
 
-			logic->npcAddToPoint(QStringLiteral("soldier01"), "entry2");
+			logic->npcAddToPoint(QStringLiteral("npc0201"), QStringLiteral("entry2"));
 
 			//logic->chestAddToPoint(QStringLiteral("entry8"));
 
@@ -523,7 +523,7 @@ std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> TutorialData::defaultTuto
 
 			logic->eventStore(std::move(ev));
 
-			logic->npcAddToPoint("soldier04", QStringList{}, 2, 60);
+			logic->npcAddToPoint(QStringLiteral("npc0201"), QStringList{}, 2, 60);
 
 			{
 				Rpg::EventMpCreate ev2;

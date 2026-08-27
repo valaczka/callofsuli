@@ -159,6 +159,7 @@ QItemGradient {
 					columns: _grid1.flow == GridLayout.TopToBottom ? 2 : 1
 
 					QButton {
+						id: _btnSwap
 						//anchors.horizontalCenter: parent.horizontalCenter
 
 						icon.source: Qaterial.Icons.swapHorizontalBold
@@ -170,6 +171,7 @@ QItemGradient {
 					}
 
 					QButton {
+						id: _btnReady
 						//anchors.horizontalCenter: parent.horizontalCenter
 
 						bgColor: Qaterial.Colors.green500
@@ -315,7 +317,7 @@ QItemGradient {
 			outlined: true
 
 			width: Math.min(parent.width, _viewCharacters.contentWidth)
-			height: Math.min(parent.height, 650)
+			height: Math.min(parent.height, 350)
 
 			anchors.centerIn: parent
 
@@ -422,10 +424,11 @@ QItemGradient {
 						}
 
 						Qaterial.Icon {
-							icon: Qaterial.Icons.checkCircleOutline
+							icon: Qaterial.Icons.checkCircle
 							color: Qaterial.Colors.green400
 							anchors.centerIn: parent
 							visible: picked
+							size: Qaterial.Style.largeIcon
 						}
 
 						onClicked: {
@@ -492,6 +495,19 @@ QItemGradient {
 	}
 
 
+	SpotlightCoachTour {
+		id: _tour
+
+		page: "rpgCharactersMulti"
+
+		basePage: root
+
+		list: [
+			{ target: _btnSwap, title: qsTr("Team"), text: qsTr("Ezzel tudsz a két csapat között váltani.")},
+			{ target: _btnReady, title: qsTr("Ready"), text: qsTr("Ezzel tudod véglegesíteni a tagságodat. Ha te vagy a host, akkor csak legutoljára tudod megtenni.")},
+		]
+	}
+
 	function autoSelect() {
 		if (!_selectTerrain._selected && game && game.rpgUserData.lastTerrain != "" && game.engine && game.engine.isHost) {
 			Client.world.select(game.rpgUserData.lastTerrain)
@@ -514,6 +530,7 @@ QItemGradient {
 	}
 
 	StackView.onActivated: {
+		_tour.start()
 	}
 
 	StackView.onDeactivating: {

@@ -632,11 +632,17 @@ std::unordered_set<entt::entity> RpgLogic::initializeEmitters()
 {
 	QMutexLocker locker(&m_mutex);
 
-	const quint64 numEmitter = 2;
+	quint64 numEmitter = 1;
+
+	for (const auto &e : m_registry.view<Player>()) {
+		Q_UNUSED(e);
+		++numEmitter;
+	}
+
 
 	// Mp emitters
 
-	ELOG_DEBUG << "Randomize MP emitters";
+	ELOG_DEBUG << "Randomize" << numEmitter << "MP emitters";
 
 	std::vector<entt::entity> emitters;
 
