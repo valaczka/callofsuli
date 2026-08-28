@@ -448,7 +448,7 @@ std::unique_ptr<Rpg::RpgLogicClientTutorial::Tutorial> TutorialData::defaultTuto
 									"Ha hosszan lenyomod az MP konvertáló gombot, és van elég MP-d, tudsz váltani a joystick funkciói között.");
 
 		step.addPlayerEvent([](RpgPlayer *player, const RpgStream::EventPlayer &event) {
-			return event.type() == RpgStream::EventPlayer::EventAttackPlayer && player->bullet() <= 3;
+			return event.type() == RpgStream::EventPlayer::EventAttackPlayer && player->bullet() <= 6;
 		});
 
 

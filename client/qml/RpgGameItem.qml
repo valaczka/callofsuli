@@ -796,6 +796,7 @@ FocusScope {
 	StackView.onActivated: {
 		_delayTimer.start()
 		game.loadGameItem()
+		_item.resetBaseScale()
 	}
 
 	Timer {
@@ -893,8 +894,6 @@ FocusScope {
 			}
 		}
 	}
-
-
 }
 
 

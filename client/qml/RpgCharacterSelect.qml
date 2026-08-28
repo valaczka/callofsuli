@@ -891,12 +891,12 @@ QItemGradient {
 						//leftPadding: 10
 						//rightPadding: 10
 
-						enabled: _isEmpty || _viewCharacters.selected != ""
+						enabled: _isEmpty || (_viewCharacters.selected != "" && _selectTerrain._selected)
 
 						onClicked: _isEmpty ? game.loadTutorial("")
 											: game.characterSelect({
 																	   character: _viewCharacters.selected,
-																	   terrain: "test",
+																	   terrain: _selectTerrain._selected.bindedMap(),
 																	   ready: true
 																   })
 
