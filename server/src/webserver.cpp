@@ -72,6 +72,10 @@ bool WebServer::start()
 
 	m_server.reset(new QHttpServer);
 
+	QHttpServerConfiguration config = m_server->configuration();
+	config.setKeepAliveTimeout(std::chrono::seconds(300));
+	m_server->setConfiguration(config);
+
 	m_handler->loadRoutes();
 
 	// WebSocket connection

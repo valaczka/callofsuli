@@ -252,26 +252,25 @@ QHttpServerResponse Handler::getStaticContent(const QHttpServerRequest &request)
 		path = QStringLiteral("index.html");
 
 	QString fname;
-	bool isHtml = false;
 
-	if (htmlDir.exists(path)) {
+	if (htmlDir.exists(path))
 		fname = htmlDir.absoluteFilePath(path);
-		isHtml = true;
-	} else if (dir.exists(path))
+	else if (dir.exists(path))
 		fname = dir.absoluteFilePath(path);
 
 	if (!fname.isEmpty() && QFile::exists(fname)) {
 		LOG_CTRACE("service") << "HTTP response file content:" << fname;
 
-		if (isHtml) {
-			QByteArray b;
-			QFile f(fname);
-			if (f.open(QIODevice::ReadOnly)) {
-				b = f.readAll();
-				f.close();
-			}
+		QByteArray b;
+		QFile f(fname);
+		if (f.open(QIODevice::ReadOnly)) {
+			b = f.readAll();
+			f.close();
+		}
 
-			QByteArray contentType;
+		QByteArray contentType;
+
+		if (fname.endsWith(QStringLiteral("html")) || fname.endsWith(QStringLiteral("htm"))) {
 			const auto &server= m_service->webServer().lock();
 
 			QByteArray hostname = QStringLiteral("callofsuli://%1:%2").arg(server ? server->redirectHost() : QStringLiteral("invalid"))
@@ -282,37 +281,18 @@ QHttpServerResponse Handler::getStaticContent(const QHttpServerRequest &request)
 
 			b.replace(QByteArrayLiteral("${server:name}"), m_service->serverName().toUtf8())
 					.replace(QByteArrayLiteral("${server:connect}"), hostname);
-
-			if (fname.endsWith(QStringLiteral("css")))
-				contentType = QByteArrayLiteral("text/css");
-			else if (fname.endsWith(QStringLiteral("js")))
-				contentType = QByteArrayLiteral("text/javascript");
-			else if (fname.endsWith(QStringLiteral("html")) || fname.endsWith(QStringLiteral("htm")))
-				contentType = QByteArrayLiteral("text/html");
-			else if (fname.endsWith(QStringLiteral("wasm")))
-				contentType = QByteArrayLiteral("application/wasm");
-
-			return QHttpServerResponse(contentType, b, QHttpServerResponder::StatusCode::Ok);
 		}
 
-		if (QFile::exists(fname)) {
-			if (fname.endsWith(QStringLiteral("html")) || fname.endsWith(QStringLiteral("htm"))
-					|| fname.endsWith(QStringLiteral("wasm"))) {
-				QByteArray b;
-				QFile f(fname);
-				if (f.open(QIODevice::ReadOnly)) {
-					b = f.readAll();
-					f.close();
-				}
+		if (fname.endsWith(QStringLiteral("css")))
+			contentType = QByteArrayLiteral("text/css");
+		else if (fname.endsWith(QStringLiteral("js")))
+			contentType = QByteArrayLiteral("text/javascript");
+		else if (fname.endsWith(QStringLiteral("html")) || fname.endsWith(QStringLiteral("htm")))
+			contentType = QByteArrayLiteral("text/html");
+		else if (fname.endsWith(QStringLiteral("wasm")))
+			contentType = QByteArrayLiteral("application/wasm");
 
-				return QHttpServerResponse(fname.endsWith(QStringLiteral("wasm")) ?
-															  QByteArrayLiteral("application/wasm") :
-															  QByteArrayLiteral("text/html"),
-														  b, QHttpServerResponder::StatusCode::Ok);
-			} else
-				return QHttpServerResponse::fromFile(fname);
-		} else
-			return getErrorPage(tr("A fájl nem található"));
+		return QHttpServerResponse(contentType, std::move(b), QHttpServerResponder::StatusCode::Ok);
 	}
 
 	LOG_CWARNING("service") << "Invalid static content request:" << path;

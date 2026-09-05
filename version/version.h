@@ -1,7 +1,7 @@
 #ifndef _VERSION_H_
 #define _VERSION_H_
 #define VERSION_MAJOR 5
-#define VERSION_MINOR 2
-#define VERSION_BUILD 2720
-#define VERSION_FULL "5.2.2720"
+#define VERSION_MINOR 3
+#define VERSION_BUILD 0
+#define VERSION_FULL "5.3.0"
 #endif

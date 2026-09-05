@@ -119,7 +119,7 @@ android {
 
 	androidCodeApi = $$num_add($$androidCodeApi,$$AndroidVersionCode)
 
-	ANDROID_TARGET_SDK_VERSION = 35
+	ANDROID_TARGET_SDK_VERSION = 36
 	ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
 
 	QMAKE_SUBSTITUTES += alist
@@ -149,7 +149,7 @@ ios {
 	versionAtLeast(QT_VERSION, 6.8) {
 		QMAKE_IOS_DEPLOYMENT_TARGET = 16.0
 	} else {
-		QMAKE_IOS_DEPLOYMENT_TARGET = 14.0
+		QMAKE_IOS_DEPLOYMENT_TARGET = 15.0
 	}
 
 	LIBS += \

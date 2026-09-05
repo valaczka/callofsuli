@@ -215,12 +215,16 @@ public:
 	std::optional<quint64> insert(const QString &value) {
 		const quint64 h = hashFnv1a64(value.toStdString());
 
+#if QT_VERSION >= QT_VERSION_CHECK(6, 9, 0)
 		auto it = this->tryEmplace(h, value);
 
 		if (!it.inserted) {
 			LOG_CWARNING("engine") << "Hash already exists" << h << "for value" << value;
 			return std::nullopt;
 		}
+#else
+		this->QHash::insert(h, value);
+#endif
 
 		return h;
 	}
@@ -1814,7 +1818,7 @@ public:
 				other.m_active == m_active &&
 				other.m_defenders == m_defenders &&
 				other.m_multiply == m_multiply;
-				;
+		;
 	}
 
 	bool hasDefender() const { return !m_defenders.empty(); }
@@ -2270,13 +2274,13 @@ public:
 
 	enum Flag {
 		Null			= 0,
-		Player			= 1 << 0,
-		Event			= 1 << 1,
-		Mp				= 1 << 2,
-		Tower			= 1 << 3,
-		Defender		= 1 << 4,
-		Npc				= 1 << 5,
-		Control			= 1 << 6,
+				Player			= 1 << 0,
+				Event			= 1 << 1,
+				Mp				= 1 << 2,
+				Tower			= 1 << 3,
+				Defender		= 1 << 4,
+				Npc				= 1 << 5,
+				Control			= 1 << 6,
 	};
 
 	Q_DECLARE_FLAGS(Flags, Flag)

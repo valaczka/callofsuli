@@ -3963,9 +3963,9 @@ void RpgGamePrivate::downloadStaticData()
 #if defined(Q_OS_WIN)
 	minSize = 50'000'000;
 #elif defined(Q_OS_IOS)
-	platform = QStringLiteral("ios");
+	//platform = QStringLiteral("ios");
 #elif defined(Q_OS_ANDROID)
-	platform = QStringLiteral("android");
+	//platform = QStringLiteral("android");
 #elif defined(Q_OS_MACOS)
 	minSize = 50'000'000;
 #elif defined(Q_OS_LINUX)
