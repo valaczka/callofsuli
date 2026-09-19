@@ -404,7 +404,16 @@ void Handler::getDynamicContent(const QString &fname, QHttpServerResponder &&res
 
 	QFileInfo fi(fname);
 
-	QUrl url(QStringLiteral("https://valaczka.github.io/callofsuli/demo/content/")+fi.fileName());
+	//QUrl url(QStringLiteral("https://valaczka.github.io/callofsuli/demo/content/")+fi.fileName());
+
+	QUrl url(
+			#ifdef QT_NO_DEBUG
+				QStringLiteral("https://valaczka.github.io/callofsuli/demo/content/")
+			#else
+				QStringLiteral("http://localhost:8080/")
+			#endif
+				+fi.fileName()
+				);
 
 	LOG_CDEBUG("service") << "GET" << url;
 

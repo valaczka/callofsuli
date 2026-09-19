@@ -522,8 +522,11 @@ ServerList *StandaloneClient::serverList() const
 
 QUrl StandaloneClient::rpgServerUrl(const QString &path) const
 {
-	//return QUrl(QStringLiteral("http://localhost:8080/content/").append(path));
+#ifdef QT_NO_DEBUG
 	return QUrl(QStringLiteral("https://valaczka.github.io/callofsuli/demo/content/").append(path));
+#else
+	return QUrl(QStringLiteral("http://localhost:8080/").append(path));
+#endif
 }
 
 

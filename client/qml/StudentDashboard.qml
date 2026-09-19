@@ -302,6 +302,7 @@ QItemGradient {
 				flat: true
 
 				visible: !_grid.showPlaceholders &&
+						 Client.downloader.count > 0 &&
 						 !(Client.server && Client.server.user && (Client.server.user.roles & Credential.Tester))
 
 				textColor: Qaterial.Colors.yellow400

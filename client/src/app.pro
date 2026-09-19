@@ -83,9 +83,6 @@ macx: CommonRcc.path = Contents/Resources
 ################ PLATFORM SPECIFIC SETTINGS ######################x
 
 win32 {
-	CONFIG += console
-	CONFIG -= app_bundle
-
 	VERSION = $${VER_MAJ}.$${VER_MIN}.$${VER_PAT}
 	RC_ICONS = $$PWD/../../resources/internal/img/cos.ico
 	RC_LANG = 0x040E
@@ -406,6 +403,5 @@ HEADERS += \
 	userloglist.h
 
 DISTFILES += \
-	../qml/RpgChangerTumbler.qml \
 	translation.pri
 

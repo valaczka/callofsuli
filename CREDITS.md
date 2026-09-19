@@ -114,6 +114,8 @@
 - Crystal Heart - (c) Talaei (https://skfb.ly/ooRq7)
 - 9mm Pistol - (c) TORI106 (https://skfb.ly/owxRE)
 - Praying Soldier - (c) Next Stop Willoughby (https://skfb.ly/6sqtA)
+- Beretta M9A1 w/ Slide lock - (c) KaL-ABIZZARE (https://skfb.ly/pLNQW)
+- Metal Gear Solid Phatom Pain Big Boss Mixamo Rig - (c) trisutrisno (https://skfb.ly/ovLqs)
 
 **Music & SFX**
 
@@ -141,6 +143,8 @@
 - Laser gun sound effect #2 - (c) soundslikewillem (https://freesound.org/people/soundslikewillem/sounds/645681)
 - Rain (loopable) - (c) 2016 Ylmir (https://opengameart.org/content/rain-loopable)
 - Loopable Dungeon Ambience - (c) 2014 JaggedStone (https://opengameart.org/content/loopable-dungeon-ambience)
+- shotgun, 12 gage winchester pump shotgun, single shot - (c) JoseIgnacioTriay (https://freesound.org/s/515223)
+- Female Hurt Grunts & Groans - (c) Nocturnal_Vanguard (https://opengameart.org/content/female-hurt-grunts-groans)
 
 **Other**
 

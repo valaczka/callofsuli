@@ -545,7 +545,9 @@ void Client::onServerConnected()
 
 	LOG_CINFO("client") << "Server connected:" << m_httpConnection->server()->url();
 
+#ifndef Q_OS_WASM
 	initializeDynamicResources();
+#endif
 
 	server()->user()->setLoginState(User::LoggedOut);
 

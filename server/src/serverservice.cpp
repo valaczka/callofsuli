@@ -449,7 +449,13 @@ void ServerService::loadRpgData()
 {
 	LOG_CDEBUG("service") << "Download RPG data...";
 
-	static const QUrl url(QStringLiteral("https://valaczka.github.io/callofsuli/demo/content/characters.json"));
+	static const QUrl url(
+			#ifdef QT_NO_DEBUG
+				QStringLiteral("https://valaczka.github.io/callofsuli/demo/content/characters.json")
+			#else
+				QStringLiteral("http://localhost:8080/characters.json")
+			#endif
+				);
 
 	QNetworkRequest req(url);
 	QNetworkReply *reply = m_networkManager->get(req);

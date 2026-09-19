@@ -513,6 +513,18 @@ HttpReply *HttpConnection::getUrl(const QUrl &url)
 {
 	QNetworkRequest r(url);
 
+
+#ifdef Q_OS_WASM
+	if (!m_server->token().isEmpty()) {
+		r.setRawHeader(QByteArrayLiteral("Authorization"), QByteArrayLiteral("Bearer ")+m_server->token().toLocal8Bit());
+
+		if (const QByteArray &sig = Application::instance()->userAgentSign(QByteArray(), m_server->sessionId()); !sig.isEmpty())
+			r.setRawHeader(HEADER_CONTENT_SIGNATURE, sig.toBase64());
+	}
+
+	r.setHeader(QNetworkRequest::UserAgentHeader, m_client->application()->userAgent());
+#endif
+
 	QNetworkReply *reply = m_networkManager->get(r);
 
 	LOG_CTRACE("http") << "GET URL:" << qPrintable(url.path()) << this;

@@ -142,6 +142,8 @@ void OnlineClient::onUserLoggedIn()
 	QSettings s;
 	s.setValue(QStringLiteral("usertoken"), server()->token());
 	s.sync();
+
+	initializeDynamicResources();
 }
 
 
@@ -252,8 +254,8 @@ void OnlineClient::onAllResourceReady()
 
 	AbstractLevelGame::reloadAvailableMedal();
 
-	initializeDynamicResources();
-
+	// Nincs még token
+	///initializeDynamicResources();
 
 	m_application->setOnDeviceIdentityReady(this, [this](const bool &success) {
 		if (!success)
